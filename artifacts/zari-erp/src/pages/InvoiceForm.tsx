@@ -791,12 +791,6 @@ export default function InvoiceForm() {
                   <label className={lbl}>Due Date</label>
                   <input type="date" value={form.dueDate} onChange={e => setF("dueDate", e.target.value)} className={inp} />
                 </div>
-                <div>
-                  <label className={lbl}>Direction *</label>
-                  <select value={form.invoiceDirection} onChange={e => setF("invoiceDirection", e.target.value)} className={selClass}>
-                    {DIRECTIONS.map(d => <option key={d}>{d}</option>)}
-                  </select>
-                </div>
                 <div className="col-span-3">
                   <label className={lbl}>Invoice Type *</label>
                   <div className="flex flex-wrap gap-2 mt-1">
