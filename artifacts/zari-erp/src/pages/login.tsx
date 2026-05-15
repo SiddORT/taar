@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Eye, EyeOff } from "lucide-react";
 import { useLogin } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
+import { useQueryClient } from "@tanstack/react-query";
 import ZariButton from "@/components/ui/ZariButton";
 import ZariLogo from "@assets/image_1776152751088.png";
 
@@ -19,6 +20,7 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 export default function Login() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [showPassword, setShowPassword] = useState(false);
 
   const loginMutation = useLogin();
@@ -37,6 +39,7 @@ export default function Login() {
       {
         onSuccess: (data) => {
           localStorage.setItem("zarierp_token", data.token);
+          queryClient.clear();
           toast({
             title: "Login Successful",
             description: "Welcome back to ZARI ERP.",
