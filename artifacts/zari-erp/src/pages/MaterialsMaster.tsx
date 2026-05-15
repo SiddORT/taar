@@ -395,7 +395,6 @@ export default function MaterialsMaster() {
       const wsData = allRows.map((r) => ({
         "Code": r.materialCode,
         "Material Name": r.materialName ?? "",
-        "Item Type": r.itemType,
         "Quality": r.quality,
         "Type": r.type ?? "",
         "Color Name": r.colorName,
@@ -422,7 +421,7 @@ export default function MaterialsMaster() {
 
   const handleDownloadSample = () => {
     const sample = [{
-      "Material Name": "Silk Thread", "Item Type": "Thread", "Quality": "Premium", "Type": "Natural",
+      "Material Name": "Silk Thread", "Quality": "Premium", "Type": "Natural",
       "Color Name": "Royal Blue", "Hex Code": "#4169E1", "Size": "5", "Unit Price": "250",
       "Unit Type": "Meter", "Current Stock": "100", "HSN Code": "5402", "GST %": "5",
       "Preferred Vendors": "", "Status": "Active",

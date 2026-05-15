@@ -17,7 +17,6 @@ const NUMERIC_REGEX = /^[0-9]+(\.[0-9]{1,2})?$/;
 function validateMaterialFields(data: Record<string, unknown>): string[] {
   const errs: string[] = [];
   const textFields: [string, string, number][] = [
-    ["itemType", "Item Type", 100],
     ["quality", "Quality", 100],
     ["type", "Type", 100],
     ["colorName", "Color Name", 100],
@@ -90,7 +89,6 @@ router.post("/materials/import", requireAuth, async (req: AuthRequest, res): Pro
     const currentStock = typeof raw["Current Stock"] === "string" ? raw["Current Stock"].trim() : String(raw["Current Stock"] ?? "").trim();
     const hsnCode = typeof raw["HSN Code"] === "string" ? raw["HSN Code"].trim() : String(raw["HSN Code"] ?? "").trim();
     const gstPercent = typeof raw["GST %"] === "string" ? raw["GST %"].trim() : String(raw["GST %"] ?? "").trim();
-    const itemType = typeof raw["Item Type"] === "string" ? raw["Item Type"].trim() : "";
     const materialName = typeof raw["Material Name"] === "string" ? raw["Material Name"].trim() : "";
     const type = typeof raw["Type"] === "string" ? raw["Type"].trim() : "";
     const colorHex = typeof raw["Hex Code"] === "string" ? raw["Hex Code"].trim() : "#c9b45c";
@@ -112,7 +110,6 @@ router.post("/materials/import", requireAuth, async (req: AuthRequest, res): Pro
     else if (!NUMERIC_REGEX.test(currentStock)) rowErrors.push("Current Stock must be a positive numeric value.");
     if (!hsnCode) rowErrors.push("HSN Code is required");
     if (!gstPercent) rowErrors.push("GST % is required");
-    if (itemType && !NAME_REGEX.test(itemType)) rowErrors.push("Item Type must contain only letters and spaces.");
     if (type && !NAME_REGEX.test(type)) rowErrors.push("Type must contain only letters and spaces.");
 
     if (rowErrors.length > 0) {
@@ -122,14 +119,14 @@ router.post("/materials/import", requireAuth, async (req: AuthRequest, res): Pro
 
     try {
       const dupMat = await db.select({ id: materialsTable.id }).from(materialsTable).where(
-        and(ilike(materialsTable.itemType, itemType), ilike(materialsTable.colorName, colorName), eq(materialsTable.size, size), eq(materialsTable.isDeleted, false))
+        and(ilike(materialsTable.colorName, colorName), eq(materialsTable.size, size), eq(materialsTable.isDeleted, false))
       );
-      if (dupMat.length > 0) { results.push({ row: rowNum, status: "error", errors: [`A material with Type "${itemType}", Color "${colorName}", and Size "${size}" already exists.`] }); continue; }
+      if (dupMat.length > 0) { results.push({ row: rowNum, status: "error", errors: [`A material with Color "${colorName}" and Size "${size}" already exists.`] }); continue; }
 
       const [{ total }] = await db.select({ total: count() }).from(materialsTable);
       const materialCode = `MAT${String(total + 1).padStart(4, "0")}`;
       const [record] = await db.insert(materialsTable).values({
-        materialCode, materialName: materialName || null, itemType, quality, type: type || null,
+        materialCode, materialName: materialName || null, quality, type: type || null,
         hexCode: colorHex, color: colorHex, colorName, size, unitPrice, unitType, currentStock,
         hsnCode, gstPercent, vendor: vendor || null, isActive, createdBy, images: [], locationStocks: [],
       }).returning();
