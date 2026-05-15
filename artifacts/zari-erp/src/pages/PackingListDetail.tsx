@@ -46,10 +46,20 @@ interface PLPackage {
 
 interface PLPackageItem {
   id: number; package_id: number;
-  order_type: string; order_id: number;
+  item_source: string;
+  order_type: string | null; order_id: number | null;
   order_code: string | null; description: string | null;
   quantity: string | null; unit: string | null;
   item_weight: string | null; item_image_url: string | null;
+  inventory_id: number | null; inventory_type: string | null;
+  stock_deducted: string | null; deducted_from_location: string | null;
+}
+
+interface InvItem {
+  id: number; code: string; name: string;
+  current_stock: string;
+  location_stocks: { location: string; stock: string }[];
+  unit: string | null;
 }
 
 interface EligibleOrder {
@@ -116,6 +126,20 @@ export default function PackingListDetail() {
   const [draftShipmentId, setDraftShipmentId] = useState<number | "">("");
   const [savingShipment, setSavingShipment] = useState(false);
 
+  // Custom item panel
+  const [customPkgId, setCustomPkgId] = useState<number | null>(null);
+  const [customSource, setCustomSource] = useState<"material" | "fabric" | "custom">("material");
+  const [customSearch, setCustomSearch] = useState("");
+  const [invResults, setInvResults] = useState<InvItem[]>([]);
+  const [searchingInv, setSearchingInv] = useState(false);
+  const [customSelected, setCustomSelected] = useState<InvItem | null>(null);
+  const [customLocation, setCustomLocation] = useState<string>("");
+  const [customQty, setCustomQty] = useState("");
+  const [customUnit, setCustomUnit] = useState("");
+  const [customDesc, setCustomDesc] = useState("");
+  const [customWeight, setCustomWeight] = useState("");
+  const [savingCustom, setSavingCustom] = useState(false);
+
   // Deleting
   const [deletingItemId, setDeletingItemId] = useState<number | null>(null);
   const [deletingPkgId, setDeletingPkgId] = useState<number | null>(null);
@@ -169,14 +193,15 @@ export default function PackingListDetail() {
     } finally { setSavingShipment(false); }
   }
 
-  // Fetch artwork images for items without uploaded images
+  // Fetch artwork images for order items only
   useEffect(() => {
     if (!pl) return;
     for (const pkg of pl.packages) {
       for (const item of pkg.items) {
+        if (item.item_source !== "order") continue;
         if (item.item_image_url) continue;
         if (artworkImages[item.id] !== undefined) continue;
-        fetch(`/api/packing-lists/order-artwork-image?type=${encodeURIComponent(item.order_type)}&item_id=${item.order_id}`, {
+        fetch(`/api/packing-lists/order-artwork-image?type=${encodeURIComponent(item.order_type ?? "")}&item_id=${item.order_id}`, {
           headers: { Authorization: `Bearer ${token}` },
         })
           .then(r => r.json())
@@ -197,8 +222,75 @@ export default function PackingListDetail() {
   function openAddPanel(pkgId: number) {
     if (addingToPkg === pkgId) { setAddingToPkg(null); return; }
     setAddingToPkg(pkgId);
+    setCustomPkgId(null);
     setOrderSearch("");
     loadEligible();
+  }
+
+  function openCustomPanel(pkgId: number) {
+    if (customPkgId === pkgId) { setCustomPkgId(null); return; }
+    setCustomPkgId(pkgId);
+    setAddingToPkg(null);
+    setCustomSource("material");
+    setCustomSearch("");
+    setInvResults([]);
+    setCustomSelected(null);
+    setCustomLocation("");
+    setCustomQty("");
+    setCustomUnit("");
+    setCustomDesc("");
+    setCustomWeight("");
+  }
+
+  useEffect(() => {
+    if (customSource === "custom") { setInvResults([]); setCustomSelected(null); setCustomLocation(""); return; }
+    const timer = setTimeout(async () => {
+      if (!customPkgId) return;
+      setSearchingInv(true);
+      try {
+        const r = await customFetch<any>(
+          `/api/packing-lists/inventory/search?type=${customSource}&q=${encodeURIComponent(customSearch)}`
+        );
+        setInvResults(r.data ?? []);
+      } catch {} finally { setSearchingInv(false); }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [customSearch, customSource, customPkgId]);
+
+  async function handleAddCustomItem() {
+    if (!customPkgId) return;
+    setSavingCustom(true);
+    try {
+      const body: Record<string, unknown> = {
+        item_source: customSource,
+        description: customDesc || null,
+        quantity: customQty ? parseFloat(customQty) : null,
+        unit: customUnit || null,
+        item_weight: customWeight ? parseFloat(customWeight) : null,
+      };
+      if (customSource !== "custom") {
+        if (!customSelected) { toast({ title: "Please select an item", variant: "destructive" }); return; }
+        body.inventory_id = customSelected.id;
+        body.inventory_type = customSource;
+        if (customLocation) body.deducted_from_location = customLocation;
+      }
+      await customFetch(`/api/packing-lists/${params.id}/packages/${customPkgId}/items`, {
+        method: "POST",
+        body: JSON.stringify(body),
+      });
+      await loadPl();
+      toast({ title: "Custom item added" });
+      setCustomQty("");
+      setCustomDesc("");
+      setCustomWeight("");
+      setCustomUnit("");
+      setCustomSelected(null);
+      setCustomLocation("");
+      setCustomSearch("");
+      setInvResults([]);
+    } catch (e: any) {
+      toast({ title: "Cannot add item", description: e?.data?.error ?? e?.message ?? "Failed", variant: "destructive" });
+    } finally { setSavingCustom(false); }
   }
 
   async function handleAddItem(order: EligibleOrder, type: "Swatch" | "Style") {
@@ -618,6 +710,17 @@ export default function PackingListDetail() {
                               {addingToPkg === pkg.id ? "Selecting…" : "Add Orders"}
                             </button>
                             <button
+                              onClick={() => openCustomPanel(pkg.id)}
+                              className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium border transition-all ${
+                                customPkgId === pkg.id
+                                  ? "border-blue-300 bg-blue-100 text-blue-800"
+                                  : "border-gray-200 text-gray-600 hover:bg-gray-50"
+                              }`}
+                            >
+                              <Plus className="h-3 w-3" />
+                              {customPkgId === pkg.id ? "Custom…" : "Add Custom"}
+                            </button>
+                            <button
                               onClick={() => isEditingDims ? setEditingPkg(null) : startEditPkg(pkg)}
                               className="p-1.5 rounded-lg hover:bg-blue-50 text-gray-400 hover:text-blue-600"
                               title="Edit dimensions"
@@ -675,6 +778,180 @@ export default function PackingListDetail() {
                                     Save
                                   </button>
                                   <button onClick={() => setEditingPkg(null)} className="px-3 py-1.5 rounded-lg text-xs text-gray-600 hover:bg-white border border-blue-200">Cancel</button>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Custom item panel */}
+                            {customPkgId === pkg.id && (
+                              <div className="mt-4 p-4 bg-blue-50 rounded-xl border border-blue-100">
+                                <div className="flex items-center justify-between mb-3">
+                                  <span className="text-xs font-bold text-blue-700 uppercase tracking-wider">Add Custom Item to Package {pkg.package_number}</span>
+                                  <button onClick={() => setCustomPkgId(null)} className="text-blue-400 hover:text-blue-600">
+                                    <X className="h-4 w-4" />
+                                  </button>
+                                </div>
+
+                                {/* Source selector */}
+                                <div className="flex gap-1 mb-3 bg-blue-100 p-1 rounded-lg">
+                                  {(["material", "fabric", "custom"] as const).map(src => (
+                                    <button
+                                      key={src}
+                                      onClick={() => { setCustomSource(src); setCustomSelected(null); setCustomLocation(""); setCustomSearch(""); setInvResults([]); }}
+                                      className={`flex-1 py-1.5 text-xs font-semibold rounded-md capitalize transition-all ${
+                                        customSource === src ? "bg-white shadow text-gray-900" : "text-blue-700 hover:text-blue-900"
+                                      }`}
+                                    >
+                                      {src === "custom" ? "Free Text" : src.charAt(0).toUpperCase() + src.slice(1)}
+                                    </button>
+                                  ))}
+                                </div>
+
+                                {/* Inventory search (material / fabric) */}
+                                {customSource !== "custom" && (
+                                  <div className="mb-3">
+                                    <div className="relative mb-1">
+                                      <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
+                                      <input
+                                        value={customSearch}
+                                        onChange={e => { setCustomSearch(e.target.value); setCustomSelected(null); setCustomLocation(""); }}
+                                        placeholder={`Search ${customSource}s…`}
+                                        className="w-full pl-7 py-1.5 border border-blue-200 rounded-lg text-xs bg-white focus:outline-none focus:ring-1 focus:ring-blue-300"
+                                      />
+                                    </div>
+
+                                    {/* Search results */}
+                                    {!customSelected && (
+                                      <div className="max-h-36 overflow-y-auto bg-white rounded-lg border border-blue-100 divide-y divide-gray-50">
+                                        {searchingInv ? (
+                                          <div className="flex justify-center py-3">
+                                            <div className="h-4 w-4 rounded-full border-2 border-blue-200 animate-spin" style={{ borderTopColor: G }} />
+                                          </div>
+                                        ) : invResults.length === 0 ? (
+                                          <div className="text-xs text-gray-400 text-center py-3">
+                                            {customSearch ? "No results" : `Type to search ${customSource}s`}
+                                          </div>
+                                        ) : invResults.map(inv => (
+                                          <button
+                                            key={inv.id}
+                                            onClick={() => {
+                                              setCustomSelected(inv);
+                                              setCustomSearch(inv.name || inv.code);
+                                              setCustomLocation(inv.location_stocks?.length > 0 ? inv.location_stocks[0].location : "");
+                                              if (!customUnit && inv.unit) setCustomUnit(inv.unit);
+                                            }}
+                                            className="w-full flex items-center justify-between px-3 py-2 hover:bg-blue-50 text-left transition-colors"
+                                          >
+                                            <div>
+                                              <div className="text-xs font-semibold text-gray-800 font-mono">{inv.code}</div>
+                                              <div className="text-[11px] text-gray-500 truncate">{inv.name}</div>
+                                            </div>
+                                            <div className="text-right ml-3 shrink-0">
+                                              <div className="text-xs font-semibold text-gray-700">{inv.current_stock} {inv.unit ?? ""}</div>
+                                              <div className="text-[10px] text-gray-400">in stock</div>
+                                            </div>
+                                          </button>
+                                        ))}
+                                      </div>
+                                    )}
+
+                                    {/* Selected item display */}
+                                    {customSelected && (
+                                      <div className="flex items-center justify-between bg-white border border-blue-200 rounded-lg px-3 py-2">
+                                        <div>
+                                          <div className="text-xs font-semibold text-gray-800 font-mono">{customSelected.code}</div>
+                                          <div className="text-[11px] text-gray-500">{customSelected.name}</div>
+                                        </div>
+                                        <div className="flex items-center gap-3">
+                                          <div className="text-right">
+                                            <div className="text-xs font-bold text-emerald-700">{customSelected.current_stock} {customSelected.unit ?? ""}</div>
+                                            <div className="text-[10px] text-gray-400">available</div>
+                                          </div>
+                                          <button onClick={() => { setCustomSelected(null); setCustomSearch(""); setCustomLocation(""); setInvResults([]); }} className="text-gray-300 hover:text-red-400">
+                                            <X className="h-3.5 w-3.5" />
+                                          </button>
+                                        </div>
+                                      </div>
+                                    )}
+
+                                    {/* Location picker */}
+                                    {customSelected && customSelected.location_stocks?.length > 0 && (
+                                      <div className="mt-2">
+                                        <label className="block text-[10px] font-semibold text-blue-700 uppercase tracking-wider mb-1">Deduct from Location</label>
+                                        <select
+                                          value={customLocation}
+                                          onChange={e => setCustomLocation(e.target.value)}
+                                          className="w-full border border-blue-200 rounded-lg px-2.5 py-1.5 text-xs text-gray-900 bg-white focus:outline-none focus:ring-1 focus:ring-blue-300"
+                                        >
+                                          <option value="">— No specific location —</option>
+                                          {customSelected.location_stocks.map(ls => (
+                                            <option key={ls.location} value={ls.location}>
+                                              {ls.location} — {ls.stock} {customSelected.unit ?? ""} available
+                                            </option>
+                                          ))}
+                                        </select>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+
+                                {/* Fields row */}
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
+                                  <div>
+                                    <label className="block text-[10px] font-semibold text-blue-700 uppercase tracking-wider mb-1">Quantity *</label>
+                                    <input
+                                      type="number" min="0" step="any"
+                                      value={customQty}
+                                      onChange={e => setCustomQty(e.target.value)}
+                                      placeholder="0"
+                                      className="w-full border border-blue-200 rounded-lg px-2.5 py-1.5 text-xs text-gray-900 bg-white focus:outline-none focus:ring-1 focus:ring-blue-300"
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="block text-[10px] font-semibold text-blue-700 uppercase tracking-wider mb-1">Unit</label>
+                                    <input
+                                      type="text"
+                                      value={customUnit}
+                                      onChange={e => setCustomUnit(e.target.value)}
+                                      placeholder="pcs / m / kg"
+                                      className="w-full border border-blue-200 rounded-lg px-2.5 py-1.5 text-xs text-gray-900 bg-white focus:outline-none focus:ring-1 focus:ring-blue-300"
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="block text-[10px] font-semibold text-blue-700 uppercase tracking-wider mb-1">Weight (kg)</label>
+                                    <input
+                                      type="number" min="0" step="0.001"
+                                      value={customWeight}
+                                      onChange={e => setCustomWeight(e.target.value)}
+                                      placeholder="0.000"
+                                      className="w-full border border-blue-200 rounded-lg px-2.5 py-1.5 text-xs text-gray-900 bg-white focus:outline-none focus:ring-1 focus:ring-blue-300"
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="block text-[10px] font-semibold text-blue-700 uppercase tracking-wider mb-1">Description</label>
+                                    <input
+                                      type="text"
+                                      value={customDesc}
+                                      onChange={e => setCustomDesc(e.target.value)}
+                                      placeholder="Optional note"
+                                      className="w-full border border-blue-200 rounded-lg px-2.5 py-1.5 text-xs text-gray-900 bg-white focus:outline-none focus:ring-1 focus:ring-blue-300"
+                                    />
+                                  </div>
+                                </div>
+
+                                <div className="flex gap-2">
+                                  <button
+                                    onClick={handleAddCustomItem}
+                                    disabled={savingCustom || !customQty || (customSource !== "custom" && !customSelected)}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                                    style={{ backgroundColor: G }}
+                                  >
+                                    {savingCustom
+                                      ? <div className="h-3 w-3 rounded-full border-2 border-white/40 border-t-white animate-spin" />
+                                      : <Plus className="h-3 w-3" />}
+                                    Add Item
+                                  </button>
+                                  <button onClick={() => setCustomPkgId(null)} className="px-3 py-1.5 rounded-lg text-xs text-gray-600 hover:bg-white border border-blue-200">Cancel</button>
                                 </div>
                               </div>
                             )}
@@ -800,12 +1077,27 @@ export default function PackingListDetail() {
                                           )}
                                         </td>
                                         <td className="px-3 py-3">
-                                          <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${item.order_type === "Swatch" ? "bg-purple-50 text-purple-700" : "bg-teal-50 text-teal-700"}`}>
-                                            {item.order_type}
-                                          </span>
+                                          {item.item_source === "order" ? (
+                                            <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${item.order_type === "Swatch" ? "bg-purple-50 text-purple-700" : "bg-teal-50 text-teal-700"}`}>
+                                              {item.order_type}
+                                            </span>
+                                          ) : item.item_source === "material" ? (
+                                            <span className="text-xs px-2 py-0.5 rounded-full font-semibold bg-orange-50 text-orange-700">Material</span>
+                                          ) : item.item_source === "fabric" ? (
+                                            <span className="text-xs px-2 py-0.5 rounded-full font-semibold bg-pink-50 text-pink-700">Fabric</span>
+                                          ) : (
+                                            <span className="text-xs px-2 py-0.5 rounded-full font-semibold bg-gray-100 text-gray-600">Custom</span>
+                                          )}
                                         </td>
-                                        <td className="px-3 py-3 font-mono text-xs text-gray-700">{item.order_code ?? "—"}</td>
-                                        <td className="px-3 py-3 text-gray-600 text-xs max-w-[140px] truncate">{item.description ?? "—"}</td>
+                                        <td className="px-3 py-3 font-mono text-xs text-gray-700">
+                                          {item.order_code ?? (item.item_source !== "order" && item.inventory_id ? `#${item.inventory_id}` : "—")}
+                                        </td>
+                                        <td className="px-3 py-3 text-gray-600 text-xs max-w-[140px]">
+                                          <div className="truncate">{item.description ?? "—"}</div>
+                                          {item.deducted_from_location && (
+                                            <div className="text-[10px] text-blue-500 mt-0.5">📍 {item.deducted_from_location}</div>
+                                          )}
+                                        </td>
                                         <td className="px-3 py-3 text-gray-600 text-xs">{item.quantity ?? "—"}</td>
                                         <td className="px-3 py-3 text-gray-500 text-xs">{item.unit ?? "—"}</td>
                                         <td className="px-3 py-3">

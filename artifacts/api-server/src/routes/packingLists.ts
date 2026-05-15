@@ -420,6 +420,42 @@ router.delete("/packing-lists/:id/packages/:pkgId", requireAuth, async (req, res
 });
 
 // ═══════════════════════════════════════════════════════════════
+// INVENTORY SEARCH (for custom packing items)
+// ═══════════════════════════════════════════════════════════════
+
+// GET /api/packing-lists/inventory/search?type=material|fabric&q=...
+router.get("/packing-lists/inventory/search", requireAuth, async (req, res) => {
+  try {
+    const { type, q = "" } = req.query as { type?: string; q?: string };
+    const search = `%${q}%`;
+    if (type === "material") {
+      const r = await pool.query(
+        `SELECT id, material_code AS code, COALESCE(material_name, quality) AS name,
+                current_stock, location_stocks, unit_type AS unit, color_name, quality
+         FROM materials
+         WHERE is_deleted = false AND is_active = true
+           AND (material_code ILIKE $1 OR material_name ILIKE $1 OR quality ILIKE $1 OR color_name ILIKE $1)
+         ORDER BY material_code LIMIT 50`,
+        [search]
+      );
+      return res.json({ data: r.rows });
+    } else if (type === "fabric") {
+      const r = await pool.query(
+        `SELECT id, fabric_code AS code, fabric_name AS name,
+                current_stock, location_stocks, unit_type AS unit
+         FROM fabrics
+         WHERE is_deleted = false AND is_active = true
+           AND (fabric_code ILIKE $1 OR fabric_name ILIKE $1)
+         ORDER BY fabric_code LIMIT 50`,
+        [search]
+      );
+      return res.json({ data: r.rows });
+    }
+    return res.status(400).json({ error: "type must be 'material' or 'fabric'" });
+  } catch (e) { return err(res, e, "Failed to search inventory"); }
+});
+
+// ═══════════════════════════════════════════════════════════════
 // PACKAGE ITEMS — ADD / REMOVE
 // ═══════════════════════════════════════════════════════════════
 
@@ -434,42 +470,121 @@ router.post("/packing-lists/:id/packages/:pkgId/items", requireAuth, async (req,
     );
     if (!pkg.rows.length) return res.status(404).json({ error: "Package not found" });
 
-    const { order_type, order_id, order_code, description, quantity, unit, item_weight } = req.body;
-    const { client_id, delivery_address_id } = pkg.rows[0];
+    const {
+      item_source = "order",
+      order_type, order_id, order_code,
+      description, quantity, unit, item_weight,
+      inventory_id, inventory_type, deducted_from_location,
+    } = req.body;
 
-    // Prevent duplicate order across all packages in this packing list
-    const dup = await pool.query(
-      `SELECT ppi.id FROM packing_package_items ppi
-       JOIN packing_packages pp ON pp.id = ppi.package_id
-       WHERE pp.packing_list_id = $1 AND ppi.order_type = $2 AND ppi.order_id = $3`,
-      [req.params.id, order_type, order_id]
-    );
-    if (dup.rows.length)
-      return res.status(400).json({ error: "This order is already packed in another package of this packing list" });
+    // ── ORDER item (existing behaviour) ──────────────────────────
+    if (item_source === "order") {
+      const { client_id, delivery_address_id } = pkg.rows[0];
 
-    // Validate order is not shipped
-    const tbl = order_type === "Swatch" ? "swatch_orders" : "style_orders";
-    const orderRow = await pool.query(`SELECT order_status FROM ${tbl} WHERE id = $1`, [order_id]);
-    if (orderRow.rows[0]?.order_status === "Shipped")
-      return res.status(400).json({ error: "Cannot add a shipped order to a packing list" });
-
-    // Validate delivery address match
-    if (delivery_address_id) {
-      const chk = await pool.query(
-        `SELECT id FROM ${tbl} WHERE id = $1 AND client_id::text = $2::text AND delivery_address_id = $3`,
-        [order_id, client_id, delivery_address_id]
+      const dup = await pool.query(
+        `SELECT ppi.id FROM packing_package_items ppi
+         JOIN packing_packages pp ON pp.id = ppi.package_id
+         WHERE pp.packing_list_id = $1 AND ppi.order_type = $2 AND ppi.order_id = $3`,
+        [req.params.id, order_type, order_id]
       );
-      if (!chk.rows.length)
-        return res.status(400).json({ error: "Order delivery address does not match this packing list. Selection blocked." });
+      if (dup.rows.length)
+        return res.status(400).json({ error: "This order is already packed in another package of this packing list" });
+
+      const tbl = order_type === "Swatch" ? "swatch_orders" : "style_orders";
+      const orderRow = await pool.query(`SELECT order_status FROM ${tbl} WHERE id = $1`, [order_id]);
+      if (orderRow.rows[0]?.order_status === "Shipped")
+        return res.status(400).json({ error: "Cannot add a shipped order to a packing list" });
+
+      if (delivery_address_id) {
+        const chk = await pool.query(
+          `SELECT id FROM ${tbl} WHERE id = $1 AND client_id::text = $2::text AND delivery_address_id = $3`,
+          [order_id, client_id, delivery_address_id]
+        );
+        if (!chk.rows.length)
+          return res.status(400).json({ error: "Order delivery address does not match this packing list. Selection blocked." });
+      }
+
+      const r = await pool.query(
+        `INSERT INTO packing_package_items
+           (package_id, item_source, order_type, order_id, order_code, description, quantity, unit, item_weight)
+         VALUES ($1,'order',$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
+        [req.params.pkgId, order_type, order_id, order_code || null,
+         description || null, quantity || null, unit || null, item_weight || null]
+      );
+      return res.status(201).json({ data: r.rows[0] });
     }
 
-    const r = await pool.query(
-      `INSERT INTO packing_package_items (package_id, order_type, order_id, order_code, description, quantity, unit, item_weight)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
-      [req.params.pkgId, order_type, order_id, order_code || null,
-       description || null, quantity || null, unit || null, item_weight || null]
-    );
-    return res.status(201).json({ data: r.rows[0] });
+    // ── CUSTOM (non-inventory) ────────────────────────────────────
+    if (item_source === "custom") {
+      const r = await pool.query(
+        `INSERT INTO packing_package_items
+           (package_id, item_source, description, quantity, unit, item_weight)
+         VALUES ($1,'custom',$2,$3,$4,$5) RETURNING *`,
+        [req.params.pkgId, description || null, quantity || null, unit || null, item_weight || null]
+      );
+      return res.status(201).json({ data: r.rows[0] });
+    }
+
+    // ── MATERIAL or FABRIC (inventory) ───────────────────────────
+    if (item_source === "material" || item_source === "fabric") {
+      if (!inventory_id) return res.status(400).json({ error: "inventory_id is required" });
+      const qty = parseFloat(quantity);
+      if (isNaN(qty) || qty <= 0) return res.status(400).json({ error: "quantity must be a positive number" });
+
+      const invTable = item_source === "material" ? "materials" : "fabrics";
+      const inv = await pool.query(
+        `SELECT id, current_stock, location_stocks FROM ${invTable} WHERE id = $1 AND is_deleted = false`,
+        [inventory_id]
+      );
+      if (!inv.rows.length) return res.status(404).json({ error: "Inventory item not found" });
+
+      const invRow = inv.rows[0];
+      const locationStocks: { location: string; stock: string }[] = invRow.location_stocks ?? [];
+
+      let stockDeducted = 0;
+      let resolvedLocation: string | null = deducted_from_location || null;
+
+      if (resolvedLocation && locationStocks.length > 0) {
+        // Deduct from a specific warehouse location
+        const locIdx = locationStocks.findIndex(ls => ls.location === resolvedLocation);
+        if (locIdx === -1) return res.status(400).json({ error: `Location "${resolvedLocation}" not found on this item` });
+        const locStock = parseFloat(locationStocks[locIdx].stock);
+        if (qty > locStock)
+          return res.status(400).json({ error: `Only ${locStock} available at ${resolvedLocation}` });
+
+        locationStocks[locIdx] = { location: resolvedLocation, stock: String(locStock - qty) };
+        const newTotal = parseFloat(invRow.current_stock) - qty;
+        await pool.query(
+          `UPDATE ${invTable} SET current_stock = $1, location_stocks = $2 WHERE id = $3`,
+          [String(newTotal), JSON.stringify(locationStocks), inventory_id]
+        );
+        stockDeducted = qty;
+      } else {
+        // No location breakdown — deduct from total current_stock
+        const totalStock = parseFloat(invRow.current_stock);
+        if (qty > totalStock)
+          return res.status(400).json({ error: `Only ${totalStock} available in stock` });
+        await pool.query(
+          `UPDATE ${invTable} SET current_stock = $1 WHERE id = $2`,
+          [String(totalStock - qty), inventory_id]
+        );
+        resolvedLocation = null;
+        stockDeducted = qty;
+      }
+
+      const r = await pool.query(
+        `INSERT INTO packing_package_items
+           (package_id, item_source, inventory_id, inventory_type,
+            description, quantity, unit, item_weight, stock_deducted, deducted_from_location)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *`,
+        [req.params.pkgId, item_source, inventory_id, item_source,
+         description || null, String(qty), unit || null, item_weight || null,
+         stockDeducted, resolvedLocation]
+      );
+      return res.status(201).json({ data: r.rows[0] });
+    }
+
+    return res.status(400).json({ error: "Invalid item_source" });
   } catch (e) { return err(res, e, "Failed to add item to package"); }
 });
 
@@ -494,6 +609,39 @@ router.patch("/packing-lists/:id/packages/:pkgId/items/:itemId", requireAuth, as
 // DELETE /api/packing-lists/:id/packages/:pkgId/items/:itemId
 router.delete("/packing-lists/:id/packages/:pkgId/items/:itemId", requireAuth, async (req, res) => {
   try {
+    const itemRes = await pool.query(
+      `SELECT * FROM packing_package_items WHERE id = $1 AND package_id = $2`,
+      [req.params.itemId, req.params.pkgId]
+    );
+    if (!itemRes.rows.length) return res.status(404).json({ error: "Item not found" });
+    const item = itemRes.rows[0];
+
+    // Restore stock if this was an inventory item with deducted stock
+    if ((item.item_source === "material" || item.item_source === "fabric") && parseFloat(item.stock_deducted ?? "0") > 0) {
+      const invTable = item.item_source === "material" ? "materials" : "fabrics";
+      const deducted = parseFloat(item.stock_deducted);
+      const inv = await pool.query(`SELECT current_stock, location_stocks FROM ${invTable} WHERE id = $1`, [item.inventory_id]);
+      if (inv.rows.length) {
+        const invRow = inv.rows[0];
+        const newTotal = parseFloat(invRow.current_stock) + deducted;
+        if (item.deducted_from_location) {
+          const locationStocks: { location: string; stock: string }[] = invRow.location_stocks ?? [];
+          const locIdx = locationStocks.findIndex((ls: { location: string }) => ls.location === item.deducted_from_location);
+          if (locIdx >= 0) {
+            locationStocks[locIdx] = { location: item.deducted_from_location, stock: String(parseFloat(locationStocks[locIdx].stock) + deducted) };
+          } else {
+            locationStocks.push({ location: item.deducted_from_location, stock: String(deducted) });
+          }
+          await pool.query(
+            `UPDATE ${invTable} SET current_stock = $1, location_stocks = $2 WHERE id = $3`,
+            [String(newTotal), JSON.stringify(locationStocks), item.inventory_id]
+          );
+        } else {
+          await pool.query(`UPDATE ${invTable} SET current_stock = $1 WHERE id = $2`, [String(newTotal), item.inventory_id]);
+        }
+      }
+    }
+
     await pool.query(`DELETE FROM packing_package_items WHERE id = $1 AND package_id = $2`, [req.params.itemId, req.params.pkgId]);
     return res.json({ success: true });
   } catch (e) { return err(res, e, "Failed to remove item from package"); }
