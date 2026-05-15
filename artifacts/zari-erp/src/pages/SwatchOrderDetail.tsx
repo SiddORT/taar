@@ -300,11 +300,6 @@ export default function SwatchOrderDetail() {
   }));
 
   const { hasTabPermission } = useMyPermissions();
-  const visibleTabs = useMemo(
-    () => FULL_TABS.filter((t) => hasTabPermission(t.permKey)),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    []
-  );
 
   const [activeTab, setActiveTab] = useState<string>(() => {
     const params = new URLSearchParams(window.location.search);
@@ -312,6 +307,19 @@ export default function SwatchOrderDetail() {
     return FULL_TABS[!isNaN(t) && t >= 0 ? Math.min(t, FULL_TABS.length - 1) : 0]?.label ?? "Basic Info";
   });
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
+
+  const visibleTabs = useMemo(
+    () => FULL_TABS.filter((t) => {
+      if (t.label === "Invoices" && !form.isChargeable) return false;
+      return hasTabPermission(t.permKey);
+    }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [form.isChargeable]
+  );
+
+  useEffect(() => {
+    if (activeTab === "Invoices" && !form.isChargeable) setActiveTab("Basic Info");
+  }, [form.isChargeable, activeTab]);
   const [selectedClient, setSelectedClient] = useState<ClientRecord | null>(null);
   const [saving, setSaving] = useState(false);
   const savedFormRef = useRef<FormState>(EMPTY_FORM);
@@ -386,15 +394,17 @@ export default function SwatchOrderDetail() {
   function addSwatchRef() {
     set("swatchReferences", [...form.swatchReferences, { id: "", label: "", remark: "" }]);
   }
-  function updateRef(type: "style" | "swatch", idx: number, field: keyof ReferenceItem, value: string) {
+  function updateRef(type: "style" | "swatch", idx: number, updates: Partial<ReferenceItem>) {
     const key = type === "style" ? "styleReferences" : "swatchReferences";
-    const arr = [...form[key]];
-    arr[idx] = { ...arr[idx], [field]: value };
-    set(key, arr);
+    setForm(prev => {
+      const arr = [...prev[key]];
+      arr[idx] = { ...arr[idx], ...updates };
+      return { ...prev, [key]: arr };
+    });
   }
   function removeRef(type: "style" | "swatch", idx: number) {
     const key = type === "style" ? "styleReferences" : "swatchReferences";
-    set(key, form[key].filter((_, i) => i !== idx));
+    setForm(prev => ({ ...prev, [key]: prev[key].filter((_, i) => i !== idx) }));
   }
 
   async function handleSave() {
@@ -538,14 +548,11 @@ export default function SwatchOrderDetail() {
               </select>
               <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 pointer-events-none" />
             </div>
-            {/* Save — only on tabs with editable data (0=Basic Info, 1=References) */}
-            {Number(activeTab) <= 1 && (
-              <button onClick={() => { void handleSave(); }} disabled={saving}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gray-900 text-[#C9B45C] text-sm font-medium hover:bg-black transition-colors disabled:opacity-60 shrink-0">
-                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                {saving ? "Saving…" : "Save"}
-              </button>
-            )}
+            <button onClick={() => { void handleSave(); }} disabled={saving}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gray-900 text-[#C9B45C] text-sm font-medium hover:bg-black transition-colors disabled:opacity-60 shrink-0">
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              {saving ? "Saving…" : "Save"}
+            </button>
           </div>
           {/* Tab bar */}
           <div className="px-6 flex items-end gap-0 overflow-x-auto scrollbar-none">
@@ -608,29 +615,31 @@ export default function SwatchOrderDetail() {
                   value={form.quantity} onChange={e => set("quantity", e.target.value)} />
               </Field>
 
-              <Field label="Chargeable Swatch" hint="Enable if this swatch requires a client invoice">
-                <div className="flex items-center gap-3 pt-1.5">
-                  <button type="button" onClick={() => set("isChargeable", !form.isChargeable)}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${form.isChargeable ? "bg-gray-900" : "bg-gray-200"}`}>
-                    <span className={`inline-block h-4 w-4 rounded-full shadow transform transition-transform ${form.isChargeable ? "translate-x-6 bg-[#C9B45C]" : "translate-x-1 bg-white"}`} />
-                  </button>
-                  <span className={`text-sm font-medium ${form.isChargeable ? "text-gray-900" : "text-gray-400"}`}>
-                    {form.isChargeable ? "Yes — Invoice will be generated" : "No — Non-billable"}
-                  </span>
-                </div>
-              </Field>
+              <div className="col-span-2 grid grid-cols-2 gap-4">
+                <Field label="Chargeable Swatch" hint="Enable if this swatch requires a client invoice">
+                  <div className="flex items-center gap-3 pt-1.5">
+                    <button type="button" onClick={() => set("isChargeable", !form.isChargeable)}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${form.isChargeable ? "bg-gray-900" : "bg-gray-200"}`}>
+                      <span className={`inline-block h-4 w-4 rounded-full shadow transform transition-transform ${form.isChargeable ? "translate-x-6 bg-[#C9B45C]" : "translate-x-1 bg-white"}`} />
+                    </button>
+                    <span className={`text-sm font-medium ${form.isChargeable ? "text-gray-900" : "text-gray-400"}`}>
+                      {form.isChargeable ? "Yes — Invoice will be generated" : "No — Non-billable"}
+                    </span>
+                  </div>
+                </Field>
 
-              <Field label="In-house Order" hint="Enable if this is an internal production order (no external client)">
-                <div className="flex items-center gap-3 pt-1.5">
-                  <button type="button" onClick={() => set("isInhouse", !form.isInhouse)}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${form.isInhouse ? "bg-gray-900" : "bg-gray-200"}`}>
-                    <span className={`inline-block h-4 w-4 rounded-full shadow transform transition-transform ${form.isInhouse ? "translate-x-6 bg-[#C9B45C]" : "translate-x-1 bg-white"}`} />
-                  </button>
-                  <span className={`text-sm font-medium ${form.isInhouse ? "text-gray-900" : "text-gray-400"}`}>
-                    {form.isInhouse ? "Yes — Internal production order" : "No — Client order"}
-                  </span>
-                </div>
-              </Field>
+                <Field label="In-house Order" hint="Enable if this is an internal production order (no external client)">
+                  <div className="flex items-center gap-3 pt-1.5">
+                    <button type="button" onClick={() => set("isInhouse", !form.isInhouse)}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${form.isInhouse ? "bg-gray-900" : "bg-gray-200"}`}>
+                      <span className={`inline-block h-4 w-4 rounded-full shadow transform transition-transform ${form.isInhouse ? "translate-x-6 bg-[#C9B45C]" : "translate-x-1 bg-white"}`} />
+                    </button>
+                    <span className={`text-sm font-medium ${form.isInhouse ? "text-gray-900" : "text-gray-400"}`}>
+                      {form.isInhouse ? "Yes — Internal production order" : "No — Client order"}
+                    </span>
+                  </div>
+                </Field>
+              </div>
 
               <div className="col-span-2">
                 <Field label="Priority">
@@ -869,16 +878,16 @@ export default function SwatchOrderDetail() {
                             value={ref.id}
                             onChange={v => {
                               const s = (styleRefs ?? []).find(s => s.id === v);
-                              updateRef("style", i, "id", v);
-                              updateRef("style", i, "label", s
-                                ? (s.source === "master" ? `${s.code}${s.client ? ` – ${s.client}` : ""}` : `${s.code} – ${s.name}`)
-                                : "");
+                              updateRef("style", i, {
+                                id: v,
+                                label: s ? (s.source === "master" ? `${s.code}${s.client ? ` – ${s.client}` : ""}` : `${s.code} – ${s.name}`) : "",
+                              });
                             }}
                             options={styleOptions}
                             placeholder="— Select style —"
                           />
                           <input className={inputCls} placeholder="Remark…" value={ref.remark}
-                            onChange={e => updateRef("style", i, "remark", e.target.value)} />
+                            onChange={e => updateRef("style", i, { remark: e.target.value })} />
                         </div>
                         <button onClick={() => removeRef("style", i)} className="p-1.5 text-gray-400 hover:text-red-500 mt-0.5">
                           <X className="h-4 w-4" />
@@ -909,14 +918,13 @@ export default function SwatchOrderDetail() {
                             value={ref.id}
                             onChange={v => {
                               const s = (swatchRefs ?? []).find(s => s.id === v);
-                              updateRef("swatch", i, "id", v);
-                              updateRef("swatch", i, "label", s ? `${s.code} – ${s.name}` : "");
+                              updateRef("swatch", i, { id: v, label: s ? `${s.code} – ${s.name}` : "" });
                             }}
                             options={swatchOptions}
                             placeholder="— Select swatch —"
                           />
                           <input className={inputCls} placeholder="Remark…" value={ref.remark}
-                            onChange={e => updateRef("swatch", i, "remark", e.target.value)} />
+                            onChange={e => updateRef("swatch", i, { remark: e.target.value })} />
                         </div>
                         <button onClick={() => removeRef("swatch", i)} className="p-1.5 text-gray-400 hover:text-red-500 mt-0.5">
                           <X className="h-4 w-4" />
