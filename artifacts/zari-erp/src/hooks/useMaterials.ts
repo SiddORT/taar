@@ -53,7 +53,7 @@ interface MaterialListResponse {
 
 export interface MaterialFormData {
   materialName?: string;
-  itemType: string;
+  itemType?: string;
   quality: string;
   type?: string;
   color?: string;

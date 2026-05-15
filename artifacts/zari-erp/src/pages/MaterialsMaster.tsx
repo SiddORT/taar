@@ -32,7 +32,7 @@ import {
   type MasterImage,
   type StatusFilter,
 } from "@/hooks/useMaterials";
-import { useItemTypes, useUnitTypes, useCreateUnitType, useCreateItemType } from "@/hooks/useLookups";
+import { useUnitTypes, useCreateUnitType } from "@/hooks/useLookups";
 import { useHSNList, useCreateHSN, type HsnFormData } from "@/hooks/useHSN";
 import { useAllVendors } from "@/hooks/useVendors";
 import { useWarehouseLocations } from "@/hooks/useWarehouseLocations";
@@ -41,7 +41,7 @@ const NAME_REGEX = /^[A-Za-z]+( [A-Za-z]+)*$/;
 const NUMERIC_REGEX = /^[0-9]+(\.[0-9]{1,2})?$/;
 
 const EMPTY_FORM: MaterialFormData = {
-  materialName: "", itemType: "", quality: "", type: "",
+  materialName: "", quality: "", type: "",
   color: "#c9b45c", hexCode: "#c9b45c", colorName: "",
   size: "", unitPrice: "", unitType: "", currentStock: "",
   locationStocks: [],
@@ -96,13 +96,12 @@ export default function MaterialsMaster() {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [hsnCodeFilter, setHsnCodeFilter] = useState("");
-  const [typeFilter, setTypeFilter] = useState("");
   const [vendorFilter, setVendorFilter] = useState("");
 
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   useEffect(() => { const t = setTimeout(() => { setDebouncedSearch(search); setPage(1); }, 350); return () => clearTimeout(t); }, [search]);
-  const { data, isLoading } = useMaterialList({ search: debouncedSearch, status: statusFilter, hsnCode: hsnCodeFilter, type: typeFilter, vendor: vendorFilter, page, limit });
+  const { data, isLoading } = useMaterialList({ search: debouncedSearch, status: statusFilter, hsnCode: hsnCodeFilter, type: "", vendor: vendorFilter, page, limit });
   const rows = data?.data ?? [];
   const total = data?.total ?? 0;
 
@@ -112,12 +111,9 @@ export default function MaterialsMaster() {
   const deleteMutation = useDeleteMaterial();
   const importMutation = useImportMaterials();
 
-  const { data: itemTypeLookups = [] } = useItemTypes();
   const { data: allMaterialRecords = [] } = useAllMaterials();
-  const distinctItemTypeFilters = [...new Set(allMaterialRecords.map((m) => m.itemType).filter(Boolean))].sort();
   const { data: unitTypes = [] } = useUnitTypes();
   const createUnitType = useCreateUnitType();
-  const createItemType = useCreateItemType();
   const createHSN = useCreateHSN();
   const { data: hsnData } = useHSNList({ search: "", status: "active", page: 1, limit: 200 });
   const { data: allVendors = [] } = useAllVendors();
@@ -140,8 +136,6 @@ export default function MaterialsMaster() {
 
   const [addUnitTypeOpen, setAddUnitTypeOpen] = useState(false);
   const [newUnitTypeName, setNewUnitTypeName] = useState("");
-  const [addItemTypeOpen, setAddItemTypeOpen] = useState(false);
-  const [newItemTypeName, setNewItemTypeName] = useState("");
   const [addHSNOpen, setAddHSNOpen] = useState(false);
   const [hsnForm, setHsnForm] = useState<HsnFormData>(EMPTY_HSN_FORM);
   const [hsnErrors, setHsnErrors] = useState<HsnErrors>({});
@@ -172,7 +166,6 @@ export default function MaterialsMaster() {
     setEditRecord(r);
     setForm({
       materialName: r.materialName ?? "",
-      itemType: r.itemType,
       quality: r.quality,
       type: r.type ?? "",
       color: r.color ?? "#c9b45c",
@@ -276,7 +269,6 @@ export default function MaterialsMaster() {
       else if (!NUMERIC_REGEX.test(cs)) e.currentStock = "Current Stock must be a positive numeric value.";
     }
     if (!form.hsnCode) e.hsnCode = "HSN Code is required";
-    if (form.itemType && !NAME_REGEX.test(form.itemType.trim())) e.itemType = "Item Type must contain only letters and spaces.";
     if (form.type && !NAME_REGEX.test(form.type.trim())) e.type = "Type must contain only letters and spaces.";
     const rl = form.reorderLevel ? parseFloat(form.reorderLevel) : null;
     const mn = form.minimumLevel ? parseFloat(form.minimumLevel) : null;
@@ -302,7 +294,6 @@ export default function MaterialsMaster() {
       size: form.size.trim(),
       unitPrice: form.unitPrice.trim(),
       unitType: form.unitType.trim(),
-      itemType: form.itemType.trim(),
       type: form.type?.trim(),
       materialName: form.materialName?.trim(),
       currentStock: form.locationStocks.length > 0 ? String(totalStock) : form.currentStock.trim(),
@@ -353,18 +344,6 @@ export default function MaterialsMaster() {
     } catch { toast({ title: "Error", description: "Failed to add unit type.", variant: "destructive" }); }
   };
 
-  const handleAddItemType = async () => {
-    const name = newItemTypeName.trim();
-    if (!name) return;
-    if (!NAME_REGEX.test(name)) { toast({ title: "Invalid", description: "Item Type must contain only letters and spaces.", variant: "destructive" }); return; }
-    try {
-      await createItemType.mutateAsync({ name, isActive: true });
-      setForm((f) => ({ ...f, itemType: name }));
-      setNewItemTypeName("");
-      setAddItemTypeOpen(false);
-    } catch { toast({ title: "Error", description: "Failed to add item type.", variant: "destructive" }); }
-  };
-
   const validateHSN = (): boolean => {
     const e: HsnErrors = {};
     if (!hsnForm.hsnCode.trim()) e.hsnCode = "HSN Code is required";
@@ -391,7 +370,7 @@ export default function MaterialsMaster() {
   const handleExportAll = async () => {
     setExportLoading(true);
     try {
-      const allRows = await fetchAllMaterialsForExport({ search: debouncedSearch, status: statusFilter, hsnCode: hsnCodeFilter, type: typeFilter, vendor: vendorFilter });
+      const allRows = await fetchAllMaterialsForExport({ search: debouncedSearch, status: statusFilter, hsnCode: hsnCodeFilter, type: "", vendor: vendorFilter });
       const wsData = allRows.map((r) => ({
         "Code": r.materialCode,
         "Material Name": r.materialName ?? "",
@@ -459,7 +438,6 @@ export default function MaterialsMaster() {
 
   const asMat = (r: TableRow) => r as unknown as MaterialRecord;
   const unitTypeOptions = unitTypes.filter((t) => t.isActive).map((t) => ({ value: t.name, label: t.name }));
-  const itemTypeOptions = itemTypeLookups.filter((t) => t.isActive).map((t) => ({ value: t.name, label: t.name }));
   const hsnDropdownOptions = hsnOptions.map((h) => ({ value: h.hsnCode, label: `${h.hsnCode} (${h.gstPercentage}%)` }));
   const submitting = createMutation.isPending || updateMutation.isPending;
 
@@ -492,7 +470,6 @@ export default function MaterialsMaster() {
       },
     },
     { key: "materialCode", label: "Code", render: (r) => <span className="font-mono font-semibold text-gray-900" title="Material Code is auto-generated.">{asMat(r).materialCode}</span> },
-    { key: "itemType", label: "Item Type", render: (r) => <span className="text-gray-700">{asMat(r).itemType}</span> },
     { key: "quality", label: "Quality", render: (r) => <span className="text-gray-700">{asMat(r).quality}</span> },
     {
       key: "colorName", label: "Color Name",
@@ -604,11 +581,6 @@ export default function MaterialsMaster() {
                 className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 shadow-sm outline-none transition focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10">
                 {STATUS_FILTER_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
-              <select value={typeFilter} onChange={(e) => { setTypeFilter(e.target.value); setPage(1); }}
-                className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 shadow-sm outline-none transition focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10">
-                <option value="">All Item Types</option>
-                {distinctItemTypeFilters.map((t) => <option key={t} value={t}>{t}</option>)}
-              </select>
               <select value={hsnCodeFilter} onChange={(e) => { setHsnCodeFilter(e.target.value); setPage(1); }}
                 className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 shadow-sm outline-none transition focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10">
                 <option value="">All HSN Codes</option>
@@ -619,8 +591,8 @@ export default function MaterialsMaster() {
                 <option value="">All Vendors</option>
                 {allVendors.map((v) => <option key={v.id} value={v.brandName}>{v.brandName}</option>)}
               </select>
-              {(typeFilter || hsnCodeFilter || vendorFilter || statusFilter !== "all") && (
-                <button onClick={() => { setTypeFilter(""); setHsnCodeFilter(""); setVendorFilter(""); setStatusFilter("all"); setPage(1); }}
+              {(hsnCodeFilter || vendorFilter || statusFilter !== "all") && (
+                <button onClick={() => { setHsnCodeFilter(""); setVendorFilter(""); setStatusFilter("all"); setPage(1); }}
                   className="px-3 py-2 rounded-lg text-xs font-medium text-gray-500 border border-gray-200 hover:bg-gray-100 transition-colors">
                   Clear Filters
                 </button>
@@ -678,13 +650,6 @@ export default function MaterialsMaster() {
                     maxLength={100}
                     value={form.materialName ?? ""}
                     onChange={(e) => setForm((f) => ({ ...f, materialName: e.target.value }))} />
-                  <AddableSelect
-                    label="Item Type" value={form.itemType}
-                    onChange={(v) => setForm((f) => ({ ...f, itemType: v }))}
-                    onAdd={() => { setNewItemTypeName(""); setAddItemTypeOpen(true); }}
-                    addLabel="+ Add Item Type"
-                    options={itemTypeOptions} placeholder="Select Item Type" error={errors.itemType}
-                  />
                   <div className="flex flex-col gap-1">
                     <label className="text-sm font-medium text-gray-700">Quality<span className="text-red-500 ml-0.5">*</span></label>
                     <input value={form.quality} maxLength={50}
@@ -1050,15 +1015,6 @@ export default function MaterialsMaster() {
         onCancel={() => setDeleteTarget(null)}
         loading={deleteMutation.isPending}
       />
-
-      {/* ══ Add Item Type mini-modal ══ */}
-      <MasterFormModal open={addItemTypeOpen} title="Add Item Type" onClose={() => setAddItemTypeOpen(false)}
-        onSubmit={handleAddItemType} submitting={createItemType.isPending} submitLabel="Add">
-        <InputField label="Item Type Name" required placeholder="e.g. Thread, Fabric, Button"
-          maxLength={50}
-          value={newItemTypeName}
-          onChange={(e) => setNewItemTypeName(e.target.value.replace(/[^A-Za-z ]/g, ""))} />
-      </MasterFormModal>
 
       {/* ══ Add Unit Type mini-modal ══ */}
       <MasterFormModal open={addUnitTypeOpen} title="Add Unit Type" onClose={() => setAddUnitTypeOpen(false)}
