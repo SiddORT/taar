@@ -221,6 +221,87 @@ router.get("/packing-lists/:id", requireAuth, async (req, res) => {
   } catch (e) { return err(res, e, "Failed to fetch packing list"); }
 });
 
+// ── helper: insert one package item, handles stock deduction for inventory items ──
+async function insertPackageItem(pkgId: number, item: any): Promise<void> {
+  const src = item.item_source ?? "order";
+
+  if (src === "order") {
+    await pool.query(
+      `INSERT INTO packing_package_items
+         (package_id, item_source, order_type, order_id, order_code, description, quantity, unit, item_weight)
+       VALUES ($1,'order',$2,$3,$4,$5,$6,$7,$8)`,
+      [pkgId, item.order_type, item.order_id, item.order_code || null,
+       item.description || null, item.quantity || null, item.unit || null, item.item_weight || null]
+    );
+    return;
+  }
+
+  if (src === "custom") {
+    await pool.query(
+      `INSERT INTO packing_package_items
+         (package_id, item_source, description, quantity, unit, item_weight)
+       VALUES ($1,'custom',$2,$3,$4,$5)`,
+      [pkgId, item.description || null, item.quantity || null, item.unit || null, item.item_weight || null]
+    );
+    return;
+  }
+
+  // material or fabric — deduct stock
+  if (src === "material" || src === "fabric") {
+    const invTable = src === "material" ? "materials" : "fabrics";
+    const qty = parseFloat(item.quantity);
+    if (!item.inventory_id || isNaN(qty) || qty <= 0) {
+      // Skip silently if no inventory reference or qty
+      return;
+    }
+
+    const inv = await pool.query(
+      `SELECT current_stock, location_stocks FROM ${invTable} WHERE id = $1 AND is_deleted = false`,
+      [item.inventory_id]
+    );
+    if (!inv.rows.length) return;
+
+    const invRow = inv.rows[0];
+    const locationStocks: { location: string; stock: string }[] = invRow.location_stocks ?? [];
+    let resolvedLocation: string | null = item.deducted_from_location || null;
+    let stockDeducted = 0;
+
+    if (resolvedLocation && locationStocks.length > 0) {
+      const locIdx = locationStocks.findIndex((ls: { location: string }) => ls.location === resolvedLocation);
+      if (locIdx >= 0) {
+        const locStock = parseFloat(locationStocks[locIdx].stock);
+        const deduct = Math.min(qty, locStock);
+        locationStocks[locIdx] = { location: resolvedLocation, stock: String(locStock - deduct) };
+        const newTotal = Math.max(0, parseFloat(invRow.current_stock) - deduct);
+        await pool.query(
+          `UPDATE ${invTable} SET current_stock = $1, location_stocks = $2 WHERE id = $3`,
+          [String(newTotal), JSON.stringify(locationStocks), item.inventory_id]
+        );
+        stockDeducted = deduct;
+      }
+    } else {
+      const totalStock = parseFloat(invRow.current_stock);
+      const deduct = Math.min(qty, totalStock);
+      await pool.query(
+        `UPDATE ${invTable} SET current_stock = $1 WHERE id = $2`,
+        [String(Math.max(0, totalStock - deduct)), item.inventory_id]
+      );
+      resolvedLocation = null;
+      stockDeducted = deduct;
+    }
+
+    await pool.query(
+      `INSERT INTO packing_package_items
+         (package_id, item_source, inventory_id, inventory_type,
+          description, quantity, unit, item_weight, stock_deducted, deducted_from_location)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+      [pkgId, src, item.inventory_id, src,
+       item.description || null, String(qty), item.unit || null, item.item_weight || null,
+       stockDeducted, resolvedLocation]
+    );
+  }
+}
+
 // POST /api/packing-lists
 router.post("/packing-lists", requireAuth, async (req: AuthRequest, res) => {
   try {
@@ -272,14 +353,8 @@ router.post("/packing-lists", requireAuth, async (req: AuthRequest, res) => {
          pkg.net_weight || null, pkg.gross_weight || null, pkg.shipment_id || shipment_id || null]
       );
       const pkgId = pkgRow.rows[0].id;
-
       for (const item of (pkg.items ?? [])) {
-        await pool.query(
-          `INSERT INTO packing_package_items (package_id, order_type, order_id, order_code, description, quantity, unit, item_weight)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
-          [pkgId, item.order_type, item.order_id, item.order_code || null,
-           item.description || null, item.quantity || null, item.unit || null, item.item_weight || null]
-        );
+        await insertPackageItem(pkgId, item);
       }
     }
 
@@ -325,6 +400,33 @@ router.put("/packing-lists/:id", requireAuth, async (req, res) => {
 
     // If packages array provided, do a clean replace
     if (Array.isArray(packages)) {
+      // Before deleting, restore stock for any inventory items being replaced
+      const oldItems = await pool.query(
+        `SELECT ppi.* FROM packing_package_items ppi
+         JOIN packing_packages pp ON pp.id = ppi.package_id
+         WHERE pp.packing_list_id = $1
+           AND ppi.item_source IN ('material','fabric')
+           AND ppi.stock_deducted > 0`,
+        [req.params.id]
+      );
+      for (const oi of oldItems.rows) {
+        const invTable = oi.item_source === "material" ? "materials" : "fabrics";
+        const deducted = parseFloat(oi.stock_deducted);
+        const inv = await pool.query(`SELECT current_stock, location_stocks FROM ${invTable} WHERE id = $1`, [oi.inventory_id]);
+        if (!inv.rows.length) continue;
+        const invRow = inv.rows[0];
+        const newTotal = parseFloat(invRow.current_stock) + deducted;
+        if (oi.deducted_from_location) {
+          const ls: { location: string; stock: string }[] = invRow.location_stocks ?? [];
+          const idx = ls.findIndex((x: { location: string }) => x.location === oi.deducted_from_location);
+          if (idx >= 0) ls[idx] = { location: oi.deducted_from_location, stock: String(parseFloat(ls[idx].stock) + deducted) };
+          else ls.push({ location: oi.deducted_from_location, stock: String(deducted) });
+          await pool.query(`UPDATE ${invTable} SET current_stock = $1, location_stocks = $2 WHERE id = $3`, [String(newTotal), JSON.stringify(ls), oi.inventory_id]);
+        } else {
+          await pool.query(`UPDATE ${invTable} SET current_stock = $1 WHERE id = $2`, [String(newTotal), oi.inventory_id]);
+        }
+      }
+
       // Delete all existing packages (cascades to items via FK)
       await pool.query(`DELETE FROM packing_packages WHERE packing_list_id = $1`, [req.params.id]);
 
@@ -338,12 +440,7 @@ router.put("/packing-lists/:id", requireAuth, async (req, res) => {
         );
         const pkgId = pkgRow.rows[0].id;
         for (const item of (pkg.items ?? [])) {
-          await pool.query(
-            `INSERT INTO packing_package_items (package_id, order_type, order_id, order_code, description, quantity, unit, item_weight)
-             VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
-            [pkgId, item.order_type, item.order_id, item.order_code || null,
-             item.description || null, item.quantity || null, item.unit || null, item.item_weight || null]
-          );
+          await insertPackageItem(pkgId, item);
         }
       }
     }

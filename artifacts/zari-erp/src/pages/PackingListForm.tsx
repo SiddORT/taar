@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useLocation, useParams } from "wouter";
 import {
   Package, Save, ArrowLeft, Plus, X, MapPin, Truck,
@@ -26,10 +26,21 @@ interface EligibleOrder {
   delivery_address_id: number | null; order_status: string; quantity: string | null;
 }
 
+interface InvItem {
+  id: number; code: string; name: string;
+  current_stock: string;
+  location_stocks: { location: string; stock: string }[];
+  unit: string | null;
+}
+
 interface PackageItem {
-  order_type: "Swatch" | "Style";
-  order_id: number;
-  order_code: string;
+  item_source: "order" | "material" | "fabric" | "custom";
+  order_type?: "Swatch" | "Style";
+  order_id?: number;
+  order_code?: string;
+  inventory_id?: number;
+  inventory_type?: string;
+  deducted_from_location?: string;
   description: string;
   quantity: string;
   unit: string;
@@ -92,6 +103,21 @@ export default function PackingListForm() {
   const [showAddrModal, setShowAddrModal] = useState(false);
   const [orderSearch, setOrderSearch] = useState("");
   const [orderTab, setOrderTab] = useState<"Swatch" | "Style">("Swatch");
+
+  // Right-panel tabs: "orders" | "custom"
+  const [rightTab, setRightTab] = useState<"orders" | "custom">("orders");
+  // Custom item form state
+  const [customSource, setCustomSource] = useState<"material" | "fabric" | "custom">("material");
+  const [customSearch, setCustomSearch] = useState("");
+  const [invResults, setInvResults] = useState<InvItem[]>([]);
+  const [searchingInv, setSearchingInv] = useState(false);
+  const [customSelected, setCustomSelected] = useState<InvItem | null>(null);
+  const [customLocation, setCustomLocation] = useState<string>("");
+  const [customQty, setCustomQty] = useState("");
+  const [customUnit, setCustomUnit] = useState("");
+  const [customDesc, setCustomDesc] = useState("");
+  const [customWeight, setCustomWeight] = useState("");
+  const invSearchRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [newAddr, setNewAddr] = useState({ label: "", address_line1: "", address_line2: "", city: "", state: "", country: "", pincode: "", is_default: false });
   const [savingAddr, setSavingAddr] = useState(false);
 
@@ -173,9 +199,13 @@ export default function PackingListForm() {
         gross_weight: pkg.gross_weight ?? "",
         expanded: true,
         items: (pkg.items ?? []).map((i: any) => ({
+          item_source: i.item_source ?? "order",
           order_type: i.order_type,
           order_id: i.order_id,
           order_code: i.order_code ?? "",
+          inventory_id: i.inventory_id,
+          inventory_type: i.inventory_type,
+          deducted_from_location: i.deducted_from_location,
           description: i.description ?? "",
           quantity: i.quantity ?? "",
           unit: i.unit ?? "",
@@ -236,6 +266,21 @@ export default function PackingListForm() {
     setPackages(prev => prev.map(p => p.tempId === tempId ? { ...p, expanded: !p.expanded } : p));
   }
 
+  // Inventory search debounce
+  useEffect(() => {
+    if (customSource === "custom" || rightTab !== "custom") { setInvResults([]); return; }
+    if (invSearchRef.current) clearTimeout(invSearchRef.current);
+    invSearchRef.current = setTimeout(async () => {
+      setSearchingInv(true);
+      try {
+        const r = await customFetch<any>(
+          `/api/packing-lists/inventory/search?type=${customSource}&q=${encodeURIComponent(customSearch)}`
+        );
+        setInvResults(r.data ?? []);
+      } catch {} finally { setSearchingInv(false); }
+    }, 300);
+  }, [customSearch, customSource, rightTab]);
+
   function addItemToPackage(order: EligibleOrder, type: "Swatch" | "Style") {
     if (!activePackageId) {
       toast({ title: "Select a package", description: "Click 'Add Items' on a package first", variant: "destructive" });
@@ -243,13 +288,12 @@ export default function PackingListForm() {
     }
     const pkg = packages.find(p => p.tempId === activePackageId);
     if (!pkg) return;
-    if (pkg.items.some(i => i.order_type === type && i.order_id === order.id)) {
+    if (pkg.items.some(i => i.item_source === "order" && i.order_type === type && i.order_id === order.id)) {
       toast({ title: "Already added", description: `${order.order_code} is already in this package` });
       return;
     }
-    // Check if order is in another package
     for (const p of packages) {
-      if (p.items.some(i => i.order_type === type && i.order_id === order.id)) {
+      if (p.items.some(i => i.item_source === "order" && i.order_type === type && i.order_id === order.id)) {
         toast({ title: "Already packed", description: `${order.order_code} is already in Package ${packages.indexOf(p) + 1}` });
         return;
       }
@@ -257,6 +301,7 @@ export default function PackingListForm() {
     setPackages(prev => prev.map(p => p.tempId === activePackageId ? {
       ...p,
       items: [...p.items, {
+        item_source: "order" as const,
         order_type: type, order_id: order.id,
         order_code: order.order_code,
         description: order.name ?? "",
@@ -265,6 +310,45 @@ export default function PackingListForm() {
         item_weight: "",
       }],
     } : p));
+  }
+
+  function addCustomItemToPackage() {
+    if (!activePackageId) {
+      toast({ title: "Select a package", description: "Click 'Add Items' on a package first", variant: "destructive" });
+      return;
+    }
+    if (!customQty || parseFloat(customQty) <= 0) {
+      toast({ title: "Quantity required", description: "Enter a quantity greater than 0", variant: "destructive" });
+      return;
+    }
+    if (customSource !== "custom" && !customSelected) {
+      toast({ title: "Select an item", description: "Search and select a material or fabric", variant: "destructive" });
+      return;
+    }
+    const newItem: PackageItem = {
+      item_source: customSource,
+      inventory_id: customSelected?.id,
+      inventory_type: customSource !== "custom" ? customSource : undefined,
+      deducted_from_location: customLocation || undefined,
+      description: customDesc || (customSelected ? (customSelected.name || customSelected.code) : ""),
+      quantity: customQty,
+      unit: customUnit || customSelected?.unit || "",
+      item_weight: customWeight,
+    };
+    setPackages(prev => prev.map(p => p.tempId === activePackageId
+      ? { ...p, items: [...p.items, newItem] }
+      : p
+    ));
+    // Reset custom form
+    setCustomSelected(null);
+    setCustomSearch("");
+    setCustomLocation("");
+    setCustomQty("");
+    setCustomUnit("");
+    setCustomDesc("");
+    setCustomWeight("");
+    setInvResults([]);
+    toast({ title: "Custom item staged", description: "It will be saved when you create/update the packing list" });
   }
 
   function removeItemFromPackage(pkgId: string, idx: number) {
@@ -316,12 +400,16 @@ export default function PackingListForm() {
           net_weight:   pkg.net_weight   ? parseFloat(pkg.net_weight)   : null,
           gross_weight: pkg.gross_weight ? parseFloat(pkg.gross_weight) : null,
           items: pkg.items.map(i => ({
-            order_type: i.order_type,
-            order_id:   i.order_id,
-            order_code: i.order_code,
+            item_source: i.item_source,
+            order_type:  i.order_type,
+            order_id:    i.order_id,
+            order_code:  i.order_code,
+            inventory_id: i.inventory_id,
+            inventory_type: i.inventory_type,
+            deducted_from_location: i.deducted_from_location,
             description: i.description,
-            quantity:   i.quantity ? parseFloat(i.quantity) : null,
-            unit:       i.unit || null,
+            quantity:    i.quantity ? parseFloat(i.quantity) : null,
+            unit:        i.unit || null,
             item_weight: i.item_weight ? parseFloat(i.item_weight) : null,
           })),
         })),
@@ -635,11 +723,19 @@ export default function PackingListForm() {
                                     <tr key={itemIdx}>
                                       <td className="px-3 py-2 text-gray-400">{itemIdx + 1}</td>
                                       <td className="px-3 py-2">
-                                        <span className={`px-1.5 py-0.5 rounded-full font-semibold ${item.order_type === "Swatch" ? "bg-purple-50 text-purple-700" : "bg-teal-50 text-teal-700"}`}>
-                                          {item.order_type}
-                                        </span>
+                                        {item.item_source === "order" ? (
+                                          <span className={`px-1.5 py-0.5 rounded-full font-semibold ${item.order_type === "Swatch" ? "bg-purple-50 text-purple-700" : "bg-teal-50 text-teal-700"}`}>
+                                            {item.order_type}
+                                          </span>
+                                        ) : item.item_source === "material" ? (
+                                          <span className="px-1.5 py-0.5 rounded-full font-semibold bg-orange-50 text-orange-700">Material</span>
+                                        ) : item.item_source === "fabric" ? (
+                                          <span className="px-1.5 py-0.5 rounded-full font-semibold bg-pink-50 text-pink-700">Fabric</span>
+                                        ) : (
+                                          <span className="px-1.5 py-0.5 rounded-full font-semibold bg-gray-100 text-gray-600">Custom</span>
+                                        )}
                                       </td>
-                                      <td className="px-3 py-2 font-mono text-gray-700">{item.order_code}</td>
+                                      <td className="px-3 py-2 font-mono text-gray-700">{item.order_code ?? "—"}</td>
                                       <td className="px-3 py-2">
                                         <input
                                           value={item.description}
@@ -731,79 +827,207 @@ export default function PackingListForm() {
               </div>
             </div>
 
-            {/* Order Picker */}
+            {/* Item Picker (Orders / Custom) */}
             <div className={`${card} p-5`}>
               <div className="flex items-center justify-between mb-3">
-                <h2 className="text-xs font-bold text-gray-500 uppercase tracking-wider">Add Orders</h2>
+                <div className="flex gap-1 bg-gray-100 p-1 rounded-lg flex-1 mr-2">
+                  <button
+                    onClick={() => setRightTab("orders")}
+                    className={`flex-1 py-1 text-xs font-semibold rounded-md transition-all ${rightTab === "orders" ? "bg-white shadow text-gray-900" : "text-gray-500 hover:text-gray-700"}`}
+                  >Orders</button>
+                  <button
+                    onClick={() => setRightTab("custom")}
+                    className={`flex-1 py-1 text-xs font-semibold rounded-md transition-all ${rightTab === "custom" ? "bg-white shadow text-gray-900" : "text-gray-500 hover:text-gray-700"}`}
+                  >Custom Item</button>
+                </div>
                 {activePackage && (
-                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full text-white" style={{ backgroundColor: G }}>
+                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full text-white shrink-0" style={{ backgroundColor: G }}>
                     → Pkg {packages.indexOf(activePackage) + 1}
                   </span>
                 )}
               </div>
 
-              {!deliveryAddressId ? (
-                <div className="text-xs text-gray-400 text-center py-6">Select a client and delivery address first</div>
-              ) : packages.length === 0 ? (
-                <div className="text-xs text-gray-400 text-center py-6">Create a package first, then add orders to it</div>
-              ) : !activePackageId ? (
-                <div className="text-xs text-amber-600 text-center py-6 bg-amber-50 rounded-xl">
-                  Click "Add Items" on a package to start adding orders to it
-                </div>
-              ) : loadingEligible ? (
-                <div className="flex justify-center py-6">
-                  <div className="h-5 w-5 rounded-full border-2 border-gray-200 animate-spin" style={{ borderTopColor: G }} />
-                </div>
-              ) : (
-                <>
-                  <div className="flex gap-1 mb-3 bg-gray-100 p-1 rounded-lg">
-                    {(["Swatch", "Style"] as const).map(tab => (
-                      <button
-                        key={tab}
-                        onClick={() => setOrderTab(tab)}
-                        className={`flex-1 py-1.5 text-xs font-semibold rounded-md transition-all ${
-                          orderTab === tab ? "bg-white shadow text-gray-900" : "text-gray-500 hover:text-gray-700"
-                        }`}
-                      >
-                        {tab} ({tab === "Swatch" ? eligibleOrders.swatches.length : eligibleOrders.styles.length})
-                      </button>
-                    ))}
+              {/* ── ORDERS tab ── */}
+              {rightTab === "orders" && (
+                !deliveryAddressId ? (
+                  <div className="text-xs text-gray-400 text-center py-6">Select a client and delivery address first</div>
+                ) : packages.length === 0 ? (
+                  <div className="text-xs text-gray-400 text-center py-6">Create a package first, then add orders to it</div>
+                ) : !activePackageId ? (
+                  <div className="text-xs text-amber-600 text-center py-6 bg-amber-50 rounded-xl">
+                    Click "Add Items" on a package to start adding orders to it
                   </div>
-                  <div className="relative mb-2">
-                    <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
-                    <input
-                      value={orderSearch}
-                      onChange={e => setOrderSearch(e.target.value)}
-                      placeholder="Search orders…"
-                      className="w-full pl-7 pr-2 py-1.5 border border-gray-200 rounded-lg text-xs text-gray-900 focus:outline-none focus:ring-1 focus:ring-yellow-200"
-                    />
+                ) : loadingEligible ? (
+                  <div className="flex justify-center py-6">
+                    <div className="h-5 w-5 rounded-full border-2 border-gray-200 animate-spin" style={{ borderTopColor: G }} />
                   </div>
-                  <div className="max-h-72 overflow-y-auto space-y-1 pr-1">
-                    {filteredOrders.length === 0 ? (
-                      <div className="text-xs text-gray-400 text-center py-6">
-                        {eligibleOrders.swatches.length + eligibleOrders.styles.length === 0
-                          ? "No ready-to-ship orders for this client/address"
-                          : "All orders have been packed"}
-                      </div>
-                    ) : filteredOrders.map(order => (
-                      <button
-                        key={order.id}
-                        onClick={() => addItemToPackage(order, orderTab)}
-                        className="w-full flex items-start gap-2 px-3 py-2 rounded-xl hover:bg-amber-50 text-left border border-transparent hover:border-amber-200 transition-all group"
-                      >
-                        <Plus className="h-3.5 w-3.5 mt-0.5 shrink-0 text-gray-300 group-hover:text-amber-500" />
-                        <div className="min-w-0">
-                          <div className="text-xs font-semibold text-gray-800 font-mono">{order.order_code}</div>
-                          <div className="text-[11px] text-gray-500 truncate">{order.name}</div>
-                          {order.quantity && <div className="text-[10px] text-gray-400">Qty: {order.quantity}</div>}
+                ) : (
+                  <>
+                    <div className="flex gap-1 mb-3 bg-gray-100 p-1 rounded-lg">
+                      {(["Swatch", "Style"] as const).map(tab => (
+                        <button key={tab} onClick={() => setOrderTab(tab)}
+                          className={`flex-1 py-1.5 text-xs font-semibold rounded-md transition-all ${orderTab === tab ? "bg-white shadow text-gray-900" : "text-gray-500 hover:text-gray-700"}`}
+                        >
+                          {tab} ({tab === "Swatch" ? eligibleOrders.swatches.length : eligibleOrders.styles.length})
+                        </button>
+                      ))}
+                    </div>
+                    <div className="relative mb-2">
+                      <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
+                      <input value={orderSearch} onChange={e => setOrderSearch(e.target.value)} placeholder="Search orders…"
+                        className="w-full pl-7 pr-2 py-1.5 border border-gray-200 rounded-lg text-xs text-gray-900 focus:outline-none focus:ring-1 focus:ring-yellow-200"
+                      />
+                    </div>
+                    <div className="max-h-72 overflow-y-auto space-y-1 pr-1">
+                      {filteredOrders.length === 0 ? (
+                        <div className="text-xs text-gray-400 text-center py-6">
+                          {eligibleOrders.swatches.length + eligibleOrders.styles.length === 0
+                            ? "No ready-to-ship orders for this client/address"
+                            : "All orders have been packed"}
                         </div>
-                        <span className={`ml-auto text-[10px] shrink-0 px-1.5 py-0.5 rounded font-medium ${
-                          order.order_status === "Completed" ? "bg-green-50 text-green-700" : "bg-gray-50 text-gray-500"
-                        }`}>{order.order_status}</span>
-                      </button>
-                    ))}
+                      ) : filteredOrders.map(order => (
+                        <button key={order.id} onClick={() => addItemToPackage(order, orderTab)}
+                          className="w-full flex items-start gap-2 px-3 py-2 rounded-xl hover:bg-amber-50 text-left border border-transparent hover:border-amber-200 transition-all group"
+                        >
+                          <Plus className="h-3.5 w-3.5 mt-0.5 shrink-0 text-gray-300 group-hover:text-amber-500" />
+                          <div className="min-w-0">
+                            <div className="text-xs font-semibold text-gray-800 font-mono">{order.order_code}</div>
+                            <div className="text-[11px] text-gray-500 truncate">{order.name}</div>
+                            {order.quantity && <div className="text-[10px] text-gray-400">Qty: {order.quantity}</div>}
+                          </div>
+                          <span className={`ml-auto text-[10px] shrink-0 px-1.5 py-0.5 rounded font-medium ${
+                            order.order_status === "Completed" ? "bg-green-50 text-green-700" : "bg-gray-50 text-gray-500"
+                          }`}>{order.order_status}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )
+              )}
+
+              {/* ── CUSTOM ITEM tab ── */}
+              {rightTab === "custom" && (
+                !activePackageId ? (
+                  <div className="text-xs text-amber-600 text-center py-6 bg-amber-50 rounded-xl">
+                    Click "Add Items" on a package first
                   </div>
-                </>
+                ) : (
+                  <div className="space-y-3">
+                    {/* Source tabs */}
+                    <div className="flex gap-1 bg-blue-50 p-1 rounded-lg border border-blue-100">
+                      {(["material", "fabric", "custom"] as const).map(src => (
+                        <button key={src} onClick={() => { setCustomSource(src); setCustomSelected(null); setCustomSearch(""); setInvResults([]); setCustomLocation(""); }}
+                          className={`flex-1 py-1 text-xs font-semibold rounded-md capitalize transition-all ${customSource === src ? "bg-white shadow text-gray-900" : "text-blue-600 hover:text-blue-800"}`}
+                        >
+                          {src === "custom" ? "Free Text" : src.charAt(0).toUpperCase() + src.slice(1)}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Inventory search */}
+                    {customSource !== "custom" && (
+                      <div>
+                        <div className="relative mb-1">
+                          <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
+                          <input value={customSearch}
+                            onChange={e => { setCustomSearch(e.target.value); setCustomSelected(null); setCustomLocation(""); }}
+                            placeholder={`Search ${customSource}s…`}
+                            className="w-full pl-7 py-1.5 border border-blue-200 rounded-lg text-xs bg-white focus:outline-none focus:ring-1 focus:ring-blue-300"
+                          />
+                        </div>
+                        {!customSelected && (
+                          <div className="max-h-32 overflow-y-auto bg-white rounded-lg border border-blue-100 divide-y divide-gray-50">
+                            {searchingInv ? (
+                              <div className="flex justify-center py-3">
+                                <div className="h-4 w-4 rounded-full border-2 border-blue-200 animate-spin" style={{ borderTopColor: G }} />
+                              </div>
+                            ) : invResults.length === 0 ? (
+                              <div className="text-xs text-gray-400 text-center py-3">{customSearch ? "No results" : `Type to search ${customSource}s`}</div>
+                            ) : invResults.map(inv => (
+                              <button key={inv.id} onClick={() => { setCustomSelected(inv); setCustomSearch(inv.name || inv.code); setCustomLocation(inv.location_stocks?.length > 0 ? inv.location_stocks[0].location : ""); if (!customUnit && inv.unit) setCustomUnit(inv.unit); }}
+                                className="w-full flex items-center justify-between px-3 py-2 hover:bg-blue-50 text-left transition-colors"
+                              >
+                                <div>
+                                  <div className="text-xs font-semibold text-gray-800 font-mono">{inv.code}</div>
+                                  <div className="text-[11px] text-gray-500 truncate">{inv.name}</div>
+                                </div>
+                                <div className="text-right ml-3 shrink-0">
+                                  <div className="text-xs font-semibold text-gray-700">{inv.current_stock} {inv.unit ?? ""}</div>
+                                  <div className="text-[10px] text-gray-400">in stock</div>
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                        {customSelected && (
+                          <div className="flex items-center justify-between bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">
+                            <div>
+                              <div className="text-xs font-semibold text-gray-800 font-mono">{customSelected.code}</div>
+                              <div className="text-[11px] text-gray-500">{customSelected.name}</div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-bold text-emerald-700">{customSelected.current_stock} {customSelected.unit ?? ""}</span>
+                              <button onClick={() => { setCustomSelected(null); setCustomSearch(""); setCustomLocation(""); setInvResults([]); }} className="text-gray-300 hover:text-red-400">
+                                <X className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                        {customSelected && customSelected.location_stocks?.length > 0 && (
+                          <div>
+                            <label className="block text-[10px] font-semibold text-blue-700 uppercase tracking-wider mb-1 mt-2">Deduct from Location</label>
+                            <select value={customLocation} onChange={e => setCustomLocation(e.target.value)}
+                              className="w-full border border-blue-200 rounded-lg px-2.5 py-1.5 text-xs text-gray-900 bg-white focus:outline-none focus:ring-1 focus:ring-blue-300"
+                            >
+                              <option value="">— No specific location —</option>
+                              {customSelected.location_stocks.map(ls => (
+                                <option key={ls.location} value={ls.location}>{ls.location} — {ls.stock} {customSelected.unit ?? ""} available</option>
+                              ))}
+                            </select>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Fields */}
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Quantity *</label>
+                        <input type="number" min="0" step="any" value={customQty} onChange={e => setCustomQty(e.target.value)} placeholder="0"
+                          className="w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs text-gray-900 focus:outline-none focus:ring-1 focus:ring-blue-300"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Unit</label>
+                        <input type="text" value={customUnit} onChange={e => setCustomUnit(e.target.value)} placeholder="pcs / m / kg"
+                          className="w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs text-gray-900 focus:outline-none focus:ring-1 focus:ring-blue-300"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Weight (kg)</label>
+                        <input type="number" min="0" step="0.001" value={customWeight} onChange={e => setCustomWeight(e.target.value)} placeholder="0.000"
+                          className="w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs text-gray-900 focus:outline-none focus:ring-1 focus:ring-blue-300"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Description</label>
+                        <input type="text" value={customDesc} onChange={e => setCustomDesc(e.target.value)} placeholder="Optional note"
+                          className="w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs text-gray-900 focus:outline-none focus:ring-1 focus:ring-blue-300"
+                        />
+                      </div>
+                    </div>
+
+                    <button onClick={addCustomItemToPackage}
+                      disabled={!customQty || (customSource !== "custom" && !customSelected)}
+                      className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                      style={{ backgroundColor: G }}
+                    >
+                      <Plus className="h-3 w-3" />
+                      Stage Custom Item
+                    </button>
+                    <p className="text-[10px] text-gray-400 text-center">Stock will be deducted when the packing list is saved.</p>
+                  </div>
+                )
               )}
             </div>
           </div>
