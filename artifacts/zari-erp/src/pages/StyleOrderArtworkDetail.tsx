@@ -457,7 +457,7 @@ export default function StyleOrderArtworkDetail() {
                           onChange={e => {
                             set("workHours", e.target.value);
                             const c = computeTotalCost(form.hourlyRate, e.target.value);
-                            if (c) set("totalCost", c);
+                            if (c) { set("totalCost", c); set("outsourcePaymentAmount", c); }
                           }} />
                       </Field>
                       <Field label="Hourly Rate" hint="Cost per hour">
@@ -467,7 +467,7 @@ export default function StyleOrderArtworkDetail() {
                           onChange={e => {
                             set("hourlyRate", e.target.value);
                             const c = computeTotalCost(e.target.value, form.workHours);
-                            if (c) set("totalCost", c);
+                            if (c) { set("totalCost", c); set("outsourcePaymentAmount", c); }
                           }} />
                       </Field>
                     </div>
@@ -486,13 +486,12 @@ export default function StyleOrderArtworkDetail() {
                           readOnly={isViewMode} value={form.outsourcePaymentDate}
                           onChange={e => set("outsourcePaymentDate", e.target.value)} />
                       </Field>
-                      <Field label="Amount">
+                      <Field label="Amount" hint="Auto-computed: hours × rate">
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">₹</span>
                           <input type="number" min="0" step="0.01" placeholder="0.00"
-                            className={`${inputCls} pl-7 ${isViewMode ? "bg-gray-50 text-gray-500 cursor-default" : ""}`}
-                            readOnly={isViewMode} value={form.outsourcePaymentAmount}
-                            onChange={e => set("outsourcePaymentAmount", e.target.value)} />
+                            className={`${inputCls} pl-7 bg-gray-50 text-gray-700 cursor-default`}
+                            readOnly value={form.outsourcePaymentAmount} />
                         </div>
                       </Field>
                     </div>
