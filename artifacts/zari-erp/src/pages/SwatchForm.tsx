@@ -19,9 +19,7 @@ import {
 import { useAllFabrics } from "@/hooks/useFabrics";
 import { useUnitTypes, useSwatchCategories, useCreateSwatchCategory, useCreateUnitType } from "@/hooks/useLookups";
 import { useAllClients, type ClientRecord } from "@/hooks/useClients";
-
-// ─── Constants ──────────────────────────────────────────────────────────────────
-const LOCATION_OPTIONS = ["Inhouse", "Client"];
+import { useWarehouseLocations } from "@/hooks/useWarehouseLocations";
 const NAME_REGEX = /^[A-Za-z]+( [A-Za-z]+)*$/;
 const NUMERIC_REGEX = /^[0-9]+(\.[0-9]{1,2})?$/;
 
@@ -187,10 +185,17 @@ export default function SwatchForm() {
   const createCatMutation = useCreateSwatchCategory();
   const createUnitType = useCreateUnitType();
 
+  const { data: warehouseLocations = [] } = useWarehouseLocations();
+  const activeWarehouses = warehouseLocations.filter(w => w.isActive);
+
   const fabricOptions = (fabricsData ?? []).map(f => { const v = `${f.fabricType} – ${f.quality}`.trim(); return { value: v, label: v }; });
   const unitOptions = (unitTypesData ?? []).filter(u => u.isActive).map(u => ({ value: u.name, label: u.name }));
   const clientOptions = ((clientsData ?? []) as ClientRecord[]).map(c => c.brandName);
   const swatchCatOptions = (swatchCatsData ?? []).filter(c => c.isActive).map(c => ({ value: c.name, label: c.name }));
+
+  // Derived location type: "Client" is the sentinel value; everything else is Inhouse
+  const locationType = form.location === "Client" ? "Client" : "Inhouse";
+  const warehouseValue = locationType === "Inhouse" ? form.location : "";
 
   // Populate form from loaded record (edit mode)
   useEffect(() => {
@@ -406,8 +411,23 @@ export default function SwatchForm() {
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
-                      <SearchableSelect value={form.location} onChange={v => setField("location", v)}
-                        options={LOCATION_OPTIONS} placeholder="Select location" clearable />
+                      <div className="flex rounded-lg border border-gray-300 overflow-hidden mb-2">
+                        {(["Inhouse", "Client"] as const).map(t => (
+                          <button key={t} type="button"
+                            onClick={() => setField("location", t === "Client" ? "Client" : "")}
+                            className={`flex-1 py-2 text-sm font-medium transition-colors ${locationType === t ? "bg-gray-900 text-[#C9B45C]" : "bg-white text-gray-600 hover:bg-gray-50"}`}>
+                            {t === "Client" ? "To Client" : "Inhouse"}
+                          </button>
+                        ))}
+                      </div>
+                      {locationType === "Inhouse" && (
+                        <select value={warehouseValue}
+                          onChange={e => setField("location", e.target.value)}
+                          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-gray-900">
+                          <option value="">— Select warehouse —</option>
+                          {activeWarehouses.map(w => <option key={w.id} value={w.name}>{w.name}</option>)}
+                        </select>
+                      )}
                     </div>
 
                     <div>

@@ -21,6 +21,7 @@ import { useAllClients, type ClientRecord } from "@/hooks/useClients";
 import { useAllStyleCategories, type StyleCategoryRecord } from "@/hooks/useStyleCategories";
 import { useSwatchCategories, useUnitTypes } from "@/hooks/useLookups";
 import { useAllFabrics } from "@/hooks/useFabrics";
+import { useWarehouseLocations } from "@/hooks/useWarehouseLocations";
 
 // ─── Constants ──────────────────────────────────────────────────────────────────
 const PLACE_OPTIONS = ["In-house", "Out-house"];
@@ -126,12 +127,16 @@ function CreateSwatchMiniModal({ open, onClose, prefillClient, onCreated }: Crea
   const { data: swatchCatsData } = useSwatchCategories();
   const { data: fabricsData } = useAllFabrics();
   const { data: unitTypesData } = useUnitTypes();
+  const { data: warehouseLocations = [] } = useWarehouseLocations();
   const createSwatch = useCreateSwatch();
 
   const clientOptions = ((clientsData ?? []) as ClientRecord[]).map(c => c.brandName);
   const catOptions = (swatchCatsData ?? []).filter(c => c.isActive).map(c => c.name);
   const fabricOptions = (fabricsData ?? []).map(f => `${f.fabricType} – ${f.quality}`.trim());
   const unitOptions = (unitTypesData ?? []).filter(u => u.isActive).map(u => u.name);
+  const activeWarehouses = warehouseLocations.filter(w => w.isActive);
+  const miniLocType = form.location === "Client" ? "Client" : "Inhouse";
+  const miniWarehouseVal = miniLocType === "Inhouse" ? form.location : "";
 
   useEffect(() => {
     if (open) {
@@ -244,10 +249,21 @@ function CreateSwatchMiniModal({ open, onClose, prefillClient, onCreated }: Crea
             {/* Location */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
-              <select value={form.location} onChange={e => setF("location", e.target.value)} className={sel}>
-                <option value="">— None —</option>
-                {SWATCH_LOCATION_OPTIONS.map(l => <option key={l} value={l}>{l}</option>)}
-              </select>
+              <div className="flex rounded-lg border border-gray-300 overflow-hidden mb-2">
+                {(["Inhouse", "Client"] as const).map(t => (
+                  <button key={t} type="button"
+                    onClick={() => setF("location", t === "Client" ? "Client" : "")}
+                    className={`flex-1 py-2 text-sm font-medium transition-colors ${miniLocType === t ? "bg-gray-900 text-[#C9B45C]" : "bg-white text-gray-600 hover:bg-gray-50"}`}>
+                    {t === "Client" ? "To Client" : "Inhouse"}
+                  </button>
+                ))}
+              </div>
+              {miniLocType === "Inhouse" && (
+                <select value={miniWarehouseVal} onChange={e => setF("location", e.target.value)} className={sel}>
+                  <option value="">— Select warehouse —</option>
+                  {activeWarehouses.map(w => <option key={w.id} value={w.name}>{w.name}</option>)}
+                </select>
+              )}
             </div>
 
             {/* Swatch Date */}
