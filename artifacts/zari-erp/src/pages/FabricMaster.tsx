@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
-import { Pencil, Trash2, ImagePlus, X as XIcon, ZoomIn, ArrowLeft, Save, FileDown, FileUp, FileSpreadsheet, Star, ChevronLeft, ChevronRight } from "lucide-react";
+import { Pencil, Trash2, ImagePlus, X as XIcon, ZoomIn, ArrowLeft, Save, Loader2, FileDown, FileUp, FileSpreadsheet, Star, ChevronLeft, ChevronRight } from "lucide-react";
 import * as XLSX from "xlsx";
 import { useGetMe, useLogout, getGetMeQueryKey } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
@@ -660,42 +660,28 @@ export default function FabricMaster() {
 
       {/* ══════════════ FORM VIEW ══════════════ */}
       {viewMode === "form" && (
-        <div className="max-w-screen-xl mx-auto pb-12">
+        <div className="-mx-6 -my-6 md:-mx-8 md:-my-8 px-6 py-8 md:px-8" style={{ background: "#F8F6F0", minHeight: "100vh" }}>
+          <div className="max-w-screen-xl mx-auto space-y-5 pb-12">
 
-          {/* Page header bar */}
-          <div className="flex items-center justify-between py-4 mb-6 border-b border-gray-200">
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setViewMode("list")}
-                className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 transition-colors group"
-              >
-                <ArrowLeft className="h-4 w-4 group-hover:-translate-x-0.5 transition-transform" />
+          {/* Page header */}
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <button onClick={() => setViewMode("list")}
+                className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 transition-colors">
+                <ArrowLeft className="h-4 w-4" />
                 Fabric Master
               </button>
-              <span className="text-gray-300 select-none">/</span>
-              <h1 className="text-base font-semibold text-gray-900">
+              <span className="text-gray-300">/</span>
+              <h1 className="text-lg font-bold text-gray-900">
                 {editRecord ? `Edit Fabric — ${editRecord.fabricCode}` : "Add Fabric"}
               </h1>
             </div>
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => setViewMode("list")}
-                className="px-4 py-2 rounded-lg border border-gray-300 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSubmit}
-                disabled={submitting}
-                className="flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-semibold text-white transition-colors disabled:opacity-60"
-                style={{ backgroundColor: "#C6AF4B" }}
-                onMouseEnter={e => (e.currentTarget.style.backgroundColor = "#b89d3e")}
-                onMouseLeave={e => (e.currentTarget.style.backgroundColor = "#C6AF4B")}
-              >
-                <Save className="h-4 w-4" />
-                {submitting ? "Saving…" : editRecord ? "Update Fabric" : "Create Fabric"}
-              </button>
-            </div>
+            <button onClick={handleSubmit} disabled={submitting}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-50 transition-all"
+              style={{ background: "linear-gradient(135deg, #C6AF4B, #a8922e)" }}>
+              {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              {submitting ? "Saving…" : editRecord ? "Save Changes" : "Create Fabric"}
+            </button>
           </div>
 
           {/* Two-column layout */}
@@ -1072,6 +1058,21 @@ export default function FabricMaster() {
               </div>
 
             </div>
+          </div>
+
+          {/* Bottom action bar */}
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 flex items-center justify-end gap-3">
+            <button type="button" onClick={() => setViewMode("list")}
+              className="px-4 py-2 text-sm font-medium text-gray-600 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors">
+              Cancel
+            </button>
+            <button type="button" onClick={handleSubmit} disabled={submitting}
+              className="flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-50 transition-all"
+              style={{ background: "linear-gradient(135deg, #C6AF4B, #a8922e)" }}>
+              {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              {submitting ? "Saving…" : editRecord ? "Save Changes" : "Create Fabric"}
+            </button>
+          </div>
           </div>
         </div>
       )}

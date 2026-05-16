@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
-import { Pencil, Trash2, ImagePlus, X as XIcon, ZoomIn, FileDown, FileUp, FileSpreadsheet, Star, ChevronLeft, ChevronRight } from "lucide-react";
+import { Pencil, Trash2, ImagePlus, X as XIcon, ZoomIn, ArrowLeft, Save, Loader2, FileDown, FileUp, FileSpreadsheet, Star, ChevronLeft, ChevronRight } from "lucide-react";
 import { useGetMe, useLogout, getGetMeQueryKey } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
 import * as XLSX from "xlsx";
@@ -650,29 +650,27 @@ export default function MaterialsMaster() {
       )}
 
       {viewMode === "form" && (
-        <div className="max-w-screen-xl mx-auto space-y-5">
+        <div className="-mx-6 -my-6 md:-mx-8 md:-my-8 px-6 py-8 md:px-8" style={{ background: "#F8F6F0", minHeight: "100vh" }}>
+          <div className="max-w-screen-xl mx-auto space-y-5 pb-12">
           {/* ── Header ── */}
-          <div className="flex items-center justify-between">
-            <div>
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
               <button type="button" onClick={cancelForm}
-                className="mb-1 flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-800 transition-colors">
-                ← Back to list
+                className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 transition-colors">
+                <ArrowLeft className="h-4 w-4" />
+                Material Master
               </button>
-              <h1 className="text-xl font-bold text-gray-900">
+              <span className="text-gray-300">/</span>
+              <h1 className="text-lg font-bold text-gray-900">
                 {editRecord ? `Edit Material — ${editRecord.materialCode}` : "Add Material"}
               </h1>
-              {editRecord && <p className="text-xs text-gray-400 mt-0.5" title="Material Code is auto-generated.">{editRecord.materialCode}</p>}
             </div>
-            <div className="flex gap-3">
-              <button type="button" onClick={cancelForm}
-                className="px-4 py-2 rounded-xl text-sm font-medium border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors">
-                Cancel
-              </button>
-              <button type="button" onClick={handleSubmit} disabled={submitting}
-                className="px-5 py-2 rounded-xl text-sm font-semibold bg-gray-900 text-white hover:bg-gray-800 disabled:opacity-50 transition-colors shadow-sm">
-                {submitting ? (editRecord ? "Saving…" : "Creating…") : (editRecord ? "Save Changes" : "Create Material")}
-              </button>
-            </div>
+            <button type="button" onClick={handleSubmit} disabled={submitting}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-50 transition-all"
+              style={{ background: "linear-gradient(135deg, #C6AF4B, #a8922e)" }}>
+              {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              {submitting ? "Saving…" : editRecord ? "Save Changes" : "Create Material"}
+            </button>
           </div>
 
           {/* ── Two column grid ── */}
@@ -1035,6 +1033,21 @@ export default function MaterialsMaster() {
               </div>
 
             </div>
+          </div>
+
+          {/* Bottom action bar */}
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 flex items-center justify-end gap-3">
+            <button type="button" onClick={cancelForm}
+              className="px-4 py-2 text-sm font-medium text-gray-600 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors">
+              Cancel
+            </button>
+            <button type="button" onClick={handleSubmit} disabled={submitting}
+              className="flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-50 transition-all"
+              style={{ background: "linear-gradient(135deg, #C6AF4B, #a8922e)" }}>
+              {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              {submitting ? "Saving…" : editRecord ? "Save Changes" : "Create Material"}
+            </button>
+          </div>
           </div>
         </div>
       )}

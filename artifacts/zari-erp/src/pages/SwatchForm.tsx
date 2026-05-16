@@ -326,33 +326,37 @@ export default function SwatchForm() {
   if (!user) return null;
   if (!isNew && loadingRecord) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center" style={{ background: "#F8F6F0" }}>
         <Loader2 size={28} className="animate-spin text-gray-400" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen" style={{ background: "#F8F6F0" }}>
       <TopNavbar username={user.username} role={user.role} onLogout={handleLogout} isLoggingOut={logoutMutation.isPending} />
 
       <div className="max-w-screen-xl mx-auto px-6 py-6 space-y-6">
 
         {/* ── Page Header ── */}
-        <div className="flex items-center gap-4">
-          <button onClick={() => setLocation("/masters/swatches")}
-            className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 transition">
-            <ArrowLeft size={16} /> Back
-          </button>
-          <div className="h-5 w-px bg-gray-300" />
-          <div>
-            <h1 className="text-xl font-bold text-gray-900">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <button onClick={() => setLocation("/masters/swatches")}
+              className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 transition-colors">
+              <ArrowLeft size={16} />
+              Swatch Master
+            </button>
+            <span className="text-gray-300">/</span>
+            <h1 className="text-lg font-bold text-gray-900">
               {isNew ? "New Swatch" : `Edit Swatch — ${existing?.swatchCode ?? ""}`}
             </h1>
-            <p className="text-xs text-gray-400 mt-0.5">
-              {isNew ? "Create a new fabric swatch" : "Update swatch details"}
-            </p>
           </div>
+          <button type="button" onClick={handleSubmit} disabled={submitting}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-50 transition-all"
+            style={{ background: "linear-gradient(135deg, #C6AF4B, #a8922e)" }}>
+            {submitting ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+            {submitting ? "Saving…" : isNew ? "Create Swatch" : "Update Swatch"}
+          </button>
         </div>
 
         {/* ── Form Card ── */}
@@ -567,11 +571,12 @@ export default function SwatchForm() {
             {/* ── Actions ── */}
             <div className="flex justify-end gap-3 pt-6 mt-6 border-t border-gray-100">
               <button type="button" onClick={() => setLocation("/masters/swatches")}
-                className="px-5 py-2.5 text-sm rounded-xl border border-gray-300 text-gray-700 hover:bg-gray-50 transition">
+                className="px-4 py-2 text-sm font-medium text-gray-600 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors">
                 Cancel
               </button>
               <button type="button" onClick={handleSubmit} disabled={submitting}
-                className="flex items-center gap-2 px-6 py-2.5 text-sm rounded-xl bg-gray-900 text-[#C9B45C] hover:bg-gray-800 font-medium transition disabled:opacity-60">
+                className="flex items-center gap-2 px-5 py-2.5 text-sm font-semibold rounded-xl text-white disabled:opacity-50 transition-all"
+                style={{ background: "linear-gradient(135deg, #C6AF4B, #a8922e)" }}>
                 {submitting ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
                 {submitting ? "Saving…" : (isNew ? "Create Swatch" : "Update Swatch")}
               </button>

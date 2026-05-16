@@ -3,6 +3,7 @@ import { useLocation } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   Pencil, Trash2, ImagePlus, X as XIcon, ZoomIn,
+  ArrowLeft, Save, Loader2,
   FileDown, FileUp, FileSpreadsheet,
 } from "lucide-react";
 import { useGetMe, useLogout, getGetMeQueryKey } from "@workspace/api-client-react";
@@ -425,18 +426,28 @@ export default function ItemMaster() {
 
     return (
       <AppLayout username={user.username} role={user.role} onLogout={handleLogout} isLoggingOut={logoutMutation.isPending}>
-        <div className="max-w-screen-xl mx-auto space-y-5">
+        <div className="-mx-6 -my-6 md:-mx-8 md:-my-8 px-6 py-8 md:px-8" style={{ background: "#F8F6F0", minHeight: "100vh" }}>
+          <div className="max-w-screen-xl mx-auto space-y-5 pb-12">
 
           {/* Header */}
-          <div className="flex items-center gap-4">
-            <button onClick={cancelForm} className="text-sm text-gray-500 hover:text-gray-900 flex items-center gap-1.5 transition-colors">
-              ← Back to Items
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <button onClick={cancelForm}
+                className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 transition-colors">
+                <ArrowLeft className="h-4 w-4" />
+                Item Master
+              </button>
+              <span className="text-gray-300">/</span>
+              <h1 className="text-lg font-bold text-gray-900">
+                {editRecord ? `Edit Item — ${editRecord.itemCode}` : "Add Item"}
+              </h1>
+            </div>
+            <button type="button" onClick={handleSubmit} disabled={submitting}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-50 transition-all"
+              style={{ background: "linear-gradient(135deg, #C6AF4B, #a8922e)" }}>
+              {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              {submitting ? "Saving…" : editRecord ? "Save Changes" : "Create Item"}
             </button>
-            <div className="h-4 w-px bg-gray-200" />
-            <h1 className="text-xl font-bold text-gray-900">{editRecord ? "Edit Item" : "Add New Item"}</h1>
-            {editRecord && (
-              <span className="font-mono text-sm text-[#C9B45C] font-semibold">{editRecord.itemCode}</span>
-            )}
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -664,16 +675,19 @@ export default function ItemMaster() {
             </div>
           </div>
 
-          {/* Form Actions */}
-          <div className="flex justify-end gap-3 pt-2 pb-6">
+          {/* Bottom action bar */}
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 flex items-center justify-end gap-3">
             <button type="button" onClick={cancelForm}
-              className="px-5 py-2.5 rounded-xl border border-gray-200 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 shadow-sm transition-colors">
+              className="px-4 py-2 text-sm font-medium text-gray-600 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors">
               Cancel
             </button>
             <button type="button" onClick={handleSubmit} disabled={submitting}
-              className="px-6 py-2.5 rounded-xl bg-gray-900 text-sm font-semibold text-white hover:bg-gray-800 shadow-sm transition-colors disabled:opacity-60">
-              {submitting ? "Saving…" : editRecord ? "Update Item" : "Create Item"}
+              className="flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-50 transition-all"
+              style={{ background: "linear-gradient(135deg, #C6AF4B, #a8922e)" }}>
+              {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              {submitting ? "Saving…" : editRecord ? "Save Changes" : "Create Item"}
             </button>
+          </div>
           </div>
         </div>
 
