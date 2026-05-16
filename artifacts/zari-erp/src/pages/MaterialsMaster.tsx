@@ -694,7 +694,7 @@ export default function MaterialsMaster() {
                     <input value={form.quality} maxLength={50}
                       onChange={(e) => setForm((f) => ({ ...f, quality: e.target.value.replace(/[^A-Za-z ]/g, "") }))}
                       placeholder="e.g. Premium"
-                      className={`rounded-lg border px-3.5 py-2.5 text-sm outline-none transition focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10 ${errors.quality ? "border-red-400 bg-red-50/30" : "border-gray-300 bg-white"}`} />
+                      className={`rounded-lg border px-3.5 py-2.5 text-sm text-gray-900 outline-none transition focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10 ${errors.quality ? "border-red-400 bg-red-50/30" : "border-gray-300 bg-white"}`} />
                     {errors.quality ? <p className="text-xs text-red-500">{errors.quality}</p> : <p className="text-[10px] text-gray-400">{form.quality.length} / 50 characters used</p>}
                   </div>
                   <div className="flex flex-col gap-1">
@@ -702,7 +702,7 @@ export default function MaterialsMaster() {
                     <input value={form.type ?? ""} maxLength={50}
                       onChange={(e) => setForm((f) => ({ ...f, type: e.target.value.replace(/[^A-Za-z ]/g, "") }))}
                       placeholder="e.g. Natural"
-                      className={`rounded-lg border px-3.5 py-2.5 text-sm outline-none transition focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10 ${errors.type ? "border-red-400 bg-red-50/30" : "border-gray-300 bg-white"}`} />
+                      className={`rounded-lg border px-3.5 py-2.5 text-sm text-gray-900 outline-none transition focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10 ${errors.type ? "border-red-400 bg-red-50/30" : "border-gray-300 bg-white"}`} />
                     {errors.type ? <p className="text-xs text-red-500">{errors.type}</p> : <p className="text-[10px] text-gray-400">{(form.type ?? "").length} / 50 characters used</p>}
                   </div>
                 </div>
@@ -727,7 +727,7 @@ export default function MaterialsMaster() {
                     <input value={form.colorName} maxLength={50}
                       onChange={(e) => setForm((f) => ({ ...f, colorName: e.target.value.replace(/[^A-Za-z ]/g, "") }))}
                       placeholder="e.g. Royal Blue"
-                      className={`rounded-lg border px-3.5 py-2.5 text-sm outline-none transition focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10 ${errors.colorName ? "border-red-400 bg-red-50/30" : "border-gray-300 bg-white"}`} />
+                      className={`rounded-lg border px-3.5 py-2.5 text-sm text-gray-900 outline-none transition focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10 ${errors.colorName ? "border-red-400 bg-red-50/30" : "border-gray-300 bg-white"}`} />
                     {errors.colorName ? <p className="text-xs text-red-500">{errors.colorName}</p> : <p className="text-[10px] text-gray-400">{form.colorName.length} / 50 characters used</p>}
                   </div>
                 </div>
@@ -743,7 +743,7 @@ export default function MaterialsMaster() {
                       onKeyDown={(e) => { if (e.key === "e" || e.key === "E" || e.key === "-" || e.key === "+") e.preventDefault(); }}
                       onChange={(e) => setForm((f) => ({ ...f, size: e.target.value }))}
                       placeholder="e.g. 5"
-                      className={`rounded-lg border px-3.5 py-2.5 text-sm outline-none transition focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10 ${errors.size ? "border-red-400 bg-red-50/30" : "border-gray-300 bg-white"}`} />
+                      className={`rounded-lg border px-3.5 py-2.5 text-sm text-gray-900 outline-none transition focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10 ${errors.size ? "border-red-400 bg-red-50/30" : "border-gray-300 bg-white"}`} />
                     {errors.size && <p className="text-xs text-red-500">{errors.size}</p>}
                   </div>
                   <AddableSelect
@@ -759,7 +759,7 @@ export default function MaterialsMaster() {
                       onKeyDown={(e) => { if (e.key === "e" || e.key === "E" || e.key === "-" || e.key === "+") e.preventDefault(); }}
                       onChange={(e) => setForm((f) => ({ ...f, unitPrice: e.target.value }))}
                       placeholder="e.g. 250"
-                      className={`rounded-lg border px-3.5 py-2.5 text-sm outline-none transition focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10 ${errors.unitPrice ? "border-red-400 bg-red-50/30" : "border-gray-300 bg-white"}`} />
+                      className={`rounded-lg border px-3.5 py-2.5 text-sm text-gray-900 outline-none transition focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10 ${errors.unitPrice ? "border-red-400 bg-red-50/30" : "border-gray-300 bg-white"}`} />
                     {errors.unitPrice && <p className="text-xs text-red-500">{errors.unitPrice}</p>}
                   </div>
                 </div>
@@ -914,7 +914,7 @@ export default function MaterialsMaster() {
                       onKeyDown={(e) => { if (e.key === "e" || e.key === "E" || e.key === "-" || e.key === "+") e.preventDefault(); }}
                       onChange={(e) => setForm((f) => ({ ...f, currentStock: e.target.value }))}
                       placeholder="e.g. 100"
-                      className={`mt-1 w-full rounded-lg border px-3.5 py-2.5 text-sm outline-none transition focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10 ${errors.currentStock ? "border-red-400 bg-red-50/30" : "border-gray-300 bg-white"}`} />
+                      className={`mt-1 w-full rounded-lg border px-3.5 py-2.5 text-sm text-gray-900 outline-none transition focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10 ${errors.currentStock ? "border-red-400 bg-red-50/30" : "border-gray-300 bg-white"}`} />
                     {errors.currentStock && <p className="text-xs text-red-500 mt-1">{errors.currentStock}</p>}
                   </div>
                 )}

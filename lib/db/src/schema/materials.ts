@@ -52,7 +52,7 @@ const NUMERIC_REGEX = /^[0-9]+(\.[0-9]{1,2})?$/;
 export const insertMaterialSchema = z.object({
   materialName: z.string().optional(),
   itemType: z.string().trim().refine((v) => !v || NAME_REGEX.test(v), { message: "Item Type must contain only letters and spaces (max 100 characters)." }).optional().default(""),
-  quality: z.string().trim().min(1, "Quality is required").refine((v) => NAME_REGEX.test(v), { message: "Quality must contain only letters and spaces." }),
+  quality: z.string().trim().refine((v) => !v || NAME_REGEX.test(v), { message: "Quality must contain only letters and spaces." }).optional().default(""),
   type: z.string().trim().refine((v) => !v || NAME_REGEX.test(v), { message: "Type must contain only letters and spaces." }).optional(),
   color: z.string().optional(),
   hexCode: z.string().optional(),
