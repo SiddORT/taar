@@ -306,8 +306,10 @@ export default function ArtworkDetail() {
   if (!isNew && isLoading) {
     return (
       <AppLayout>
-        <div className="flex items-center justify-center h-64">
-          <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+        <div className="-mx-6 -my-6 md:-mx-8 md:-my-8" style={{ background: "#F8F6F0", minHeight: "100vh" }}>
+          <div className="flex items-center justify-center h-64">
+            <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+          </div>
         </div>
       </AppLayout>
     );
@@ -317,37 +319,35 @@ export default function ArtworkDetail() {
 
   return (
     <AppLayout>
-      <div className="py-6 px-6 max-w-screen-xl mx-auto min-h-screen bg-[#f8f9fb]">
+      <div className="-mx-6 -my-6 md:-mx-8 md:-my-8 pb-12" style={{ background: "#F8F6F0", minHeight: "100vh" }}>
 
         {/* Sticky header */}
-        <div className="sticky top-0 z-20 -mx-6 px-6 py-3 bg-[#f8f9fb]/95 backdrop-blur border-b border-gray-200">
-          <div className="max-w-screen-xl mx-auto flex items-center gap-4">
-            <button onClick={() => setLocation(`/swatch-orders/${swatchOrderId}?tab=2`)}
-              className="p-2 rounded-xl hover:bg-gray-200 text-gray-500 transition-colors shrink-0">
-              <ArrowLeft className="h-4 w-4" />
-            </button>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-3 flex-wrap">
-                <span className="text-sm font-mono font-bold text-gray-700 bg-white border border-gray-200 px-3 py-1 rounded-lg">
-                  {artworkCode}
+        <div className="sticky top-0 z-20 bg-[#F8F6F0]/95 backdrop-blur border-b border-[#C6AF4B]/20">
+          <div className="px-6 md:px-8 py-3.5 max-w-6xl mx-auto flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <button onClick={() => setLocation(`/swatch-orders/${swatchOrderId}?tab=2`)}
+                className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 transition-colors">
+                <ArrowLeft className="h-4 w-4" />
+                Swatch Orders
+              </button>
+              <span className="text-gray-300">/</span>
+              <span className="text-sm font-bold font-mono text-gray-900">{artworkCode}</span>
+              {isViewMode && (
+                <span className="ml-2 text-xs font-medium px-2.5 py-1 rounded-full bg-gray-900 text-[#C9B45C]">
+                  View Only
                 </span>
-                <span className="text-xs text-gray-400">→ Swatch Order #{swatchOrderId}</span>
-                {isViewMode && (
-                  <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-gray-900 text-[#C9B45C] border border-gray-900">
-                    View Only — Approved
-                  </span>
-                )}
-              </div>
+              )}
             </div>
             <button onClick={() => { void handleSave(); }} disabled={saving}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gray-900 text-[#C9B45C] text-sm font-medium hover:bg-black transition-colors disabled:opacity-60 shrink-0">
+              style={{ background: "linear-gradient(135deg, #C6AF4B, #a8922e)" }}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-50 transition-all shrink-0">
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
               {saving ? "Saving…" : isViewMode ? "Save Changes" : "Save"}
             </button>
           </div>
         </div>
 
-        <div className="mt-5 space-y-5">
+        <div className="px-6 md:px-8 max-w-6xl mx-auto mt-5 space-y-5">
 
           {/* Identity */}
           <SectionCard icon={<Palette className="h-4 w-4 text-[#C9B45C]" />}
@@ -656,12 +656,13 @@ export default function ArtworkDetail() {
 
           {/* Bottom Save */}
           <div className="flex justify-end gap-3 pt-2">
-            <button onClick={() => setLocation(`/swatch-orders/${swatchOrderId}`)}
+            <button onClick={() => setLocation(`/swatch-orders/${swatchOrderId}?tab=2`)}
               className="px-5 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-100 transition-colors">
               Cancel
             </button>
             <button onClick={() => { void handleSave(); }} disabled={saving}
-              className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gray-900 text-[#C9B45C] text-sm font-medium hover:bg-black transition-colors disabled:opacity-60 shadow-sm">
+              style={{ background: "linear-gradient(135deg, #C6AF4B, #a8922e)" }}
+              className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-50 transition-all">
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
               {saving ? "Saving…" : (isNew ? "Create Artwork" : "Save Changes")}
             </button>
@@ -696,7 +697,8 @@ export default function ArtworkDetail() {
                   Cancel
                 </button>
                 <button onClick={() => { void handleAddUnitType(); }} disabled={!newUnitTypeName.trim() || createUnitType.isPending}
-                  className="px-4 py-2 rounded-xl bg-gray-900 text-[#C9B45C] text-sm font-medium hover:bg-black transition-colors disabled:opacity-60">
+                  style={{ background: "linear-gradient(135deg, #C6AF4B, #a8922e)" }}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-50 transition-all">
                   {createUnitType.isPending ? "Adding…" : "Add"}
                 </button>
               </div>
