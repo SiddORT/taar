@@ -20,7 +20,6 @@ function validateMaterialFields(data: Record<string, unknown>): string[] {
     ["quality", "Quality", 100],
     ["type", "Type", 100],
     ["colorName", "Color Name", 100],
-    ["unitType", "Unit Type", 50],
   ];
   for (const [field, label, max] of textFields) {
     const v = typeof data[field] === "string" ? (data[field] as string).trim() : "";
@@ -28,6 +27,8 @@ function validateMaterialFields(data: Record<string, unknown>): string[] {
     if (v.length > max) errs.push(`${label} must be at most ${max} characters.`);
     if (!NAME_REGEX.test(v)) errs.push(`${label} must contain only letters and spaces.`);
   }
+  const unitTypeVal = typeof data["unitType"] === "string" ? (data["unitType"] as string).trim() : "";
+  if (unitTypeVal && unitTypeVal.length > 50) errs.push("Unit Type must be at most 50 characters.");
   for (const [field, label] of [["size", "Size"], ["unitPrice", "Unit Price"], ["currentStock", "Current Stock"]] as [string, string][]) {
     const v = typeof data[field] === "string" ? (data[field] as string).trim() : "";
     if (!v) continue;
