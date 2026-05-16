@@ -711,46 +711,25 @@ export default function FabricMaster() {
 
               {/* Color */}
               <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-                {sectionLabel("Color")}
-                <div className="flex gap-5 items-start">
-                  <div className="flex flex-col gap-1.5 shrink-0">
+                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#C6AF4B] mb-4">Color</p>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="flex flex-col gap-1.5">
                     <label className="text-sm font-medium text-gray-700">Color Picker</label>
                     <div className="flex gap-2 items-center">
-                      <input
-                        type="color"
-                        value={form.hexCode || "#c9b45c"}
-                        onChange={(e) => setForm((f) => ({ ...f, hexCode: e.target.value, color: e.target.value, colorName: hexToColorName(e.target.value) }))}
-                        className="h-[42px] w-14 rounded-lg border border-gray-300 cursor-pointer p-0.5 shrink-0"
-                      />
-                      <div className="flex flex-col gap-0.5">
-                        <span className="text-[10px] font-medium text-gray-400 uppercase tracking-wider">Hex</span>
-                        <span className="font-mono text-sm text-gray-600 bg-gray-50 border border-gray-200 rounded-md px-2.5 py-1 min-w-[88px]">
-                          {form.hexCode || "#c9b45c"}
-                        </span>
-                      </div>
+                      <input type="color" value={form.hexCode || "#c9b45c"}
+                        onChange={(e) => { const name = hexToColorName(e.target.value); setForm((f) => ({ ...f, hexCode: e.target.value, color: e.target.value, colorName: name })); }}
+                        className="h-10 w-14 rounded-lg border border-gray-300 cursor-pointer p-0.5 shrink-0" />
+                      <input type="text" value={form.hexCode || ""} readOnly
+                        className="flex-1 rounded-lg border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-sm text-gray-500" placeholder="#000000" />
                     </div>
                   </div>
-                  <div className="flex-1 flex flex-col gap-1.5">
-                    <label className="text-sm font-medium text-gray-700">
-                      Color Name <span className="text-red-500">*</span>
-                      <span className="text-[10px] text-gray-400 font-normal ml-1">(auto-filled — edit to customise)</span>
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Ivory White, Dark Red"
-                      value={form.colorName}
-                      onChange={(e) => setForm((f) => ({ ...f, colorName: e.target.value }))}
-                      className={`rounded-lg border px-3.5 py-2.5 text-sm text-gray-900 outline-none transition focus:ring-2 focus:ring-gray-900/10 ${errors.colorName ? "border-red-400 focus:border-red-400" : "border-gray-300 focus:border-gray-900"}`}
-                    />
-                    {errors.colorName && <p className="text-xs text-red-500">{errors.colorName}</p>}
-                  </div>
-                  <div className="flex flex-col gap-1.5 shrink-0">
-                    <label className="text-sm font-medium text-gray-700 invisible">Preview</label>
-                    <div className="flex items-center gap-2">
-                      <div className="h-[42px] w-[42px] rounded-xl border border-gray-200 shadow-sm" style={{ backgroundColor: form.hexCode || "#c9b45c" }} />
-                      <div className="h-[42px] w-[42px] rounded-xl border border-gray-200 shadow-sm opacity-60" style={{ backgroundColor: form.hexCode || "#c9b45c", filter: "brightness(1.35)" }} />
-                      <div className="h-[42px] w-[42px] rounded-xl border border-gray-200 shadow-sm opacity-40" style={{ backgroundColor: form.hexCode || "#c9b45c", filter: "brightness(1.7)" }} />
-                    </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-sm font-medium text-gray-700">Color Name<span className="text-red-500 ml-0.5">*</span></label>
+                    <input value={form.colorName} maxLength={50}
+                      onChange={(e) => setForm((f) => ({ ...f, colorName: e.target.value.replace(/[^A-Za-z ]/g, "") }))}
+                      placeholder="e.g. Royal Blue"
+                      className={`rounded-lg border px-3.5 py-2.5 text-sm text-gray-900 outline-none transition focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10 ${errors.colorName ? "border-red-400 bg-red-50/30" : "border-gray-300 bg-white"}`} />
+                    {errors.colorName ? <p className="text-xs text-red-500">{errors.colorName}</p> : <p className="text-[10px] text-gray-400">{form.colorName.length} / 50 characters used</p>}
                   </div>
                 </div>
               </div>
