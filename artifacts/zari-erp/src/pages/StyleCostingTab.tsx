@@ -15,6 +15,7 @@ import { useQuery } from "@tanstack/react-query";
 import { customFetch } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAllVendors } from "@/hooks/useVendors";
+import { useWarehouseLocations } from "@/hooks/useWarehouseLocations";
 import { useAllMaterials, useCreateMaterial, type MaterialFormData } from "@/hooks/useMaterials";
 import { useAllFabrics, useCreateFabric, type FabricFormData } from "@/hooks/useFabrics";
 import { useItemTypes, useUnitTypes, useFabricTypes, useWidthUnitTypes } from "@/hooks/useLookups";
@@ -1411,6 +1412,8 @@ function StylePoSection({ styleOrderId, orderCode, styleName, clientName }: {
   const { data: prs = [] } = useStylePRs(styleOrderId);
   const { data: bomRows = [] } = useStyleBom(styleOrderId);
   const { data: vendors = [] } = useAllVendors();
+  const { data: warehouseLocations = [] } = useWarehouseLocations();
+  const activeWarehouses = warehouseLocations.filter(w => w.isActive);
   const createPO = useCreateStylePO();
   const createPR = useCreateStylePR();
 
@@ -1575,9 +1578,12 @@ function StylePoSection({ styleOrderId, orderCode, styleName, clientName }: {
               </div>
               <div>
                 <label className="text-[10px] text-gray-500 font-medium">Warehouse Location</label>
-                <input value={prForm.warehouseLocation} onChange={e => setPrForm(f => ({ ...f, warehouseLocation: e.target.value }))}
-                  className="w-full mt-0.5 text-xs text-gray-900 bg-white border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-gray-900/10"
-                  placeholder="e.g. Rack A-3" />
+                <select value={prForm.warehouseLocation}
+                  onChange={e => setPrForm(f => ({ ...f, warehouseLocation: e.target.value }))}
+                  className="w-full mt-0.5 text-xs text-gray-900 bg-white border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-gray-900/10">
+                  <option value="">— Select location —</option>
+                  {activeWarehouses.map(w => <option key={w.id} value={w.name}>{w.name}</option>)}
+                </select>
               </div>
             </div>
             <div className="flex gap-2 pt-1">
