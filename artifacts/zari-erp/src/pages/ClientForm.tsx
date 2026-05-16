@@ -205,6 +205,7 @@ export default function ClientForm() {
         toast({ title: "Client updated successfully" });
       }
       savedFormRef.current = form;
+      clearDirty();
       setLocation("/masters/clients");
     } catch (err) {
       toast({ title: "Error", description: err instanceof Error ? err.message : "An error occurred", variant: "destructive" });
@@ -215,7 +216,7 @@ export default function ClientForm() {
   }
 
   const handleSaveForGuard = useCallback(async () => { await handleSave(); }, [form, isNew, numId]);
-  useUnsavedChanges(isDirty, handleSaveForGuard);
+  const { clearDirty } = useUnsavedChanges(isDirty, handleSaveForGuard);
 
   function addAddress() {
     if (form.addresses.length >= 5) {
@@ -515,10 +516,10 @@ export default function ClientForm() {
                       placeholder="e.g. John Smith or ABC Pvt Ltd" className={inputCls} />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Contact Number</label>
-                    <input value={addr.contactNo}
-                      onChange={e => updateAddress(addr.id, { contactNo: e.target.value })}
-                      placeholder="+91 9876543210" className={inputCls} />
+                    <PhoneInput label="Contact Number"
+                      value={addr.contactNo || "+91"}
+                      onChange={v => updateAddress(addr.id, { contactNo: v })}
+                      placeholder="Phone number" />
                   </div>
                 </div>
 

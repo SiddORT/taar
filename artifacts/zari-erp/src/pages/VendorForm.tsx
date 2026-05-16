@@ -211,6 +211,7 @@ export default function VendorForm() {
         toast({ title: "Vendor saved successfully." });
       }
       savedFormRef.current = payload;
+      clearDirty();
       setLocation("/masters/vendors");
     } catch (err: unknown) {
       const msg = (err as { data?: { error?: string } })?.data?.error ?? (err instanceof Error ? err.message : "An error occurred.");
@@ -222,7 +223,7 @@ export default function VendorForm() {
   }
 
   const handleSaveForGuard = useCallback(async () => { await handleSave(); }, [form, isNew, numId]);
-  useUnsavedChanges(isDirty, handleSaveForGuard);
+  const { clearDirty } = useUnsavedChanges(isDirty, handleSaveForGuard);
 
   function addAddress() {
     if (form.addresses.length >= 5) {
@@ -475,10 +476,10 @@ export default function VendorForm() {
                       placeholder="Name of person at this address" className={inputCls} />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Contact Number</label>
-                    <input value={addr.contactNo}
-                      onChange={e => updateAddress(addr.id, { contactNo: e.target.value })}
-                      placeholder="+91 9876543210" className={inputCls} />
+                    <PhoneInput label="Contact Number"
+                      value={addr.contactNo || "+91"}
+                      onChange={v => updateAddress(addr.id, { contactNo: v })}
+                      placeholder="Phone number" />
                   </div>
                 </div>
 

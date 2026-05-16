@@ -271,8 +271,9 @@ export default function StyleMaster() {
 
             {/* Add Style */}
             <button onClick={() => setLocation("/masters/styles/new")}
-              className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg bg-gray-900 text-[#C9B45C] hover:bg-gray-800 transition">
-              <Plus size={15} /> Add Style
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition-all"
+              style={{ background: "linear-gradient(135deg, #C6AF4B, #a8922e)" }}>
+              <Plus size={14} /> Add Style
             </button>
           </div>
         </div>

@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
 import {
-  Pencil, Trash2, FileDown, FileSpreadsheet, FileUp, ChevronDown, Loader2,
+  Pencil, Trash2, Plus, FileDown, FileSpreadsheet, FileUp, ChevronDown, Loader2,
 } from "lucide-react";
 import { useGetMe, useLogout, getGetMeQueryKey } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
@@ -253,8 +253,9 @@ export default function SwatchMaster() {
             </div>
             {/* Add Swatch */}
             <button onClick={() => setLocation("/masters/swatches/new")}
-              className="flex items-center gap-1.5 px-4 py-2 text-sm rounded-lg bg-gray-900 text-[#C9B45C] hover:bg-gray-800 font-medium transition">
-              + Add Swatch
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition-all"
+              style={{ background: "linear-gradient(135deg, #C6AF4B, #a8922e)" }}>
+              <Plus size={14} /> Add Swatch
             </button>
           </div>
         </div>

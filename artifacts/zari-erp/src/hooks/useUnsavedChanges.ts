@@ -34,4 +34,6 @@ export function useUnsavedChanges(isDirty: boolean, onSave: () => Promise<void>)
     window.addEventListener("beforeunload", handler);
     return () => window.removeEventListener("beforeunload", handler);
   }, [isDirty]);
+
+  return { clearDirty: () => setDirty(false) };
 }

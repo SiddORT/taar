@@ -267,6 +267,7 @@ export default function ArtworkDetail() {
         await createArtwork.mutateAsync(payload);
         toast({ title: "Artwork created" });
         savedFormRef.current = form;
+        clearDirty();
         setLocation(`/swatch-orders/${swatchOrderId}?tab=2`);
       } else if (isViewMode) {
         await updateArtwork.mutateAsync({
@@ -300,7 +301,7 @@ export default function ArtworkDetail() {
   }
 
   const handleSaveForGuard = useCallback(async () => { await handleSave(); }, [form, isNew, isViewMode, numericId, swatchOrderId, swatchOrderIdNum]);
-  useUnsavedChanges(isDirty, handleSaveForGuard);
+  const { clearDirty } = useUnsavedChanges(isDirty, handleSaveForGuard);
 
   if (!isNew && isLoading) {
     return (
