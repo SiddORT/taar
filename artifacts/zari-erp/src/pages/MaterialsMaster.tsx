@@ -509,6 +509,7 @@ export default function MaterialsMaster() {
       },
     },
     { key: "materialCode", label: "Code", render: (r) => <span className="font-mono font-semibold text-gray-900" title="Material Code is auto-generated.">{asMat(r).materialCode}</span> },
+    { key: "itemType", label: "Item Name", render: (r) => <span className="text-gray-900 font-medium">{asMat(r).itemType || "—"}</span> },
     { key: "quality", label: "Quality", render: (r) => <span className="text-gray-700">{asMat(r).quality}</span> },
     {
       key: "colorName", label: "Color Name",
