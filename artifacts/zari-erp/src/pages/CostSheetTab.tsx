@@ -108,8 +108,30 @@ export default function CostSheetTab({
     await qc.invalidateQueries({ queryKey: ["artisan-timesheets", swatchOrderId] });
     await qc.invalidateQueries({ queryKey: ["outsource-jobs", swatchOrderId] });
     await qc.invalidateQueries({ queryKey: ["custom-charges", swatchOrderId] });
+    setArtworks([]);
+    const token = localStorage.getItem("zarierp_token");
+    const hdrs: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
+    fetch(`/api/artworks?swatchOrderId=${swatchOrderId}`, { headers: hdrs })
+      .then(r => r.json()).then((d: { data?: SwatchArtworkRow[] }) => setArtworks(d.data ?? []))
+      .catch(() => {});
     setRefreshing(false);
   }
+
+  // ── Swatch Artwork costs ───────────────────────────────────────────────────
+  type SwatchArtworkRow = {
+    id: number; artworkCode: string; artworkName: string;
+    artworkCreated: string; totalCost: string | null;
+    outsourceVendorName: string | null; outsourcePaymentAmount: string | null;
+    outsourcePaymentStatus: string | null;
+  };
+  const [artworks, setArtworks] = useState<SwatchArtworkRow[]>([]);
+  useEffect(() => {
+    const token = localStorage.getItem("zarierp_token");
+    const hdrs: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
+    fetch(`/api/artworks?swatchOrderId=${swatchOrderId}`, { headers: hdrs })
+      .then(r => r.json()).then((d: { data?: SwatchArtworkRow[] }) => setArtworks(d.data ?? []))
+      .catch(() => {});
+  }, [swatchOrderId]);
 
   const { data: bomRows = [], isLoading: loadingBom } = useSwatchBom(swatchOrderId);
   const { data: pos = [], isLoading: loadingPos } = useSwatchPOs(swatchOrderId);
@@ -174,7 +196,14 @@ export default function CostSheetTab({
   }, 0);
   const customTotal = customBaseTotal + (includeGst ? customGstTotal : 0);
 
-  const grandTotal = bomConsumedTotal + (includeGst ? bomGstTotal : 0) + artisanTotal + outsourceTotal + customTotal;
+  const artworkTotal = artworks.reduce((s, a) => {
+    const cost = a.artworkCreated === "Outsource"
+      ? (parseFloat(a.outsourcePaymentAmount ?? "") || parseFloat(a.totalCost ?? "") || 0)
+      : (parseFloat(a.totalCost ?? "") || 0);
+    return s + cost;
+  }, 0);
+
+  const grandTotal = bomConsumedTotal + (includeGst ? bomGstTotal : 0) + artisanTotal + outsourceTotal + customTotal + artworkTotal;
 
   function handlePrint() {
     window.print();
@@ -366,6 +395,24 @@ export default function CostSheetTab({
           />
         </SheetSection>
 
+        {/* ── 5. Artwork Costs ─────────────────────────────────────────────── */}
+        <SheetSection title="Artwork Costs">
+          <SheetTable
+            headers={["Artwork Code", "Artwork Name", "Type", "Vendor", "Amount ₹", "Status"]}
+            rows={artworks.flatMap(a => {
+              const prodCost = a.artworkCreated === "Outsource"
+                ? (parseFloat(a.outsourcePaymentAmount ?? "") || parseFloat(a.totalCost ?? "") || 0)
+                : (parseFloat(a.totalCost ?? "") || 0);
+              if (prodCost <= 0) return [];
+              const typeLabel = a.artworkCreated === "Outsource" ? "Artwork (Outsource)" : "Artwork (Inhouse)";
+              const vendor = a.artworkCreated === "Outsource" ? (a.outsourceVendorName || "—") : "Inhouse";
+              const status = a.artworkCreated === "Outsource" ? (a.outsourcePaymentStatus || "—") : "—";
+              return [[a.artworkCode, a.artworkName, typeLabel, vendor, rupee(prodCost), status]];
+            })}
+            footer={artworkTotal > 0 ? ["", "", "", "", "Total", rupee(artworkTotal)] : undefined}
+          />
+        </SheetSection>
+
         {/* ── Grand Total ─────────────────────────────────────────────────── */}
         <div className="mt-6 border-t-2 border-gray-900 pt-4">
           <div className="flex justify-end">
@@ -379,6 +426,7 @@ export default function CostSheetTab({
                   ...(includeGst && outsourceGstTotal > 0 ? [{ label: "Outsource GST", value: outsourceGstTotal }] : []),
                   { label: includeGst ? "Custom Charges (excl. GST)" : "Custom Charges", value: customBaseTotal },
                   ...(includeGst && customGstTotal > 0 ? [{ label: "Custom Charges GST", value: customGstTotal }] : []),
+                  ...(artworkTotal > 0 ? [{ label: "Artwork Costs", value: artworkTotal }] : []),
                 ].map(({ label, value }) => (
                   <div key={label} className="flex justify-between text-xs text-gray-600 px-3 py-0.5">
                     <span>{label}</span>

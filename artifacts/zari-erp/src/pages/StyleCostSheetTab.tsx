@@ -137,7 +137,7 @@ export default function StyleCostSheetTab({
     id: number; artworkCode: string; artworkName: string;
     artworkCreated: string | null;
     totalCost: string | null;
-    outsourceVendorName: string | null; outsourcePaymentStatus: string | null;
+    outsourceVendorName: string | null; outsourcePaymentAmount: string | null; outsourcePaymentStatus: string | null;
     toileMakingCost: string | null; toileVendorName: string | null;
     toilePaymentAmount: string | null; toilePaymentStatus: string | null;
     patternType: string | null; patternMakingCost: string | null;
@@ -236,11 +236,18 @@ export default function StyleCostSheetTab({
   }, 0);
   const customTotal = customBaseTotal + (includeGst ? customGstTotal : 0);
 
-  const artworkProductionTotal = filteredArtworks.reduce((s, a) => s + (parseFloat(a.totalCost ?? "") || 0), 0);
+  const artworkProductionTotal = filteredArtworks.reduce((s, a) => {
+    const cost = a.artworkCreated === "Outsource"
+      ? (parseFloat(a.outsourcePaymentAmount ?? "") || parseFloat(a.totalCost ?? "") || 0)
+      : (parseFloat(a.totalCost ?? "") || 0);
+    return s + cost;
+  }, 0);
   const artworkToileTotal = filteredArtworks.reduce((s, a) => s + (parseFloat(a.toileMakingCost ?? "") || 0), 0);
-  const artworkPatternTotal = filteredArtworks
-    .filter(a => a.patternType === "Outhouse")
-    .reduce((s, a) => s + (parseFloat(a.patternPaymentAmount ?? "") || 0), 0);
+  const artworkPatternTotal = filteredArtworks.reduce((s, a) => {
+    if (a.patternType === "Outhouse") return s + (parseFloat(a.patternPaymentAmount ?? "") || 0);
+    if (a.patternType === "Inhouse") return s + (parseFloat(a.patternMakingCost ?? "") || 0);
+    return s;
+  }, 0);
   const artworkTotal = artworkProductionTotal + artworkToileTotal + artworkPatternTotal;
 
   const grandTotal = bomConsumedTotal + (includeGst ? bomGstTotal : 0) + artisanTotal + outsourceTotal + customTotal + artworkTotal;
@@ -518,14 +525,17 @@ export default function StyleCostSheetTab({
               ]}
               rows={filteredArtworks.flatMap(a => {
                 const rows: (string | React.ReactNode)[][] = [];
-                // Artwork production cost (Inhouse hours×rate or Outsource vendor payment)
-                if (a.totalCost && parseFloat(a.totalCost) > 0) {
+                // Artwork production cost (Inhouse: hours×rate, Outsource: vendor payment)
+                const prodCost = a.artworkCreated === "Outsource"
+                  ? (parseFloat(a.outsourcePaymentAmount ?? "") || parseFloat(a.totalCost ?? "") || 0)
+                  : (parseFloat(a.totalCost ?? "") || 0);
+                if (prodCost > 0) {
                   const typeLabel = a.artworkCreated === "Outsource" ? "Artwork (Outsource)" : "Artwork (Inhouse)";
                   const vendor = a.artworkCreated === "Outsource" ? (a.outsourceVendorName || "—") : "Inhouse";
                   const status = a.artworkCreated === "Outsource" ? (a.outsourcePaymentStatus || "—") : "—";
                   const row: (string | React.ReactNode)[] = [
                     a.artworkCode, a.artworkName, typeLabel,
-                    vendor, rupee(parseFloat(a.totalCost)), status,
+                    vendor, rupee(prodCost), status,
                   ];
                   if (!isFiltered && products.length > 0) row.unshift(a.styleOrderProductName ?? "—");
                   rows.push(row);
@@ -540,12 +550,20 @@ export default function StyleCostSheetTab({
                   if (!isFiltered && products.length > 0) row.unshift(a.styleOrderProductName ?? "—");
                   rows.push(row);
                 }
-                // Pattern outhouse payment
+                // Pattern cost (Outhouse: vendor payment, Inhouse: making cost)
                 if (a.patternType === "Outhouse" && a.patternPaymentAmount && parseFloat(a.patternPaymentAmount) > 0) {
                   const row: (string | React.ReactNode)[] = [
                     a.artworkCode, a.artworkName, "Pattern (Outhouse)",
                     a.patternVendorName || "—", rupee(parseFloat(a.patternPaymentAmount)),
                     a.patternPaymentStatus || "—",
+                  ];
+                  if (!isFiltered && products.length > 0) row.unshift(a.styleOrderProductName ?? "—");
+                  rows.push(row);
+                }
+                if (a.patternType === "Inhouse" && a.patternMakingCost && parseFloat(a.patternMakingCost) > 0) {
+                  const row: (string | React.ReactNode)[] = [
+                    a.artworkCode, a.artworkName, "Pattern (Inhouse)",
+                    "Inhouse", rupee(parseFloat(a.patternMakingCost)), "—",
                   ];
                   if (!isFiltered && products.length > 0) row.unshift(a.styleOrderProductName ?? "—");
                   rows.push(row);
