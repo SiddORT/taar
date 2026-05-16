@@ -457,7 +457,7 @@ export default function InvoiceList() {
       {payTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4" onClick={() => setPayTarget(null)}>
           <div className="rounded-2xl bg-white border border-[#C6AF4B]/15 shadow-xl w-full max-w-lg" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
               <div>
                 <h2 className="text-base font-bold text-gray-900">Record Payment</h2>
                 <p className="text-xs text-gray-400 mt-0.5">
@@ -469,13 +469,13 @@ export default function InvoiceList() {
             <form onSubmit={handlePaySubmit} className="p-6 space-y-4">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Amount *</label>
+                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Amount <span className="text-red-500 ml-0.5">*</span></label>
                   <input type="number" min="0.01" step="0.01" required value={payForm.payment_amount}
                     onChange={e => setPayForm(p => ({ ...p, payment_amount: e.target.value }))}
                     className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#C6AF4B] focus:ring-2 focus:ring-[#C6AF4B]/20" />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Payment Date *</label>
+                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Payment Date <span className="text-red-500 ml-0.5">*</span></label>
                   <input type="date" required value={payForm.payment_date}
                     onChange={e => setPayForm(p => ({ ...p, payment_date: e.target.value }))}
                     className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#C6AF4B] focus:ring-2 focus:ring-[#C6AF4B]/20" />

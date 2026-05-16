@@ -656,7 +656,7 @@ export default function AccountSales() {
 
             {/* Pagination */}
             {totalPages > 1 && (
-              <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100">
+              <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200">
                 <p className="text-xs text-gray-400">
                   Page {page} of {totalPages} · {totalRows.toLocaleString()} records
                 </p>

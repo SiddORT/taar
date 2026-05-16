@@ -550,7 +550,7 @@ export default function QuotationList() {
 
           {/* Pagination */}
           {!loading && totalPages > 1 && (
-            <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100">
+            <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200">
               <span className="text-xs text-gray-500">Page {page} of {totalPages} · {total} total</span>
               <div className="flex gap-2">
                 <button

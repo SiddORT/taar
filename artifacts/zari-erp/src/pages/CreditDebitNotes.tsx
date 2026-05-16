@@ -459,7 +459,7 @@ export default function CreditDebitNotes() {
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4" onClick={() => setShowModal(false)}>
           <div className="rounded-2xl bg-white border border-[#C6AF4B]/15 shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 sticky top-0 bg-white z-10">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 sticky top-0 bg-white z-10">
               <div>
                 <h2 className="text-base font-bold text-gray-900">Create Credit / Debit Note</h2>
                 <p className="text-xs text-gray-400 mt-0.5">All Applied notes immediately update outstanding balances</p>
@@ -470,7 +470,7 @@ export default function CreditDebitNotes() {
             <form onSubmit={handleSave} className="p-6 space-y-5">
               {/* Note type selector */}
               <div>
-                <label className={lbl}>Note Type *</label>
+                <label className={lbl}>Note Type <span className="text-red-500 ml-0.5">*</span></label>
                 <div className="flex gap-3">
                   {NOTE_TYPES.map(t => (
                     <button
@@ -494,7 +494,7 @@ export default function CreditDebitNotes() {
               {/* Reference type + date */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className={lbl}>Reference Type *</label>
+                  <label className={lbl}>Reference Type <span className="text-red-500 ml-0.5">*</span></label>
                   <select value={form.reference_type}
                     onChange={e => { setF("reference_type", e.target.value); setF("invoice_id", ""); setF("vendor_bill_id", ""); setF("party_id", ""); setF("party_name", ""); }}
                     className={inp}>
@@ -502,7 +502,7 @@ export default function CreditDebitNotes() {
                   </select>
                 </div>
                 <div>
-                  <label className={lbl}>Note Date *</label>
+                  <label className={lbl}>Note Date <span className="text-red-500 ml-0.5">*</span></label>
                   <input type="date" required value={form.note_date}
                     onChange={e => setF("note_date", e.target.value)} className={inp} />
                 </div>
@@ -511,7 +511,7 @@ export default function CreditDebitNotes() {
               {/* Reference selector */}
               {form.reference_type === "Client Invoice" && (
                 <div>
-                  <label className={lbl}>Select Invoice *</label>
+                  <label className={lbl}>Select Invoice <span className="text-red-500 ml-0.5">*</span></label>
                   <select value={form.invoice_id} onChange={e => setF("invoice_id", e.target.value)} className={inp} required>
                     <option value="">— Select Invoice —</option>
                     {invoices.filter(i => i.invoiceDirection === "Client").map(i => (
@@ -524,7 +524,7 @@ export default function CreditDebitNotes() {
               )}
               {form.reference_type === "Vendor Bill" && (
                 <div>
-                  <label className={lbl}>Select Vendor Bill *</label>
+                  <label className={lbl}>Select Vendor Bill <span className="text-red-500 ml-0.5">*</span></label>
                   <select value={form.vendor_bill_id} onChange={e => setF("vendor_bill_id", e.target.value)} className={inp} required>
                     <option value="">— Select Vendor Bill —</option>
                     {vendorBills.map((v: any) => (
@@ -574,7 +574,7 @@ export default function CreditDebitNotes() {
               {/* Amount + currency */}
               <div className="grid grid-cols-3 gap-4">
                 <div className="col-span-2">
-                  <label className={lbl}>Note Amount *</label>
+                  <label className={lbl}>Note Amount <span className="text-red-500 ml-0.5">*</span></label>
                   <input type="number" min="0.01" step="0.01" required
                     value={form.note_amount} onChange={e => setF("note_amount", e.target.value)} className={inp}
                     placeholder="0.00" />
@@ -599,7 +599,7 @@ export default function CreditDebitNotes() {
 
               {/* Reason */}
               <div>
-                <label className={lbl}>Reason *</label>
+                <label className={lbl}>Reason <span className="text-red-500 ml-0.5">*</span></label>
                 <select value={form.reason} onChange={e => setF("reason", e.target.value)} className={inp} required>
                   <option value="">— Select Reason —</option>
                   {reasons.map(r => <option key={r}>{r}</option>)}

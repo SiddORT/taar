@@ -626,7 +626,7 @@ export default function VendorLedgerDetail() {
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1.5">Amount *</label>
+                    <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1.5">Amount <span className="text-red-500 ml-0.5">*</span></label>
                     <div className="relative">
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">₹</span>
                       <input type="number" value={payForm.amount} onChange={e => setPayForm(f => ({ ...f, amount: e.target.value }))}
@@ -641,7 +641,7 @@ export default function VendorLedgerDetail() {
                 </div>
 
                 <div>
-                  <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1.5">Payment Mode *</label>
+                  <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1.5">Payment Mode <span className="text-red-500 ml-0.5">*</span></label>
                   <select value={payForm.paymentMode} onChange={e => setPayForm(f => ({ ...f, paymentMode: e.target.value }))}
                     className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30">
                     <option>Bank Transfer</option>
@@ -713,7 +713,7 @@ export default function VendorLedgerDetail() {
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1.5">Description *</label>
+                  <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1.5">Description <span className="text-red-500 ml-0.5">*</span></label>
                   <input type="text" value={chargeForm.description} onChange={e => setChargeForm(f => ({ ...f, description: e.target.value }))}
                     placeholder="e.g. Transportation charges, Late delivery penalty…"
                     className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30" />
@@ -721,7 +721,7 @@ export default function VendorLedgerDetail() {
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1.5">Amount *</label>
+                    <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1.5">Amount <span className="text-red-500 ml-0.5">*</span></label>
                     <div className="relative">
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">₹</span>
                       <input type="number" value={chargeForm.amount} onChange={e => setChargeForm(f => ({ ...f, amount: e.target.value }))}

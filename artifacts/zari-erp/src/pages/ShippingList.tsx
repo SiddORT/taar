@@ -240,7 +240,7 @@ export default function ShippingList() {
             </table>
           </div>
           {totalPages > 1 && (
-            <div className="flex items-center justify-between px-5 py-3 border-t border-gray-100">
+            <div className="flex items-center justify-between px-5 py-3 border-t border-gray-200">
               <span className="text-xs text-gray-400">Showing {startIdx + 1}–{Math.min(page * LIMIT, total)} of {total}</span>
               <div className="flex items-center gap-1">
                 <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className="p-1.5 rounded-lg hover:bg-gray-100 disabled:opacity-30 transition"><ChevronLeft size={14} /></button>

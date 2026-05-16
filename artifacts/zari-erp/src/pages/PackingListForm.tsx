@@ -484,7 +484,7 @@ export default function PackingListForm() {
               <h2 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-4">Grouping</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1.5">Client *</label>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1.5">Client <span className="text-red-500 ml-0.5">*</span></label>
                   <select
                     value={clientId}
                     onChange={e => { setClientId(e.target.value ? parseInt(e.target.value) : ""); setDeliveryAddressId(""); setPackages([]); setActivePackageId(null); }}
@@ -497,7 +497,7 @@ export default function PackingListForm() {
                 </div>
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
-                    <label className="text-xs font-semibold text-gray-600">Delivery Address *</label>
+                    <label className="text-xs font-semibold text-gray-600">Delivery Address <span className="text-red-500 ml-0.5">*</span></label>
                     {clientId && (
                       <button onClick={() => setShowAddrModal(true)} className="flex items-center gap-1 text-xs font-medium hover:underline" style={{ color: G }}>
                         <Plus className="h-3 w-3" /> Add New
@@ -624,7 +624,7 @@ export default function PackingListForm() {
 
             {/* Packages */}
             <div className={card}>
-              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
                 <div className="flex items-center gap-2">
                   <Box className="h-4 w-4" style={{ color: G }} />
                   <h2 className="text-sm font-bold text-gray-900">Packages ({packages.length})</h2>
@@ -992,7 +992,7 @@ export default function PackingListForm() {
                     {/* Fields */}
                     <div className="grid grid-cols-2 gap-2">
                       <div>
-                        <label className="block text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Quantity *</label>
+                        <label className="block text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Quantity <span className="text-red-500 ml-0.5">*</span></label>
                         <input type="number" min="0" step="any" value={customQty} onChange={e => setCustomQty(e.target.value)} placeholder="0"
                           className="w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs text-gray-900 focus:outline-none focus:ring-1 focus:ring-blue-300"
                         />
@@ -1050,7 +1050,7 @@ export default function PackingListForm() {
             <div className="space-y-4">
               {/* Vendor */}
               <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1.5">Shipping Vendor *</label>
+                <label className="block text-xs font-semibold text-gray-600 mb-1.5">Shipping Vendor <span className="text-red-500 ml-0.5">*</span></label>
                 <select
                   value={newShip.shipping_vendor_id}
                   onChange={e => setNewShip(p => ({ ...p, shipping_vendor_id: e.target.value ? parseInt(e.target.value) : "" }))}
@@ -1072,7 +1072,7 @@ export default function PackingListForm() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1.5">Shipment Weight (kg) *</label>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1.5">Shipment Weight (kg) <span className="text-red-500 ml-0.5">*</span></label>
                   <input
                     type="number"
                     step="0.001"

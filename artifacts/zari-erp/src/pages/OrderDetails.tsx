@@ -101,16 +101,16 @@ function EditModal({ title, open, onClose, onSave, saving, children }: {
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
       <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
           <h2 className="text-base font-semibold text-gray-900">{title}</h2>
           <button onClick={onClose} className="p-2 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors">
             <X className="h-4 w-4" />
           </button>
         </div>
         <div className="px-6 py-5 space-y-4 overflow-y-auto max-h-[60vh]">{children}</div>
-        <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-100 bg-gray-50">
+        <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-200 bg-gray-50">
           <button onClick={onClose} className="px-4 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-200 transition-colors">
             Cancel
           </button>

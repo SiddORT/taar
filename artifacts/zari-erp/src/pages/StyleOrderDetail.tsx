@@ -220,7 +220,7 @@ function SectionCard({ icon, title, subtitle, accentColor, children }: {
 }) {
   return (
     <div className="bg-white rounded-2xl border border-gray-200/80 shadow-[0_2px_8px_rgba(0,0,0,0.06)] overflow-hidden">
-      <div className="flex items-center gap-3 px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
+      <div className="flex items-center gap-3 px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-white">
         <div className={`flex items-center justify-center h-8 w-8 rounded-xl ${accentColor} shadow-sm`}>
           {icon}
         </div>
@@ -922,7 +922,7 @@ export default function StyleOrderDetail() {
 
               {/* Estimate Items */}
               <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-                <div className="flex items-center gap-3 px-6 py-4 border-b border-gray-100 bg-gray-50/50">
+                <div className="flex items-center gap-3 px-6 py-4 border-b border-gray-200 bg-gray-50/50">
                   <div className="flex items-center justify-center h-8 w-8 rounded-xl bg-gray-900">
                     <span className="text-sm">📊</span>
                   </div>
@@ -993,7 +993,7 @@ export default function StyleOrderDetail() {
                     </tbody>
                   </table>
                 </div>
-                <div className="px-6 py-4 border-t border-gray-100">
+                <div className="px-6 py-4 border-t border-gray-200">
                   <button
                     type="button"
                     onClick={() => {
@@ -1016,7 +1016,7 @@ export default function StyleOrderDetail() {
                 const total = lineItems.reduce((sum, it) => sum + parseFloat(it.rate), 0);
                 return (
                   <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-                    <div className="flex items-center gap-3 px-6 py-4 border-b border-gray-100 bg-gray-50/50">
+                    <div className="flex items-center gap-3 px-6 py-4 border-b border-gray-200 bg-gray-50/50">
                       <div className="flex items-center justify-center h-8 w-8 rounded-xl bg-gray-900">
                         <span className="text-sm">💰</span>
                       </div>

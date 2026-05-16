@@ -485,7 +485,7 @@ export default function Reservations() {
           </div>
 
           {total > limit && (
-            <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100">
+            <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200">
               <span className="text-xs text-gray-700">
                 Showing {(page-1)*limit+1}–{Math.min(page*limit, total)} of {total}
               </span>
@@ -512,7 +512,7 @@ export default function Reservations() {
             </div>
           )}
           {total > 0 && total <= limit && (
-            <div className="px-4 py-3 border-t border-gray-100">
+            <div className="px-4 py-3 border-t border-gray-200">
               <span className="text-xs text-gray-500">{total} record{total !== 1 ? "s" : ""}</span>
             </div>
           )}
@@ -521,9 +521,9 @@ export default function Reservations() {
 
       {/* New Reservation Modal */}
       {showForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
           <div className={`${card} w-full max-w-lg`}>
-            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
               <div className="flex items-center gap-2">
                 <Bookmark className="h-5 w-5" style={{ color: G }} />
                 <h2 className="text-base font-bold text-gray-900">New Reservation</h2>
@@ -610,7 +610,7 @@ export default function Reservations() {
                   className="w-full px-3 py-2 text-sm text-gray-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30" />
               </div>
             </div>
-            <div className="flex justify-end gap-3 px-5 py-4 border-t border-gray-100">
+            <div className="flex justify-end gap-3 px-5 py-4 border-t border-gray-200">
               <button onClick={() => setShowForm(false)} disabled={submitting}
                 className="px-4 py-2 rounded-xl text-sm font-medium text-gray-700 border border-gray-200 hover:bg-gray-50 disabled:opacity-50">
                 Cancel
@@ -627,7 +627,7 @@ export default function Reservations() {
 
       {/* Action Confirm Modal */}
       {confirmAction && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
           <div className={`${card} w-full max-w-sm p-6`}>
             <div className="flex items-start gap-3 mb-4">
               <div className={`p-2 rounded-lg flex-shrink-0 ${
@@ -686,10 +686,10 @@ export default function Reservations() {
         const wOver = w > reserved;
         const valid = Math.abs(remaining) < 0.001 && c >= 0 && r >= 0 && w >= 0 && !cOver && !rOver && !wOver;
         return (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
             <div className={`${card} w-full max-w-md`}>
               {/* Header */}
-              <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+              <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
                 <div className="flex items-center gap-2">
                   <div className="p-1.5 rounded-lg bg-blue-100">
                     <ArrowRightLeft className="h-4 w-4 text-blue-600" />
@@ -769,7 +769,7 @@ export default function Reservations() {
                 </div>
               </div>
 
-              <div className="flex justify-end gap-3 px-5 py-4 border-t border-gray-100">
+              <div className="flex justify-end gap-3 px-5 py-4 border-t border-gray-200">
                 <button onClick={() => setConvertModal(null)} disabled={convertModal.submitting}
                   className="px-4 py-2 rounded-xl text-sm font-medium text-gray-700 border border-gray-200 hover:bg-gray-50 disabled:opacity-50">
                   Cancel

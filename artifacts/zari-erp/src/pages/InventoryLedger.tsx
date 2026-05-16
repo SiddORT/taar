@@ -462,7 +462,7 @@ export default function InventoryLedger() {
 
           {/* Pagination */}
           {total > limit && (
-            <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100">
+            <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200">
               <span className="text-xs text-gray-700">
                 Showing {((page - 1) * limit) + 1}–{Math.min(page * limit, total)} of {total} entries
               </span>
@@ -489,7 +489,7 @@ export default function InventoryLedger() {
             </div>
           )}
           {total > 0 && total <= limit && (
-            <div className="px-4 py-3 border-t border-gray-100">
+            <div className="px-4 py-3 border-t border-gray-200">
               <span className="text-xs text-gray-500">{total} entries</span>
             </div>
           )}
@@ -498,7 +498,7 @@ export default function InventoryLedger() {
 
       {/* ── Wastage Modal ─────────────────────────────────────────────────────── */}
       {wastageModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
           <div className={`${card} w-full max-w-md`} onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between p-5 border-b border-gray-100">
               <div>
@@ -598,7 +598,7 @@ export default function InventoryLedger() {
 
       {/* ── Delete Confirm ────────────────────────────────────────────────────── */}
       {deleteConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
           <div className={`${card} w-full max-w-sm p-6`} onClick={e => e.stopPropagation()}>
             <div className="flex items-start gap-3 mb-4">
               <div className="p-2 bg-red-100 rounded-lg flex-shrink-0">

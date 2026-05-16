@@ -301,7 +301,7 @@ export default function PackingLists() {
 
               {/* Pagination */}
               {totalPages > 1 && (
-                <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100">
+                <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200">
                   <span className="text-sm text-gray-900">
                     {(page - 1) * LIMIT + 1}–{Math.min(page * LIMIT, total)} of {total}
                   </span>

@@ -644,7 +644,7 @@ export default function InventoryStockList() {
 
           {/* Pagination */}
           {total > limit && (
-            <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100">
+            <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200">
               <span className="text-xs text-gray-700">
                 Showing {((page - 1) * limit) + 1}–{Math.min(page * limit, total)} of {total} items
               </span>
@@ -675,7 +675,7 @@ export default function InventoryStockList() {
 
       {/* Update Stock Modal */}
       {stockModal.open && stockModal.item && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
           <div className={`${card} w-full max-w-lg max-h-[90vh] overflow-y-auto`} onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between p-5 border-b border-gray-100">
               <div>
@@ -787,7 +787,7 @@ export default function InventoryStockList() {
 
       {/* Stock Log Timeline Modal */}
       {logModal.open && logModal.item && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
           <div className={`${card} w-full max-w-xl max-h-[85vh] flex flex-col`} onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between p-5 border-b border-gray-100 flex-shrink-0">
               <div>
@@ -853,7 +853,7 @@ export default function InventoryStockList() {
 
       {/* Reservations Modal */}
       {resModal.open && resModal.item && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
           <div className={`${card} w-full max-w-2xl max-h-[85vh] flex flex-col`} onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between p-5 border-b border-gray-100 flex-shrink-0">
               <div>

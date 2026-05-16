@@ -336,7 +336,7 @@ export default function StyleOrderToileTab({
 
   return (
     <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-      <div className="flex items-center gap-3 px-6 py-4 border-b border-gray-100 bg-gray-50/50">
+      <div className="flex items-center gap-3 px-6 py-4 border-b border-gray-200 bg-gray-50/50">
         <div className="flex items-center justify-center h-8 w-8 rounded-xl bg-gray-900">
           <Scissors className="h-4 w-4 text-[#C9B45C]" />
         </div>

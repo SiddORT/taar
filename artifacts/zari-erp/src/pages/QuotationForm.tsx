@@ -273,7 +273,7 @@ export default function QuotationForm() {
 
           {/* Client Dropdown */}
           <div className="max-w-md mb-4">
-            <label className={labelCls}>Select Client *</label>
+            <label className={labelCls}>Select Client <span className="text-red-500 ml-0.5">*</span></label>
             <select
               className={inputCls}
               value={selectedClientId}
@@ -417,7 +417,7 @@ export default function QuotationForm() {
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div className="sm:col-span-2">
-                    <label className={labelCls}>Design Name *</label>
+                    <label className={labelCls}>Design Name <span className="text-red-500 ml-0.5">*</span></label>
                     <input type="text" className={inputCls} placeholder="e.g. Floral Embroidery on Kurta"
                       value={d.designName}
                       onChange={(e) => setDesigns((p) => p.map((x, j) => j === i ? { ...x, designName: e.target.value } : x))} />

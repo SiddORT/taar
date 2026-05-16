@@ -366,7 +366,7 @@ export default function SwatchForm() {
 
         {/* ── Form Card ── */}
         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm">
-          <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/60 rounded-t-2xl">
+          <div className="px-6 py-4 border-b border-gray-200 bg-gray-50/60 rounded-t-2xl">
             <p className="text-xs text-gray-500">Fields marked <span className="text-red-500">*</span> are required</p>
           </div>
 

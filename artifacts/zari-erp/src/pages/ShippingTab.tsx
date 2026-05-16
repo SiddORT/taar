@@ -324,7 +324,7 @@ export default function ShippingTab({ referenceType, referenceId, clientName, or
             <div className="p-6 space-y-4">
               {/* Vendor */}
               <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Shipping Vendor *</label>
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Shipping Vendor <span className="text-red-500 ml-0.5">*</span></label>
                 <select value={form.shipping_vendor_id} onChange={e => setForm(f => ({ ...f, shipping_vendor_id: e.target.value }))} className={sel}>
                   <option value="">Select vendor…</option>
                   {vendors.map(v => <option key={v.id} value={v.id}>{v.vendor_name} (₹{parseFloat(v.weight_rate_per_kg).toFixed(2)}/kg)</option>)}
@@ -347,7 +347,7 @@ export default function ShippingTab({ referenceType, referenceId, clientName, or
               {/* Weight & cost */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Shipment Weight (kg) *</label>
+                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Shipment Weight (kg) <span className="text-red-500 ml-0.5">*</span></label>
                   <input value={form.shipment_weight} onChange={e => setForm(f => ({ ...f, shipment_weight: e.target.value }))} className={inp} type="number" step="0.001" placeholder="0.000" />
                   {errors.shipment_weight && <p className="text-red-500 text-xs mt-1">{errors.shipment_weight}</p>}
                 </div>

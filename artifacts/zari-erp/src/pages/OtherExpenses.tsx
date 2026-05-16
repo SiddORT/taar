@@ -110,9 +110,9 @@ function ExpenseModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.45)" }}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
       <div className={`${CARD} w-full max-w-2xl max-h-[90vh] overflow-y-auto`}>
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
           <h2 className="text-base font-bold text-gray-900">
             {initial ? "Edit Expense" : "Add Other Expense"}
           </h2>
@@ -131,7 +131,7 @@ function ExpenseModal({
           {/* Category */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className={LBL}>Expense Category *</label>
+              <label className={LBL}>Expense Category <span className="text-red-500 ml-0.5">*</span></label>
               <select className={INP} value={form.expense_category} onChange={e => set("expense_category", e.target.value)}>
                 <option value="">Select category…</option>
                 {allCategories.map(c => <option key={c} value={c}>{c}</option>)}
@@ -140,14 +140,14 @@ function ExpenseModal({
             </div>
             {form.expense_category === "__custom__" && (
               <div>
-                <label className={LBL}>New Category Name *</label>
+                <label className={LBL}>New Category Name <span className="text-red-500 ml-0.5">*</span></label>
                 <input className={INP} value={form.custom_category} onChange={e => set("custom_category", e.target.value)} placeholder="e.g. Misc Repairs" />
               </div>
             )}
 
             {/* Expense Date */}
             <div>
-              <label className={LBL}>Expense Date *</label>
+              <label className={LBL}>Expense Date <span className="text-red-500 ml-0.5">*</span></label>
               <input type="date" className={INP} value={form.expense_date} onChange={e => set("expense_date", e.target.value)} />
             </div>
           </div>
@@ -155,11 +155,11 @@ function ExpenseModal({
           {/* Amount + Currency */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className={LBL}>Amount *</label>
+              <label className={LBL}>Amount <span className="text-red-500 ml-0.5">*</span></label>
               <input type="number" min="0" step="0.01" className={INP} value={form.amount} onChange={e => set("amount", e.target.value)} placeholder="0.00" />
             </div>
             <div>
-              <label className={LBL}>Currency *</label>
+              <label className={LBL}>Currency <span className="text-red-500 ml-0.5">*</span></label>
               <select className={INP} value={form.currency_code} onChange={e => set("currency_code", e.target.value)}>
                 {CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
@@ -240,7 +240,7 @@ function ExpenseModal({
           </div>
         </div>
 
-        <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-100">
+        <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-200">
           <button onClick={onClose} className="px-4 py-2 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50">Cancel</button>
           <button onClick={submit} disabled={saving}
             className="px-5 py-2 rounded-xl text-sm font-semibold text-white transition disabled:opacity-60"
@@ -257,9 +257,9 @@ function ExpenseModal({
 function ViewModal({ row, onClose }: { row: any; onClose: () => void }) {
   const sym = row.currency_code === "INR" ? "₹" : row.currency_code + " ";
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.45)" }}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
       <div className={`${CARD} w-full max-w-lg`}>
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
           <div>
             <p className="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-0.5">Other Expense</p>
             <h2 className="text-base font-bold text-gray-900">{row.expense_number}</h2>
@@ -297,7 +297,7 @@ function ViewModal({ row, onClose }: { row: any; onClose: () => void }) {
             </div>
           )}
         </div>
-        <div className="flex justify-end px-6 py-4 border-t border-gray-100">
+        <div className="flex justify-end px-6 py-4 border-t border-gray-200">
           <button onClick={onClose} className="px-4 py-2 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50">Close</button>
         </div>
       </div>

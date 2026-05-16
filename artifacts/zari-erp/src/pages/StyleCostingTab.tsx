@@ -128,14 +128,14 @@ function QuickAddMaterialModal({ onClose, onCreated }: {
   }
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 px-4">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
           <div>
-            <h4 className="text-sm font-bold text-gray-900">Quick Add Material</h4>
+            <h4 className="text-sm font-semibold text-gray-900">Quick Add Material</h4>
             <p className="text-[11px] text-gray-400">New material will appear in the master & selector</p>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X className="h-4 w-4" /></button>
+          <button onClick={onClose} className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"><X className="h-5 w-5" /></button>
         </div>
         <div className="overflow-y-auto flex-1 px-5 py-4 grid grid-cols-2 gap-3">
           {[
@@ -192,12 +192,12 @@ function QuickAddMaterialModal({ onClose, onCreated }: {
             )},
           ].map(({ label, node }) => (
             <div key={label}>
-              <label className="text-[10px] text-gray-500 font-medium uppercase tracking-wide block mb-1">{label}</label>
+              <label className="text-[10px] text-gray-500 font-medium uppercase tracking-wide block mb-1">{label.endsWith(' *') ? <>{label.slice(0, -2)} <span className="text-red-500">*</span></> : label}</label>
               {node}
             </div>
           ))}
         </div>
-        <div className="px-5 py-3 border-t border-gray-100 flex justify-end gap-2">
+        <div className="px-5 py-3 border-t border-gray-200 flex justify-end gap-2">
           <button onClick={onClose} className="px-4 py-2 rounded-xl text-xs text-gray-500 border border-gray-200 hover:bg-gray-50">Cancel</button>
           <button onClick={handleSave} disabled={createMat.isPending}
             className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gray-900 text-[#C9B45C] text-xs font-semibold hover:bg-black disabled:opacity-50">
@@ -246,14 +246,14 @@ function QuickAddFabricModal({ onClose, onCreated }: {
   }
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 px-4">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
           <div>
-            <h4 className="text-sm font-bold text-gray-900">Quick Add Fabric</h4>
+            <h4 className="text-sm font-semibold text-gray-900">Quick Add Fabric</h4>
             <p className="text-[11px] text-gray-400">New fabric will appear in the master & selector</p>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X className="h-4 w-4" /></button>
+          <button onClick={onClose} className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"><X className="h-5 w-5" /></button>
         </div>
         <div className="overflow-y-auto flex-1 px-5 py-4 grid grid-cols-2 gap-3">
           {[
@@ -317,12 +317,12 @@ function QuickAddFabricModal({ onClose, onCreated }: {
             )},
           ].map(({ label, node }) => (
             <div key={label}>
-              <label className="text-[10px] text-gray-500 font-medium uppercase tracking-wide block mb-1">{label}</label>
+              <label className="text-[10px] text-gray-500 font-medium uppercase tracking-wide block mb-1">{label.endsWith(' *') ? <>{label.slice(0, -2)} <span className="text-red-500">*</span></> : label}</label>
               {node}
             </div>
           ))}
         </div>
-        <div className="px-5 py-3 border-t border-gray-100 flex justify-end gap-2">
+        <div className="px-5 py-3 border-t border-gray-200 flex justify-end gap-2">
           <button onClick={onClose} className="px-4 py-2 rounded-xl text-xs text-gray-500 border border-gray-200 hover:bg-gray-50">Cancel</button>
           <button onClick={handleSave} disabled={createFab.isPending}
             className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gray-900 text-[#C9B45C] text-xs font-semibold hover:bg-black disabled:opacity-50">
@@ -725,7 +725,7 @@ function StyleBomSection({ styleOrderId, orderCode, styleName, clientName }: {
               <div className="font-semibold text-gray-800">[{editRow.materialCode}] {editRow.materialName}</div>
               <div className="text-xs text-violet-700 mt-1">Current Req / Reserved: <span className="font-semibold">{editRow.requiredQty} {editRow.unitType}</span></div>
             </div>
-            <label className="block text-xs font-semibold text-gray-700 mb-1">Add to Req / Reserved Qty *</label>
+            <label className="block text-xs font-semibold text-gray-700 mb-1">Add to Req / Reserved Qty <span className="text-red-500 ml-0.5">*</span></label>
             <input type="number" min="0.001" step="any" value={editQty}
               onChange={e => setEditQty(e.target.value)}
               className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400 mb-1" />
@@ -1037,14 +1037,14 @@ function EditStylePoModal({ po, vendors, onClose, onSave, saving }: {
     onSave({ notes, bomItems });
   }
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
           <div>
-            <h4 className="text-sm font-bold text-gray-900">Edit Purchase Order</h4>
+            <h4 className="text-sm font-semibold text-gray-900">Edit Purchase Order</h4>
             <p className="text-[11px] text-gray-400 mt-0.5">{po.poNumber}</p>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X className="h-4 w-4" /></button>
+          <button onClick={onClose} className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"><X className="h-5 w-5" /></button>
         </div>
         <div className="overflow-y-auto flex-1 px-6 py-4 space-y-5">
           <div>
@@ -1105,7 +1105,7 @@ function EditStylePoModal({ po, vendors, onClose, onSave, saving }: {
             </div>
           )}
         </div>
-        <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-2">
+        <div className="px-6 py-4 border-t border-gray-200 flex justify-end gap-2">
           <button onClick={onClose} className="px-4 py-2 rounded-xl text-xs text-gray-500 border border-gray-200 hover:bg-gray-50">Cancel</button>
           <button onClick={handleSave} disabled={saving}
             className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gray-900 text-[#C9B45C] text-xs font-semibold hover:bg-black transition-colors disabled:opacity-50">
@@ -1288,11 +1288,11 @@ function StyleCreatePoModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-          <h4 className="text-sm font-bold text-gray-900">Create Purchase Order</h4>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X className="h-4 w-4" /></button>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+          <h4 className="text-sm font-semibold text-gray-900">Create Purchase Order</h4>
+          <button onClick={onClose} className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"><X className="h-5 w-5" /></button>
         </div>
         <div className="overflow-y-auto flex-1 px-6 py-4 space-y-5">
           <div>
@@ -1302,7 +1302,7 @@ function StyleCreatePoModal({
               placeholder="Add notes…" />
           </div>
           <div>
-            <label className="text-[10px] text-gray-500 font-medium uppercase tracking-wide mb-2 block">Select BOM Items *</label>
+            <label className="text-[10px] text-gray-500 font-medium uppercase tracking-wide mb-2 block">Select BOM Items <span className="text-red-500 ml-0.5">*</span></label>
             {bomRows.length === 0 ? (
               <p className="text-xs text-gray-400 italic">No BOM rows available. Add materials to BOM first.</p>
             ) : (
@@ -1373,7 +1373,7 @@ function StyleCreatePoModal({
             </div>
           )}
         </div>
-        <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-2">
+        <div className="px-6 py-4 border-t border-gray-200 flex justify-end gap-2">
           <button onClick={onClose} className="px-4 py-2 rounded-xl text-xs text-gray-500 border border-gray-200 hover:bg-gray-50">Cancel</button>
           <button onClick={handleSubmit} disabled={isPending || selectedItems.length === 0}
             className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gray-900 text-[#C9B45C] text-xs font-semibold hover:bg-black transition-colors disabled:opacity-50">
@@ -1506,17 +1506,17 @@ function StylePoSection({ styleOrderId, orderCode, styleName, clientName }: {
       )}
 
       {prModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
           <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md space-y-4">
             <div className="flex items-center justify-between">
-              <h4 className="text-sm font-bold text-gray-900">Create Purchase Receipt</h4>
-              <button onClick={() => setPrModal(null)} className="text-gray-400 hover:text-gray-600"><X className="h-4 w-4" /></button>
+              <h4 className="text-sm font-semibold text-gray-900">Create Purchase Receipt</h4>
+              <button onClick={() => setPrModal(null)} className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"><X className="h-5 w-5" /></button>
             </div>
             <p className="text-xs text-gray-500">Vendor: <span className="font-semibold text-gray-700">{prModal.vendorName}</span></p>
             <div className="space-y-3">
               {prModal.bomItems.length > 1 && (
                 <div>
-                  <label className="text-[10px] text-gray-500 font-medium">Item *</label>
+                  <label className="text-[10px] text-gray-500 font-medium">Item <span className="text-red-500 ml-0.5">*</span></label>
                   <select value={prForm.bomRowId} onChange={e => setPrForm(f => ({ ...f, bomRowId: e.target.value }))}
                     className="w-full mt-0.5 text-xs text-gray-900 bg-white border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-gray-900/10">
                     <option value="">— Select item —</option>
@@ -1548,14 +1548,14 @@ function StylePoSection({ styleOrderId, orderCode, styleName, clientName }: {
                 </div>
               )}
               <div>
-                <label className="text-[10px] text-gray-500 font-medium">Received Quantity *</label>
+                <label className="text-[10px] text-gray-500 font-medium">Received Quantity <span className="text-red-500 ml-0.5">*</span></label>
                 <input type="number" min="0" step="any" value={prForm.receivedQty}
                   onChange={e => setPrForm(f => ({ ...f, receivedQty: e.target.value }))}
                   className="w-full mt-0.5 text-xs text-gray-900 bg-white border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-gray-900/10"
                   placeholder="0" max={prItemStats ? prItemStats.remaining : undefined} />
               </div>
               <div>
-                <label className="text-[10px] text-gray-500 font-medium">Actual Price (₹) *</label>
+                <label className="text-[10px] text-gray-500 font-medium">Actual Price (₹) <span className="text-red-500 ml-0.5">*</span></label>
                 <input type="number" min="0" step="any" value={prForm.actualPrice}
                   onChange={e => setPrForm(f => ({ ...f, actualPrice: e.target.value }))}
                   className="w-full mt-0.5 text-xs text-gray-900 bg-white border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-gray-900/10"
@@ -1886,11 +1886,11 @@ function StyleConsumptionSection({ styleOrderId }: { styleOrderId: number }) {
 
       {/* Add Consumption Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
           <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md space-y-4">
             <div className="flex items-center justify-between">
-              <h4 className="text-sm font-bold text-gray-900">Add Consumption</h4>
-              <button onClick={() => setShowAddModal(false)} className="text-gray-400 hover:text-gray-600"><X className="h-4 w-4" /></button>
+              <h4 className="text-sm font-semibold text-gray-900">Add Consumption</h4>
+              <button onClick={() => setShowAddModal(false)} className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"><X className="h-5 w-5" /></button>
             </div>
             <div className="space-y-3">
               {products.length > 0 && (
@@ -1908,7 +1908,7 @@ function StyleConsumptionSection({ styleOrderId }: { styleOrderId: number }) {
                 </div>
               )}
               <div>
-                <label className="text-[10px] text-gray-500 font-medium">Material / Fabric *</label>
+                <label className="text-[10px] text-gray-500 font-medium">Material / Fabric <span className="text-red-500 ml-0.5">*</span></label>
                 <select value={addForm.bomRowId}
                   onChange={e => setAddForm(f => ({ ...f, bomRowId: e.target.value, warehouseLocation: "" }))}
                   className="w-full mt-0.5 text-xs text-gray-900 bg-white border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-gray-900/10">
@@ -1923,7 +1923,7 @@ function StyleConsumptionSection({ styleOrderId }: { styleOrderId: number }) {
               </div>
               {selectedRow && selectedItemLocationStocksSC.length > 0 && (
                 <div>
-                  <label className="text-[10px] text-gray-500 font-medium">Warehouse Location *</label>
+                  <label className="text-[10px] text-gray-500 font-medium">Warehouse Location <span className="text-red-500 ml-0.5">*</span></label>
                   <select value={addForm.warehouseLocation}
                     onChange={e => setAddForm(f => ({ ...f, warehouseLocation: e.target.value }))}
                     className="w-full mt-0.5 text-xs text-gray-900 bg-white border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-gray-900/10">
@@ -1967,7 +1967,7 @@ function StyleConsumptionSection({ styleOrderId }: { styleOrderId: number }) {
                 </div>
               )}
               <div>
-                <label className="text-[10px] text-gray-500 font-medium">Consumed Quantity *</label>
+                <label className="text-[10px] text-gray-500 font-medium">Consumed Quantity <span className="text-red-500 ml-0.5">*</span></label>
                 <input type="number" min="0" step="any" value={addForm.consumedQty}
                   onChange={e => setAddForm(f => ({ ...f, consumedQty: e.target.value }))}
                   className="w-full mt-0.5 text-xs text-gray-900 bg-white border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-gray-900/10"
@@ -1998,11 +1998,11 @@ function StyleConsumptionSection({ styleOrderId }: { styleOrderId: number }) {
 
       {/* Consumption Log Modal */}
       {showLogModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[80vh] flex flex-col">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
               <div>
-                <h4 className="text-sm font-bold text-gray-900">Consumption Log</h4>
+                <h4 className="text-sm font-semibold text-gray-900">Consumption Log</h4>
                 <p className="text-[11px] text-gray-400 mt-0.5">{logForDisplay.length} entr{logForDisplay.length === 1 ? "y" : "ies"}</p>
               </div>
               <div className="flex items-center gap-2">
@@ -2018,7 +2018,7 @@ function StyleConsumptionSection({ styleOrderId }: { styleOrderId: number }) {
                   <option value="all">All Items</option>
                   {bomRows.map(r => <option key={r.id} value={String(r.id)}>[{r.materialCode}] {r.materialName}</option>)}
                 </select>
-                <button onClick={() => setShowLogModal(false)} className="text-gray-400 hover:text-gray-600"><X className="h-4 w-4" /></button>
+                <button onClick={() => setShowLogModal(false)} className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"><X className="h-5 w-5" /></button>
               </div>
             </div>
             <div className="overflow-auto flex-1 px-4 py-3">
@@ -2071,7 +2071,7 @@ function StyleConsumptionSection({ styleOrderId }: { styleOrderId: number }) {
                 </table>
               )}
             </div>
-            <div className="px-6 py-4 border-t border-gray-100 flex justify-between items-center">
+            <div className="px-6 py-4 border-t border-gray-200 flex justify-between items-center">
               <button onClick={openAddModal}
                 className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl bg-gray-900 text-[#C9B45C] hover:bg-black transition-colors">
                 <Plus className="h-3.5 w-3.5" /> Add Consumption
@@ -2225,10 +2225,10 @@ function StyleArtisanSection({ styleOrderId }: { styleOrderId: number }) {
       )}
 
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-              <h3 className="text-sm font-bold text-gray-900">Add Artisan Timesheet Entry</h3>
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+              <h3 className="text-sm font-semibold text-gray-900">Add Artisan Timesheet Entry</h3>
               <button onClick={() => setShowModal(false)} className="p-1 rounded-lg hover:bg-gray-100"><X className="h-4 w-4 text-gray-500" /></button>
             </div>
             <div className="px-6 py-4 space-y-3 max-h-[70vh] overflow-y-auto">
@@ -2248,12 +2248,12 @@ function StyleArtisanSection({ styleOrderId }: { styleOrderId: number }) {
               )}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[10px] text-gray-500 font-medium">No. of Artisans *</label>
+                  <label className="text-[10px] text-gray-500 font-medium">No. of Artisans <span className="text-red-500 ml-0.5">*</span></label>
                   <input type="number" min="1" value={form.noOfArtisans} onChange={e => setForm(f => ({ ...f, noOfArtisans: e.target.value }))}
                     className="w-full mt-1 border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-800 outline-none focus:border-[#C9B45C]" />
                 </div>
                 <div>
-                  <label className="text-[10px] text-gray-500 font-medium">Shift Type *</label>
+                  <label className="text-[10px] text-gray-500 font-medium">Shift Type <span className="text-red-500 ml-0.5">*</span></label>
                   <select value={form.shiftType} onChange={e => setForm(f => ({ ...f, shiftType: e.target.value }))}
                     className="w-full mt-1 border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-800 outline-none focus:border-[#C9B45C]">
                     {SHIFT_TYPES.map(t => <option key={t} value={t}>{SHIFT_LABELS[t]}</option>)}
@@ -2262,24 +2262,24 @@ function StyleArtisanSection({ styleOrderId }: { styleOrderId: number }) {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[10px] text-gray-500 font-medium">Start Date *</label>
+                  <label className="text-[10px] text-gray-500 font-medium">Start Date <span className="text-red-500 ml-0.5">*</span></label>
                   <input type="date" value={form.startDate} onChange={e => setForm(f => ({ ...f, startDate: e.target.value }))}
                     className="w-full mt-1 border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-800 outline-none focus:border-[#C9B45C]" />
                 </div>
                 <div>
-                  <label className="text-[10px] text-gray-500 font-medium">End Date *</label>
+                  <label className="text-[10px] text-gray-500 font-medium">End Date <span className="text-red-500 ml-0.5">*</span></label>
                   <input type="date" value={form.endDate} onChange={e => setForm(f => ({ ...f, endDate: e.target.value }))}
                     className="w-full mt-1 border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-800 outline-none focus:border-[#C9B45C]" />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[10px] text-gray-500 font-medium">Total Hours *</label>
+                  <label className="text-[10px] text-gray-500 font-medium">Total Hours <span className="text-red-500 ml-0.5">*</span></label>
                   <input type="number" min="0" step="0.5" value={form.totalHours} onChange={e => setForm(f => ({ ...f, totalHours: e.target.value }))}
                     className="w-full mt-1 border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-800 outline-none focus:border-[#C9B45C]" placeholder="0.0" />
                 </div>
                 <div>
-                  <label className="text-[10px] text-gray-500 font-medium">Hourly Rate (₹) *</label>
+                  <label className="text-[10px] text-gray-500 font-medium">Hourly Rate (₹) <span className="text-red-500 ml-0.5">*</span></label>
                   <input type="number" min="0" step="any" value={form.hourlyRate} onChange={e => setForm(f => ({ ...f, hourlyRate: e.target.value }))}
                     className="w-full mt-1 border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-800 outline-none focus:border-[#C9B45C]" placeholder="0.00" />
                 </div>
@@ -2294,7 +2294,7 @@ function StyleArtisanSection({ styleOrderId }: { styleOrderId: number }) {
                   className="w-full mt-1 border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-800 outline-none focus:border-[#C9B45C]" placeholder="Optional" />
               </div>
             </div>
-            <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-2">
+            <div className="px-6 py-4 border-t border-gray-200 flex justify-end gap-2">
               <button onClick={() => setShowModal(false)} className="px-4 py-2 rounded-xl text-xs text-gray-500 border border-gray-200 hover:bg-gray-50">Cancel</button>
               <button onClick={handleAdd} disabled={createMutation.isPending}
                 className="px-4 py-2 rounded-xl text-xs font-semibold bg-gray-900 text-[#C9B45C] hover:bg-black disabled:opacity-50">
@@ -2481,10 +2481,10 @@ function StyleOutsourceSection({ styleOrderId }: { styleOrderId: number }) {
       )}
 
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-              <h3 className="text-sm font-bold text-gray-900">Add Outsource Job</h3>
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+              <h3 className="text-sm font-semibold text-gray-900">Add Outsource Job</h3>
               <button onClick={() => setShowModal(false)} className="p-1 rounded-lg hover:bg-gray-100"><X className="h-4 w-4 text-gray-500" /></button>
             </div>
             <div className="px-6 py-4 space-y-3 max-h-[70vh] overflow-y-auto">
@@ -2503,7 +2503,7 @@ function StyleOutsourceSection({ styleOrderId }: { styleOrderId: number }) {
                 </div>
               )}
               <div>
-                <label className="text-[10px] text-gray-500 font-medium">Vendor *</label>
+                <label className="text-[10px] text-gray-500 font-medium">Vendor <span className="text-red-500 ml-0.5">*</span></label>
                 <div className="relative mt-1">
                   <input type="text" value={form.vendorId ? form.vendorName : form.vendorQuery}
                     onChange={e => {
@@ -2533,7 +2533,7 @@ function StyleOutsourceSection({ styleOrderId }: { styleOrderId: number }) {
                 </div>
               </div>
               <div>
-                <label className="text-[10px] text-gray-500 font-medium">HSN Code *</label>
+                <label className="text-[10px] text-gray-500 font-medium">HSN Code <span className="text-red-500 ml-0.5">*</span></label>
                 <div className="relative mt-1">
                   <input type="text" value={form.hsnId ? form.hsnCode : form.hsnQuery}
                     onChange={e => {
@@ -2571,7 +2571,7 @@ function StyleOutsourceSection({ styleOrderId }: { styleOrderId: number }) {
               )}
               <div className="grid grid-cols-3 gap-3">
                 <div>
-                  <label className="text-[10px] text-gray-500 font-medium">Issue Date *</label>
+                  <label className="text-[10px] text-gray-500 font-medium">Issue Date <span className="text-red-500 ml-0.5">*</span></label>
                   <input type="date" value={form.issueDate} onChange={e => setForm(f => ({ ...f, issueDate: e.target.value }))}
                     className="w-full mt-1 border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-800 outline-none focus:border-[#C9B45C]" />
                 </div>
@@ -2597,7 +2597,7 @@ function StyleOutsourceSection({ styleOrderId }: { styleOrderId: number }) {
                   className="w-full mt-1 border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-800 outline-none focus:border-[#C9B45C]" placeholder="Optional" />
               </div>
             </div>
-            <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-2">
+            <div className="px-6 py-4 border-t border-gray-200 flex justify-end gap-2">
               <button onClick={() => setShowModal(false)} className="px-4 py-2 rounded-xl text-xs text-gray-500 border border-gray-200 hover:bg-gray-50">Cancel</button>
               <button onClick={handleAdd} disabled={createMutation.isPending}
                 className="px-4 py-2 rounded-xl text-xs font-semibold bg-gray-900 text-[#C9B45C] hover:bg-black disabled:opacity-50">
@@ -2782,10 +2782,10 @@ function StyleCustomChargesSection({ styleOrderId }: { styleOrderId: number }) {
       )}
 
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-              <h3 className="text-sm font-bold text-gray-900">Add Custom Charge</h3>
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+              <h3 className="text-sm font-semibold text-gray-900">Add Custom Charge</h3>
               <button onClick={() => setShowModal(false)} className="p-1 rounded-lg hover:bg-gray-100"><X className="h-4 w-4 text-gray-500" /></button>
             </div>
             <div className="px-6 py-4 space-y-3 max-h-[70vh] overflow-y-auto">
@@ -2804,7 +2804,7 @@ function StyleCustomChargesSection({ styleOrderId }: { styleOrderId: number }) {
                 </div>
               )}
               <div>
-                <label className="text-[10px] text-gray-500 font-medium">Vendor *</label>
+                <label className="text-[10px] text-gray-500 font-medium">Vendor <span className="text-red-500 ml-0.5">*</span></label>
                 <div className="relative mt-1">
                   <input type="text" value={form.vendorId ? form.vendorName : form.vendorQuery}
                     onChange={e => {
@@ -2834,7 +2834,7 @@ function StyleCustomChargesSection({ styleOrderId }: { styleOrderId: number }) {
                 </div>
               </div>
               <div>
-                <label className="text-[10px] text-gray-500 font-medium">HSN Code *</label>
+                <label className="text-[10px] text-gray-500 font-medium">HSN Code <span className="text-red-500 ml-0.5">*</span></label>
                 <div className="relative mt-1">
                   <input type="text" value={form.hsnId ? form.hsnCode : form.hsnQuery}
                     onChange={e => {
@@ -2871,7 +2871,7 @@ function StyleCustomChargesSection({ styleOrderId }: { styleOrderId: number }) {
                 </div>
               )}
               <div>
-                <label className="text-[10px] text-gray-500 font-medium">Description *</label>
+                <label className="text-[10px] text-gray-500 font-medium">Description <span className="text-red-500 ml-0.5">*</span></label>
                 <input type="text" value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
                   className="w-full mt-1 border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-800 outline-none focus:border-[#C9B45C]"
                   placeholder="e.g. Embroidery work, Thread charges..." />
@@ -2893,7 +2893,7 @@ function StyleCustomChargesSection({ styleOrderId }: { styleOrderId: number }) {
                 <span className="font-bold text-amber-700">₹{computedTotal}</span>
               </div>
             </div>
-            <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-2">
+            <div className="px-6 py-4 border-t border-gray-200 flex justify-end gap-2">
               <button onClick={() => setShowModal(false)} className="px-4 py-2 rounded-xl text-xs text-gray-500 border border-gray-200 hover:bg-gray-50">Cancel</button>
               <button onClick={handleAdd} disabled={createMutation.isPending}
                 className="px-4 py-2 rounded-xl text-xs font-semibold bg-gray-900 text-[#C9B45C] hover:bg-black disabled:opacity-50">

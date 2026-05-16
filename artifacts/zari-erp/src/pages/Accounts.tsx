@@ -105,7 +105,7 @@ function PaymentModal({ invoice, onClose }: { invoice: AccountInvoice; onClose: 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4" onClick={onClose}>
       <div className={`${card} w-full max-w-lg`} onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
           <div>
             <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">
               {direction === "Received"
@@ -124,7 +124,7 @@ function PaymentModal({ invoice, onClose }: { invoice: AccountInvoice; onClose: 
           {/* Row 1: Amount + Currency */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className={labelCls}>Payment Amount *</label>
+              <label className={labelCls}>Payment Amount <span className="text-red-500 ml-0.5">*</span></label>
               <input type="number" min="0.01" step="0.01" required value={form.payment_amount}
                 onChange={e => set("payment_amount", e.target.value)} className={inputCls} />
             </div>
@@ -154,13 +154,13 @@ function PaymentModal({ invoice, onClose }: { invoice: AccountInvoice; onClose: 
           {/* Row 2: Payment Type + Date */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className={labelCls}>Payment Type *</label>
+              <label className={labelCls}>Payment Type <span className="text-red-500 ml-0.5">*</span></label>
               <select value={form.payment_type} onChange={e => set("payment_type", e.target.value)} className={inputCls}>
                 {PAYMENT_TYPES.map(t => <option key={t}>{t}</option>)}
               </select>
             </div>
             <div>
-              <label className={labelCls}>Payment Date *</label>
+              <label className={labelCls}>Payment Date <span className="text-red-500 ml-0.5">*</span></label>
               <input type="date" required value={form.payment_date}
                 onChange={e => set("payment_date", e.target.value)} className={inputCls} />
             </div>
@@ -557,7 +557,7 @@ export default function Accounts() {
 
           {/* Pagination */}
           {total > 30 && (
-            <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100">
+            <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200">
               <span className="text-xs text-gray-400">{total} invoices total</span>
               <div className="flex items-center gap-2">
                 <button disabled={page <= 1} onClick={() => setPage(p => p - 1)}

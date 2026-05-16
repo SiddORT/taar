@@ -185,7 +185,7 @@ function InvoicePaymentsPanel({
   return (
     <div className="rounded-2xl bg-white border border-[#C6AF4B]/20 shadow-[0_2px_16px_rgba(198,175,75,0.12),0_1px_3px_rgba(0,0,0,0.06)] overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 bg-[#F8F6F0]">
+      <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 bg-[#F8F6F0]">
         <button onClick={() => setExpanded(p => !p)} className="flex items-center gap-2 text-left group">
           {expanded ? <ChevronDown size={15} className="text-gray-400" /> : <ChevronRight size={15} className="text-gray-400" />}
           <Wallet size={15} style={{ color: G }} />
@@ -297,7 +297,7 @@ function InvoicePaymentsPanel({
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4" onClick={() => setShowModal(false)}>
           <div className="rounded-2xl bg-white border border-[#C6AF4B]/15 shadow-xl w-full max-w-lg" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
               <div>
                 <h2 className="text-base font-bold text-gray-900">Record Payment</h2>
                 <p className="text-xs text-gray-400 mt-0.5">Pending: {currencyCode} {fmtN(pendingAmt)}</p>
@@ -307,7 +307,7 @@ function InvoicePaymentsPanel({
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className={lblCls}>Payment Amount ({form.currency_code}) *</label>
+                  <label className={lblCls}>Payment Amount ({form.currency_code}) <span className="text-red-500 ml-0.5">*</span></label>
                   <input type="number" min="0.01" step="0.01" required value={form.payment_amount}
                     onChange={e => setF("payment_amount", e.target.value)} className={inpCls} />
                 </div>
@@ -333,13 +333,13 @@ function InvoicePaymentsPanel({
               )}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className={lblCls}>Payment Type *</label>
+                  <label className={lblCls}>Payment Type <span className="text-red-500 ml-0.5">*</span></label>
                   <select value={form.payment_type} onChange={e => setF("payment_type", e.target.value)} className={inpCls}>
                     {PAYMENT_TYPES_INV.map(t => <option key={t}>{t}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className={lblCls}>Payment Date *</label>
+                  <label className={lblCls}>Payment Date <span className="text-red-500 ml-0.5">*</span></label>
                   <input type="date" required value={form.payment_date}
                     onChange={e => setF("payment_date", e.target.value)} className={inpCls} />
                 </div>
@@ -784,7 +784,7 @@ export default function InvoiceForm() {
                   <input value={form.invoiceNo} readOnly className={`${inp} bg-gray-50 text-gray-500 cursor-not-allowed`} />
                 </div>
                 <div>
-                  <label className={lbl}>Invoice Date *</label>
+                  <label className={lbl}>Invoice Date <span className="text-red-500 ml-0.5">*</span></label>
                   <input type="date" value={form.invoiceDate} onChange={e => setF("invoiceDate", e.target.value)} className={inp} />
                 </div>
                 <div>
@@ -792,7 +792,7 @@ export default function InvoiceForm() {
                   <input type="date" value={form.dueDate} onChange={e => setF("dueDate", e.target.value)} className={inp} />
                 </div>
                 <div className="col-span-3">
-                  <label className={lbl}>Invoice Type *</label>
+                  <label className={lbl}>Invoice Type <span className="text-red-500 ml-0.5">*</span></label>
                   <div className="flex flex-wrap gap-2 mt-1">
                     {TYPES.map(t => {
                       const active = form.invoiceType === t;
@@ -869,7 +869,7 @@ export default function InvoiceForm() {
                     </select>
                   </div>
                   <div>
-                    <label className={lbl}>Client Name *</label>
+                    <label className={lbl}>Client Name <span className="text-red-500 ml-0.5">*</span></label>
                     <input value={form.clientName} onChange={e => setF("clientName", e.target.value)} className={inp} placeholder="Client name" />
                   </div>
                   <div className="col-span-2">

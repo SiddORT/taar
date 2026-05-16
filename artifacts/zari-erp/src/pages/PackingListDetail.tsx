@@ -644,7 +644,7 @@ export default function PackingListDetail() {
 
             {/* Packages */}
             <div className={card}>
-              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
                 <div className="flex items-center gap-2">
                   <Box className="h-4 w-4" style={{ color: G }} />
                   <h2 className="text-sm font-bold text-gray-900">Packages ({pl.packages.length})</h2>
@@ -898,7 +898,7 @@ export default function PackingListDetail() {
                                 {/* Fields row */}
                                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
                                   <div>
-                                    <label className="block text-[10px] font-semibold text-blue-700 uppercase tracking-wider mb-1">Quantity *</label>
+                                    <label className="block text-[10px] font-semibold text-blue-700 uppercase tracking-wider mb-1">Quantity <span className="text-red-500 ml-0.5">*</span></label>
                                     <input
                                       type="number" min="0" step="any"
                                       value={customQty}

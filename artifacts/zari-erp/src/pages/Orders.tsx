@@ -292,10 +292,10 @@ export default function Orders() {
       {/* Create Order Modal */}
       {modalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={closeModal} />
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={closeModal} />
           <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden">
             {/* Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
               <div className="flex items-center gap-3">
                 <div className="flex gap-2">
                   <span className={`h-2.5 w-2.5 rounded-full ${step >= 1 ? "bg-gray-900" : "bg-gray-200"}`} />
@@ -449,7 +449,7 @@ export default function Orders() {
 
             {/* Footer */}
             {step === 2 && (
-              <div className="flex items-center justify-between px-6 py-4 border-t border-gray-100 bg-gray-50">
+              <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200 bg-gray-50">
                 <button type="button" onClick={() => setStep(1)}
                   className="flex items-center gap-1.5 px-4 py-2.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-200 transition-colors">
                   <ChevronLeft className="h-4 w-4" /> Back

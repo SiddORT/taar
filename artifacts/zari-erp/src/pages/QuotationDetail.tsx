@@ -565,7 +565,7 @@ export default function QuotationDetail() {
             </div>
             <div className="space-y-3">
               <div>
-                <label className={labelCls}>Feedback / Comment *</label>
+                <label className={labelCls}>Feedback / Comment <span className="text-red-500 ml-0.5">*</span></label>
                 <textarea
                   rows={4}
                   className={inputCls}

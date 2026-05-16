@@ -361,7 +361,7 @@ export default function PurchaseReceipts() {
           </div>
 
           {total > limit && (
-            <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100">
+            <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200">
               <span className="text-xs text-gray-700">
                 Showing {(page-1)*limit+1}–{Math.min(page*limit,total)} of {total}
               </span>
@@ -388,7 +388,7 @@ export default function PurchaseReceipts() {
             </div>
           )}
           {total > 0 && total <= limit && (
-            <div className="px-4 py-3 border-t border-gray-100">
+            <div className="px-4 py-3 border-t border-gray-200">
               <span className="text-xs text-gray-500">{total} record{total !== 1 ? "s" : ""}</span>
             </div>
           )}
@@ -397,7 +397,7 @@ export default function PurchaseReceipts() {
 
       {/* Cancel Confirm */}
       {cancelConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
           <div className={`${card} w-full max-w-sm p-6`}>
             <div className="flex items-start gap-3 mb-4">
               <div className="p-2 bg-orange-100 rounded-lg flex-shrink-0"><AlertTriangle className="h-5 w-5 text-orange-600" /></div>
@@ -423,7 +423,7 @@ export default function PurchaseReceipts() {
 
       {/* Delete Confirm */}
       {deleteConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
           <div className={`${card} w-full max-w-sm p-6`}>
             <div className="flex items-start gap-3 mb-4">
               <div className="p-2 bg-red-100 rounded-lg flex-shrink-0"><AlertTriangle className="h-5 w-5 text-red-600" /></div>

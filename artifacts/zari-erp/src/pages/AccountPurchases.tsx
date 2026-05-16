@@ -157,7 +157,7 @@ function PaymentModal({ row, onClose, onSuccess }: {
       <div className="absolute inset-0 bg-black/45 backdrop-blur-sm" onClick={onClose} />
       <div className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl border border-[#C6AF4B]/20 overflow-hidden">
         <div className="h-0.5" style={{ background: `linear-gradient(90deg, transparent, ${G}, transparent)` }} />
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
           <div>
             <h2 className="text-base font-bold" style={{ color: SL }}>Record Vendor Payment</h2>
             <p className="text-xs text-gray-500 mt-0.5 max-w-xs truncate">{row.vendor_name} · {row.ref_type}</p>
@@ -180,14 +180,14 @@ function PaymentModal({ row, onClose, onSuccess }: {
         <form onSubmit={submit} className="p-5 space-y-4">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className={LBL}>Amount *</label>
+              <label className={LBL}>Amount <span className="text-red-500 ml-0.5">*</span></label>
               <input
                 type="number" min="0.01" step="0.01" required className={INP}
                 placeholder={`Max ${fmtAmt(pendingAmt)}`} value={form.payment_amount}
                 onChange={e => setForm(p => ({ ...p, payment_amount: e.target.value }))} />
             </div>
             <div>
-              <label className={LBL}>Date *</label>
+              <label className={LBL}>Date <span className="text-red-500 ml-0.5">*</span></label>
               <input type="date" required className={INP} value={form.payment_date}
                 onChange={e => setForm(p => ({ ...p, payment_date: e.target.value }))} />
             </div>
@@ -619,7 +619,7 @@ export default function AccountPurchases() {
 
               {/* Pagination */}
               {totalPages > 1 && (
-                <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100">
+                <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200">
                   <p className="text-xs text-gray-400">
                     Page {page} of {totalPages} · {totalRows.toLocaleString()} records
                   </p>

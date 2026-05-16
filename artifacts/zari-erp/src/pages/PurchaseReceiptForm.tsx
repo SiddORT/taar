@@ -758,7 +758,7 @@ export default function PurchaseReceiptForm() {
 
         {/* Vendor invoice delete confirmation */}
         {invDeleteConfirm && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
             <div className={`${card} w-full max-w-sm p-6`}>
               <div className="flex items-start gap-3 mb-4">
                 <div className="p-2 bg-red-100 rounded-lg flex-shrink-0"><AlertTriangle className="h-5 w-5 text-red-600" /></div>
@@ -781,7 +781,7 @@ export default function PurchaseReceiptForm() {
 
         {/* Cancel confirmation modal */}
         {cancelConfirm && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
             <div className={`${card} w-full max-w-sm p-6`}>
               <div className="flex items-start gap-3 mb-4">
                 <div className="p-2 bg-red-100 rounded-lg flex-shrink-0"><AlertTriangle className="h-5 w-5 text-red-600" /></div>

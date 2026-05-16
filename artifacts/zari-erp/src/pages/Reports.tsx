@@ -400,7 +400,7 @@ export default function Reports() {
             {selected && (
               <div className={`${card} overflow-hidden`}>
                 {/* Report title bar */}
-                <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between gap-4">
+                <div className="px-5 py-4 border-b border-gray-200 flex items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
                     {selectedCard && (
                       <div className="h-8 w-8 rounded-lg flex items-center justify-center flex-shrink-0"
@@ -487,7 +487,7 @@ export default function Reports() {
 
                 {/* GST Summary Panel */}
                 {isGst && loaded && gstSummary && (
-                  <div className="px-5 py-4 border-b border-gray-100 bg-teal-50/30">
+                  <div className="px-5 py-4 border-b border-gray-200 bg-teal-50/30">
                     <p className="text-[10px] font-black uppercase tracking-[0.18em] mb-3" style={{ color: "#0D9488" }}>GST SUMMARY</p>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
 
@@ -651,7 +651,7 @@ export default function Reports() {
 
                 {/* Pagination footer */}
                 {loaded && filteredRows.length > 0 && (
-                  <div className="px-5 py-3 border-t border-gray-100 flex items-center justify-between bg-gray-50/40 gap-4 flex-wrap">
+                  <div className="px-5 py-3 border-t border-gray-200 flex items-center justify-between bg-gray-50/40 gap-4 flex-wrap">
                     <p className="text-xs text-gray-400">
                       Showing {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filteredRows.length)} of {filteredRows.length} records
                       {search && rows.length !== filteredRows.length ? ` (filtered from ${rows.length})` : ""}

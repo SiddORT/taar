@@ -310,7 +310,7 @@ function ProfileTab({ card, inp, label, toast, userId }: any) {
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className={label}>Full Name *</label>
+              <label className={label}>Full Name <span className="text-red-500 ml-0.5">*</span></label>
               <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} className={inp} placeholder="Your full name" />
             </div>
             <div>
@@ -353,7 +353,7 @@ function ProfileTab({ card, inp, label, toast, userId }: any) {
 
         <div className="space-y-4">
           <div>
-            <label className={label}>Current Password *</label>
+            <label className={label}>Current Password <span className="text-red-500 ml-0.5">*</span></label>
             <div className="relative">
               <input
                 type={showCurrent ? "text" : "password"}
@@ -369,7 +369,7 @@ function ProfileTab({ card, inp, label, toast, userId }: any) {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className={label}>New Password *</label>
+              <label className={label}>New Password <span className="text-red-500 ml-0.5">*</span></label>
               <div className="relative">
                 <input
                   type={showNew ? "text" : "password"}
@@ -387,7 +387,7 @@ function ProfileTab({ card, inp, label, toast, userId }: any) {
               )}
             </div>
             <div>
-              <label className={label}>Confirm New Password *</label>
+              <label className={label}>Confirm New Password <span className="text-red-500 ml-0.5">*</span></label>
               <div className="relative">
                 <input
                   type={showConfirm ? "text" : "password"}
@@ -679,7 +679,7 @@ function CurrencyTab({ card, inp, label, toast }: any) {
 
             {/* Pagination */}
             {!loading && filteredCurrencies.length > CURR_PER_PAGE && (
-              <div className="flex items-center justify-between px-5 py-3 border-t border-gray-100">
+              <div className="flex items-center justify-between px-5 py-3 border-t border-gray-200">
                 <span className="text-xs text-gray-400">
                   Showing {(currencyPage - 1) * CURR_PER_PAGE + 1}–{Math.min(currencyPage * CURR_PER_PAGE, filteredCurrencies.length)} of {filteredCurrencies.length}
                 </span>
@@ -817,7 +817,7 @@ function CurrencyTab({ card, inp, label, toast }: any) {
 
             {/* Pagination */}
             {!ratesLoading && filteredRates.length > CURR_PER_PAGE && (
-              <div className="flex items-center justify-between px-5 py-3 border-t border-gray-100">
+              <div className="flex items-center justify-between px-5 py-3 border-t border-gray-200">
                 <span className="text-xs text-gray-400">
                   Showing {(ratesPage - 1) * CURR_PER_PAGE + 1}–{Math.min(ratesPage * CURR_PER_PAGE, filteredRates.length)} of {filteredRates.length}
                 </span>
@@ -960,7 +960,7 @@ function BankDetailsTab({ card, inp, label, toast }: any) {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className={lbl}>Bank Name *</label>
+              <label className={lbl}>Bank Name <span className="text-red-500 ml-0.5">*</span></label>
               <input className={inpClass} value={form.bank_name} onChange={e => setF("bank_name", e.target.value)} placeholder="e.g. HDFC Bank" />
             </div>
             <div>
@@ -968,7 +968,7 @@ function BankDetailsTab({ card, inp, label, toast }: any) {
               <input className={inpClass} value={form.account_name} onChange={e => setF("account_name", e.target.value)} placeholder="Name on account" />
             </div>
             <div>
-              <label className={lbl}>Account Number *</label>
+              <label className={lbl}>Account Number <span className="text-red-500 ml-0.5">*</span></label>
               <input className={inpClass} value={form.account_no} onChange={e => setF("account_no", e.target.value)} placeholder="e.g. 0012345678900" />
             </div>
             <div>
@@ -1410,7 +1410,7 @@ function ActivityLogsTab({ card, isAdmin, currentUserEmail }: any) {
 
             {/* Pagination */}
             {totalPages > 1 && (
-              <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100 flex-wrap gap-2">
+              <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200 flex-wrap gap-2">
                 <span className="text-xs text-gray-400">
                   Showing {(page - 1) * PER_PAGE + 1}–{Math.min(page * PER_PAGE, total)} of {total.toLocaleString()} entries
                 </span>
@@ -1644,7 +1644,7 @@ function WarehouseTab({ card, inp, label, toast }: any) {
           {/* Basic info */}
           <div className="grid grid-cols-3 gap-4 mb-4">
             <div className="col-span-2">
-              <label className={lbl}>Warehouse Name *</label>
+              <label className={lbl}>Warehouse Name <span className="text-red-500 ml-0.5">*</span></label>
               <input className={inpClass} value={form.name} onChange={e => setF("name", e.target.value)} placeholder="e.g. Surat Main Warehouse" />
             </div>
             <div>
@@ -2802,7 +2802,7 @@ function DownloadLogsTab({ card, isAdmin, currentUserEmail, canDownload }: any) 
 
         {/* Pagination */}
         {totalPages > 1 && (
-          <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100">
+          <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200">
             <span className="text-xs text-gray-400">
               Page {page} of {totalPages} · {total} records
             </span>

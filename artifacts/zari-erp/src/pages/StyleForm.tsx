@@ -199,7 +199,7 @@ function CreateSwatchMiniModal({ open, onClose, prefillClient, onCreated }: Crea
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 sticky top-0 bg-white rounded-t-2xl z-10">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 sticky top-0 bg-white rounded-t-2xl z-10">
           <div className="flex items-center gap-2">
             <Link2 size={15} className="text-[#C6AF4B]" />
             <h3 className="text-base font-semibold text-gray-900">Create &amp; Link New Swatch</h3>
@@ -528,7 +528,7 @@ export default function StyleForm() {
 
         {/* ── Form Card ── */}
         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm">
-          <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/60 rounded-t-2xl">
+          <div className="px-6 py-4 border-b border-gray-200 bg-gray-50/60 rounded-t-2xl">
             <p className="text-xs text-gray-500">Fields marked <span className="text-red-500">*</span> are required</p>
           </div>
 
@@ -683,7 +683,7 @@ export default function StyleForm() {
           </div>
 
           {/* ── Footer Actions ── */}
-          <div className="px-6 py-4 border-t border-gray-100 rounded-b-2xl flex justify-end gap-3">
+          <div className="px-6 py-4 border-t border-gray-200 rounded-b-2xl flex justify-end gap-3">
             <button type="button" onClick={() => setLocation("/masters/styles")}
               className="px-4 py-2 text-sm font-medium text-gray-600 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors">
               Cancel

@@ -543,7 +543,7 @@ export default function StockAdjustments() {
           </div>
 
           {totalPages > 1 && (
-            <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100">
+            <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200">
               <span className="text-xs text-gray-500">Showing {Math.min((page-1)*limit+1, total)}–{Math.min(page*limit, total)} of {total}</span>
               <div className="flex items-center gap-1">
                 <button onClick={() => setPage(p => Math.max(1, p-1))} disabled={page === 1}
