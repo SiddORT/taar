@@ -31,7 +31,7 @@ function validateFabricFields(data: Record<string, unknown>): string | null {
   if (!w) return "Width is required.";
   if (!NUMERIC_REGEX.test(w) || parseFloat(w) <= 0) return "Width must be a positive numeric value.";
   if (!wut) return "Width Unit Type is required.";
-  if (!NAME_REGEX.test(wut) || wut.length > 50) return "Width Unit Type must contain only letters (max 50 characters).";
+  if (wut.length > 50) return "Width Unit Type must be at most 50 characters.";
   if (!pm) return "Price Per Meter is required.";
   if (!NUMERIC_REGEX.test(pm) || parseFloat(pm) <= 0) return "Price must be a positive numeric value.";
   return null;
@@ -125,7 +125,7 @@ router.post("/fabrics/import", requireAuth, async (req: AuthRequest, res): Promi
     if (!NAME_REGEX.test(colorName) || colorName.length > 100) { errors.push({ row: rowNum, name: displayName, error: "Color Name must contain only letters and spaces (max 100 characters)." }); skipped++; continue; }
     if (!width || !NUMERIC_REGEX.test(width) || parseFloat(width) <= 0) { errors.push({ row: rowNum, name: displayName, error: "Width must be a positive numeric value." }); skipped++; continue; }
     if (!widthUnitType) { errors.push({ row: rowNum, name: displayName, error: "Width Unit Type is required." }); skipped++; continue; }
-    if (!NAME_REGEX.test(widthUnitType) || widthUnitType.length > 50) { errors.push({ row: rowNum, name: displayName, error: "Width Unit Type must contain only letters (max 50 characters)." }); skipped++; continue; }
+    if (widthUnitType.length > 50) { errors.push({ row: rowNum, name: displayName, error: "Width Unit Type must be at most 50 characters." }); skipped++; continue; }
     if (!pricePerMeter || !NUMERIC_REGEX.test(pricePerMeter) || parseFloat(pricePerMeter) <= 0) { errors.push({ row: rowNum, name: displayName, error: "Price Per Meter must be a positive numeric value." }); skipped++; continue; }
     if (!hsnCode) { errors.push({ row: rowNum, name: displayName, error: "HSN Code is required." }); skipped++; continue; }
 

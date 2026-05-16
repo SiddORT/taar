@@ -50,8 +50,7 @@ export const insertItemSchema = z.object({
     .refine((v) => !v || NAME_REGEX.test(v), { message: "Item Type must contain only letters and spaces." })
     .optional().default(""),
   description: z.string().optional(),
-  unitType: z.string().trim().min(1, "Unit Type is required")
-    .refine((v) => NAME_REGEX.test(v), { message: "Unit Type must contain only letters." }),
+  unitType: z.string().trim().min(1, "Unit Type is required").max(50, "Unit Type must be at most 50 characters."),
   unitPrice: z.string().trim().min(1, "Unit Price is required")
     .refine((v) => NUMERIC_REGEX.test(v), { message: "Unit Price must be a positive numeric value." }),
   hsnCode: z.string().optional(),

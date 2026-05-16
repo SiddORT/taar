@@ -21,7 +21,7 @@ function validateItemPayload(body: Record<string, unknown>): string | null {
     return "Item Type must contain only letters and spaces.";
   const ut = (body.unitType as string ?? "").trim();
   if (!ut) return "Unit Type is required.";
-  if (!NAME_REGEX.test(ut)) return "Unit Type must contain only letters.";
+  if (ut.length > 50) return "Unit Type must be at most 50 characters.";
   const up = (body.unitPrice as string ?? "").trim();
   if (!up) return "Unit Price is required.";
   if (!NUMERIC_REGEX.test(up)) return "Unit Price must be a positive numeric value.";
@@ -85,7 +85,7 @@ router.post("/items/import", requireAuth, async (req: AuthRequest, res): Promise
     else if (!NAME_REGEX.test(itemName)) rowErrors.push("Item Name must contain only letters and spaces.");
     if (itemType && !NAME_REGEX.test(itemType)) rowErrors.push("Item Type must contain only letters and spaces.");
     if (!unitType) rowErrors.push("Unit Type is required.");
-    else if (!NAME_REGEX.test(unitType)) rowErrors.push("Unit Type must contain only letters.");
+    else if (unitType.length > 50) rowErrors.push("Unit Type must be at most 50 characters.");
     if (!unitPrice) rowErrors.push("Unit Price is required.");
     else if (!NUMERIC_REGEX.test(unitPrice)) rowErrors.push("Unit Price must be a positive numeric value.");
 

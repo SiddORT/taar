@@ -59,7 +59,7 @@ export const insertMaterialSchema = z.object({
   colorName: z.string().trim().min(1, "Color Name is required").refine((v) => NAME_REGEX.test(v), { message: "Color Name must contain only letters and spaces." }),
   size: z.string().trim().min(1, "Size is required").refine((v) => NUMERIC_REGEX.test(v), { message: "Size must be a positive numeric value." }),
   unitPrice: z.string().trim().min(1, "Unit Price is required").refine((v) => NUMERIC_REGEX.test(v), { message: "Unit Price must be a positive numeric value." }),
-  unitType: z.string().trim().min(1, "Unit Type is required").refine((v) => NAME_REGEX.test(v), { message: "Unit Type must contain only letters." }),
+  unitType: z.string().trim().min(1, "Unit Type is required").max(50, "Unit Type must be at most 50 characters."),
   currentStock: z.string().trim().min(1, "Current Stock is required").refine((v) => NUMERIC_REGEX.test(v), { message: "Current Stock must be a positive numeric value." }),
   locationStocks: z.array(locationStockSchema).optional().default([]),
   hsnCode: z.string().trim().min(1, "HSN Code is required"),

@@ -105,7 +105,7 @@ router.post("/materials/import", requireAuth, async (req: AuthRequest, res): Pro
     if (!unitPrice) rowErrors.push("Unit Price is required");
     else if (!NUMERIC_REGEX.test(unitPrice)) rowErrors.push("Unit Price must be a positive numeric value.");
     if (!unitType) rowErrors.push("Unit Type is required");
-    else if (!NAME_REGEX.test(unitType)) rowErrors.push("Unit Type must contain only letters.");
+    else if (unitType.length > 50) rowErrors.push("Unit Type must be at most 50 characters.");
     if (!currentStock) rowErrors.push("Current Stock is required");
     else if (!NUMERIC_REGEX.test(currentStock)) rowErrors.push("Current Stock must be a positive numeric value.");
     if (!hsnCode) rowErrors.push("HSN Code is required");
