@@ -94,7 +94,6 @@ export function downloadPoPdf(po: POPdfData) {
   let y = addInfoGrid(doc, 42, [
     ["PO Number",    po.po_number],
     ["Status",       po.status],
-    ["Vendor",       po.vendor_name],
     ["Date",         po.po_date ? fmtDate(po.po_date) : "—"],
     ["Source",       po.reference_type || "Manual"],
     ["Notes",        po.notes || "—"],
@@ -621,7 +620,6 @@ export function downloadCostingPoPdf(data: PoPdfData) {
     const infoFields: [string, string][] = [
       [data.referenceType === "swatch" ? "Swatch Order" : "Style Order", data.orderCode ?? "—"],
       [data.referenceType === "swatch" ? "Swatch Name" : "Style Name", data.entityName ?? "—"],
-      ["Vendor", po.vendorName],
       ["PO Date", po.poDate ? new Date(po.poDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : today],
       ["Client", data.clientName ?? "—"],
       ["Printed", today],

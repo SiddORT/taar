@@ -862,24 +862,6 @@ router.post("/pr", requireAuth, async (req, res) => {
     createdBy: user.email,
   }).returning();
 
-  // Auto-close PO when ALL items are fully received
-  if (po.status !== "Closed" && bomItems.length > 0) {
-    const allPoPrs = await db.select().from(purchaseReceiptsTable).where(eq(purchaseReceiptsTable.poId, Number(poId)));
-    const allCovered = bomItems.every(item => {
-      // Use exact bomRowId match; for single-item POs with legacy PRs (no bomRowId), sum all PRs
-      const relevant = allPoPrs.filter(pr =>
-        pr.bomRowId === item.bomRowId ||
-        (pr.bomRowId == null && bomItems.length === 1)
-      );
-      const received = relevant.reduce((s, pr) => s + (parseFloat(pr.receivedQty) || 0), 0);
-      const ordered = parseFloat(item.quantity) || 0;
-      return ordered > 0 && received >= ordered;
-    });
-    if (allCovered) {
-      await db.update(purchaseOrdersTable).set({ status: "Closed", updatedBy: user.email, updatedAt: new Date() }).where(eq(purchaseOrdersTable.id, Number(poId)));
-    }
-  }
-
   return res.status(201).json({ data: row });
 });
 
@@ -1389,22 +1371,6 @@ router.post("/style-pr", requireAuth, async (req, res) => {
     status: "Open",
     createdBy: user.email,
   }).returning();
-
-  if (po.status !== "Closed" && bomItems.length > 0) {
-    const allPoPrs = await db.select().from(purchaseReceiptsTable).where(eq(purchaseReceiptsTable.poId, Number(poId)));
-    const allCovered = bomItems.every(item => {
-      const relevant = allPoPrs.filter(pr =>
-        pr.bomRowId === item.bomRowId ||
-        (pr.bomRowId == null && bomItems.length === 1)
-      );
-      const received = relevant.reduce((s, pr) => s + (parseFloat(pr.receivedQty) || 0), 0);
-      const ordered = parseFloat(item.quantity) || 0;
-      return ordered > 0 && received >= ordered;
-    });
-    if (allCovered) {
-      await db.update(purchaseOrdersTable).set({ status: "Closed", updatedBy: user.email, updatedAt: new Date() }).where(eq(purchaseOrdersTable.id, Number(poId)));
-    }
-  }
 
   return res.status(201).json({ data: row });
 });
