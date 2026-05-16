@@ -1535,8 +1535,8 @@ export default function InvoiceForm() {
             <button
               onClick={() => handleSave()}
               disabled={saving}
-              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold text-white shadow-sm transition disabled:opacity-60"
-              style={{ backgroundColor: G }}
+              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold text-white shadow-sm transition-all disabled:opacity-50"
+              style={{ background: "linear-gradient(135deg, #C6AF4B, #a8922e)" }}
             >
               {saving ? <span className="h-3.5 w-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Save size={14} />}
               {isEdit ? "Save Changes" : "Generate Invoice"}

@@ -482,9 +482,7 @@ export default function StyleOrderDetail() {
       <div className="max-w-6xl mx-auto pb-12">
 
         {/* ── Sticky Header ─────────────────────────────────────────────── */}
-        <div className="sticky top-0 z-20 -mx-6 bg-white/98 backdrop-blur-sm border-b border-gray-200 shadow-[0_1px_6px_rgba(0,0,0,0.06)]">
-          {/* Gold accent bar */}
-          <div className="h-0.5 bg-gradient-to-r from-gray-900 via-[#C9B45C] to-gray-900" />
+        <div className="sticky top-0 z-20 -mx-6 bg-[#F8F6F0]/95 backdrop-blur border-b border-[#C6AF4B]/20">
 
           <div className="px-6 py-3 max-w-6xl mx-auto flex items-center gap-4">
             <button onClick={() => setLocation("/style-orders")}
@@ -503,7 +501,8 @@ export default function StyleOrderDetail() {
               <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 pointer-events-none opacity-60" />
             </div>
             <button onClick={() => { void handleSave(); }} disabled={saving}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gray-900 text-[#C9B45C] text-sm font-semibold hover:bg-black transition-all disabled:opacity-60 shadow-md shrink-0">
+              style={{ background: "linear-gradient(135deg, #C6AF4B, #a8922e)" }}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-50 transition-all shadow-md shrink-0">
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
               {saving ? "Saving…" : "Save"}
             </button>
@@ -674,7 +673,8 @@ export default function StyleOrderDetail() {
                   Cancel
                 </button>
                 <button onClick={() => { void handleSave(); }} disabled={saving}
-                  className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gray-900 text-[#C9B45C] text-sm font-medium hover:bg-black transition-colors disabled:opacity-60 shadow-sm">
+                  style={{ background: "linear-gradient(135deg, #C6AF4B, #a8922e)" }}
+                  className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-50 transition-all shadow-sm">
                   {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                   {saving ? "Saving…" : (isNew ? "Create Style Order" : "Save Changes")}
                 </button>
@@ -716,7 +716,8 @@ export default function StyleOrderDetail() {
                   Cancel
                 </button>
                 <button onClick={() => { void handleSave(); }} disabled={saving}
-                  className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gray-900 text-[#C9B45C] text-sm font-medium hover:bg-black transition-colors disabled:opacity-60 shadow-sm">
+                  style={{ background: "linear-gradient(135deg, #C6AF4B, #a8922e)" }}
+                  className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-50 transition-all shadow-sm">
                   {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                   {saving ? "Saving…" : (isNew ? "Create Style Order" : "Save Changes")}
                 </button>
@@ -1064,7 +1065,8 @@ export default function StyleOrderDetail() {
               {/* Save */}
               <div className="flex justify-end gap-3 pt-2">
                 <button onClick={() => { void handleSave(); }} disabled={saving}
-                  className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gray-900 text-[#C9B45C] text-sm font-medium hover:bg-black transition-colors disabled:opacity-60 shadow-sm">
+                  style={{ background: "linear-gradient(135deg, #C6AF4B, #a8922e)" }}
+                  className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-50 transition-all shadow-sm">
                   {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                   {saving ? "Saving…" : "Save Estimate"}
                 </button>
@@ -1136,7 +1138,8 @@ export default function StyleOrderDetail() {
                 Cancel
               </button>
               <button onClick={() => { void handleAddDept(); }} disabled={createDept.isPending}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gray-900 text-[#C9B45C] text-sm font-medium hover:bg-black transition-colors disabled:opacity-60">
+                style={{ background: "linear-gradient(135deg, #C6AF4B, #a8922e)" }}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-50 transition-all">
                 {createDept.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
                 Add
               </button>

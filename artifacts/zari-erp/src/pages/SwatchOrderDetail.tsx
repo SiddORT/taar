@@ -529,7 +529,7 @@ export default function SwatchOrderDetail() {
       <div className="max-w-6xl mx-auto pb-12">
 
         {/* ── Sticky Header ── */}
-        <div className="sticky top-0 z-20 -mx-6 bg-[#f8f9fb]/95 backdrop-blur border-b border-gray-200">
+        <div className="sticky top-0 z-20 -mx-6 bg-[#F8F6F0]/95 backdrop-blur border-b border-[#C6AF4B]/20">
           {/* Top row: back, code, status, save */}
           <div className="px-6 py-3 max-w-6xl mx-auto flex items-center gap-4">
             <button onClick={() => setLocation("/swatch-orders")}
@@ -549,7 +549,8 @@ export default function SwatchOrderDetail() {
               <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 pointer-events-none" />
             </div>
             <button onClick={() => { void handleSave(); }} disabled={saving}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gray-900 text-[#C9B45C] text-sm font-medium hover:bg-black transition-colors disabled:opacity-60 shrink-0">
+              style={{ background: "linear-gradient(135deg, #C6AF4B, #a8922e)" }}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-50 transition-all shrink-0">
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
               {saving ? "Saving…" : "Save"}
             </button>
@@ -790,7 +791,8 @@ export default function SwatchOrderDetail() {
               Cancel
             </button>
             <button onClick={() => { void handleSave(); }} disabled={saving}
-              className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gray-900 text-[#C9B45C] text-sm font-medium hover:bg-black transition-colors disabled:opacity-60 shadow-sm">
+              style={{ background: "linear-gradient(135deg, #C6AF4B, #a8922e)" }}
+              className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-50 transition-all shadow-sm">
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
               {saving ? "Saving…" : (isNew ? "Create Swatch Order" : "Save Changes")}
             </button>
@@ -843,7 +845,8 @@ export default function SwatchOrderDetail() {
                 Cancel
               </button>
               <button onClick={() => { void handleSave(); }} disabled={saving}
-                className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gray-900 text-[#C9B45C] text-sm font-medium hover:bg-black transition-colors disabled:opacity-60 shadow-sm">
+                style={{ background: "linear-gradient(135deg, #C6AF4B, #a8922e)" }}
+              className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-50 transition-all shadow-sm">
                 {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                 {saving ? "Saving…" : (isNew ? "Create Swatch Order" : "Save Changes")}
               </button>
@@ -1010,7 +1013,8 @@ export default function SwatchOrderDetail() {
               Cancel
             </button>
             <button onClick={() => { void handleSave(); }} disabled={saving}
-              className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gray-900 text-[#C9B45C] text-sm font-medium hover:bg-black transition-colors disabled:opacity-60 shadow-sm">
+              style={{ background: "linear-gradient(135deg, #C6AF4B, #a8922e)" }}
+              className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-50 transition-all shadow-sm">
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
               {saving ? "Saving…" : "Save Changes"}
             </button>
@@ -1329,7 +1333,8 @@ export default function SwatchOrderDetail() {
             {/* Save button */}
             <div className="flex justify-end gap-3 pt-2">
               <button onClick={() => { void handleSave(); }} disabled={saving}
-                className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gray-900 text-[#C9B45C] text-sm font-medium hover:bg-black transition-colors disabled:opacity-60 shadow-sm">
+                style={{ background: "linear-gradient(135deg, #C6AF4B, #a8922e)" }}
+              className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-50 transition-all shadow-sm">
                 {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                 {saving ? "Saving…" : "Save Estimate"}
               </button>

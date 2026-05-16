@@ -737,8 +737,8 @@ export default function QuotationForm() {
             Cancel
           </button>
           <button onClick={handleSave} disabled={saving}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white shadow-sm disabled:opacity-60 transition"
-            style={{ background: G }}>
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white shadow-sm disabled:opacity-50 transition-all"
+            style={{ background: "linear-gradient(135deg, #C6AF4B, #a8922e)" }}>
             <Save size={15} />
             {saving ? "Saving…" : "Save Quotation"}
           </button>

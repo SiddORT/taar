@@ -240,8 +240,8 @@ export default function StyleOrders() {
             </div>
             <button
               onClick={() => setLocation("/style-orders/new")}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gray-900 text-sm font-medium hover:bg-black transition-colors shadow-sm"
-              style={{ color: G }}
+              style={{ background: "linear-gradient(135deg, #C6AF4B, #a8922e)" }}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white shadow-sm transition-all"
             >
               <Plus className="h-4 w-4" /> New Style Order
             </button>
@@ -306,8 +306,8 @@ export default function StyleOrders() {
             <p className="text-sm font-medium text-gray-500">No style orders found</p>
             <p className="text-xs text-gray-400 mt-1">Create your first style order to get started</p>
             <button onClick={() => setLocation("/style-orders/new")}
-              className="mt-4 px-4 py-2 rounded-xl bg-gray-900 text-sm font-medium hover:bg-black transition-colors"
-              style={{ color: G }}>
+              style={{ background: "linear-gradient(135deg, #C6AF4B, #a8922e)" }}
+              className="mt-4 px-4 py-2 rounded-xl text-sm font-semibold text-white transition-all">
               + New Style Order
             </button>
           </div>
