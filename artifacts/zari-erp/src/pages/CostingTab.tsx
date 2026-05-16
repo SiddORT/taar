@@ -1207,7 +1207,6 @@ function CreatePoModal({
   onCreate: (payload: Record<string, unknown>) => Promise<void>;
 }) {
   const { toast } = useToast();
-  const [vendorId, setVendorId] = useState("");
   const [notes, setNotes] = useState("");
   const [isPending, setIsPending] = useState(false);
   type Override = { checked: boolean; targetPrice: string; quantity: string; targetVendorId: string; targetVendorName: string };
@@ -1235,15 +1234,7 @@ function CreatePoModal({
   }, 0);
 
   async function handleSubmit() {
-    if (!vendorId) { toast({ title: "Select a vendor", variant: "destructive" }); return; }
     if (selectedItems.length === 0) { toast({ title: "Select at least one BOM item", variant: "destructive" }); return; }
-    for (const r of selectedItems) {
-      const poQty = parseFloat(overrides[r.id].quantity) || 0;
-      const bomQty = parseFloat(r.requiredQty) || 0;
-      if (poQty > bomQty) {
-        toast({ title: `"${r.materialName}" — Order qty (${poQty}) cannot exceed BOM qty (${bomQty} ${r.unitType})`, variant: "destructive" }); return;
-      }
-    }
     const bomItems: PoLineItem[] = selectedItems.map(r => ({
       bomRowId: r.id,
       materialCode: r.materialCode,
@@ -1256,7 +1247,7 @@ function CreatePoModal({
     }));
     setIsPending(true);
     try {
-      await onCreate({ swatchOrderId, vendorId: Number(vendorId), notes: notes || undefined, bomItems });
+      await onCreate({ swatchOrderId, notes: notes || undefined, bomItems });
       onClose();
     } finally {
       setIsPending(false);
@@ -1272,21 +1263,11 @@ function CreatePoModal({
         </div>
 
         <div className="overflow-y-auto flex-1 px-6 py-4 space-y-5">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="text-[10px] text-gray-500 font-medium uppercase tracking-wide">Vendor *</label>
-              <select value={vendorId} onChange={e => setVendorId(e.target.value)}
-                className="w-full mt-1 text-xs text-gray-900 bg-white border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-gray-900/10">
-                <option value="">Select vendor…</option>
-                {vendors.map(v => <option key={v.id} value={v.id}>{v.brandName}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="text-[10px] text-gray-500 font-medium uppercase tracking-wide">Notes (optional)</label>
-              <input value={notes} onChange={e => setNotes(e.target.value)}
-                className="w-full mt-1 text-xs text-gray-900 bg-white border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-gray-900/10"
-                placeholder="Add notes…" />
-            </div>
+          <div>
+            <label className="text-[10px] text-gray-500 font-medium uppercase tracking-wide">Notes</label>
+            <input value={notes} onChange={e => setNotes(e.target.value)}
+              className="w-full mt-1 text-xs text-gray-900 bg-white border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-gray-900/10"
+              placeholder="Add notes…" />
           </div>
 
           <div>
@@ -1338,13 +1319,9 @@ function CreatePoModal({
                           </td>
                           <td className="px-3 py-2.5">
                             <input type="number" min="0" step="any" value={ov.quantity}
-                              max={parseFloat(r.requiredQty)}
                               disabled={!ov.checked}
                               onChange={e => setField(r.id, "quantity", e.target.value)}
-                              className={`w-20 text-xs text-gray-900 bg-white border rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-gray-900/20 ${!ov.checked ? "opacity-30 cursor-not-allowed border-gray-200" : ov.checked && (parseFloat(ov.quantity) || 0) > (parseFloat(r.requiredQty) || 0) ? "border-red-400 bg-red-50 text-red-700" : "border-gray-200"}`} />
-                            {ov.checked && (parseFloat(ov.quantity) || 0) > (parseFloat(r.requiredQty) || 0) && (
-                              <p className="text-[9px] text-red-500 mt-0.5">Max: {r.requiredQty}</p>
-                            )}
+                              className={`w-20 text-xs text-gray-900 bg-white border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-gray-900/20 ${!ov.checked ? "opacity-30 cursor-not-allowed" : ""}`} />
                           </td>
                           <td className="px-3 py-2.5">
                             <select

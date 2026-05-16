@@ -1272,13 +1272,6 @@ function StyleCreatePoModal({
 
   function handleSubmit() {
     if (selectedItems.length === 0) { toast({ title: "Select at least one BOM item", variant: "destructive" }); return; }
-    for (const r of selectedItems) {
-      const poQty = parseFloat(overrides[r.id].quantity) || 0;
-      const bomQty = parseFloat(r.requiredQty) || 0;
-      if (poQty > bomQty) {
-        toast({ title: `"${r.materialName}" — Order qty (${poQty}) cannot exceed BOM qty (${bomQty} ${r.unitType})`, variant: "destructive" }); return;
-      }
-    }
     const bomItems: PoLineItem[] = selectedItems.map(r => ({
       bomRowId: r.id, materialCode: r.materialCode, materialName: r.materialName,
       unitType: r.unitType, targetPrice: overrides[r.id].targetPrice, quantity: overrides[r.id].quantity,
@@ -1303,7 +1296,7 @@ function StyleCreatePoModal({
         </div>
         <div className="overflow-y-auto flex-1 px-6 py-4 space-y-5">
           <div>
-            <label className="text-[10px] text-gray-500 font-medium uppercase tracking-wide">Notes (optional)</label>
+            <label className="text-[10px] text-gray-500 font-medium uppercase tracking-wide">Notes</label>
             <input value={notes} onChange={e => setNotes(e.target.value)}
               className="w-full mt-1 text-xs text-gray-900 bg-white border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-gray-900/10"
               placeholder="Add notes…" />
@@ -1341,13 +1334,9 @@ function StyleCreatePoModal({
                           <td className="px-3 py-2.5 text-gray-600">{r.currentStock} {r.unitType}</td>
                           <td className="px-3 py-2.5">
                             <input type="number" min="0" step="any" value={ov.quantity}
-                              max={parseFloat(r.requiredQty)}
                               onChange={e => setField(r.id, "quantity", e.target.value)}
                               disabled={!ov.checked}
-                              className={`w-20 text-xs text-gray-900 border rounded-lg px-2 py-1 disabled:opacity-40 focus:outline-none ${ov.checked && (parseFloat(ov.quantity) || 0) > (parseFloat(r.requiredQty) || 0) ? "border-red-400 bg-red-50 text-red-700" : "border-gray-200"}`} />
-                            {ov.checked && (parseFloat(ov.quantity) || 0) > (parseFloat(r.requiredQty) || 0) && (
-                              <p className="text-[9px] text-red-500 mt-0.5">Max: {r.requiredQty}</p>
-                            )}
+                              className="w-20 text-xs text-gray-900 border border-gray-200 rounded-lg px-2 py-1 disabled:opacity-40 focus:outline-none" />
                           </td>
                           <td className="px-3 py-2.5">
                             <div className="flex items-center gap-1">

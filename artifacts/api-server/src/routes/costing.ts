@@ -728,12 +728,16 @@ router.post("/po", requireAuth, async (req, res) => {
   const user = (req as any).user;
   const { swatchOrderId, vendorId, notes, bomItems } = req.body as {
     swatchOrderId: number;
-    vendorId: number;
+    vendorId?: number;
     notes?: string;
     bomItems?: { bomRowId: number; materialCode: string; materialName: string; unitType: string; targetPrice: string; quantity: string }[];
   };
-  const [vendor] = await db.select().from(vendorsTable).where(eq(vendorsTable.id, vendorId));
-  if (!vendor) { res.status(404).json({ error: "Vendor not found" }); return; }
+  let vendorName: string | null = null;
+  if (vendorId) {
+    const [vendor] = await db.select().from(vendorsTable).where(eq(vendorsTable.id, vendorId));
+    if (!vendor) { res.status(404).json({ error: "Vendor not found" }); return; }
+    vendorName = vendor.brandName;
+  }
   const poNumber = await nextPoNumber();
   const items = bomItems ?? [];
   const [row] = await db.insert(purchaseOrdersTable).values({
@@ -741,8 +745,8 @@ router.post("/po", requireAuth, async (req, res) => {
     swatchOrderId: Number(swatchOrderId),
     referenceType: "Swatch",
     referenceId: Number(swatchOrderId),
-    vendorId,
-    vendorName: vendor.brandName,
+    vendorId: (vendorId ?? null) as unknown as number,
+    vendorName: vendorName ?? "",
     status: "Draft",
     notes: notes ?? null,
     bomRowIds: items.map(i => i.bomRowId),
