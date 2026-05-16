@@ -415,7 +415,7 @@ export default function SwatchForm() {
                         {(["Inhouse", "Client"] as const).map(t => (
                           <button key={t} type="button"
                             onClick={() => setField("location", t === "Client" ? "Client" : "")}
-                            className={`flex-1 py-2 text-sm font-medium transition-colors ${locationType === t ? "bg-gray-900 text-[#C9B45C]" : "bg-white text-gray-600 hover:bg-gray-50"}`}>
+                            className={`flex-1 py-2 text-sm font-medium transition-colors ${locationType === t ? "bg-gray-100 text-gray-800 font-semibold" : "bg-white text-gray-400 hover:bg-gray-50"}`}>
                             {t === "Client" ? "To Client" : "Inhouse"}
                           </button>
                         ))}
