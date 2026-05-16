@@ -906,20 +906,17 @@ export default function FabricMaster() {
                   <div className="space-y-2">
                     {form.locationStocks.map((ls, idx) => (
                       <div key={idx} className="flex gap-2 items-center">
-                        <input
-                          list={`loc-list-${idx}`}
-                          value={ls.location}
-                          onChange={e => updateLocationStock(idx, "location", e.target.value)}
-                          placeholder="Type or select location"
-                          className="flex-1 rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
-                        />
-                        <datalist id={`loc-list-${idx}`}>
-                          {locationOptions.map(l => <option key={l} value={l} />)}
-                        </datalist>
+                        <select value={ls.location}
+                          onChange={(e) => updateLocationStock(idx, "location", e.target.value)}
+                          className="flex-1 rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100">
+                          <option value="">Select warehouse…</option>
+                          {locationOptions.map((l) => <option key={l} value={l}>{l}</option>)}
+                        </select>
                         <div className="flex items-center gap-1.5 shrink-0">
                           <span className="text-xs text-gray-500 whitespace-nowrap">Stock:</span>
                           <input type="number" min="0" placeholder="0" value={ls.stock}
-                            onChange={e => updateLocationStock(idx, "stock", e.target.value)}
+                            onKeyDown={(e) => { if (e.key === "e" || e.key === "E" || e.key === "-") e.preventDefault(); }}
+                            onChange={(e) => updateLocationStock(idx, "stock", e.target.value)}
                             className="w-28 rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100" />
                         </div>
                         <button type="button" onClick={() => removeLocationStock(idx)}
@@ -933,6 +930,17 @@ export default function FabricMaster() {
                         Total Stock: <span className="text-indigo-700">{totalStock} {form.widthUnitType || "units"}</span>
                       </span>
                     </div>
+                  </div>
+                )}
+                {form.locationStocks.length === 0 && (
+                  <div className="mt-3">
+                    <label className="text-sm font-medium text-gray-700">Current Stock<span className="text-red-500 ml-0.5">*</span></label>
+                    <input value={form.currentStock} maxLength={10}
+                      onKeyDown={(e) => { if (e.key === "e" || e.key === "E" || e.key === "-" || e.key === "+") e.preventDefault(); }}
+                      onChange={(e) => setForm((f) => ({ ...f, currentStock: e.target.value }))}
+                      placeholder="e.g. 100"
+                      className={`mt-1 w-full rounded-lg border px-3.5 py-2.5 text-sm text-gray-900 outline-none transition focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10 ${errors.currentStock ? "border-red-400 bg-red-50/30" : "border-gray-300 bg-white"}`} />
+                    {errors.currentStock && <p className="text-xs text-red-500 mt-1">{errors.currentStock}</p>}
                   </div>
                 )}
               </div>
