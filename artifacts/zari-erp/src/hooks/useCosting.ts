@@ -182,6 +182,8 @@ export function useSwatchPOs(swatchOrderId: number) {
     queryKey: ["swatch-pos", swatchOrderId],
     queryFn: () => customFetch<{ data: PurchaseOrderRecord[] }>(`/api/costing/po/${swatchOrderId}`).then(r => r.data),
     enabled: !!swatchOrderId,
+    refetchInterval: 30_000,
+    refetchOnWindowFocus: true,
   });
 }
 
@@ -516,6 +518,8 @@ export function useStylePOs(styleOrderId: number) {
     queryKey: ["style-pos", styleOrderId],
     queryFn: () => customFetch<{ data: PurchaseOrderRecord[] }>(`/api/costing/style-po/${styleOrderId}`).then(r => r.data),
     enabled: !!styleOrderId,
+    refetchInterval: 30_000,
+    refetchOnWindowFocus: true,
   });
 }
 
