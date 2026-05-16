@@ -426,7 +426,6 @@ function StyleBomSection({ styleOrderId, orderCode, styleName, clientName }: {
 
   async function handleAdd() {
     if (!form.materialId) { toast({ title: "Select a material or fabric first", variant: "destructive" }); return; }
-    if (!form.requiredQty || parseFloat(form.requiredQty) <= 0) { toast({ title: "Required quantity must be > 0", variant: "destructive" }); return; }
     const result = await addRow.mutateAsync({ ...form, styleOrderId, estimatedAmount: estimatedAmount.toFixed(2) });
     setForm({ materialType: "", materialId: 0, materialCode: "", materialName: "", currentStock: "", avgUnitPrice: "", unitType: "", warehouseLocation: "", requiredQty: "" });
     setShowForm(false);
