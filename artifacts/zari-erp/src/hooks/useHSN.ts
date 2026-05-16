@@ -5,7 +5,7 @@ export interface HsnRecord {
   id: number;
   hsnCode: string;
   gstPercentage: string;
-  govtDescription: string;
+  govtDescription: string | null;
   remarks: string | null;
   isActive: boolean;
   isDeleted: boolean;
@@ -25,7 +25,6 @@ interface HsnListResponse {
 export interface HsnFormData {
   hsnCode: string;
   gstPercentage: string;
-  govtDescription: string;
   remarks?: string;
   isActive: boolean;
 }
@@ -33,7 +32,6 @@ export interface HsnFormData {
 export interface HsnImportRow {
   hsnCode: string;
   gstPercentage: string;
-  govtDescription: string;
   remarks?: string;
   isActive?: boolean;
 }

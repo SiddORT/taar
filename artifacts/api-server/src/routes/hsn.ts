@@ -19,7 +19,7 @@ function buildWhere(search: string, status: string) {
     conditions.push(
       or(
         ilike(hsnTable.hsnCode, `%${search}%`),
-        ilike(hsnTable.govtDescription, `%${search}%`),
+        ilike(hsnTable.remarks, `%${search}%`),
       )!,
     );
   }
@@ -107,7 +107,6 @@ router.post("/hsn/import", requireAuth, async (req: AuthRequest, res): Promise<v
     const parsed = insertHsnSchema.safeParse({
       hsnCode: String(row.hsnCode ?? "").trim(),
       gstPercentage: String(row.gstPercentage ?? "").trim(),
-      govtDescription: String(row.govtDescription ?? "").trim(),
       remarks: row.remarks ? String(row.remarks).trim() : undefined,
       isActive: row.isActive !== undefined ? Boolean(row.isActive) : true,
     });

@@ -5,7 +5,7 @@ export const hsnTable = pgTable("hsn_master", {
   id: serial("id").primaryKey(),
   hsnCode: text("hsn_code").notNull().unique(),
   gstPercentage: text("gst_percentage").notNull(),
-  govtDescription: text("govt_description").notNull(),
+  govtDescription: text("govt_description"),
   remarks: text("remarks"),
   isActive: boolean("is_active").notNull().default(true),
   isDeleted: boolean("is_deleted").notNull().default(false),
@@ -27,12 +27,7 @@ export const insertHsnSchema = z.object({
   gstPercentage: z.enum(["0", "5", "12", "18", "28"], {
     error: "GST Percentage must be one of 0, 5, 12, 18, or 28.",
   }),
-  govtDescription: z
-    .string()
-    .trim()
-    .min(1, "Government Description is required.")
-    .max(255, "Government Description must be 255 characters or fewer."),
-  remarks: z.string().trim().max(500, "Remarks must be 500 characters or fewer.").optional(),
+  remarks: z.string().trim().max(500, "Remarks/Description must be 500 characters or fewer.").optional(),
   isActive: z.boolean().default(true),
 });
 

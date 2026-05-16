@@ -48,14 +48,12 @@ const STATUS_FILTER_OPTIONS = [
 const EMPTY_FORM: HsnFormData = {
   hsnCode: "",
   gstPercentage: "",
-  govtDescription: "",
   remarks: "",
   isActive: true,
 };
 
 const HSN_REGEX = /^[0-9]{4}$|^[0-9]{6}$|^[0-9]{8}$/;
 const NUMERIC_ONLY = /^[0-9]*$/;
-const GOVT_DESC_MAX = 255;
 const REMARKS_MAX = 500;
 
 type FormErrors = Partial<Record<keyof HsnFormData, string>>;
@@ -163,7 +161,6 @@ export default function HSNMaster() {
     setForm({
       hsnCode: record.hsnCode,
       gstPercentage: record.gstPercentage,
-      govtDescription: record.govtDescription,
       remarks: record.remarks ?? "",
       isActive: record.isActive,
     });
@@ -180,14 +177,8 @@ export default function HSNMaster() {
       e.hsnCode = "HSN Code must contain only 4, 6, or 8 numeric digits.";
     }
     if (!form.gstPercentage) e.gstPercentage = "GST Percentage is required.";
-    const desc = form.govtDescription.trim();
-    if (!desc) {
-      e.govtDescription = "Government Description is required.";
-    } else if (desc.length > GOVT_DESC_MAX) {
-      e.govtDescription = `Government Description must be ${GOVT_DESC_MAX} characters or fewer.`;
-    }
     if ((form.remarks ?? "").length > REMARKS_MAX) {
-      e.remarks = `Remarks must be ${REMARKS_MAX} characters or fewer.`;
+      e.remarks = `Remarks/Description must be ${REMARKS_MAX} characters or fewer.`;
     }
     setErrors(e);
     return Object.keys(e).length === 0;
@@ -197,7 +188,6 @@ export default function HSNMaster() {
     const code = form.hsnCode.trim();
     if (!code || !HSN_REGEX.test(code)) return false;
     if (!form.gstPercentage) return false;
-    if (!form.govtDescription.trim() || form.govtDescription.length > GOVT_DESC_MAX) return false;
     if ((form.remarks ?? "").length > REMARKS_MAX) return false;
     return true;
   };
@@ -208,7 +198,6 @@ export default function HSNMaster() {
       const payload: HsnFormData = {
         ...form,
         hsnCode: form.hsnCode.trim(),
-        govtDescription: form.govtDescription.trim(),
         remarks: form.remarks?.trim() ?? "",
       };
       if (editRecord) {
@@ -258,24 +247,21 @@ export default function HSNMaster() {
       {
         "HSN Code": "1001",
         "GST Percentage": "18",
-        "Government Description": "Durum wheat",
-        "Remarks": "Sample remark",
+        "Remarks/Description": "Sample remark",
       },
       {
         "HSN Code": "100110",
         "GST Percentage": "5",
-        "Government Description": "Durum wheat for sowing",
-        "Remarks": "",
+        "Remarks/Description": "",
       },
       {
         "HSN Code": "10011000",
         "GST Percentage": "0",
-        "Government Description": "Durum wheat for sowing (8-digit)",
-        "Remarks": "",
+        "Remarks/Description": "",
       },
     ];
     const ws = XLSX.utils.json_to_sheet(sampleData);
-    ws["!cols"] = [{ wch: 14 }, { wch: 16 }, { wch: 50 }, { wch: 30 }];
+    ws["!cols"] = [{ wch: 14 }, { wch: 16 }, { wch: 40 }];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "HSN Import Template");
     XLSX.writeFile(wb, "HSN_Import_Sample.xlsx");
@@ -302,8 +288,7 @@ export default function HSNMaster() {
       const records = jsonRows.map((row) => ({
         hsnCode: String(row["HSN Code"] ?? "").trim(),
         gstPercentage: String(row["GST Percentage"] ?? "").trim(),
-        govtDescription: String(row["Government Description"] ?? "").trim(),
-        remarks: String(row["Remarks"] ?? "").trim() || undefined,
+        remarks: String(row["Remarks/Description"] ?? row["Remarks"] ?? "").trim() || undefined,
         isActive: true as const,
       }));
 
@@ -326,8 +311,7 @@ export default function HSNMaster() {
       const exportData = allRows.map((r) => ({
         "HSN Code": r.hsnCode,
         "GST Percentage": r.gstPercentage,
-        "Government Description": r.govtDescription,
-        "Remarks": r.remarks ?? "",
+        "Remarks/Description": r.remarks ?? "",
         "Status": r.isActive ? "Active" : "Inactive",
         "Created By": r.createdBy,
         "Created At": formatDate(r.createdAt),
@@ -336,7 +320,7 @@ export default function HSNMaster() {
       }));
       const ws = XLSX.utils.json_to_sheet(exportData);
       ws["!cols"] = [
-        { wch: 14 }, { wch: 8 }, { wch: 50 }, { wch: 30 },
+        { wch: 14 }, { wch: 8 }, { wch: 40 },
         { wch: 10 }, { wch: 25 }, { wch: 15 }, { wch: 25 }, { wch: 15 },
       ];
       const wb = XLSX.utils.book_new();
@@ -393,11 +377,11 @@ export default function HSNMaster() {
       render: (r) => <span className="font-medium">{asHsn(r).gstPercentage}%</span>,
     },
     {
-      key: "govtDescription",
-      label: "Government Description",
+      key: "remarks",
+      label: "Remarks/Description",
       render: (r) => (
-        <span className="max-w-xs block truncate" title={asHsn(r).govtDescription}>
-          {asHsn(r).govtDescription}
+        <span className="max-w-xs block truncate" title={asHsn(r).remarks ?? ""}>
+          {asHsn(r).remarks ?? "—"}
         </span>
       ),
     },
@@ -626,38 +610,11 @@ export default function HSNMaster() {
           error={errors.gstPercentage}
         />
 
-        {/* Government Description */}
+        {/* Remarks/Description */}
         <div className="flex flex-col gap-1.5">
           <TextareaField
-            label="Government Description"
-            required
-            placeholder="Official government description of the HSN code..."
-            value={form.govtDescription}
-            maxLength={GOVT_DESC_MAX}
-            onChange={(e) => {
-              const val = e.target.value;
-              setForm((f) => ({ ...f, govtDescription: val }));
-              if (val.length > GOVT_DESC_MAX) {
-                setErrors((prev) => ({ ...prev, govtDescription: `Max ${GOVT_DESC_MAX} characters.` }));
-              } else if (!val.trim()) {
-                setErrors((prev) => ({ ...prev, govtDescription: "Government Description is required." }));
-              } else {
-                setErrors((prev) => ({ ...prev, govtDescription: undefined }));
-              }
-            }}
-            error={errors.govtDescription}
-            rows={3}
-          />
-          <p className={`text-xs text-right -mt-1 ${form.govtDescription.length > GOVT_DESC_MAX ? "text-red-500" : "text-gray-400"}`}>
-            {form.govtDescription.length} / {GOVT_DESC_MAX} characters used
-          </p>
-        </div>
-
-        {/* Remarks */}
-        <div className="flex flex-col gap-1.5">
-          <TextareaField
-            label="Remarks"
-            placeholder="Optional internal notes..."
+            label="Remarks/Description"
+            placeholder="Optional notes or description..."
             value={form.remarks ?? ""}
             maxLength={REMARKS_MAX}
             onChange={(e) => {

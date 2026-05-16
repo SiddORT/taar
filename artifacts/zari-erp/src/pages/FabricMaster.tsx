@@ -87,7 +87,7 @@ const EMPTY_FORM: FabricFormData = {
 };
 
 type FormErrors = Partial<Record<keyof FabricFormData, string>>;
-const EMPTY_HSN_FORM: HsnFormData = { hsnCode: "", gstPercentage: "", govtDescription: "", isActive: true };
+const EMPTY_HSN_FORM: HsnFormData = { hsnCode: "", gstPercentage: "", isActive: true };
 type HsnErrors = Partial<Record<keyof HsnFormData, string>>;
 
 const GST_OPTIONS = [
@@ -449,7 +449,6 @@ export default function FabricMaster() {
     const e: HsnErrors = {};
     if (!hsnForm.hsnCode.trim()) e.hsnCode = "HSN Code is required";
     if (!hsnForm.gstPercentage) e.gstPercentage = "GST % is required";
-    if (!hsnForm.govtDescription.trim()) e.govtDescription = "Description is required";
     setHsnErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -1123,8 +1122,8 @@ export default function FabricMaster() {
           </select>
           {hsnErrors.gstPercentage && <p className="text-xs text-red-500">{hsnErrors.gstPercentage}</p>}
         </div>
-        <InputField label="Government Description" required placeholder="Official description..." value={hsnForm.govtDescription}
-          onChange={(e) => setHsnForm((f) => ({ ...f, govtDescription: e.target.value }))} error={hsnErrors.govtDescription} />
+        <InputField label="Remarks/Description" placeholder="Optional notes..." value={hsnForm.remarks ?? ""}
+          onChange={(e) => setHsnForm((f) => ({ ...f, remarks: e.target.value }))} error={hsnErrors.remarks} />
       </MasterFormModal>
 
       <ImportResultModal

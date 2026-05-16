@@ -52,7 +52,7 @@ const EMPTY_FORM: ItemFormData = {
   reorderLevel: "", minimumLevel: "", maximumLevel: "",
   isActive: true,
 };
-const EMPTY_HSN_FORM: HsnFormData = { hsnCode: "", gstPercentage: "", govtDescription: "", isActive: true };
+const EMPTY_HSN_FORM: HsnFormData = { hsnCode: "", gstPercentage: "", isActive: true };
 
 type FormErrors = Partial<Record<keyof ItemFormData | "form", string>>;
 type HsnErrors = Partial<Record<keyof HsnFormData, string>>;
@@ -748,8 +748,8 @@ export default function ItemMaster() {
                   {hsnErrors.gstPercentage && <p className="text-xs text-red-500 mt-0.5">{hsnErrors.gstPercentage}</p>}
                 </div>
                 <div className="col-span-2">
-                  <label className={labelCls}>Description</label>
-                  <input value={hsnForm.govtDescription ?? ""} onChange={(e) => setHsnForm((f) => ({ ...f, govtDescription: e.target.value }))}
+                  <label className={labelCls}>Remarks/Description</label>
+                  <input value={hsnForm.remarks ?? ""} onChange={(e) => setHsnForm((f) => ({ ...f, remarks: e.target.value }))}
                     placeholder="Optional…" className={inputCls} />
                 </div>
               </div>
