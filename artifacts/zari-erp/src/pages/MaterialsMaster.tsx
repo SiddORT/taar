@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
-import { Pencil, Trash2, ImagePlus, X as XIcon, ZoomIn, FileDown, FileUp, FileSpreadsheet } from "lucide-react";
+import { Pencil, Trash2, ImagePlus, X as XIcon, ZoomIn, FileDown, FileUp, FileSpreadsheet, Star, ChevronLeft, ChevronRight } from "lucide-react";
 import { useGetMe, useLogout, getGetMeQueryKey } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
 import * as XLSX from "xlsx";
@@ -71,6 +71,34 @@ function formatDate(val: string | null | undefined) {
   catch { return String(val); }
 }
 
+const COLOR_NAMES: [number, number, number, string][] = [
+  [255,255,255,"White"],[0,0,0,"Black"],[128,128,128,"Grey"],[192,192,192,"Silver"],
+  [255,0,0,"Red"],[139,0,0,"Dark Red"],[220,20,60,"Crimson"],[255,69,0,"Orange Red"],
+  [255,165,0,"Orange"],[255,215,0,"Gold"],[198,175,75,"Dark Gold"],[201,180,92,"Golden Yellow"],
+  [255,255,0,"Yellow"],[154,205,50,"Yellow Green"],[0,128,0,"Green"],[0,255,0,"Lime"],
+  [0,100,0,"Dark Green"],[0,128,128,"Teal"],[0,255,255,"Cyan"],[0,0,255,"Blue"],
+  [0,0,139,"Dark Blue"],[75,0,130,"Indigo"],[128,0,128,"Purple"],[255,0,255,"Magenta"],
+  [255,192,203,"Pink"],[255,105,180,"Hot Pink"],[255,20,147,"Deep Pink"],
+  [165,42,42,"Brown"],[101,67,33,"Dark Brown"],[210,180,140,"Tan"],
+  [245,245,220,"Beige"],[255,228,196,"Bisque"],[230,230,250,"Lavender"],
+  [0,191,255,"Sky Blue"],[135,206,235,"Light Blue"],[64,224,208,"Turquoise"],
+  [240,128,128,"Coral"],[250,128,114,"Salmon"],[255,127,80,"Deep Coral"],
+  [218,165,32,"Goldenrod"],[184,134,11,"Dark Goldenrod"],
+];
+
+function hexToColorName(hex: string): string {
+  if (!hex || hex.length < 7) return "";
+  try {
+    const r = parseInt(hex.slice(1, 3), 16), g = parseInt(hex.slice(3, 5), 16), b = parseInt(hex.slice(5, 7), 16);
+    let best = "", bestDist = Infinity;
+    for (const [cr, cg, cb, name] of COLOR_NAMES) {
+      const d = (r - cr) ** 2 + (g - cg) ** 2 + (b - cb) ** 2;
+      if (d < bestDist) { bestDist = d; best = name; }
+    }
+    return best;
+  } catch { return ""; }
+}
+
 export default function MaterialsMaster() {
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
@@ -124,7 +152,10 @@ export default function MaterialsMaster() {
   const [errors, setErrors] = useState<FormErrors>({});
   const [deleteTarget, setDeleteTarget] = useState<MaterialRecord | null>(null);
   const [confirmToggleTarget, setConfirmToggleTarget] = useState<MaterialRecord | null>(null);
-  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+  const [carouselImages, setCarouselImages] = useState<MasterImage[]>([]);
+  const [carouselIdx, setCarouselIdx] = useState<number | null>(null);
+  const openCarousel = (images: MasterImage[], idx: number) => { setCarouselImages(images); setCarouselIdx(idx); };
+  const closeCarousel = () => setCarouselIdx(null);
   const imgInputRef = useRef<HTMLInputElement>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
   const [importMenuOpen, setImportMenuOpen] = useState(false);
@@ -218,6 +249,13 @@ export default function MaterialsMaster() {
   };
 
   const removeImage = (id: string) => setForm((f) => ({ ...f, images: f.images.filter((img) => img.id !== id) }));
+  const setAsThumbnail = (id: string) => setForm((f) => {
+    const idx = f.images.findIndex((img) => img.id === id);
+    if (idx <= 0) return f;
+    const images = [...f.images];
+    const [thumb] = images.splice(idx, 1);
+    return { ...f, images: [thumb, ...images] };
+  });
 
   const addLocationStock = () => setForm((f) => ({ ...f, locationStocks: [...f.locationStocks, { location: "", stock: "" }] }));
   const removeLocationStock = (idx: number) => setForm((f) => ({ ...f, locationStocks: f.locationStocks.filter((_, i) => i !== idx) }));
@@ -249,9 +287,10 @@ export default function MaterialsMaster() {
 
   const validate = (): boolean => {
     const e: FormErrors = {};
+    const mname = (form.materialName ?? "").trim();
+    if (!mname) e.materialName = "Material Name is required";
     const q = form.quality.trim();
-    if (!q) e.quality = "Quality is required";
-    else if (!NAME_REGEX.test(q)) e.quality = "Quality must contain only letters and spaces.";
+    if (q && !NAME_REGEX.test(q)) e.quality = "Quality must contain only letters and spaces.";
     const cn = form.colorName.trim();
     if (!cn) e.colorName = "Color Name is required";
     else if (!NAME_REGEX.test(cn)) e.colorName = "Color Name must contain only letters and spaces.";
@@ -460,7 +499,7 @@ export default function MaterialsMaster() {
           </div>
         );
         return (
-          <button type="button" onClick={() => setLightboxUrl(imgs[0].data)}
+          <button type="button" onClick={() => openCarousel(imgs, 0)}
             className="w-9 h-9 rounded-lg overflow-hidden border border-gray-200 hover:border-[#C6AF4B] transition-colors relative group">
             <img src={imgs[0].data} alt="" className="w-full h-full object-cover" />
             {imgs.length > 1 && <span className="absolute bottom-0 right-0 text-[9px] font-bold bg-black/60 text-white px-0.5 rounded-tl-md">+{imgs.length - 1}</span>}
@@ -645,12 +684,13 @@ export default function MaterialsMaster() {
               <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
                 <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#C6AF4B] mb-4">Basic Information</p>
                 <div className="grid grid-cols-2 gap-4">
-                  <InputField label="Material Name" placeholder="e.g. Silk Thread"
+                  <InputField label="Material Name" required placeholder="e.g. Silk Thread"
                     maxLength={100}
                     value={form.materialName ?? ""}
-                    onChange={(e) => setForm((f) => ({ ...f, materialName: e.target.value }))} />
+                    onChange={(e) => setForm((f) => ({ ...f, materialName: e.target.value }))}
+                    error={errors.materialName} />
                   <div className="flex flex-col gap-1">
-                    <label className="text-sm font-medium text-gray-700">Quality<span className="text-red-500 ml-0.5">*</span></label>
+                    <label className="text-sm font-medium text-gray-700">Quality</label>
                     <input value={form.quality} maxLength={50}
                       onChange={(e) => setForm((f) => ({ ...f, quality: e.target.value.replace(/[^A-Za-z ]/g, "") }))}
                       placeholder="e.g. Premium"
@@ -676,7 +716,7 @@ export default function MaterialsMaster() {
                     <label className="text-sm font-medium text-gray-700">Color Picker</label>
                     <div className="flex gap-2 items-center">
                       <input type="color" value={form.hexCode || "#c9b45c"}
-                        onChange={(e) => setForm((f) => ({ ...f, hexCode: e.target.value, color: e.target.value }))}
+                        onChange={(e) => { const name = hexToColorName(e.target.value); setForm((f) => ({ ...f, hexCode: e.target.value, color: e.target.value, colorName: name })); }}
                         className="h-10 w-14 rounded-lg border border-gray-300 cursor-pointer p-0.5 shrink-0" />
                       <input type="text" value={form.hexCode || ""} readOnly
                         className="flex-1 rounded-lg border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-sm text-gray-500" placeholder="#000000" />
@@ -696,7 +736,7 @@ export default function MaterialsMaster() {
               {/* Sizing & Pricing */}
               <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
                 <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#C6AF4B] mb-4">Sizing & Pricing</p>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-3 gap-4">
                   <div className="flex flex-col gap-1">
                     <label className="text-sm font-medium text-gray-700">Size<span className="text-red-500 ml-0.5">*</span></label>
                     <input value={form.size} maxLength={6}
@@ -706,6 +746,13 @@ export default function MaterialsMaster() {
                       className={`rounded-lg border px-3.5 py-2.5 text-sm outline-none transition focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10 ${errors.size ? "border-red-400 bg-red-50/30" : "border-gray-300 bg-white"}`} />
                     {errors.size && <p className="text-xs text-red-500">{errors.size}</p>}
                   </div>
+                  <AddableSelect
+                    label="Unit Type" required value={form.unitType}
+                    onChange={(v) => setForm((f) => ({ ...f, unitType: v }))}
+                    onAdd={() => { setNewUnitTypeName(""); setAddUnitTypeOpen(true); }}
+                    addLabel="+ Add Unit Type"
+                    options={unitTypeOptions} placeholder="Select Unit Type" error={errors.unitType}
+                  />
                   <div className="flex flex-col gap-1">
                     <label className="text-sm font-medium text-gray-700">Unit Price (₹)<span className="text-red-500 ml-0.5">*</span></label>
                     <input value={form.unitPrice} maxLength={10}
@@ -715,13 +762,6 @@ export default function MaterialsMaster() {
                       className={`rounded-lg border px-3.5 py-2.5 text-sm outline-none transition focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10 ${errors.unitPrice ? "border-red-400 bg-red-50/30" : "border-gray-300 bg-white"}`} />
                     {errors.unitPrice && <p className="text-xs text-red-500">{errors.unitPrice}</p>}
                   </div>
-                  <AddableSelect
-                    label="Unit Type" required value={form.unitType}
-                    onChange={(v) => setForm((f) => ({ ...f, unitType: v }))}
-                    onAdd={() => { setNewUnitTypeName(""); setAddUnitTypeOpen(true); }}
-                    addLabel="+ Add Unit Type"
-                    options={unitTypeOptions} placeholder="Select Unit Type" error={errors.unitType}
-                  />
                 </div>
               </div>
 
@@ -841,13 +881,12 @@ export default function MaterialsMaster() {
                   <div className="space-y-2">
                     {form.locationStocks.map((ls, idx) => (
                       <div key={idx} className="flex gap-2 items-center">
-                        <input list={`mat-loc-list-${idx}`} value={ls.location}
+                        <select value={ls.location}
                           onChange={(e) => updateLocationStock(idx, "location", e.target.value)}
-                          placeholder="Type or select location"
-                          className="flex-1 rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100" />
-                        <datalist id={`mat-loc-list-${idx}`}>
-                          {locationOptions.map((l) => <option key={l} value={l} />)}
-                        </datalist>
+                          className="flex-1 rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100">
+                          <option value="">Select warehouse…</option>
+                          {locationOptions.map((l) => <option key={l} value={l}>{l}</option>)}
+                        </select>
                         <div className="flex items-center gap-1.5 shrink-0">
                           <span className="text-xs text-gray-500 whitespace-nowrap">Stock:</span>
                           <input type="number" min="0" placeholder="0" value={ls.stock}
@@ -885,11 +924,11 @@ export default function MaterialsMaster() {
             {/* ── Right column ── */}
             <div className="space-y-5">
 
-              {/* Item Images */}
+              {/* Material Images */}
               <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-black uppercase tracking-[0.18em] text-[#C6AF4B]">Item Images</span>
+                    <span className="text-[10px] font-black uppercase tracking-[0.18em] text-[#C6AF4B]">Material Images</span>
                     <span className="text-[10px] text-gray-400">{form.images.length}/5</span>
                   </div>
                   {form.images.length < 5 && (
@@ -908,16 +947,27 @@ export default function MaterialsMaster() {
                   </div>
                 ) : (
                   <div className="grid grid-cols-3 gap-2">
-                    {form.images.map((img) => (
+                    {form.images.map((img, imgIdx) => (
                       <div key={img.id} className="relative group aspect-square rounded-xl border border-gray-200 overflow-hidden bg-gray-50">
                         <img src={img.data} alt={img.name} className="w-full h-full object-cover" />
-                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100">
-                          <button type="button" onClick={() => setLightboxUrl(img.data)}
-                            className="p-1 rounded-full bg-white/90 hover:bg-white transition-colors">
+                        {imgIdx === 0 && (
+                          <div className="absolute top-1 left-1 bg-[#C6AF4B] rounded-full p-0.5 shadow" title="Thumbnail">
+                            <Star className="h-2.5 w-2.5 text-white fill-white" />
+                          </div>
+                        )}
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/35 transition-colors flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100">
+                          <button type="button" onClick={() => openCarousel(form.images, imgIdx)}
+                            className="p-1 rounded-full bg-white/90 hover:bg-white transition-colors" title="View">
                             <ZoomIn className="h-3 w-3 text-gray-700" />
                           </button>
+                          {imgIdx !== 0 && (
+                            <button type="button" onClick={() => setAsThumbnail(img.id)}
+                              className="p-1 rounded-full bg-white/90 hover:bg-white transition-colors" title="Set as thumbnail">
+                              <Star className="h-3 w-3 text-[#C6AF4B]" />
+                            </button>
+                          )}
                           <button type="button" onClick={() => removeImage(img.id)}
-                            className="p-1 rounded-full bg-white/90 hover:bg-white transition-colors">
+                            className="p-1 rounded-full bg-white/90 hover:bg-white transition-colors" title="Remove">
                             <XIcon className="h-3 w-3 text-red-500" />
                           </button>
                         </div>
@@ -931,7 +981,7 @@ export default function MaterialsMaster() {
                     )}
                   </div>
                 )}
-                <p className="text-[10px] text-gray-400 mt-2">Max 3 MB per image</p>
+                <p className="text-[10px] text-gray-400 mt-2">First image is the thumbnail · Max 3 MB per image</p>
               </div>
 
               {/* Stock Control Thresholds */}
@@ -1049,14 +1099,46 @@ export default function MaterialsMaster() {
         onClose={() => setImportResultOpen(false)}
       />
 
-      {/* ══ Lightbox ══ */}
-      {lightboxUrl && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/75 p-4" onClick={() => setLightboxUrl(null)}>
-          <div className="relative max-w-3xl max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
-            <img src={lightboxUrl} alt="Preview" className="max-w-full max-h-[85vh] rounded-2xl shadow-2xl object-contain" />
-            <button onClick={() => setLightboxUrl(null)}
-              className="absolute -top-3 -right-3 p-2 bg-white rounded-full shadow-lg hover:bg-gray-100 transition-colors">
-              <XIcon className="h-4 w-4 text-gray-700" />
+      {/* ══ Image Carousel Lightbox ══ */}
+      {carouselIdx !== null && carouselImages.length > 0 && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 p-4" onClick={closeCarousel}>
+          <div className="relative flex items-center gap-3 max-w-3xl w-full" onClick={(e) => e.stopPropagation()}>
+            {/* Prev */}
+            <button
+              onClick={() => setCarouselIdx((i) => ((i ?? 0) - 1 + carouselImages.length) % carouselImages.length)}
+              className="shrink-0 p-2 rounded-full bg-white/20 hover:bg-white/40 transition-colors text-white"
+              disabled={carouselImages.length <= 1}>
+              <ChevronLeft className="h-6 w-6" />
+            </button>
+            {/* Image */}
+            <div className="flex-1 flex flex-col items-center gap-3">
+              <img
+                src={carouselImages[carouselIdx]?.data}
+                alt={carouselImages[carouselIdx]?.name}
+                className="max-h-[75vh] max-w-full rounded-2xl shadow-2xl object-contain"
+              />
+              {/* Dots */}
+              {carouselImages.length > 1 && (
+                <div className="flex gap-1.5">
+                  {carouselImages.map((_, dotIdx) => (
+                    <button key={dotIdx} onClick={() => setCarouselIdx(dotIdx)}
+                      className={`w-2 h-2 rounded-full transition-colors ${dotIdx === carouselIdx ? "bg-white" : "bg-white/40 hover:bg-white/70"}`} />
+                  ))}
+                </div>
+              )}
+              <p className="text-white/60 text-xs">{carouselIdx + 1} / {carouselImages.length}</p>
+            </div>
+            {/* Next */}
+            <button
+              onClick={() => setCarouselIdx((i) => ((i ?? 0) + 1) % carouselImages.length)}
+              className="shrink-0 p-2 rounded-full bg-white/20 hover:bg-white/40 transition-colors text-white"
+              disabled={carouselImages.length <= 1}>
+              <ChevronRight className="h-6 w-6" />
+            </button>
+            {/* Close */}
+            <button onClick={closeCarousel}
+              className="absolute -top-10 right-0 p-2 bg-white/20 hover:bg-white/40 rounded-full transition-colors text-white">
+              <XIcon className="h-4 w-4" />
             </button>
           </div>
         </div>
