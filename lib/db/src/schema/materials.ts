@@ -68,9 +68,9 @@ export const insertMaterialSchema = z.object({
   location: z.string().optional(),
   isActive: z.boolean().default(true),
   images: z.array(masterImageSchema).optional().default([]),
-  reorderLevel: z.string().optional(),
-  minimumLevel: z.string().optional(),
-  maximumLevel: z.string().optional(),
+  reorderLevel: z.string().optional().transform((v) => (v === "" ? undefined : v)),
+  minimumLevel: z.string().optional().transform((v) => (v === "" ? undefined : v)),
+  maximumLevel: z.string().optional().transform((v) => (v === "" ? undefined : v)),
 });
 
 export const updateMaterialSchema = insertMaterialSchema.partial().extend({
