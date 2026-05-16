@@ -2,9 +2,9 @@ import { useState, useRef } from "react";
 import { useRoute } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
-  ChevronLeft, ChevronRight, ZoomIn, Package, User, Layers,
-  Send, Paperclip, X, CheckCheck, LockKeyhole, Loader2,
-  ChevronDown, ChevronUp, CheckCircle, RotateCcw,
+  ChevronLeft, ChevronRight, ZoomIn, Send, Paperclip, X,
+  CheckCheck, Loader2, ChevronDown, ChevronUp, CheckCircle,
+  RotateCcw, Clock, Sparkles,
 } from "lucide-react";
 
 interface FileAttachment { name: string; type: string; data: string; size: number }
@@ -55,21 +55,26 @@ function Lightbox({ images, startIndex, onClose }: { images: FileAttachment[]; s
   const [idx, setIdx] = useState(startIndex);
   const img = images[idx];
   return (
-    <div className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center" onClick={onClose}>
+    <div className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center" onClick={onClose}>
       <div className="relative w-full h-full flex items-center justify-center" onClick={e => e.stopPropagation()}>
         {idx > 0 && (
-          <button onClick={() => setIdx(i => i - 1)} className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/10 hover:bg-white/20 rounded-full p-3 z-10">
+          <button onClick={() => setIdx(i => i - 1)}
+            className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/10 hover:bg-white/25 rounded-full p-3 z-10 transition-colors">
             <ChevronLeft className="h-6 w-6 text-white" />
           </button>
         )}
-        <img src={img.data} alt={img.name} className="max-h-[85vh] max-w-[85vw] object-contain rounded-lg shadow-2xl" />
+        <img src={img.data} alt={img.name} className="max-h-[85vh] max-w-[85vw] object-contain rounded-2xl shadow-2xl" />
         {idx < images.length - 1 && (
-          <button onClick={() => setIdx(i => i + 1)} className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/10 hover:bg-white/20 rounded-full p-3 z-10">
+          <button onClick={() => setIdx(i => i + 1)}
+            className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/10 hover:bg-white/25 rounded-full p-3 z-10 transition-colors">
             <ChevronRight className="h-6 w-6 text-white" />
           </button>
         )}
-        <button onClick={onClose} className="absolute top-4 right-4 text-white/70 hover:text-white text-2xl font-light">✕</button>
-        <div className="absolute bottom-4 text-white/60 text-sm">{img.name} · {idx + 1} / {images.length}</div>
+        <button onClick={onClose}
+          className="absolute top-4 right-4 bg-white/10 hover:bg-white/25 rounded-full p-2 transition-colors">
+          <X className="h-5 w-5 text-white" />
+        </button>
+        <div className="absolute bottom-6 text-white/50 text-xs">{img.name} &middot; {idx + 1} / {images.length}</div>
       </div>
     </div>
   );
@@ -80,14 +85,14 @@ function ImageStrip({ images, label }: { images: FileAttachment[]; label: string
   if (!images.length) return null;
   return (
     <div>
-      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">{label}</p>
-      <div className="flex flex-wrap gap-2">
+      <p className="text-[11px] font-semibold text-[#a8922e] uppercase tracking-widest mb-2.5">{label}</p>
+      <div className="flex flex-wrap gap-2.5">
         {images.map((img, i) => (
           <button key={i} onClick={() => setLightbox(i)}
-            className="relative w-20 h-20 rounded-xl overflow-hidden border-2 border-gray-200 hover:border-[#C9B45C] transition-colors group shadow-sm">
+            className="relative w-24 h-24 rounded-2xl overflow-hidden border-2 border-[#e8dfc0] hover:border-[#C6AF4B] transition-all group shadow-md hover:shadow-lg">
             <img src={img.data} alt={img.name} className="w-full h-full object-cover" />
-            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
-              <ZoomIn className="h-5 w-5 text-white drop-shadow" />
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/25 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+              <ZoomIn className="h-6 w-6 text-white drop-shadow" />
             </div>
           </button>
         ))}
@@ -100,30 +105,33 @@ function ImageStrip({ images, label }: { images: FileAttachment[]; label: string
 function ChatBubble({ msg }: { msg: PortalMessage }) {
   const isTeam = msg.sender === "team";
   return (
-    <div className={`flex gap-2 ${isTeam ? "justify-start" : "justify-end"}`}>
+    <div className={`flex gap-2.5 ${isTeam ? "justify-start" : "justify-end"}`}>
       {isTeam && (
-        <div className="h-7 w-7 rounded-full bg-gray-900 flex items-center justify-center shrink-0 mt-0.5 text-[10px] font-bold text-[#C9B45C]">Z</div>
+        <div className="h-7 w-7 rounded-full flex items-center justify-center shrink-0 mt-0.5 text-[10px] font-bold text-[#C6AF4B]"
+          style={{ background: "linear-gradient(135deg, #1a1a1a, #333)" }}>Z</div>
       )}
-      <div className={`max-w-[78%] rounded-2xl px-3.5 py-2.5 space-y-1.5 ${isTeam ? "bg-gray-100 text-gray-900 rounded-tl-sm" : "bg-gray-900 text-white rounded-tr-sm"}`}>
+      <div className={`max-w-[78%] rounded-2xl px-4 py-3 space-y-1.5 shadow-sm ${
+        isTeam ? "bg-white text-gray-900 rounded-tl-sm border border-gray-100" : "rounded-tr-sm text-white"
+      }`} style={!isTeam ? { background: "linear-gradient(135deg, #C6AF4B, #a8922e)" } : {}}>
         {msg.message && <p className="text-sm leading-snug">{msg.message}</p>}
         {msg.attachment && (
-          <div className={`rounded-xl overflow-hidden border ${isTeam ? "border-gray-200" : "border-white/10"}`}>
+          <div className={`rounded-xl overflow-hidden border ${isTeam ? "border-gray-100" : "border-white/20"}`}>
             {msg.attachment.type.startsWith("image/") ? (
               <img src={msg.attachment.data} alt={msg.attachment.name} className="max-w-[180px] object-cover" />
             ) : (
               <a href={msg.attachment.data} download={msg.attachment.name}
-                className={`flex items-center gap-2 px-3 py-2 text-xs hover:underline ${isTeam ? "text-blue-600" : "text-[#C9B45C]"}`}>
+                className={`flex items-center gap-2 px-3 py-2 text-xs hover:underline ${isTeam ? "text-[#a8922e]" : "text-white/90"}`}>
                 <Paperclip className="h-3.5 w-3.5" />{msg.attachment.name}
               </a>
             )}
           </div>
         )}
-        <p className={`text-[10px] ${isTeam ? "text-gray-400" : "text-white/40 text-right"}`}>
-          {isTeam ? "ZARI Team" : "You"} · {new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+        <p className={`text-[10px] ${isTeam ? "text-gray-400" : "text-white/60 text-right"}`}>
+          {isTeam ? "ZARI Team" : "You"} &middot; {new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
         </p>
       </div>
       {!isTeam && (
-        <div className="h-7 w-7 rounded-full bg-gray-700 flex items-center justify-center shrink-0 mt-0.5 text-[9px] font-bold text-white">YOU</div>
+        <div className="h-7 w-7 rounded-full bg-gray-200 flex items-center justify-center shrink-0 mt-0.5 text-[9px] font-bold text-gray-600">YOU</div>
       )}
     </div>
   );
@@ -173,61 +181,86 @@ function ArtworkThread({ artwork, messages, token, onRefetch }: {
     reader.readAsDataURL(file);
   }
 
-  const decisionBadge = artwork.isClosed
-    ? { label: "Approved", cls: "bg-green-100 text-green-700" }
-    : artwork.decision === "Rework"
-    ? { label: "Rework Requested", cls: "bg-orange-100 text-orange-700" }
-    : null;
-
   return (
-    <div className={`rounded-2xl border overflow-hidden shadow-sm ${artwork.isClosed ? "border-gray-100 bg-gray-50/50" : "bg-white border-gray-200"}`}>
-      {/* Header */}
+    <div className={`rounded-3xl overflow-hidden shadow-md transition-all ${
+      artwork.isClosed
+        ? "border border-green-100 bg-white/60"
+        : "border border-[#e8dfc0] bg-white"
+    }`}>
+      {/* Artwork header */}
       <button onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center gap-3 px-5 py-4 text-left hover:bg-gray-50/50 transition-colors">
-        <div className="flex-1 flex items-center gap-2 min-w-0">
-          <span className="text-xs font-mono text-gray-400 shrink-0">{artwork.artworkCode}</span>
-          <h3 className={`text-sm font-semibold truncate ${artwork.isClosed ? "text-gray-400" : "text-gray-900"}`}>{artwork.artworkName}</h3>
-          {decisionBadge && (
-            <span className={`shrink-0 text-[10px] px-2 py-0.5 rounded-full font-semibold flex items-center gap-1 ${decisionBadge.cls}`}>
-              {artwork.isClosed ? <CheckCheck className="h-3 w-3" /> : <RotateCcw className="h-3 w-3" />}
-              {decisionBadge.label}
-            </span>
-          )}
+        className="w-full flex items-center gap-3 px-5 py-4 text-left hover:bg-[#fdfaf4] transition-colors">
+        <div className={`h-10 w-10 rounded-2xl flex items-center justify-center shrink-0 text-xs font-bold ${
+          artwork.isClosed ? "bg-green-100 text-green-600" : "bg-[#f5edcc] text-[#a8922e]"
+        }`}>
+          {artwork.isClosed ? <CheckCheck className="h-5 w-5" /> : <Sparkles className="h-4 w-4" />}
         </div>
-        <span className="text-xs text-gray-400 shrink-0">{messages.length} msg{messages.length !== 1 ? "s" : ""}</span>
-        {open ? <ChevronUp className="h-4 w-4 text-gray-400 shrink-0" /> : <ChevronDown className="h-4 w-4 text-gray-400 shrink-0" />}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <h3 className={`text-sm font-bold truncate ${artwork.isClosed ? "text-gray-400" : "text-gray-900"}`}>
+              {artwork.artworkName}
+            </h3>
+            <span className="text-[10px] font-mono text-gray-400">{artwork.artworkCode}</span>
+          </div>
+          <div className="flex items-center gap-2 mt-0.5">
+            {artwork.isClosed ? (
+              <span className="text-[11px] font-semibold text-green-600 flex items-center gap-1">
+                <CheckCircle className="h-3 w-3" /> Approved
+              </span>
+            ) : artwork.decision === "Rework" ? (
+              <span className="text-[11px] font-semibold text-orange-500 flex items-center gap-1">
+                <RotateCcw className="h-3 w-3" /> Rework Requested
+              </span>
+            ) : (
+              <span className="text-[11px] font-semibold text-[#a8922e] flex items-center gap-1">
+                <Clock className="h-3 w-3" /> Awaiting Your Review
+              </span>
+            )}
+            {messages.length > 0 && (
+              <span className="text-[10px] text-gray-400">&middot; {messages.length} message{messages.length !== 1 ? "s" : ""}</span>
+            )}
+          </div>
+        </div>
+        <div className="shrink-0 text-gray-300">
+          {open ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+        </div>
       </button>
 
       {open && (
-        <div className="border-t border-gray-100">
+        <div className="border-t border-[#f0e8d0]">
+
           {/* Images */}
           {hasImages && (
-            <div className="px-5 py-4 space-y-3 border-b border-gray-50">
+            <div className="px-5 py-5 space-y-4 bg-[#fdfaf4]">
               <ImageStrip images={artwork.wipImages} label="Work in Progress" />
-              <ImageStrip images={artwork.finalImages} label="Final" />
+              <ImageStrip images={artwork.finalImages} label="Final Artwork" />
             </div>
           )}
 
-          {/* Chat thread */}
+          {/* Chat */}
           <div className="px-5 py-4 space-y-3 min-h-[60px]">
             {messages.length === 0 && !artwork.isClosed && (
-              <p className="text-sm text-gray-400 italic text-center py-2">No messages yet. Use the chat below or submit your decision.</p>
+              <p className="text-sm text-gray-400 italic text-center py-3">
+                No messages yet — use the chat below or submit your decision.
+              </p>
             )}
             {messages.map(m => <ChatBubble key={m.id} msg={m} />)}
           </div>
 
           {artwork.isClosed ? (
-            /* Thread closed — Approved */
-            <div className="mx-5 mb-4 flex items-center gap-2 px-4 py-3 rounded-xl bg-green-50 border border-green-200">
-              <CheckCircle className="h-4 w-4 text-green-600 shrink-0" />
-              <p className="text-sm font-semibold text-green-700">You approved this artwork.</p>
+            <div className="mx-5 mb-5 flex items-center gap-3 px-4 py-3.5 rounded-2xl bg-green-50 border border-green-100">
+              <CheckCircle className="h-5 w-5 text-green-500 shrink-0" />
+              <div>
+                <p className="text-sm font-bold text-green-700">Artwork Approved</p>
+                <p className="text-xs text-green-600 mt-0.5">Your approval has been recorded. Thank you!</p>
+              </div>
             </div>
           ) : (
             <div className="px-5 pb-5 space-y-4">
-              {/* ── Chat input ── */}
+              {/* Chat input */}
               <div className="space-y-2">
                 {attachFile && (
-                  <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-blue-50 border border-blue-200 text-xs text-blue-700">
+                  <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[#fdf6e0] border border-[#e8dfc0] text-xs text-[#a8922e]">
                     <Paperclip className="h-3.5 w-3.5 shrink-0" />
                     <span className="truncate flex-1">{attachFile.name}</span>
                     <button onClick={() => setAttachFile(null)} className="shrink-0 hover:text-red-500"><X className="h-3.5 w-3.5" /></button>
@@ -238,19 +271,20 @@ function ArtworkThread({ artwork, messages, token, onRefetch }: {
                     value={text}
                     onChange={e => setText(e.target.value)}
                     onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMsg.mutate(); } }}
-                    placeholder="Type a message or comment…"
+                    placeholder="Leave a comment or question…"
                     rows={2}
-                    className="flex-1 text-sm text-gray-900 border border-gray-200 rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-gray-900/10 resize-none placeholder:text-gray-400"
+                    className="flex-1 text-sm text-gray-900 border border-[#e0d5b0] rounded-2xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30 resize-none placeholder:text-gray-400 bg-[#fdfaf4]"
                   />
                   <div className="flex flex-col gap-1.5 shrink-0">
                     <button onClick={() => fileRef.current?.click()}
-                      className="flex items-center justify-center h-9 w-9 rounded-xl border border-gray-200 text-gray-500 hover:bg-gray-50 transition-colors">
+                      className="flex items-center justify-center h-10 w-10 rounded-xl border border-[#e0d5b0] text-gray-400 hover:bg-[#fdfaf4] transition-colors">
                       <Paperclip className="h-4 w-4" />
                     </button>
                     <button
                       onClick={() => sendMsg.mutate()}
                       disabled={sendMsg.isPending || (!text.trim() && !attachFile)}
-                      className="flex items-center justify-center h-9 w-9 rounded-xl bg-gray-900 text-[#C9B45C] hover:bg-black transition-colors disabled:opacity-50">
+                      style={{ background: "linear-gradient(135deg, #C6AF4B, #a8922e)" }}
+                      className="flex items-center justify-center h-10 w-10 rounded-xl text-white disabled:opacity-40 transition-all">
                       {sendMsg.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                     </button>
                   </div>
@@ -258,23 +292,24 @@ function ArtworkThread({ artwork, messages, token, onRefetch }: {
                 </div>
               </div>
 
-              {/* ── Decision section ── */}
-              <div className="border-t border-gray-100 pt-4 space-y-3">
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Submit Decision</p>
+              {/* Decision buttons */}
+              <div className="border-t border-[#f0e8d0] pt-4 space-y-3">
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest text-center">Submit Your Decision</p>
                 <div className="flex gap-3">
                   <button
                     onClick={() => submitDecision.mutate("Approve")}
                     disabled={submitDecision.isPending}
-                    className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-green-200 bg-green-50 text-green-700 text-sm font-semibold hover:bg-green-100 hover:border-green-400 transition-all disabled:opacity-60">
+                    style={{ background: "linear-gradient(135deg, #C6AF4B, #a8922e)" }}
+                    className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl text-white text-sm font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-60 hover:brightness-105">
                     {submitDecision.isPending && submitDecision.variables === "Approve"
                       ? <Loader2 className="h-4 w-4 animate-spin" />
                       : <CheckCircle className="h-4 w-4" />}
-                    Approve
+                    Approve Artwork
                   </button>
                   <button
                     onClick={() => submitDecision.mutate("Rework")}
                     disabled={submitDecision.isPending}
-                    className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-orange-200 bg-orange-50 text-orange-700 text-sm font-semibold hover:bg-orange-100 hover:border-orange-400 transition-all disabled:opacity-60">
+                    className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl border-2 border-gray-200 bg-white text-gray-600 text-sm font-bold hover:border-gray-300 hover:bg-gray-50 transition-all disabled:opacity-60">
                     {submitDecision.isPending && submitDecision.variables === "Rework"
                       ? <Loader2 className="h-4 w-4 animate-spin" />
                       : <RotateCcw className="h-4 w-4" />}
@@ -282,7 +317,7 @@ function ArtworkThread({ artwork, messages, token, onRefetch }: {
                   </button>
                 </div>
                 {artwork.decision === "Rework" && (
-                  <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-orange-50 border border-orange-100 text-xs text-orange-700">
+                  <div className="flex items-center gap-2 px-4 py-3 rounded-2xl bg-amber-50 border border-amber-100 text-xs text-amber-700">
                     <RotateCcw className="h-3.5 w-3.5 shrink-0" />
                     <span>Rework requested — continue chatting or approve when ready.</span>
                   </div>
@@ -318,10 +353,14 @@ export default function ClientPortal() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#f8f9fb] flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4 text-gray-500">
-          <div className="h-10 w-10 rounded-full border-2 border-gray-300 border-t-gray-900 animate-spin" />
-          <p className="text-sm">Loading…</p>
+      <div className="min-h-screen flex items-center justify-center" style={{ background: "#F8F6F0" }}>
+        <div className="flex flex-col items-center gap-5 text-gray-500">
+          <div className="h-14 w-14 rounded-2xl flex items-center justify-center text-2xl font-bold text-[#C6AF4B]"
+            style={{ background: "linear-gradient(135deg, #1a1a1a, #2d2d2d)" }}>Z</div>
+          <div className="flex flex-col items-center gap-2">
+            <div className="h-6 w-6 rounded-full border-2 border-[#C6AF4B]/30 border-t-[#C6AF4B] animate-spin" />
+            <p className="text-sm text-gray-400">Loading your review portal…</p>
+          </div>
         </div>
       </div>
     );
@@ -331,12 +370,17 @@ export default function ClientPortal() {
     const msg = error instanceof Error ? error.message : "Something went wrong";
     const notPublished = msg === "This link is not yet published";
     return (
-      <div className="min-h-screen bg-[#f8f9fb] flex items-center justify-center px-4">
+      <div className="min-h-screen flex items-center justify-center px-4" style={{ background: "#F8F6F0" }}>
         <div className="text-center max-w-sm">
-          <div className="text-5xl mb-4">{notPublished ? "⏳" : "🔒"}</div>
-          <h1 className="text-xl font-semibold text-gray-900 mb-2">{notPublished ? "Not Yet Active" : "Link Not Found"}</h1>
-          <p className="text-sm text-gray-500">
-            {notPublished ? "This review link hasn't been published yet. Please contact the team." : "This link may be invalid or has expired."}
+          <div className="h-20 w-20 rounded-3xl mx-auto mb-6 flex items-center justify-center text-3xl"
+            style={{ background: notPublished ? "#fef3c7" : "#fee2e2" }}>
+            {notPublished ? "⏳" : "🔒"}
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-3">{notPublished ? "Not Yet Active" : "Link Not Found"}</h1>
+          <p className="text-sm text-gray-500 leading-relaxed">
+            {notPublished
+              ? "This review link hasn't been published yet. Please contact the ZARI team."
+              : "This link may be invalid or has expired. Please request a new link."}
           </p>
         </div>
       </div>
@@ -350,96 +394,109 @@ export default function ClientPortal() {
   const closedArtworks = artworks.filter(a => a.isClosed);
   const sortedArtworks = [...openArtworks, ...closedArtworks];
   const pendingCount = openArtworks.filter(a => !a.decision).length;
+  const allApproved = artworks.length > 0 && closedArtworks.length === artworks.length;
 
   return (
-    <div className="min-h-screen bg-[#f8f9fb]">
+    <div className="min-h-screen" style={{ background: "#F8F6F0" }}>
+
       {/* Header */}
-      <div className="bg-gray-900 border-b border-gray-800 sticky top-0 z-20">
-        <div className="max-w-2xl mx-auto px-4 py-3.5 flex items-center justify-between">
+      <div className="sticky top-0 z-20 shadow-lg" style={{ background: "linear-gradient(135deg, #111 60%, #222)" }}>
+        <div className="max-w-2xl mx-auto px-5 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="h-8 w-8 rounded-lg bg-[#C9B45C] flex items-center justify-center">
-              <span className="text-gray-900 font-bold text-sm">Z</span>
-            </div>
+            <div className="h-9 w-9 rounded-xl flex items-center justify-center text-sm font-bold text-gray-900"
+              style={{ background: "linear-gradient(135deg, #C6AF4B, #a8922e)" }}>Z</div>
             <div>
-              <p className="text-[10px] text-gray-400 leading-none">Client Review Portal</p>
-              <p className="text-xs font-semibold text-white leading-tight mt-0.5">{data.link.portalTitle ?? "ZARI Embroideries"}</p>
+              <p className="text-[10px] text-gray-500 uppercase tracking-widest leading-none">Client Review Portal</p>
+              <p className="text-sm font-bold text-white leading-tight mt-0.5">{data.link.portalTitle ?? "ZARI Embroideries"}</p>
             </div>
           </div>
           <div className="text-right">
-            <p className="text-[10px] text-gray-400">Order</p>
-            <p className="text-xs font-mono font-bold text-[#C9B45C]">{order.orderCode}</p>
+            <p className="text-[10px] text-gray-500 uppercase tracking-wide">Order</p>
+            <p className="text-sm font-mono font-bold text-[#C6AF4B]">{order.orderCode}</p>
           </div>
         </div>
       </div>
 
       <div className="max-w-2xl mx-auto px-4 py-6 space-y-4">
 
-        {/* Swatch name + status */}
-        <div className="bg-white rounded-2xl border border-gray-200 px-5 py-4 shadow-sm">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Swatch Order</p>
-              <h1 className="text-xl font-bold text-gray-900 leading-tight">{order.swatchName}</h1>
+        {/* Hero card */}
+        <div className="rounded-3xl overflow-hidden shadow-lg border border-[#e8dfc0]" style={{ background: "linear-gradient(135deg, #fff 60%, #fdfaf4)" }}>
+          <div className="px-6 pt-6 pb-5">
+            <div className="flex items-start justify-between gap-3 mb-4">
+              <div>
+                <p className="text-[11px] font-semibold text-[#a8922e] uppercase tracking-widest mb-1.5">Swatch Order</p>
+                <h1 className="text-2xl font-bold text-gray-900 leading-tight">{order.swatchName}</h1>
+              </div>
+              <span className={`shrink-0 text-xs px-3 py-1.5 rounded-full font-semibold mt-1 ${
+                order.orderStatus === "Completed" ? "bg-green-100 text-green-700" :
+                order.orderStatus === "In Artwork" ? "bg-blue-100 text-blue-700" :
+                order.orderStatus === "Pending Approval" ? "bg-amber-100 text-amber-700" :
+                "bg-gray-100 text-gray-600"
+              }`}>{order.orderStatus}</span>
             </div>
-            <span className={`shrink-0 text-xs px-3 py-1.5 rounded-full font-semibold mt-1 ${
-              order.orderStatus === "Completed" ? "bg-green-100 text-green-700" :
-              order.orderStatus === "In Artwork" ? "bg-blue-100 text-blue-700" :
-              order.orderStatus === "Pending Approval" ? "bg-amber-100 text-amber-700" :
-              "bg-gray-100 text-gray-600"}`}>{order.orderStatus}</span>
+
+            {/* Quick details row */}
+            <div className="flex flex-wrap gap-x-5 gap-y-2 text-xs text-gray-500 border-t border-[#f0e8d0] pt-4">
+              {order.clientName && (
+                <span><span className="text-gray-400">Client</span> · <span className="font-semibold text-gray-700">{order.clientName}</span></span>
+              )}
+              {order.fabricName && (
+                <span><span className="text-gray-400">Fabric</span> · <span className="font-semibold text-gray-700">{order.fabricName}</span></span>
+              )}
+              {order.quantity && (
+                <span><span className="text-gray-400">Qty</span> · <span className="font-semibold text-gray-700">{order.quantity}</span></span>
+              )}
+              {order.deliveryDate && (
+                <span><span className="text-gray-400">Delivery</span> · <span className="font-semibold text-gray-700">{new Date(order.deliveryDate).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</span></span>
+              )}
+              {order.priority && order.priority !== "Normal" && (
+                <span className="font-semibold text-red-500">⚡ {order.priority}</span>
+              )}
+            </div>
           </div>
+
+          {/* All-approved banner */}
+          {allApproved && (
+            <div className="mx-4 mb-4 flex items-center gap-3 px-4 py-3.5 rounded-2xl bg-green-50 border border-green-100">
+              <CheckCircle className="h-5 w-5 text-green-500 shrink-0" />
+              <div>
+                <p className="text-sm font-bold text-green-700">All Artworks Approved!</p>
+                <p className="text-xs text-green-600 mt-0.5">Thank you — the ZARI team has been notified.</p>
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Client + Swatch details */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="bg-white rounded-2xl border border-gray-200 px-5 py-4 shadow-sm">
-            <div className="flex items-center gap-2 mb-3">
-              <div className="h-7 w-7 rounded-lg bg-gray-900 flex items-center justify-center">
-                <User className="h-3.5 w-3.5 text-[#C9B45C]" />
-              </div>
-              <p className="text-xs font-semibold text-gray-700">Client Details</p>
-            </div>
-            <div className="space-y-2">
-              <div><p className="text-[10px] text-gray-400">Client</p><p className="text-sm font-semibold text-gray-900">{order.clientName ?? "—"}</p></div>
-              {order.department && <div><p className="text-[10px] text-gray-400">Department</p><p className="text-sm text-gray-700">{order.department}</p></div>}
-              <div><p className="text-[10px] text-gray-400">Chargeable</p><p className="text-sm text-gray-700">{order.isChargeable ? "Yes" : "No"}</p></div>
-            </div>
-          </div>
-          <div className="bg-white rounded-2xl border border-gray-200 px-5 py-4 shadow-sm">
-            <div className="flex items-center gap-2 mb-3">
-              <div className="h-7 w-7 rounded-lg bg-gray-900 flex items-center justify-center">
-                <Package className="h-3.5 w-3.5 text-[#C9B45C]" />
-              </div>
-              <p className="text-xs font-semibold text-gray-700">Swatch Details</p>
-            </div>
-            <div className="space-y-2">
-              {order.fabricName && <div><p className="text-[10px] text-gray-400">Fabric</p><p className="text-sm text-gray-700">{order.fabricName}</p></div>}
-              {order.quantity && <div><p className="text-[10px] text-gray-400">Quantity</p><p className="text-sm text-gray-700">{order.quantity}</p></div>}
-              {order.deliveryDate && <div><p className="text-[10px] text-gray-400">Delivery</p><p className="text-sm text-gray-700">{new Date(order.deliveryDate).toLocaleDateString()}</p></div>}
-              {order.priority && <div><p className="text-[10px] text-gray-400">Priority</p><p className="text-sm text-gray-700">{order.priority}</p></div>}
-            </div>
-          </div>
-        </div>
-
+        {/* Description */}
         {order.description && (
-          <div className="bg-white rounded-2xl border border-gray-200 px-5 py-4 shadow-sm">
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Description</p>
+          <div className="bg-white rounded-3xl border border-[#e8dfc0] px-6 py-5 shadow-sm">
+            <p className="text-[11px] font-semibold text-[#a8922e] uppercase tracking-widest mb-2">Description</p>
             <p className="text-sm text-gray-700 leading-relaxed">{order.description}</p>
           </div>
         )}
 
-        {/* Artworks header */}
-        <div className="flex items-center gap-2 px-1">
-          <Layers className="h-3.5 w-3.5 text-gray-400" />
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide flex-1">Artworks for Review</p>
+        {/* Artworks section header */}
+        <div className="flex items-center justify-between px-1 pt-2">
+          <p className="text-[11px] font-bold text-gray-500 uppercase tracking-widest">
+            Artworks for Review
+          </p>
           {pendingCount > 0
-            ? <span className="text-xs font-semibold text-orange-500">{pendingCount} awaiting decision</span>
-            : <span className="text-xs text-gray-400">{closedArtworks.length}/{artworks.length} approved</span>
+            ? <span className="text-xs font-bold text-[#a8922e] bg-[#fdf6e0] px-3 py-1 rounded-full border border-[#e8dfc0]">
+                {pendingCount} awaiting decision
+              </span>
+            : artworks.length > 0
+            ? <span className="text-xs text-green-600 font-semibold">
+                {closedArtworks.length}/{artworks.length} approved
+              </span>
+            : null
           }
         </div>
 
         {artworks.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-gray-200 px-5 py-12 text-center shadow-sm">
-            <p className="text-sm text-gray-400 italic">No artworks shared yet.</p>
+          <div className="bg-white rounded-3xl border border-[#e8dfc0] px-6 py-14 text-center shadow-sm">
+            <div className="text-4xl mb-3">🎨</div>
+            <p className="text-sm font-semibold text-gray-500">No artworks shared yet</p>
+            <p className="text-xs text-gray-400 mt-1">The team will add artworks here for your review.</p>
           </div>
         ) : (
           sortedArtworks.map(aw => (
@@ -453,7 +510,16 @@ export default function ClientPortal() {
           ))
         )}
 
-        <p className="text-center text-xs text-gray-400 py-4">Powered by ZARI ERP · Zari Embroideries</p>
+        {/* Footer */}
+        <div className="text-center py-6 space-y-1">
+          <div className="flex items-center justify-center gap-2">
+            <div className="h-6 w-6 rounded-lg flex items-center justify-center text-[10px] font-bold text-gray-900"
+              style={{ background: "linear-gradient(135deg, #C6AF4B, #a8922e)" }}>Z</div>
+            <span className="text-xs font-semibold text-gray-500">ZARI Embroideries</span>
+          </div>
+          <p className="text-[11px] text-gray-400">Powered by ZARI ERP &middot; Secure Client Review Portal</p>
+        </div>
+
       </div>
     </div>
   );
