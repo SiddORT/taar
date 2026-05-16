@@ -6,7 +6,7 @@ import {
   ArrowLeft, Plus, X, MapPin, Star, Loader2, CheckCircle2, Save,
   Globe, DollarSign, IndianRupee,
 } from "lucide-react";
-import { useGetMe, useLogout, getGetMeQueryKey } from "@workspace/api-client-react";
+import { useGetMe, useLogout, getGetMeQueryKey, customFetch } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
 import TopNavbar from "@/components/layout/TopNavbar";
 import InputField from "@/components/ui/InputField";
@@ -31,17 +31,6 @@ function getContactDigits(val: string): string {
 
 const ADDR_TYPES: ClientAddress["type"][] = ["Billing Address", "Delivery Address", "Other"];
 
-const CURRENCY_OPTIONS = [
-  { value: "INR", label: "INR — Indian Rupee (₹)", symbol: "₹" },
-  { value: "USD", label: "USD — US Dollar ($)", symbol: "$" },
-  { value: "EUR", label: "EUR — Euro (€)", symbol: "€" },
-  { value: "GBP", label: "GBP — British Pound (£)", symbol: "£" },
-  { value: "AED", label: "AED — UAE Dirham (د.إ)", symbol: "د.إ" },
-  { value: "SGD", label: "SGD — Singapore Dollar (S$)", symbol: "S$" },
-  { value: "AUD", label: "AUD — Australian Dollar (A$)", symbol: "A$" },
-  { value: "CAD", label: "CAD — Canadian Dollar (CA$)", symbol: "CA$" },
-  { value: "JPY", label: "JPY — Japanese Yen (¥)", symbol: "¥" },
-];
 
 function getCurrencyDefault(country: string) {
   if (!country || country === "India") return "INR";
@@ -108,6 +97,14 @@ export default function ClientForm() {
   const [form, setForm] = useState<ClientFormData>(EMPTY_FORM);
   const [errors, setErrors] = useState<FormErrors>({});
   const [pincodeLoading, setPincodeLoading] = useState<Record<string, boolean>>({});
+  const [activeCurrencies, setActiveCurrencies] = useState<{ code: string; name: string; symbol: string; is_base: boolean }[]>([]);
+
+  useEffect(() => {
+    customFetch<any>("/api/settings/currencies").then(j => {
+      const all = j.data ?? [];
+      setActiveCurrencies(all.filter((c: any) => c.is_active || c.is_base));
+    }).catch(() => {});
+  }, []);
   const [saving, setSaving] = useState(false);
   const savedFormRef = useRef<ClientFormData>(EMPTY_FORM);
   const saveInProgressRef = useRef(false);
@@ -263,7 +260,7 @@ export default function ClientForm() {
     finally { setPincodeLoading(prev => ({ ...prev, [addrId]: false })); }
   }
 
-  const selectedCurrency = CURRENCY_OPTIONS.find(c => c.value === form.invoiceCurrency) ?? CURRENCY_OPTIONS[0];
+  const selectedCurrency = activeCurrencies.find(c => c.code === form.invoiceCurrency) ?? activeCurrencies[0];
 
   if (!user) return null;
   if (!isNew && loadingClient) {
@@ -401,47 +398,53 @@ export default function ClientForm() {
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-2">
-            {CURRENCY_OPTIONS.map(curr => {
-              const selected = form.invoiceCurrency === curr.value;
-              return (
-                <button key={curr.value} type="button"
-                  onClick={() => setForm(f => ({ ...f, invoiceCurrency: curr.value }))}
-                  className={`relative flex flex-col items-start gap-0.5 px-3 py-2.5 rounded-xl border text-left transition-all ${
-                    selected
-                      ? "border-[#C6AF4B] bg-[#C6AF4B]/10 shadow-sm"
-                      : "border-gray-200 bg-gray-50 hover:border-gray-300 hover:bg-white"
-                  }`}>
-                  {selected && (
-                    <CheckCircle2 className="absolute top-2 right-2 h-3.5 w-3.5 shrink-0" style={{ color: G }} />
-                  )}
-                  <div className="flex items-baseline gap-1.5 pr-5">
-                    <span className={`text-base font-bold leading-none ${selected ? "text-[#8a7a2e]" : "text-gray-500"}`}>
-                      {curr.symbol}
-                    </span>
-                    <span className={`text-sm font-bold ${selected ? "text-[#5a4e1e]" : "text-gray-700"}`}>
-                      {curr.value}
-                    </span>
-                  </div>
-                  <p className="text-[10px] text-gray-400 leading-tight">
-                    {curr.label.split("—")[1]?.trim()}
-                  </p>
-                </button>
-              );
-            })}
-          </div>
+          {activeCurrencies.length === 0 ? (
+            <div className="flex items-center gap-2 text-xs text-gray-400 py-3">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading currencies from settings…
+            </div>
+          ) : (
+            <div className="grid grid-cols-3 gap-2">
+              {activeCurrencies.map(curr => {
+                const selected = form.invoiceCurrency === curr.code;
+                return (
+                  <button key={curr.code} type="button"
+                    onClick={() => setForm(f => ({ ...f, invoiceCurrency: curr.code }))}
+                    className={`relative flex flex-col items-start gap-0.5 px-3 py-2.5 rounded-xl border text-left transition-all ${
+                      selected
+                        ? "border-[#C6AF4B] bg-[#C6AF4B]/10 shadow-sm"
+                        : "border-gray-200 bg-gray-50 hover:border-gray-300 hover:bg-white"
+                    }`}>
+                    {selected && (
+                      <CheckCircle2 className="absolute top-2 right-2 h-3.5 w-3.5 shrink-0" style={{ color: G }} />
+                    )}
+                    <div className="flex items-baseline gap-1.5 pr-5">
+                      <span className={`text-base font-bold leading-none ${selected ? "text-[#8a7a2e]" : "text-gray-500"}`}>
+                        {curr.symbol}
+                      </span>
+                      <span className={`text-sm font-bold ${selected ? "text-[#5a4e1e]" : "text-gray-700"}`}>
+                        {curr.code}
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-gray-400 leading-tight">{curr.name}</p>
+                  </button>
+                );
+              })}
+            </div>
+          )}
 
-          <div className="mt-3 px-3 py-2 rounded-lg bg-gray-50 border border-gray-200 flex items-center gap-2">
-            {form.invoiceCurrency === "INR" ? (
-              <IndianRupee className="h-3.5 w-3.5 text-gray-400" />
-            ) : (
-              <DollarSign className="h-3.5 w-3.5 text-gray-400" />
-            )}
-            <p className="text-xs text-gray-500">
-              Invoices for <strong>{form.brandName || "this client"}</strong> will be issued in{" "}
-              <strong>{selectedCurrency.value} ({selectedCurrency.symbol})</strong> — {selectedCurrency.label.split("—")[1]?.trim()}
-            </p>
-          </div>
+          {selectedCurrency && (
+            <div className="mt-3 px-3 py-2 rounded-lg bg-gray-50 border border-gray-200 flex items-center gap-2">
+              {form.invoiceCurrency === "INR" ? (
+                <IndianRupee className="h-3.5 w-3.5 text-gray-400" />
+              ) : (
+                <DollarSign className="h-3.5 w-3.5 text-gray-400" />
+              )}
+              <p className="text-xs text-gray-500">
+                Invoices for <strong>{form.brandName || "this client"}</strong> will be issued in{" "}
+                <strong>{selectedCurrency.code} ({selectedCurrency.symbol})</strong> — {selectedCurrency.name}
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Addresses */}

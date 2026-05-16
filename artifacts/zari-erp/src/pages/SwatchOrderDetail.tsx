@@ -600,12 +600,12 @@ export default function SwatchOrderDetail() {
               </Field>
 
               {selectedClient && (
-                <div className="col-span-2 bg-gradient-to-r from-violet-50 to-purple-50 border border-violet-100 rounded-xl p-4">
-                  <div className="grid grid-cols-3 gap-3 text-xs">
-                    <div><p className="text-gray-400 mb-0.5">Contact</p><p className="font-medium text-gray-800">{selectedClient.contactName}</p></div>
-                    <div><p className="text-gray-400 mb-0.5">Email</p><p className="font-medium text-gray-800">{selectedClient.email}</p></div>
-                    <div><p className="text-gray-400 mb-0.5">Phone</p><p className="font-medium text-gray-800">{selectedClient.contactNo}</p></div>
-                    {selectedClient.country && <div><p className="text-gray-400 mb-0.5">Country</p><p className="font-medium text-gray-800">{selectedClient.country}</p></div>}
+                <div className="col-span-2 bg-gradient-to-r from-violet-50 to-purple-50 border border-violet-100 rounded-xl px-4 py-2.5">
+                  <div className="flex items-center flex-wrap gap-x-2 gap-y-0.5 text-xs text-gray-600">
+                    {selectedClient.contactName && <span className="font-medium text-gray-800">{selectedClient.contactName}</span>}
+                    {selectedClient.email && <><span className="text-gray-300">·</span><span>{selectedClient.email}</span></>}
+                    {selectedClient.contactNo && <><span className="text-gray-300">·</span><span>{selectedClient.contactNo}</span></>}
+                    {selectedClient.country && <><span className="text-gray-300">·</span><span>{selectedClient.country}</span></>}
                   </div>
                 </div>
               )}
