@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
-import { Pencil, Trash2, ImagePlus, X as XIcon, ZoomIn, ArrowLeft, Save, FileDown, FileUp, FileSpreadsheet } from "lucide-react";
+import { Pencil, Trash2, ImagePlus, X as XIcon, ZoomIn, ArrowLeft, Save, FileDown, FileUp, FileSpreadsheet, Star, ChevronLeft, ChevronRight } from "lucide-react";
 import * as XLSX from "xlsx";
 import { useGetMe, useLogout, getGetMeQueryKey } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
@@ -173,7 +173,8 @@ export default function FabricMaster() {
   const [errors, setErrors] = useState<FormErrors>({});
   const [deleteTarget, setDeleteTarget] = useState<FabricRecord | null>(null);
   const [confirmToggleTarget, setConfirmToggleTarget] = useState<FabricRecord | null>(null);
-  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+  const [carouselImages, setCarouselImages] = useState<MasterImage[]>([]);
+  const [carouselIdx, setCarouselIdx] = useState<number | null>(null);
   const [importMenuOpen, setImportMenuOpen] = useState(false);
   const [importLoading, setImportLoading] = useState(false);
   const [importResult, setImportResult] = useState<NormalizedImportResult | null>(null);
@@ -247,6 +248,16 @@ export default function FabricMaster() {
   const removeImage = (id: string) => {
     setForm(f => ({ ...f, images: f.images.filter(img => img.id !== id) }));
   };
+
+  const openCarousel = (images: MasterImage[], idx: number) => { setCarouselImages(images); setCarouselIdx(idx); };
+  const closeCarousel = () => setCarouselIdx(null);
+  const setAsThumbnail = (id: string) => setForm((f) => {
+    const idx = f.images.findIndex((img) => img.id === id);
+    if (idx <= 0) return f;
+    const images = [...f.images];
+    const [thumb] = images.splice(idx, 1);
+    return { ...f, images: [thumb, ...images] };
+  });
 
   const addLocationStock = () => {
     setForm(f => ({ ...f, locationStocks: [...f.locationStocks, { location: "", stock: "" }] }));
@@ -490,7 +501,7 @@ export default function FabricMaster() {
           </div>
         );
         return (
-          <button type="button" onClick={() => setLightboxUrl(imgs[0].data)}
+          <button type="button" onClick={() => openCarousel(imgs, 0)}
             className="w-9 h-9 rounded-lg overflow-hidden border border-gray-200 hover:border-[#C6AF4B] transition-colors relative group">
             <img src={imgs[0].data} alt="" className="w-full h-full object-cover" />
             {imgs.length > 1 && (
@@ -949,11 +960,11 @@ export default function FabricMaster() {
             {/* ── Right column: images · controls · status ── */}
             <div className="space-y-5">
 
-              {/* Item Images */}
+              {/* Fabric Images */}
               <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-black uppercase tracking-[0.18em] text-[#C6AF4B]">Item Images</span>
+                    <span className="text-[10px] font-black uppercase tracking-[0.18em] text-[#C6AF4B]">Fabric Images</span>
                     <span className="text-[10px] text-gray-400">{form.images.length}/5</span>
                   </div>
                   {form.images.length < 5 && (
@@ -963,7 +974,7 @@ export default function FabricMaster() {
                     </button>
                   )}
                   <input ref={imgInputRef} type="file" accept="image/*" multiple className="hidden"
-                    onChange={e => handleImageFiles(e.target.files)} />
+                    onChange={(e) => handleImageFiles(e.target.files)} />
                 </div>
                 {form.images.length === 0 ? (
                   <div className="border-2 border-dashed border-gray-200 rounded-xl flex flex-col items-center justify-center py-10 gap-2 cursor-pointer hover:border-[#C6AF4B]/50 transition-colors"
@@ -973,16 +984,27 @@ export default function FabricMaster() {
                   </div>
                 ) : (
                   <div className="grid grid-cols-3 gap-2">
-                    {form.images.map(img => (
+                    {form.images.map((img, imgIdx) => (
                       <div key={img.id} className="relative group aspect-square rounded-xl border border-gray-200 overflow-hidden bg-gray-50">
                         <img src={img.data} alt={img.name} className="w-full h-full object-cover" />
-                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100">
-                          <button type="button" onClick={() => setLightboxUrl(img.data)}
-                            className="p-1 rounded-full bg-white/90 hover:bg-white transition-colors">
+                        {imgIdx === 0 && (
+                          <div className="absolute top-1 left-1 bg-[#C6AF4B] rounded-full p-0.5 shadow" title="Thumbnail">
+                            <Star className="h-2.5 w-2.5 text-white fill-white" />
+                          </div>
+                        )}
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/35 transition-colors flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100">
+                          <button type="button" onClick={() => openCarousel(form.images, imgIdx)}
+                            className="p-1 rounded-full bg-white/90 hover:bg-white transition-colors" title="View">
                             <ZoomIn className="h-3 w-3 text-gray-700" />
                           </button>
+                          {imgIdx !== 0 && (
+                            <button type="button" onClick={() => setAsThumbnail(img.id)}
+                              className="p-1 rounded-full bg-white/90 hover:bg-white transition-colors" title="Set as thumbnail">
+                              <Star className="h-3 w-3 text-[#C6AF4B]" />
+                            </button>
+                          )}
                           <button type="button" onClick={() => removeImage(img.id)}
-                            className="p-1 rounded-full bg-white/90 hover:bg-white transition-colors">
+                            className="p-1 rounded-full bg-white/90 hover:bg-white transition-colors" title="Remove">
                             <XIcon className="h-3 w-3 text-red-500" />
                           </button>
                         </div>
@@ -996,7 +1018,7 @@ export default function FabricMaster() {
                     )}
                   </div>
                 )}
-                <p className="text-[10px] text-gray-400 mt-2">Max 3 MB per image</p>
+                <p className="text-[10px] text-gray-400 mt-2">First image is the thumbnail · Max 3 MB per image</p>
               </div>
 
               {/* Stock Control Thresholds */}
@@ -1120,15 +1142,41 @@ export default function FabricMaster() {
         onClose={() => setImportResultOpen(false)}
       />
 
-      {/* ══ Lightbox ══ */}
-      {lightboxUrl && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/75 p-4"
-          onClick={() => setLightboxUrl(null)}>
-          <div className="relative max-w-3xl max-h-[90vh]" onClick={e => e.stopPropagation()}>
-            <img src={lightboxUrl} alt="Preview" className="max-w-full max-h-[85vh] rounded-2xl shadow-2xl object-contain" />
-            <button onClick={() => setLightboxUrl(null)}
-              className="absolute -top-3 -right-3 p-2 bg-white rounded-full shadow-lg hover:bg-gray-100 transition-colors">
-              <XIcon className="h-4 w-4 text-gray-700" />
+      {/* ══ Image Carousel Lightbox ══ */}
+      {carouselIdx !== null && carouselImages.length > 0 && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 p-4" onClick={closeCarousel}>
+          <div className="relative flex items-center gap-3 max-w-3xl w-full" onClick={(e) => e.stopPropagation()}>
+            <button
+              onClick={() => setCarouselIdx((i) => ((i ?? 0) - 1 + carouselImages.length) % carouselImages.length)}
+              className="shrink-0 p-2 rounded-full bg-white/20 hover:bg-white/40 transition-colors text-white"
+              disabled={carouselImages.length <= 1}>
+              <ChevronLeft className="h-6 w-6" />
+            </button>
+            <div className="flex-1 flex flex-col items-center gap-3">
+              <img
+                src={carouselImages[carouselIdx]?.data}
+                alt={carouselImages[carouselIdx]?.name}
+                className="max-h-[75vh] max-w-full rounded-2xl shadow-2xl object-contain"
+              />
+              {carouselImages.length > 1 && (
+                <div className="flex gap-1.5">
+                  {carouselImages.map((_, dotIdx) => (
+                    <button key={dotIdx} onClick={() => setCarouselIdx(dotIdx)}
+                      className={`w-2 h-2 rounded-full transition-colors ${dotIdx === carouselIdx ? "bg-white" : "bg-white/40 hover:bg-white/70"}`} />
+                  ))}
+                </div>
+              )}
+              <p className="text-white/60 text-xs">{carouselIdx + 1} / {carouselImages.length}</p>
+            </div>
+            <button
+              onClick={() => setCarouselIdx((i) => ((i ?? 0) + 1) % carouselImages.length)}
+              className="shrink-0 p-2 rounded-full bg-white/20 hover:bg-white/40 transition-colors text-white"
+              disabled={carouselImages.length <= 1}>
+              <ChevronRight className="h-6 w-6" />
+            </button>
+            <button onClick={closeCarousel}
+              className="absolute -top-10 right-0 p-2 bg-white/20 hover:bg-white/40 rounded-full transition-colors text-white">
+              <XIcon className="h-4 w-4" />
             </button>
           </div>
         </div>
