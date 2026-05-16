@@ -187,6 +187,124 @@ async function autoCancelReservation(opts: {
   }
 }
 
+// ─── Costing PR Inventory Update ─────────────────────────────────────────────
+// Called after every costing PR insert (swatch or style) to keep inventory_items,
+// stock_ledger, inventory_stock_logs and the material/fabric master in sync.
+async function applyCostingInventoryUpdate(opts: {
+  prId: number;
+  prNumber: string;
+  bomRowId: number | null;
+  poId: number;
+  receivedQty: number;
+  actualPrice: number;
+  warehouseLocation: string;
+  actor: string;
+}): Promise<void> {
+  const { prId, prNumber, bomRowId, poId, receivedQty, actualPrice, warehouseLocation, actor } = opts;
+
+  // 1. Resolve materialType + materialId via the swatch_bom row
+  let materialType: string | null = null;
+  let materialId: number | null = null;
+
+  const effectiveBomRowId = bomRowId != null
+    ? bomRowId
+    : await (async () => {
+        const poRes = await pool.query(`SELECT bom_items FROM purchase_orders WHERE id = $1`, [poId]);
+        const bomItems: Array<{ bomRowId?: number }> = poRes.rows[0]?.bom_items ?? [];
+        return bomItems.length === 1 ? (bomItems[0].bomRowId ?? null) : null;
+      })();
+
+  if (effectiveBomRowId != null) {
+    const bomRes = await pool.query(
+      `SELECT material_type, material_id FROM swatch_bom WHERE id = $1`,
+      [effectiveBomRowId]
+    );
+    if (bomRes.rows.length) {
+      materialType = bomRes.rows[0].material_type as string;
+      materialId   = parseInt(bomRes.rows[0].material_id as string, 10);
+    }
+  }
+
+  if (!materialType || !materialId) return;
+
+  // 2. Find the inventory_item row
+  const invRes = await pool.query(
+    `SELECT id, current_stock, average_price, style_reserved_qty, swatch_reserved_qty
+     FROM inventory_items WHERE source_type = $1 AND source_id = $2`,
+    [materialType, materialId]
+  );
+  if (!invRes.rows.length) return;
+
+  const inv = invRes.rows[0] as {
+    id: number; current_stock: string; average_price: string;
+    style_reserved_qty: string; swatch_reserved_qty: string;
+  };
+  const inventoryId = inv.id;
+  const prevStock   = parseFloat(inv.current_stock  ?? "0");
+  const prevAvg     = parseFloat(inv.average_price  ?? "0");
+  const newStock    = prevStock + receivedQty;
+  const newAvg      = newStock > 0
+    ? ((prevStock * prevAvg) + (receivedQty * actualPrice)) / newStock
+    : actualPrice;
+  const styleRes  = parseFloat(inv.style_reserved_qty  ?? "0");
+  const swatchRes = parseFloat(inv.swatch_reserved_qty ?? "0");
+  const newAvail  = Math.max(0, newStock - styleRes - swatchRes);
+
+  // 3. Update inventory_items
+  await pool.query(
+    `UPDATE inventory_items SET
+       current_stock       = $1,
+       available_stock     = $2,
+       average_price       = $3,
+       last_purchase_price = $4,
+       last_updated_at     = NOW()
+     WHERE id = $5`,
+    [newStock.toFixed(3), newAvail.toFixed(3), newAvg.toFixed(2), actualPrice.toFixed(2), inventoryId]
+  );
+
+  // 4. Insert stock_ledger entry
+  await pool.query(
+    `INSERT INTO stock_ledger
+       (item_id, transaction_type, reference_number, reference_type,
+        in_quantity, out_quantity, balance_quantity, remarks, created_by, created_at)
+     VALUES ($1,'purchase_receipt',$2,'COSTING-PR',$3,0,$4,$5,$6,NOW())`,
+    [inventoryId, prNumber, receivedQty.toFixed(3), newStock.toFixed(3),
+     `Costing PR ${prNumber}`, actor]
+  );
+
+  // 5. Insert inventory_stock_logs
+  await pool.query(
+    `INSERT INTO inventory_stock_logs
+       (inventory_item_id, action_type, quantity_before, quantity_after, quantity_delta,
+        reference_type, reference_id, notes, created_by_name, created_at)
+     VALUES ($1,'receipt',$2,$3,$4,'COSTING-PR',$5,$6,$7,NOW())`,
+    [inventoryId, prevStock.toFixed(3), newStock.toFixed(3), receivedQty.toFixed(3),
+     prId, `Costing PR ${prNumber}`, actor]
+  ).catch((e: unknown) => console.error("[StockLog] Costing PR log failed:", e));
+
+  // 6. Update material/fabric master: current_stock + location_stocks JSONB
+  const masterTable = materialType === "fabric" ? "fabrics" : "materials";
+  const masterRes = await pool.query(
+    `SELECT current_stock, location_stocks FROM ${masterTable} WHERE id = $1`,
+    [materialId]
+  );
+  if (masterRes.rows.length) {
+    const masterRow = masterRes.rows[0] as { current_stock: string; location_stocks: Array<{location: string; stock: string}> };
+    const masterNewStock = parseFloat(masterRow.current_stock ?? "0") + receivedQty;
+    const locStocks: Array<{location: string; stock: string}> = masterRow.location_stocks ?? [];
+    const locIdx = locStocks.findIndex(l => l.location === warehouseLocation);
+    if (locIdx >= 0) {
+      locStocks[locIdx].stock = (parseFloat(locStocks[locIdx].stock ?? "0") + receivedQty).toFixed(3);
+    } else if (warehouseLocation) {
+      locStocks.push({ location: warehouseLocation, stock: receivedQty.toFixed(3) });
+    }
+    await pool.query(
+      `UPDATE ${masterTable} SET current_stock = $1, location_stocks = $2 WHERE id = $3`,
+      [masterNewStock.toFixed(3), JSON.stringify(locStocks), materialId]
+    );
+  }
+}
+
 // ─── Consumption Engine Helpers ───────────────────────────────────────────────
 // Sections 2–4, 6–7, 10 of the Consumption Engine spec.
 // Called after inserting a consumption_log entry to sync inventory, reservations,
@@ -862,6 +980,23 @@ router.post("/pr", requireAuth, async (req, res) => {
     createdBy: user.email,
   }).returning();
 
+  // Update inventory and advance PO status in parallel
+  await Promise.all([
+    applyCostingInventoryUpdate({
+      prId: row.id,
+      prNumber: row.prNumber,
+      bomRowId: resolvedBomRowId,
+      poId: Number(poId),
+      receivedQty: newQty,
+      actualPrice: parseFloat(String(actualPrice)) || 0,
+      warehouseLocation: String(warehouseLocation ?? ""),
+      actor: user.email,
+    }),
+    po.status === "Approved"
+      ? db.update(purchaseOrdersTable).set({ status: "In Process" }).where(eq(purchaseOrdersTable.id, Number(poId)))
+      : Promise.resolve(),
+  ]);
+
   return res.status(201).json({ data: row });
 });
 
@@ -1371,6 +1506,23 @@ router.post("/style-pr", requireAuth, async (req, res) => {
     status: "Open",
     createdBy: user.email,
   }).returning();
+
+  // Update inventory and advance PO status in parallel
+  await Promise.all([
+    applyCostingInventoryUpdate({
+      prId: row.id,
+      prNumber: row.prNumber,
+      bomRowId: resolvedBomRowId,
+      poId: Number(poId),
+      receivedQty: newQty,
+      actualPrice: parseFloat(String(actualPrice)) || 0,
+      warehouseLocation: String(warehouseLocation ?? ""),
+      actor: user.email,
+    }),
+    po.status === "Approved"
+      ? db.update(purchaseOrdersTable).set({ status: "In Process" }).where(eq(purchaseOrdersTable.id, Number(poId)))
+      : Promise.resolve(),
+  ]);
 
   return res.status(201).json({ data: row });
 });
