@@ -336,6 +336,7 @@ export default function MaterialsMaster() {
       type: form.type?.trim(),
       materialName: form.materialName?.trim(),
       currentStock: form.locationStocks.length > 0 ? String(totalStock) : form.currentStock.trim(),
+      location: form.locationStocks.map(ls => ls.location).filter(Boolean).join(", ") || form.location,
     };
     try {
       if (editRecord) {
