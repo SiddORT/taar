@@ -479,19 +479,20 @@ export default function StyleOrderDetail() {
 
   return (
     <AppLayout username={user.username} role={user.role} onLogout={handleLogout} isLoggingOut={logoutMutation.isPending}>
-      <div className="max-w-6xl mx-auto pb-12">
+      <div className="max-w-6xl mx-auto pb-12 -mt-6 md:-mt-8">
 
         {/* ── Sticky Header ─────────────────────────────────────────────── */}
         <div className="sticky top-0 z-20 -mx-6 bg-[#F8F6F0]/95 backdrop-blur border-b border-[#C6AF4B]/20">
 
-          <div className="px-6 py-3 max-w-6xl mx-auto flex items-center gap-4">
+          <div className="px-6 py-3 max-w-6xl mx-auto flex items-center gap-3">
             <button onClick={() => setLocation("/style-orders")}
-              className="p-2 rounded-xl hover:bg-gray-100 text-gray-500 hover:text-gray-800 transition-colors shrink-0">
+              className="p-2 rounded-xl hover:bg-black/5 text-gray-500 transition-colors shrink-0">
               <ArrowLeft className="h-4 w-4" />
             </button>
-            <span className="text-sm font-mono font-bold text-gray-800 bg-gray-50 border border-gray-200 shadow-sm px-3 py-1.5 rounded-xl shrink-0">
-              {orderCode}
-            </span>
+            <div className="shrink-0">
+              <p className="text-[10px] font-medium text-gray-400 tracking-wide leading-none mb-0.5">Style Orders</p>
+              <span className="text-sm font-bold font-mono text-gray-900">{orderCode}</span>
+            </div>
             <div className="flex-1" />
             <div className="relative shrink-0">
               <select value={form.orderStatus} onChange={e => set("orderStatus", e.target.value)}
