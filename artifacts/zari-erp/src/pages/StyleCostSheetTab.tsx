@@ -135,6 +135,9 @@ export default function StyleCostSheetTab({
   // ── Artwork costs ─────────────────────────────────────────────────────────
   type ArtworkRow = {
     id: number; artworkCode: string; artworkName: string;
+    artworkCreated: string | null;
+    totalCost: string | null;
+    outsourceVendorName: string | null; outsourcePaymentStatus: string | null;
     toileMakingCost: string | null; toileVendorName: string | null;
     toilePaymentAmount: string | null; toilePaymentStatus: string | null;
     patternType: string | null; patternMakingCost: string | null;
@@ -233,11 +236,12 @@ export default function StyleCostSheetTab({
   }, 0);
   const customTotal = customBaseTotal + (includeGst ? customGstTotal : 0);
 
+  const artworkProductionTotal = filteredArtworks.reduce((s, a) => s + (parseFloat(a.totalCost ?? "") || 0), 0);
   const artworkToileTotal = filteredArtworks.reduce((s, a) => s + (parseFloat(a.toileMakingCost ?? "") || 0), 0);
   const artworkPatternTotal = filteredArtworks
     .filter(a => a.patternType === "Outhouse")
     .reduce((s, a) => s + (parseFloat(a.patternPaymentAmount ?? "") || 0), 0);
-  const artworkTotal = artworkToileTotal + artworkPatternTotal;
+  const artworkTotal = artworkProductionTotal + artworkToileTotal + artworkPatternTotal;
 
   const grandTotal = bomConsumedTotal + (includeGst ? bomGstTotal : 0) + artisanTotal + outsourceTotal + customTotal + artworkTotal;
 
@@ -506,7 +510,7 @@ export default function StyleCostSheetTab({
 
         {/* ── 5. Artwork Costs ─────────────────────────────────────────────── */}
         {filteredArtworks.length > 0 && (
-          <SheetSection title="Artwork Costs (Toile & Pattern Outhouse)">
+          <SheetSection title="Artwork Costs">
             <SheetTable
               headers={[
                 ...((!isFiltered && products.length > 0) ? ["Product"] : []),
@@ -514,6 +518,19 @@ export default function StyleCostSheetTab({
               ]}
               rows={filteredArtworks.flatMap(a => {
                 const rows: (string | React.ReactNode)[][] = [];
+                // Artwork production cost (Inhouse hours×rate or Outsource vendor payment)
+                if (a.totalCost && parseFloat(a.totalCost) > 0) {
+                  const typeLabel = a.artworkCreated === "Outsource" ? "Artwork (Outsource)" : "Artwork (Inhouse)";
+                  const vendor = a.artworkCreated === "Outsource" ? (a.outsourceVendorName || "—") : "Inhouse";
+                  const status = a.artworkCreated === "Outsource" ? (a.outsourcePaymentStatus || "—") : "—";
+                  const row: (string | React.ReactNode)[] = [
+                    a.artworkCode, a.artworkName, typeLabel,
+                    vendor, rupee(parseFloat(a.totalCost)), status,
+                  ];
+                  if (!isFiltered && products.length > 0) row.unshift(a.styleOrderProductName ?? "—");
+                  rows.push(row);
+                }
+                // Toile making cost
                 if (a.toileMakingCost && parseFloat(a.toileMakingCost) > 0) {
                   const row: (string | React.ReactNode)[] = [
                     a.artworkCode, a.artworkName, "Toile",
@@ -523,6 +540,7 @@ export default function StyleCostSheetTab({
                   if (!isFiltered && products.length > 0) row.unshift(a.styleOrderProductName ?? "—");
                   rows.push(row);
                 }
+                // Pattern outhouse payment
                 if (a.patternType === "Outhouse" && a.patternPaymentAmount && parseFloat(a.patternPaymentAmount) > 0) {
                   const row: (string | React.ReactNode)[] = [
                     a.artworkCode, a.artworkName, "Pattern (Outhouse)",
@@ -555,6 +573,7 @@ export default function StyleCostSheetTab({
                   ...(includeGst && outsourceGstTotal > 0 ? [{ label: "Outsource GST", value: outsourceGstTotal }] : []),
                   { label: includeGst ? "Custom Charges (excl. GST)" : "Custom Charges", value: customBaseTotal },
                   ...(includeGst && customGstTotal > 0 ? [{ label: "Custom Charges GST", value: customGstTotal }] : []),
+                  ...(artworkProductionTotal > 0 ? [{ label: "Artwork Production", value: artworkProductionTotal }] : []),
                   ...(artworkToileTotal > 0 ? [{ label: "Toile Cost", value: artworkToileTotal }] : []),
                   ...(artworkPatternTotal > 0 ? [{ label: "Pattern (Outhouse)", value: artworkPatternTotal }] : []),
                 ].map(({ label, value }) => (
