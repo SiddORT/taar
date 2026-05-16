@@ -1966,10 +1966,20 @@ function ConsumptionSection({ swatchOrderId }: { swatchOrderId: number }) {
   const { data: allMaterialsC = [] } = useAllMaterials();
   const { data: allFabricsC = [] } = useAllFabrics();
 
-  const inStockRows = bomRows.filter(r => parseFloat(r.currentStock || "0") > 0);
+  // Use live inventory stock from master data, not the stale BOM snapshot
+  const getLiveStock = (r: { materialType: string; materialId: number }) => {
+    if (r.materialType === "fabric") {
+      const fab = allFabricsC.find(f => f.id === r.materialId);
+      return parseFloat(fab?.currentStock || "0");
+    }
+    const mat = allMaterialsC.find(m => m.id === r.materialId);
+    return parseFloat(mat?.currentStock || "0");
+  };
+  const inStockRows = bomRows.filter(r => getLiveStock(r) > 0);
 
   function openAddModal() {
-    const preselect = filterBomRowId !== "all" && parseFloat(bomRows.find(r => String(r.id) === filterBomRowId)?.currentStock || "0") > 0
+    const filteredRow = bomRows.find(r => String(r.id) === filterBomRowId);
+    const preselect = filterBomRowId !== "all" && filteredRow && getLiveStock(filteredRow) > 0
       ? filterBomRowId
       : (inStockRows.length === 1 ? String(inStockRows[0].id) : "");
     setAddForm({ bomRowId: preselect, consumedQty: "", notes: "", warehouseLocation: "" });
