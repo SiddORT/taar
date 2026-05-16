@@ -1,8 +1,10 @@
 import { Router, type IRouter } from "express";
 import { eq, and, desc, ilike } from "drizzle-orm";
-import { db, artworksTable, pool } from "@workspace/db";
+import { db, artworksTable, swatchOrdersTable, pool } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
 import { logger } from "../lib/logger";
+
+const SWATCH_PRE_ARTWORK_STATUSES = ["Draft", "Issued", "In Sampling"];
 
 const router: IRouter = Router();
 
@@ -79,6 +81,17 @@ router.post("/artworks", requireAuth, async (req, res): Promise<void> => {
     finalImages: (body.finalImages as object[]) || [],
     createdBy: user?.email ?? "system",
   }).returning();
+
+  // Auto-advance swatch order status when first artwork is added
+  try {
+    const [swatchOrder] = await db.select({ id: swatchOrdersTable.id, orderStatus: swatchOrdersTable.orderStatus })
+      .from(swatchOrdersTable).where(eq(swatchOrdersTable.id, row.swatchOrderId));
+    if (swatchOrder && SWATCH_PRE_ARTWORK_STATUSES.includes(swatchOrder.orderStatus)) {
+      await db.update(swatchOrdersTable).set({ orderStatus: "In Artwork", updatedAt: new Date() })
+        .where(eq(swatchOrdersTable.id, row.swatchOrderId));
+      logger.info({ swatchOrderId: row.swatchOrderId }, "Swatch order auto-advanced to In Artwork");
+    }
+  } catch (e) { logger.error(e, "Failed to auto-advance swatch order status on artwork create"); }
 
   logger.info({ id: row.id, artworkCode }, "Artwork created");
   res.status(201).json({ data: row });

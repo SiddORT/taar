@@ -1,8 +1,11 @@
 import { Router, type IRouter } from "express";
 import { eq, asc, desc } from "drizzle-orm";
 import { randomBytes } from "crypto";
-import { db, clientLinksTable, clientFeedbackTable, clientMessagesTable, artworksTable } from "@workspace/db";
+import { db, clientLinksTable, clientFeedbackTable, clientMessagesTable, artworksTable, swatchOrdersTable, styleOrdersTable } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
+
+const SWATCH_PRE_APPROVAL_STATUSES = ["Draft", "Issued", "In Sampling", "In Artwork"];
+const STYLE_PRE_APPROVAL_STATUSES  = ["Draft", "Issued", "In Production", "In Review"];
 
 const router: IRouter = Router();
 
@@ -56,6 +59,29 @@ router.patch("/client-links/:id", requireAuth, async (req, res): Promise<void> =
     .returning();
 
   if (!updated) { res.status(404).json({ error: "Not found" }); return; }
+
+  // Auto-advance order status when client link is published
+  if (isPublished && updated.swatchOrderId) {
+    try {
+      const [order] = await db.select({ id: swatchOrdersTable.id, orderStatus: swatchOrdersTable.orderStatus })
+        .from(swatchOrdersTable).where(eq(swatchOrdersTable.id, updated.swatchOrderId));
+      if (order && SWATCH_PRE_APPROVAL_STATUSES.includes(order.orderStatus)) {
+        await db.update(swatchOrdersTable).set({ orderStatus: "Pending Approval", updatedAt: new Date() })
+          .where(eq(swatchOrdersTable.id, updated.swatchOrderId));
+      }
+    } catch (_e) { /* non-critical */ }
+  }
+  if (isPublished && updated.styleOrderId) {
+    try {
+      const [order] = await db.select({ id: styleOrdersTable.id, orderStatus: styleOrdersTable.orderStatus })
+        .from(styleOrdersTable).where(eq(styleOrdersTable.id, updated.styleOrderId));
+      if (order && STYLE_PRE_APPROVAL_STATUSES.includes(order.orderStatus)) {
+        await db.update(styleOrdersTable).set({ orderStatus: "Pending Approval", updatedAt: new Date() })
+          .where(eq(styleOrdersTable.id, updated.styleOrderId));
+      }
+    } catch (_e) { /* non-critical */ }
+  }
+
   res.json({ data: updated });
 });
 

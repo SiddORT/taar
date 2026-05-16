@@ -5,6 +5,8 @@ import {
   artworksTable, swatchOrdersTable,
 } from "@workspace/db";
 
+const SWATCH_REWORK_REVERT_STATUSES = ["Pending Approval", "Completed"];
+
 const router: IRouter = Router();
 
 router.get("/client-portal/:token", async (req, res): Promise<void> => {
@@ -144,9 +146,31 @@ router.post("/client-portal/:token/feedback", async (req, res): Promise<void> =>
     .returning();
 
   if (decision === "Approve") {
-    const updated = [...new Set([...closedThreads, artworkId])];
-    await db.update(clientLinksTable).set({ closedThreads: updated, updatedAt: new Date() }).where(eq(clientLinksTable.id, link.id));
+    const updatedClosed = [...new Set([...closedThreads, artworkId])];
+    await db.update(clientLinksTable).set({ closedThreads: updatedClosed, updatedAt: new Date() }).where(eq(clientLinksTable.id, link.id));
     await db.update(artworksTable).set({ feedbackStatus: "Approved" }).where(eq(artworksTable.id, artworkId));
+
+    // If all artworks for this swatch order are now approved → advance order to Completed
+    if (link.swatchOrderId) {
+      const allArtworks = await db.select({ id: artworksTable.id })
+        .from(artworksTable)
+        .where(and(eq(artworksTable.swatchOrderId, link.swatchOrderId), eq(artworksTable.isDeleted, false)));
+      const allClosed = allArtworks.every(aw => updatedClosed.includes(aw.id));
+      if (allArtworks.length > 0 && allClosed) {
+        await db.update(swatchOrdersTable).set({ orderStatus: "Completed", updatedAt: new Date() })
+          .where(eq(swatchOrdersTable.id, link.swatchOrderId));
+      }
+    }
+  }
+
+  if (decision === "Rework" && link.swatchOrderId) {
+    // Revert order to In Artwork so team knows rework is needed
+    const [order] = await db.select({ orderStatus: swatchOrdersTable.orderStatus })
+      .from(swatchOrdersTable).where(eq(swatchOrdersTable.id, link.swatchOrderId));
+    if (order && SWATCH_REWORK_REVERT_STATUSES.includes(order.orderStatus)) {
+      await db.update(swatchOrdersTable).set({ orderStatus: "In Artwork", updatedAt: new Date() })
+        .where(eq(swatchOrdersTable.id, link.swatchOrderId));
+    }
   }
 
   res.status(201).json({ data: created });
