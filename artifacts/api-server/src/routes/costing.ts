@@ -317,8 +317,9 @@ async function syncConsumptionWithInventory(opts: {
   consumedQty: number;
   consumptionId: number;
   actor: string;
+  warehouseLocation?: string | null;
 }): Promise<void> {
-  const { bomRow, orderId, reservationType, consumedQty, consumptionId, actor } = opts;
+  const { bomRow, orderId, reservationType, consumedQty, consumptionId, actor, warehouseLocation } = opts;
   const col = reservationType === "Style" ? "style_reserved_qty" : "swatch_reserved_qty";
 
   // Find the inventory row
@@ -397,6 +398,28 @@ async function syncConsumptionWithInventory(opts: {
        `Consumption from ${reservationType} Order #${orderId} (log #${consumptionId})`, actor]
     );
 
+    // Update material/fabric master: current_stock and location_stocks
+    const masterTable = bomRow.materialType === "fabric" ? "fabrics" : "materials";
+    const masterRes = await client.query(
+      `SELECT current_stock, location_stocks FROM ${masterTable} WHERE id = $1`,
+      [bomRow.materialId]
+    );
+    if (masterRes.rows.length) {
+      const masterRow = masterRes.rows[0] as { current_stock: string; location_stocks: Array<{location: string; stock: string}> };
+      const newMasterStock = Math.max(0, parseFloat(masterRow.current_stock ?? "0") - consumedQty);
+      const locStocks: Array<{location: string; stock: string}> = masterRow.location_stocks ?? [];
+      if (warehouseLocation) {
+        const locIdx = locStocks.findIndex(l => l.location === warehouseLocation);
+        if (locIdx >= 0) {
+          locStocks[locIdx].stock = Math.max(0, parseFloat(locStocks[locIdx].stock ?? "0") - consumedQty).toFixed(3);
+        }
+      }
+      await client.query(
+        `UPDATE ${masterTable} SET current_stock = $1, location_stocks = $2 WHERE id = $3`,
+        [newMasterStock.toFixed(3), JSON.stringify(locStocks), bomRow.materialId]
+      );
+    }
+
     await client.query("COMMIT");
   } catch (e) {
     await client.query("ROLLBACK");
@@ -408,7 +431,7 @@ async function syncConsumptionWithInventory(opts: {
 
 // Reverses a consumption entry from inventory (Section 6).
 async function reverseConsumptionFromInventory(opts: {
-  entry: { id: number; swatchOrderId: number | null; styleOrderId: number | null; bomRowId: number; consumedQty: string };
+  entry: { id: number; swatchOrderId: number | null; styleOrderId: number | null; bomRowId: number; consumedQty: string; warehouseLocation?: string | null };
   materialType: string;
   materialId: number;
   actor: string;
@@ -475,6 +498,30 @@ async function reverseConsumptionFromInventory(opts: {
       `DELETE FROM stock_ledger WHERE transaction_type = 'Consumption' AND reference_number = $1`,
       [String(entry.id)]
     );
+
+    // Restore material/fabric master: current_stock and location_stocks
+    const masterTable = materialType === "fabric" ? "fabrics" : "materials";
+    const masterRes = await client.query(
+      `SELECT current_stock, location_stocks FROM ${masterTable} WHERE id = $1`,
+      [materialId]
+    );
+    if (masterRes.rows.length) {
+      const masterRow = masterRes.rows[0] as { current_stock: string; location_stocks: Array<{location: string; stock: string}> };
+      const newMasterStock = parseFloat(masterRow.current_stock ?? "0") + consumedQty;
+      const locStocks: Array<{location: string; stock: string}> = masterRow.location_stocks ?? [];
+      if (entry.warehouseLocation) {
+        const locIdx = locStocks.findIndex(l => l.location === entry.warehouseLocation);
+        if (locIdx >= 0) {
+          locStocks[locIdx].stock = (parseFloat(locStocks[locIdx].stock ?? "0") + consumedQty).toFixed(3);
+        } else {
+          locStocks.push({ location: entry.warehouseLocation, stock: consumedQty.toFixed(3) });
+        }
+      }
+      await client.query(
+        `UPDATE ${masterTable} SET current_stock = $1, location_stocks = $2 WHERE id = $3`,
+        [newMasterStock.toFixed(3), JSON.stringify(locStocks), materialId]
+      );
+    }
 
     await client.query("COMMIT");
   } catch (e) {
@@ -1122,6 +1169,7 @@ router.post("/consumption", requireAuth, async (req, res) => {
     consumedQty: newConsumedQty,
     consumptionId: entry.id,
     actor: user.email,
+    warehouseLocation: warehouseLocation ? String(warehouseLocation) : null,
   });
 
   return res.status(201).json({ data: entry, inventoryUpdated: true });
@@ -1146,7 +1194,7 @@ router.delete("/consumption/:id", requireAuth, async (req, res) => {
   // Consumption Engine — reverse inventory / reservation / ledger
   if (bomRow) {
     await reverseConsumptionFromInventory({
-      entry: { id: entry.id, swatchOrderId: entry.swatchOrderId, styleOrderId: entry.styleOrderId, bomRowId: entry.bomRowId, consumedQty: entry.consumedQty },
+      entry: { id: entry.id, swatchOrderId: entry.swatchOrderId, styleOrderId: entry.styleOrderId, bomRowId: entry.bomRowId, consumedQty: entry.consumedQty, warehouseLocation: entry.warehouseLocation },
       materialType: bomRow.materialType,
       materialId: bomRow.materialId,
       actor: user.email,
@@ -1605,6 +1653,7 @@ router.post("/style-consumption", requireAuth, async (req, res) => {
     consumedQty: newConsumedQty,
     consumptionId: entry.id,
     actor: user.email,
+    warehouseLocation: warehouseLocation ? String(warehouseLocation) : null,
   });
 
   return res.status(201).json({ data: entry, inventoryUpdated: true });

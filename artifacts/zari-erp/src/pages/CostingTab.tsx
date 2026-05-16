@@ -1989,7 +1989,7 @@ function ConsumptionSection({ swatchOrderId }: { swatchOrderId: number }) {
   // Required qty = Reserved qty. Cap = required qty minus what has already been consumed.
   const selectedRow = bomRows.find(r => String(r.id) === addForm.bomRowId);
   const selectedRowMetrics = selectedRow ? computeRowMetrics(selectedRow, pos, prs) : null;
-  const reservedQty = selectedRow ? parseFloat(selectedRow.requiredQty) : null;
+  const reservedQty = selectedRow ? (parseFloat(selectedRow.requiredQty || "0") || null) : null;
   const availableStock = selectedRowMetrics && reservedQty !== null
     ? Math.max(0, reservedQty - selectedRowMetrics.consumedQtyNum)
     : null;
