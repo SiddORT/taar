@@ -222,7 +222,7 @@ export default function ItemMaster() {
 
     const ut = form.unitType.trim();
     if (!ut) e.unitType = "Unit Type is required";
-    else if (!NAME_REGEX.test(ut)) e.unitType = "Unit Type must contain only letters";
+    else if (ut.length > 50) e.unitType = "Unit Type must be at most 50 characters";
 
     const up = form.unitPrice.trim();
     if (!up) e.unitPrice = "Unit Price is required";

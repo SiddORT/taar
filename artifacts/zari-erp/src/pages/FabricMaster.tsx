@@ -372,7 +372,7 @@ export default function FabricMaster() {
   const handleAddWidthUnitType = async () => {
     const val = newWidthUnitTypeName.trim();
     if (!val) { toast({ title: "Validation Error", description: "Unit Type cannot be empty.", variant: "destructive" }); return; }
-    if (!NAME_REGEX.test(val) || val.length > 50) { toast({ title: "Validation Error", description: "Unit Type must contain only letters (max 50 characters).", variant: "destructive" }); return; }
+    if (val.length > 50) { toast({ title: "Validation Error", description: "Unit Type must be at most 50 characters.", variant: "destructive" }); return; }
     try {
       await createWidthUnitType.mutateAsync({ name: val, isActive: true });
       setForm((f) => ({ ...f, widthUnitType: val }));

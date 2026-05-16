@@ -1,4 +1,5 @@
 import React, { useState, useRef } from "react";
+import { SmallSearchSelect } from "@/components/ui/SearchableSelect";
 import * as XLSX from "xlsx";
 import {
   Plus, Trash2, ChevronDown, ChevronUp, Loader2,
@@ -508,14 +509,14 @@ function StyleBomSection({ styleOrderId, orderCode, styleName, clientName }: {
                 {form.materialType === "fabric" && <span className="ml-1 text-[9px] text-amber-500 normal-case">(clear fabric first)</span>}
               </label>
               <div className="flex items-center gap-1.5 mt-0.5">
-                <select value={selectedMaterialId} disabled={form.materialType === "fabric"}
-                  onChange={e => onMaterialChange(e.target.value)}
-                  className={`flex-1 text-xs text-gray-900 border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-gray-900/10 bg-white transition-opacity ${form.materialType === "fabric" ? "opacity-40 cursor-not-allowed" : ""}`}>
-                  <option value="">— Select material —</option>
-                  {allMaterials.map(m => (
-                    <option key={m.id} value={m.id}>{[m.itemType, m.quality].filter(Boolean).join(" – ")} ({m.materialCode})</option>
-                  ))}
-                </select>
+                <SmallSearchSelect
+                  value={selectedMaterialId}
+                  onChange={v => onMaterialChange(v)}
+                  options={allMaterials.map(m => ({ value: String(m.id), label: `${[m.itemType, m.quality].filter(Boolean).join(" – ")} (${m.materialCode})` }))}
+                  placeholder="— Select material —"
+                  disabled={form.materialType === "fabric"}
+                  clearable
+                />
                 <button type="button" onClick={() => setQuickAddMat(true)}
                   title="Add new material"
                   className="h-[34px] w-[34px] shrink-0 flex items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-500 hover:bg-gray-50 hover:border-gray-300 transition-colors">
@@ -529,14 +530,14 @@ function StyleBomSection({ styleOrderId, orderCode, styleName, clientName }: {
                 {form.materialType === "material" && <span className="ml-1 text-[9px] text-amber-500 normal-case">(clear material first)</span>}
               </label>
               <div className="flex items-center gap-1.5 mt-0.5">
-                <select value={selectedFabricId} disabled={form.materialType === "material"}
-                  onChange={e => onFabricChange(e.target.value)}
-                  className={`flex-1 text-xs text-gray-900 border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-gray-900/10 bg-white transition-opacity ${form.materialType === "material" ? "opacity-40 cursor-not-allowed" : ""}`}>
-                  <option value="">— Select fabric —</option>
-                  {allFabrics.map(f => (
-                    <option key={f.id} value={f.id}>{[f.fabricType, f.quality].filter(Boolean).join(" – ")} ({f.fabricCode})</option>
-                  ))}
-                </select>
+                <SmallSearchSelect
+                  value={selectedFabricId}
+                  onChange={v => onFabricChange(v)}
+                  options={allFabrics.map(f => ({ value: String(f.id), label: `${[f.fabricType, f.quality].filter(Boolean).join(" – ")} (${f.fabricCode})` }))}
+                  placeholder="— Select fabric —"
+                  disabled={form.materialType === "material"}
+                  clearable
+                />
                 <button type="button" onClick={() => setQuickAddFab(true)}
                   title="Add new fabric"
                   className="h-[34px] w-[34px] shrink-0 flex items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-500 hover:bg-gray-50 hover:border-gray-300 transition-colors">

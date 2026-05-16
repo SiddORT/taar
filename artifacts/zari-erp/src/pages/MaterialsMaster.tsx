@@ -301,7 +301,7 @@ export default function MaterialsMaster() {
     if (!up) e.unitPrice = "Unit Price is required";
     else if (!NUMERIC_REGEX.test(up)) e.unitPrice = "Unit Price must be a positive numeric value.";
     if (!form.unitType) e.unitType = "Unit Type is required";
-    else if (!NAME_REGEX.test(form.unitType)) e.unitType = "Unit Type must contain only letters.";
+    else if (form.unitType.trim().length < 1) e.unitType = "Unit Type is required.";
     if (form.locationStocks.length === 0) {
       const cs = form.currentStock.trim();
       if (!cs) e.currentStock = "Current Stock is required";
@@ -375,7 +375,7 @@ export default function MaterialsMaster() {
   const handleAddUnitType = async () => {
     const name = newUnitTypeName.trim();
     if (!name) return;
-    if (!NAME_REGEX.test(name)) { toast({ title: "Invalid", description: "Unit Type must contain only letters and spaces.", variant: "destructive" }); return; }
+    if (!name) { toast({ title: "Invalid", description: "Unit Type name is required.", variant: "destructive" }); return; }
     try {
       await createUnitType.mutateAsync({ name, isActive: true });
       setForm((f) => ({ ...f, unitType: name }));
@@ -1085,7 +1085,7 @@ export default function MaterialsMaster() {
         <InputField label="Unit Type Name" required placeholder="e.g. Meter, Kg, Piece"
           maxLength={50}
           value={newUnitTypeName}
-          onChange={(e) => setNewUnitTypeName(e.target.value.replace(/[^A-Za-z ]/g, ""))} />
+          onChange={(e) => setNewUnitTypeName(e.target.value)} />
       </MasterFormModal>
 
       {/* ══ Add HSN mini-modal ══ */}
