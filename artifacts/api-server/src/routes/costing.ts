@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router, type Request, type Response } from "express";
 import { db, pool } from "@workspace/db";
 import {
   swatchBomTable, purchaseOrdersTable, purchaseReceiptsTable, prPaymentsTable,
@@ -10,6 +10,7 @@ import { usersTable } from "@workspace/db";
 import { eq, ilike, or, desc, and } from "drizzle-orm";
 import { requireAuth } from "../middlewares/requireAuth";
 import { sendPoApprovalRequestEmail } from "../lib/mailer";
+import jwt from "jsonwebtoken";
 
 const router = Router();
 
@@ -753,22 +754,27 @@ router.post("/po", requireAuth, async (req, res) => {
     bomItems: items,
     createdBy: user.email,
   }).returning();
-  return res.status(201).json({ data: row });
   const adminUsers = await db.select({ email: usersTable.email }).from(usersTable).where(eq(usersTable.role, "admin"));
   const adminEmails = adminUsers.map(u => u.email).filter(Boolean) as string[];
   if (adminEmails.length > 0) {
-    const erpUrl = `${process.env.APP_URL ?? "https://zari-erp.replit.app"}/costing`;
+    const apiBase = process.env.API_BASE_URL ?? `https://${process.env.REPLIT_DEV_DOMAIN ?? "zari-erp.replit.app"}`;
+    const erpUrl = `${apiBase}/costing`;
+    const approveToken = jwt.sign({ poId: row.id, action: "approve" }, process.env.SESSION_SECRET ?? "secret", { expiresIn: "7d" });
+    const rejectToken = jwt.sign({ poId: row.id, action: "reject" }, process.env.SESSION_SECRET ?? "secret", { expiresIn: "7d" });
     sendPoApprovalRequestEmail({
       adminEmails,
       poNumber,
-      vendorName: vendor.brandName,
+      vendorName: vendorName ?? "—",
       createdBy: user.email,
       referenceType: "Swatch",
       referenceId: swatchOrderId,
       itemCount: items.length,
       erpUrl,
+      approveUrl: `${apiBase}/api/costing/po-action?token=${approveToken}`,
+      rejectUrl: `${apiBase}/api/costing/po-action?token=${rejectToken}`,
     }).catch(() => {});
   }
+  return res.status(201).json({ data: row });
 });
 
 router.patch("/po/:id", requireAuth, async (req, res) => {
@@ -1298,22 +1304,27 @@ router.post("/style-po", requireAuth, async (req, res) => {
     bomItems: items,
     createdBy: user.email,
   }).returning();
-  return res.status(201).json({ data: row });
-  const adminUsers = await db.select({ email: usersTable.email }).from(usersTable).where(eq(usersTable.role, "admin"));
-  const adminEmails = adminUsers.map(u => u.email).filter(Boolean) as string[];
-  if (adminEmails.length > 0) {
-    const erpUrl = `${process.env.APP_URL ?? "https://zari-erp.replit.app"}/costing`;
+  const adminUsers2 = await db.select({ email: usersTable.email }).from(usersTable).where(eq(usersTable.role, "admin"));
+  const adminEmails2 = adminUsers2.map(u => u.email).filter(Boolean) as string[];
+  if (adminEmails2.length > 0) {
+    const apiBase2 = process.env.API_BASE_URL ?? `https://${process.env.REPLIT_DEV_DOMAIN ?? "zari-erp.replit.app"}`;
+    const erpUrl2 = `${apiBase2}/costing`;
+    const approveToken2 = jwt.sign({ poId: row.id, action: "approve" }, process.env.SESSION_SECRET ?? "secret", { expiresIn: "7d" });
+    const rejectToken2 = jwt.sign({ poId: row.id, action: "reject" }, process.env.SESSION_SECRET ?? "secret", { expiresIn: "7d" });
     sendPoApprovalRequestEmail({
-      adminEmails,
+      adminEmails: adminEmails2,
       poNumber,
       vendorName: vendor?.brandName ?? "—",
       createdBy: user.email,
       referenceType: "Style",
       referenceId: styleOrderId,
       itemCount: items.length,
-      erpUrl,
+      erpUrl: erpUrl2,
+      approveUrl: `${apiBase2}/api/costing/po-action?token=${approveToken2}`,
+      rejectUrl: `${apiBase2}/api/costing/po-action?token=${rejectToken2}`,
     }).catch(() => {});
   }
+  return res.status(201).json({ data: row });
 });
 
 // ─── Style PR ─────────────────────────────────────────────────────────────────
@@ -1969,6 +1980,89 @@ router.delete("/costing-payments/:id", requireAuth, async (req, res) => {
     return res.json({ success: true });
   } catch (err: any) {
     return res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── Public: one-click email approve / reject ─────────────────────────────────
+router.get("/po-action", async (req: Request, res: Response) => {
+  const { token } = req.query as { token?: string };
+
+  const html = (title: string, icon: string, color: string, body: string) => `
+    <!DOCTYPE html><html lang="en"><head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <title>${title} — ZARI ERP</title>
+    <style>
+      *{box-sizing:border-box;margin:0;padding:0}
+      body{background:#f8f9fb;font-family:'Helvetica Neue',Arial,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;}
+      .card{background:#fff;border-radius:16px;box-shadow:0 4px 24px rgba(0,0,0,0.10);max-width:420px;width:100%;overflow:hidden;}
+      .header{background:#111;padding:24px 32px;text-align:center;}
+      .header-title{color:#C6AF4B;font-size:20px;font-weight:700;letter-spacing:1px;}
+      .header-sub{color:#888;font-size:11px;margin-top:4px;letter-spacing:.5px;}
+      .body{padding:36px 32px;text-align:center;}
+      .icon{font-size:48px;margin-bottom:16px;}
+      .title{font-size:20px;font-weight:700;color:${color};margin-bottom:10px;}
+      .msg{font-size:14px;color:#4B5563;line-height:1.6;}
+      .po{font-size:13px;font-weight:600;color:#111;background:#F9FAFB;border:1px solid #E5E7EB;border-radius:8px;padding:8px 16px;display:inline-block;margin:14px 0;}
+      .footer{padding:16px 32px;background:#F9FAFB;border-top:1px solid #F0F0F0;text-align:center;font-size:11px;color:#9CA3AF;}
+    </style></head><body>
+    <div class="card">
+      <div class="header"><p class="header-title">ZARI ERP</p><p class="header-sub">ENTERPRISE RESOURCE PLANNING</p></div>
+      <div class="body">
+        <div class="icon">${icon}</div>
+        <div class="title">${title}</div>
+        ${body}
+      </div>
+      <div class="footer">ZARI Embroideries &copy; ${new Date().getFullYear()}</div>
+    </div></body></html>`;
+
+  if (!token) {
+    return res.status(400).send(html("Invalid Link", "⚠️", "#D97706", `<p class="msg">No action token provided. This link may be malformed.</p>`));
+  }
+
+  let payload: { poId: number; action: string };
+  try {
+    payload = jwt.verify(token, process.env.SESSION_SECRET ?? "secret") as { poId: number; action: string };
+  } catch {
+    return res.status(400).send(html("Link Expired", "⏰", "#D97706", `<p class="msg">This approval link has expired or is invalid. Please log in to ZARI ERP to take action.</p>`));
+  }
+
+  const { poId, action } = payload;
+  if (!["approve", "reject"].includes(action)) {
+    return res.status(400).send(html("Invalid Action", "⚠️", "#D97706", `<p class="msg">Unknown action in token.</p>`));
+  }
+
+  const [po] = await db.select().from(purchaseOrdersTable).where(eq(purchaseOrdersTable.id, Number(poId)));
+  if (!po) {
+    return res.status(404).send(html("PO Not Found", "🔍", "#DC2626", `<p class="msg">Purchase Order #${poId} could not be found.</p>`));
+  }
+
+  if (po.status === "Approved" && action === "approve") {
+    return res.send(html("Already Approved", "✅", "#059669",
+      `<div class="po">${po.poNumber}</div><p class="msg">This Purchase Order was already approved. No further action needed.</p>`));
+  }
+  if (po.status === "Cancelled" && action === "reject") {
+    return res.send(html("Already Rejected", "❌", "#DC2626",
+      `<div class="po">${po.poNumber}</div><p class="msg">This Purchase Order was already rejected.</p>`));
+  }
+
+  const newStatus = action === "approve" ? "Approved" : "Cancelled";
+  const updates: Record<string, unknown> = {
+    status: newStatus,
+    updatedBy: "email-action",
+    updatedAt: new Date(),
+  };
+  if (action === "approve") {
+    updates.approvedBy = "email-action";
+    updates.approvedAt = new Date();
+  }
+  await db.update(purchaseOrdersTable).set(updates).where(eq(purchaseOrdersTable.id, Number(poId)));
+
+  if (action === "approve") {
+    return res.send(html("Purchase Order Approved", "✅", "#059669",
+      `<div class="po">${po.poNumber}</div><p class="msg">The Purchase Order has been <strong>approved</strong>. Purchase Receipts can now be created against this order.</p>`));
+  } else {
+    return res.send(html("Purchase Order Rejected", "❌", "#DC2626",
+      `<div class="po">${po.poNumber}</div><p class="msg">The Purchase Order has been <strong>rejected</strong>. The status has been updated to Cancelled.</p>`));
   }
 });
 

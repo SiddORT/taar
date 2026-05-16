@@ -155,10 +155,12 @@ export async function sendPoApprovalRequestEmail(opts: {
   orderCode?: string;
   itemCount: number;
   erpUrl: string;
+  approveUrl: string;
+  rejectUrl: string;
 }): Promise<void> {
   const transporter = createTransporter();
   const from = process.env.EMAIL_FROM ?? process.env.EMAIL_USER;
-  const { adminEmails, poNumber, vendorName, createdBy, referenceType, orderCode, itemCount, erpUrl } = opts;
+  const { adminEmails, poNumber, vendorName, createdBy, referenceType, orderCode, itemCount, erpUrl, approveUrl, rejectUrl } = opts;
 
   const refLabel = referenceType === "Swatch" ? "Swatch Order" : "Style Order";
   const refValue = orderCode ?? String(opts.referenceId);
@@ -184,7 +186,9 @@ export async function sendPoApprovalRequestEmail(opts: {
         .info-row:last-child { border-bottom: none; }
         .info-label { color: #6B7280; font-weight: 500; }
         .info-value { color: #111111; font-weight: 600; }
-        .btn { display: inline-block; background: #C6AF4B; color: #111111 !important; text-decoration: none; font-weight: 700; font-size: 14px; padding: 13px 32px; border-radius: 8px; letter-spacing: 0.3px; }
+        .btn-approve { display: inline-block; background: #C6AF4B; color: #111111 !important; text-decoration: none; font-weight: 700; font-size: 14px; padding: 13px 32px; border-radius: 8px; letter-spacing: 0.3px; }
+        .btn-reject { display: inline-block; background: #ffffff; color: #DC2626 !important; text-decoration: none; font-weight: 700; font-size: 14px; padding: 12px 28px; border-radius: 8px; letter-spacing: 0.3px; border: 2px solid #DC2626; }
+        .btn-erp { display: inline-block; background: #F3F4F6; color: #374151 !important; text-decoration: none; font-weight: 600; font-size: 12px; padding: 9px 20px; border-radius: 8px; border: 1px solid #D1D5DB; }
         .footer { padding: 18px 32px; background: #F9FAFB; border-top: 1px solid #F0F0F0; text-align: center; }
         .footer p { margin: 0; font-size: 11px; color: #9CA3AF; }
       </style>
@@ -202,16 +206,22 @@ export async function sendPoApprovalRequestEmail(opts: {
             <p>A new Purchase Order has been created and is waiting for your approval before any purchase receipts can be raised.</p>
             <div class="info-grid">
               <div class="info-row"><span class="info-label">PO Number</span><span class="info-value">${poNumber}</span></div>
-              <div class="info-row"><span class="info-label">Vendor</span><span class="info-value">${vendorName}</span></div>
+              <div class="info-row"><span class="info-label">Vendor</span><span class="info-value">${vendorName || "—"}</span></div>
               <div class="info-row"><span class="info-label">${refLabel}</span><span class="info-value">${refValue}</span></div>
               <div class="info-row"><span class="info-label">Items</span><span class="info-value">${itemCount} line item${itemCount !== 1 ? "s" : ""}</span></div>
               <div class="info-row"><span class="info-label">Created By</span><span class="info-value">${createdBy}</span></div>
               <div class="info-row"><span class="info-label">Status</span><span class="info-value" style="color:#D97706;">Draft — Pending Approval</span></div>
             </div>
-            <p style="text-align:center; margin: 24px 0;">
-              <a href="${erpUrl}" class="btn">Review &amp; Approve in ZARI ERP</a>
+            <p style="text-align:center; margin: 28px 0 16px;">
+              <a href="${approveUrl}" class="btn-approve">✓ Approve Purchase Order</a>
             </p>
-            <p style="font-size:12px; color:#9CA3AF;">Once approved, purchase receipts will be enabled for this order. If you did not expect this PO, please contact the creator.</p>
+            <p style="text-align:center; margin: 0 0 24px;">
+              <a href="${rejectUrl}" class="btn-reject">✗ Reject Purchase Order</a>
+            </p>
+            <p style="text-align:center; margin: 20px 0 0;">
+              <a href="${erpUrl}" class="btn-erp">Open in ZARI ERP</a>
+            </p>
+            <p style="font-size:12px; color:#9CA3AF; margin-top:20px;">These one-click links are valid for 7 days. Once approved, purchase receipts will be enabled for this order.</p>
           </div>
           <div class="footer">
             <p>ZARI Embroideries &copy; ${new Date().getFullYear()} &mdash; This is an automated notification, please do not reply.</p>
@@ -227,7 +237,7 @@ export async function sendPoApprovalRequestEmail(opts: {
     to: adminEmails.join(", "),
     subject: `[Action Required] PO ${poNumber} — Approve to enable Purchase Receipts`,
     html,
-    text: `A new Purchase Order (${poNumber}) from vendor "${vendorName}" has been created for ${refLabel} ${refValue} by ${createdBy}.\n\nPlease log in to ZARI ERP to review and approve it:\n${erpUrl}\n\nOnce approved, purchase receipts will be enabled.`,
+    text: `A new Purchase Order (${poNumber}) from vendor "${vendorName || "—"}" has been created for ${refLabel} ${refValue} by ${createdBy}.\n\nApprove: ${approveUrl}\nReject: ${rejectUrl}\n\nOr log in to ZARI ERP: ${erpUrl}\n\nOnce approved, purchase receipts will be enabled.`,
   });
 }
 
