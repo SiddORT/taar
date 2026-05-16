@@ -86,13 +86,15 @@ router.get("/vendor-ledger/summary", requireAuth, async (req, res) => {
       /* style-order artworks — toile vendor */
       LEFT JOIN (
         SELECT toile_vendor_id::integer AS vendor_id,
-               SUM(toile_cost::numeric) AS total,
+               SUM(COALESCE(NULLIF(toile_making_cost,''), NULLIF(toile_cost,''))::numeric) AS total,
                COUNT(*) AS cnt
         FROM style_order_artworks
         WHERE toile_vendor_id IS NOT NULL
           AND toile_vendor_id <> ''
-          AND toile_cost IS NOT NULL
-          AND toile_cost <> ''
+          AND (
+            (toile_making_cost IS NOT NULL AND toile_making_cost <> '')
+            OR (toile_cost IS NOT NULL AND toile_cost <> '')
+          )
         GROUP BY toile_vendor_id::integer
       ) toi_sum ON toi_sum.vendor_id = v.id
 
@@ -261,14 +263,16 @@ router.get("/vendor-ledger/:vendorId/entries", requireAuth, async (req, res) => 
             COALESCE(' [' || soa.artwork_code || ']', '')) AS description,
           'style'                  AS order_type,
           so.order_code            AS order_code,
-          soa.toile_cost::numeric  AS debit,
+          COALESCE(NULLIF(soa.toile_making_cost,''), NULLIF(soa.toile_cost,''))::numeric AS debit,
           0::numeric               AS credit
         FROM style_order_artworks soa
         LEFT JOIN style_orders so ON soa.style_order_id = so.id
         WHERE soa.toile_vendor_id IS NOT NULL
           AND soa.toile_vendor_id <> ''
-          AND soa.toile_cost IS NOT NULL
-          AND soa.toile_cost <> ''
+          AND (
+            (soa.toile_making_cost IS NOT NULL AND soa.toile_making_cost <> '')
+            OR (soa.toile_cost IS NOT NULL AND soa.toile_cost <> '')
+          )
           AND soa.toile_vendor_id::integer = $1
 
         UNION ALL

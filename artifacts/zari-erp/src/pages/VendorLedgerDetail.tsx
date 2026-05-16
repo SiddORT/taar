@@ -54,15 +54,17 @@ function initials(name: string) {
 }
 
 const TYPE_LABELS: Record<string, { label: string; color: string; bg: string }> = {
-  outsource:      { label: "Outsource Job",   color: G_DIM,     bg: `${G}12` },
-  custom_charge:  { label: "Order Charge",    color: "#8B5CF6", bg: "rgba(139,92,246,0.1)" },
-  ledger_charge:  { label: "Manual Charge",   color: "#F59E0B", bg: "rgba(245,158,11,0.1)" },
-  artwork_swatch: { label: "Artwork (Swatch)",color: "#0EA5E9", bg: "rgba(14,165,233,0.1)" },
-  artwork_style:  { label: "Artwork (Style)", color: "#6366F1", bg: "rgba(99,102,241,0.1)" },
-  artwork_toile:  { label: "Toile Work",      color: "#EC4899", bg: "rgba(236,72,153,0.1)" },
-  artwork_pattern:{ label: "Pattern (Out)",   color: "#D946EF", bg: "rgba(217,70,239,0.1)" },
-  toile:          { label: "Toile Work",      color: "#EC4899", bg: "rgba(236,72,153,0.1)" },
-  payment:        { label: "Payment",         color: "#10B981", bg: "rgba(16,185,129,0.1)" },
+  outsource:         { label: "Outsource Job",    color: G_DIM,     bg: `${G}12` },
+  custom_charge:     { label: "Order Charge",     color: "#8B5CF6", bg: "rgba(139,92,246,0.1)" },
+  ledger_charge:     { label: "Manual Charge",    color: "#F59E0B", bg: "rgba(245,158,11,0.1)" },
+  artwork_swatch:    { label: "Artwork (Swatch)", color: "#0EA5E9", bg: "rgba(14,165,233,0.1)" },
+  artwork_style:     { label: "Artwork (Style)",  color: "#6366F1", bg: "rgba(99,102,241,0.1)" },
+  artwork_toile:     { label: "Toile Work",       color: "#EC4899", bg: "rgba(236,72,153,0.1)" },
+  artwork_pattern:   { label: "Pattern (Out)",    color: "#D946EF", bg: "rgba(217,70,239,0.1)" },
+  toile:             { label: "Toile Work",       color: "#EC4899", bg: "rgba(236,72,153,0.1)" },
+  pattern_outhouse:  { label: "Pattern (Out)",    color: "#D946EF", bg: "rgba(217,70,239,0.1)" },
+  vendor_invoice:    { label: "Vendor Invoice",   color: "#F97316", bg: "rgba(249,115,22,0.1)" },
+  payment:           { label: "Payment",          color: "#10B981", bg: "rgba(16,185,129,0.1)" },
 };
 
 function rowKey(e: LedgerEntry) {
@@ -368,6 +370,8 @@ export default function VendorLedgerDetail() {
             <option value="artwork_swatch">Artwork — Swatch</option>
             <option value="artwork_style">Artwork — Style</option>
             <option value="toile">Toile Work</option>
+            <option value="pattern_outhouse">Pattern Work</option>
+            <option value="vendor_invoice">Vendor Invoices</option>
             <option value="custom_charge">Order Charges</option>
             <option value="ledger_charge">Manual Charges</option>
             <option value="payment">Payments</option>
