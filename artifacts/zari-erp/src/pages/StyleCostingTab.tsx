@@ -576,10 +576,6 @@ function StyleBomSection({ styleOrderId, orderCode, styleName, clientName }: {
                 <p className="text-[10px] text-gray-400">Unit</p>
                 <p className="font-semibold text-gray-800">{form.unitType}</p>
               </div>
-              <div className="bg-white rounded-lg border border-gray-200 px-3 py-2">
-                <p className="text-[10px] text-gray-400">Location</p>
-                <p className="font-semibold text-gray-800 truncate">{form.warehouseLocation || "—"}</p>
-              </div>
             </div>
           )}
           <div className="flex gap-2 items-end">
@@ -1703,7 +1699,7 @@ function StyleConsumptionSection({ styleOrderId }: { styleOrderId: number }) {
   const [filterProductId, setFilterProductId] = useState<string>("all");
   const [showAddModal, setShowAddModal] = useState(false);
   const [showLogModal, setShowLogModal] = useState(false);
-  const [addForm, setAddForm] = useState({ bomRowId: "", consumedQty: "", notes: "", productId: "", productName: "" });
+  const [addForm, setAddForm] = useState({ bomRowId: "", consumedQty: "", notes: "", productId: "", productName: "", warehouseLocation: "" });
 
   const displayRows = filterBomRowId === "all" ? bomRows : bomRows.filter(r => String(r.id) === filterBomRowId);
   const logForDisplay = consumptionLog.filter(e => {
@@ -1720,6 +1716,9 @@ function StyleConsumptionSection({ styleOrderId }: { styleOrderId: number }) {
     return acc;
   }, { stockInclPr: 0, consumedQty: 0, consumedTotal: 0 });
 
+  const { data: allMaterialsSC = [] } = useAllMaterials();
+  const { data: allFabricsSC = [] } = useAllFabrics();
+
   const inStockRows = bomRows.filter(r => parseFloat(r.currentStock || "0") > 0);
 
   function openAddModal() {
@@ -1728,7 +1727,7 @@ function StyleConsumptionSection({ styleOrderId }: { styleOrderId: number }) {
       : (inStockRows.length === 1 ? String(inStockRows[0].id) : "");
     const preProduct = filterProductId !== "all" ? filterProductId : "";
     const prod = products.find(p => String(p.id) === preProduct);
-    setAddForm({ bomRowId: preselect, consumedQty: "", notes: "", productId: preProduct, productName: prod?.productName ?? "" });
+    setAddForm({ bomRowId: preselect, consumedQty: "", notes: "", productId: preProduct, productName: prod?.productName ?? "", warehouseLocation: "" });
     setShowAddModal(true);
   }
 
@@ -1740,9 +1739,22 @@ function StyleConsumptionSection({ styleOrderId }: { styleOrderId: number }) {
     ? Math.max(0, reservedQty - selectedRowMetrics.consumedQtyNum)
     : null;
 
+  // Derive location_stocks for the selected BOM row's item
+  const selectedItemLocationStocksSC: { location: string; stock: string }[] = (() => {
+    if (!selectedRow) return [];
+    if (selectedRow.materialType === "fabric") {
+      const fab = allFabricsSC.find(f => f.id === selectedRow.materialId);
+      return (fab?.locationStocks ?? []).filter(ls => parseFloat(ls.stock) > 0);
+    } else {
+      const mat = allMaterialsSC.find(m => m.id === selectedRow.materialId);
+      return (mat?.locationStocks ?? []).filter(ls => parseFloat(ls.stock) > 0);
+    }
+  })();
+
   function handleAddConsumption() {
     if (!addForm.bomRowId) { toast({ title: "Select a material/fabric", variant: "destructive" }); return; }
     if (!addForm.consumedQty || parseFloat(addForm.consumedQty) <= 0) { toast({ title: "Enter consumed quantity > 0", variant: "destructive" }); return; }
+    if (selectedItemLocationStocksSC.length > 0 && !addForm.warehouseLocation) { toast({ title: "Select a warehouse location", variant: "destructive" }); return; }
     const row = bomRows.find(r => String(r.id) === addForm.bomRowId);
     if (!row) return;
     if (availableStock !== null && parseFloat(addForm.consumedQty) > availableStock) {
@@ -1755,6 +1767,7 @@ function StyleConsumptionSection({ styleOrderId }: { styleOrderId: number }) {
       consumedQty: addForm.consumedQty, notes: addForm.notes || null,
       styleOrderProductId: addForm.productId ? Number(addForm.productId) : null,
       styleOrderProductName: addForm.productName || null,
+      warehouseLocation: addForm.warehouseLocation || null,
     }, {
       onSuccess: () => { setShowAddModal(false); toast({ title: "Consumption synced with inventory successfully" }); },
       onError: (err: any) => toast({ title: err?.message ?? "Failed to record consumption", variant: "destructive" }),
@@ -1907,7 +1920,8 @@ function StyleConsumptionSection({ styleOrderId }: { styleOrderId: number }) {
               )}
               <div>
                 <label className="text-[10px] text-gray-500 font-medium">Material / Fabric *</label>
-                <select value={addForm.bomRowId} onChange={e => setAddForm(f => ({ ...f, bomRowId: e.target.value }))}
+                <select value={addForm.bomRowId}
+                  onChange={e => setAddForm(f => ({ ...f, bomRowId: e.target.value, warehouseLocation: "" }))}
                   className="w-full mt-0.5 text-xs text-gray-900 bg-white border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-gray-900/10">
                   <option value="">— Select item —</option>
                   {inStockRows.length === 0
@@ -1918,6 +1932,21 @@ function StyleConsumptionSection({ styleOrderId }: { styleOrderId: number }) {
                   }
                 </select>
               </div>
+              {selectedRow && selectedItemLocationStocksSC.length > 0 && (
+                <div>
+                  <label className="text-[10px] text-gray-500 font-medium">Warehouse Location *</label>
+                  <select value={addForm.warehouseLocation}
+                    onChange={e => setAddForm(f => ({ ...f, warehouseLocation: e.target.value }))}
+                    className="w-full mt-0.5 text-xs text-gray-900 bg-white border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-gray-900/10">
+                    <option value="">— Select location —</option>
+                    {selectedItemLocationStocksSC.map(ls => (
+                      <option key={ls.location} value={ls.location}>
+                        {ls.location} (stock: {parseFloat(ls.stock).toFixed(2)})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
               {selectedRow && selectedRowMetrics && (
                 <div className={`rounded-xl px-3 py-2.5 text-xs space-y-1.5 ${availableStock !== null && availableStock <= 0 ? "bg-red-50 border border-red-200" : reservedQty !== null ? "bg-violet-50 border border-violet-200" : "bg-gray-50 border border-gray-200"}`}>
                   <div className="flex items-center gap-2 flex-wrap">

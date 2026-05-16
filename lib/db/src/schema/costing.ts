@@ -119,6 +119,7 @@ export const consumptionLogTable = pgTable("consumption_log", {
   consumedBy: text("consumed_by").notNull(),
   consumedAt: timestamp("consumed_at", { withTimezone: true }).notNull().defaultNow(),
   notes: text("notes"),
+  warehouseLocation: text("warehouse_location"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

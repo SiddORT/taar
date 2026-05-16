@@ -927,7 +927,7 @@ router.get("/consumption/:swatchOrderId", requireAuth, async (req, res) => {
 
 router.post("/consumption", requireAuth, async (req, res) => {
   const user = (req as any).user;
-  const { swatchOrderId, bomRowId, materialCode, materialName, materialType, unitType, consumedQty, notes } = req.body as Record<string, string | number>;
+  const { swatchOrderId, bomRowId, materialCode, materialName, materialType, unitType, consumedQty, notes, warehouseLocation } = req.body as Record<string, string | number>;
 
   const [bomRow] = await db.select().from(swatchBomTable).where(eq(swatchBomTable.id, Number(bomRowId)));
   if (!bomRow) { res.status(404).json({ error: "BOM item not found" }); return; }
@@ -977,6 +977,7 @@ router.post("/consumption", requireAuth, async (req, res) => {
     consumedQty: String(consumedQty),
     consumedBy: user.email,
     notes: notes ? String(notes) : null,
+    warehouseLocation: warehouseLocation ? String(warehouseLocation) : null,
   }).returning();
 
   // Recompute total consumed qty for this BOM row and update it
@@ -1403,7 +1404,7 @@ router.get("/style-consumption/:styleOrderId", requireAuth, async (req, res) => 
 
 router.post("/style-consumption", requireAuth, async (req, res) => {
   const user = (req as any).user;
-  const { styleOrderId, styleOrderProductId, styleOrderProductName, bomRowId, materialCode, materialName, materialType, unitType, consumedQty, notes } = req.body as Record<string, string | number>;
+  const { styleOrderId, styleOrderProductId, styleOrderProductName, bomRowId, materialCode, materialName, materialType, unitType, consumedQty, notes, warehouseLocation } = req.body as Record<string, string | number>;
 
   const [bomRow] = await db.select().from(swatchBomTable).where(eq(swatchBomTable.id, Number(bomRowId)));
   if (!bomRow) { res.status(404).json({ error: "BOM item not found" }); return; }
@@ -1454,6 +1455,7 @@ router.post("/style-consumption", requireAuth, async (req, res) => {
     consumedQty: String(consumedQty),
     consumedBy: user.email,
     notes: notes ? String(notes) : null,
+    warehouseLocation: warehouseLocation ? String(warehouseLocation) : null,
   }).returning();
 
   const allEntries = await db.select().from(consumptionLogTable)
