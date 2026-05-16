@@ -671,40 +671,17 @@ export default function SwatchOrderDetail() {
             {/* ── Section 3: Material ── */}
             <SectionCard icon={<Scissors className="h-4 w-4 text-[#C9B45C]" />} accentColor="bg-gray-900"
               title="Material" subtitle="Fabric specifications and unit sizing">
-              <div className="space-y-4">
-                <Field label="Fabric">
-                  <AddableSelect
-                    value={form.fabricId}
-                    onChange={v => {
-                      const f = fabrics.find(f => String(f.id) === v);
-                      set("fabricId", v);
-                      set("fabricName", f ? `${f.fabricType} – ${f.quality}` : "");
-                    }}
-                    options={fabricOptions}
-                    placeholder="— Select fabric —"
-                  />
-                </Field>
+              <div className="grid grid-cols-2 gap-4">
 
-                <div className="grid grid-cols-2 gap-3 items-end">
-                  <Field label="Lining">
-                    <div className="flex items-center gap-3 pt-1.5">
-                      <button type="button" onClick={() => set("hasLining", !form.hasLining)}
-                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${form.hasLining ? "bg-gray-900" : "bg-gray-200"}`}>
-                        <span className={`inline-block h-4 w-4 rounded-full shadow transform transition-transform ${form.hasLining ? "translate-x-6 bg-[#C9B45C]" : "translate-x-1 bg-white"}`} />
-                      </button>
-                      <span className={`text-sm font-medium ${form.hasLining ? "text-gray-900" : "text-gray-400"}`}>
-                        {form.hasLining ? "Yes" : "No"}
-                      </span>
-                    </div>
-                  </Field>
-                  <Field label="Lining Fabric">
+                {/* Fabric — full row */}
+                <div className="col-span-2">
+                  <Field label="Fabric">
                     <AddableSelect
-                      value={form.liningFabricId}
-                      disabled={!form.hasLining}
+                      value={form.fabricId}
                       onChange={v => {
                         const f = fabrics.find(f => String(f.id) === v);
-                        set("liningFabricId", v);
-                        set("liningFabricName", f ? `${f.fabricType} – ${f.quality}` : "");
+                        set("fabricId", v);
+                        set("fabricName", f ? `${f.fabricType} – ${f.quality}` : "");
                       }}
                       options={fabricOptions}
                       placeholder="— Select fabric —"
@@ -712,25 +689,57 @@ export default function SwatchOrderDetail() {
                   </Field>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
-                  <Field label="Length">
-                    <input className={inputCls} placeholder="Length" type="number" min="0"
-                      value={form.unitLength} onChange={e => set("unitLength", e.target.value)} />
-                  </Field>
-                  <Field label="Width">
-                    <input className={inputCls} placeholder="Width" type="number" min="0"
-                      value={form.unitWidth} onChange={e => set("unitWidth", e.target.value)} />
-                  </Field>
+                {/* Lining toggle */}
+                <Field label="Lining">
+                  <div className="flex items-center gap-3 pt-1.5">
+                    <button type="button" onClick={() => set("hasLining", !form.hasLining)}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${form.hasLining ? "bg-gray-900" : "bg-gray-200"}`}>
+                      <span className={`inline-block h-4 w-4 rounded-full shadow transform transition-transform ${form.hasLining ? "translate-x-6 bg-[#C9B45C]" : "translate-x-1 bg-white"}`} />
+                    </button>
+                    <span className={`text-sm font-medium ${form.hasLining ? "text-gray-900" : "text-gray-400"}`}>
+                      {form.hasLining ? "Yes" : "No"}
+                    </span>
+                  </div>
+                </Field>
+
+                {/* Lining Fabric */}
+                <Field label="Lining Fabric">
+                  <AddableSelect
+                    value={form.liningFabricId}
+                    disabled={!form.hasLining}
+                    onChange={v => {
+                      const f = fabrics.find(f => String(f.id) === v);
+                      set("liningFabricId", v);
+                      set("liningFabricName", f ? `${f.fabricType} – ${f.quality}` : "");
+                    }}
+                    options={fabricOptions}
+                    placeholder="— Select fabric —"
+                  />
+                </Field>
+
+                {/* Dimensions */}
+                <Field label="Length">
+                  <input className={inputCls} placeholder="e.g. 120" type="number" min="0"
+                    value={form.unitLength} onChange={e => set("unitLength", e.target.value)} />
+                </Field>
+
+                <Field label="Width">
+                  <input className={inputCls} placeholder="e.g. 90" type="number" min="0"
+                    value={form.unitWidth} onChange={e => set("unitWidth", e.target.value)} />
+                </Field>
+
+                {/* Unit Type — full row */}
+                <div className="col-span-2">
+                  <AddableSelect
+                    label="Unit Type"
+                    value={form.unitType}
+                    onChange={v => set("unitType", v)}
+                    onAdd={() => { setNewUnitTypeName(""); setUnitTypeError(""); setAddUnitTypeOpen(true); }}
+                    options={unitTypeOptions}
+                    placeholder="— Select unit —"
+                  />
                 </div>
 
-                <AddableSelect
-                  label="Unit Type"
-                  value={form.unitType}
-                  onChange={v => set("unitType", v)}
-                  onAdd={() => { setNewUnitTypeName(""); setUnitTypeError(""); setAddUnitTypeOpen(true); }}
-                  options={unitTypeOptions}
-                  placeholder="Select Unit Type"
-                />
               </div>
             </SectionCard>
 
