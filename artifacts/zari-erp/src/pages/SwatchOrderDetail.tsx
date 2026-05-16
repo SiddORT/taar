@@ -15,7 +15,7 @@ import { useSwatchOrder, useCreateSwatchOrder, useUpdateSwatchOrder, type Refere
 import { useArtworkList, useDeleteArtwork, useUpdateArtwork, type ArtworkRecord, type FileAttachment as ArtFileAttachment } from "@/hooks/useArtworks";
 import { useAllClients, type ClientRecord } from "@/hooks/useClients";
 import { useAllFabrics, type FabricRecord } from "@/hooks/useFabrics";
-import { useUnitTypes, useCreateUnitType, type LookupRecord } from "@/hooks/useLookups";
+import { useUnitTypes, useCreateUnitType, useDepartments, useCreateDepartment, type LookupRecord } from "@/hooks/useLookups";
 import AddableSelect from "@/components/ui/AddableSelect";
 import SearchableSelect from "@/components/ui/SearchableSelect";
 import ImageLightbox from "@/components/ui/ImageLightbox";
@@ -29,7 +29,6 @@ import LinkedInvoicesPanel from "@/components/LinkedInvoicesPanel";
 
 const PRIORITIES = ["Low", "Medium", "High", "Urgent"];
 const ORDER_STATUSES = ["Draft", "Issued", "In Sampling", "In Artwork", "Pending Approval", "Completed", "Rejected", "Cancelled"];
-const DEPARTMENTS = ["Design", "Production", "Sampling", "Artwork", "Quality", "Finishing"];
 
 const PRIORITY_STYLES: Record<string, string> = {
   Low: "bg-gray-900 text-[#C9B45C] ring-gray-900",
@@ -274,16 +273,20 @@ export default function SwatchOrderDetail() {
   const { data: clientsData } = useAllClients();
   const { data: fabricsData } = useAllFabrics();
   const { data: unitTypesData } = useUnitTypes();
+  const { data: departmentsData } = useDepartments();
   const { data: styleRefs } = useStylesForReference();
   const { data: swatchRefs } = useSwatchesForReference();
 
   const createUnitType = useCreateUnitType();
+  const createDept = useCreateDepartment();
 
   const clients: ClientRecord[] = clientsData ?? [];
   const fabrics: FabricRecord[] = fabricsData ?? [];
   const unitTypes: LookupRecord[] = unitTypesData ?? [];
+  const departments: LookupRecord[] = departmentsData ?? [];
 
   const unitTypeOptions = unitTypes.filter(t => t.isActive).map(t => ({ value: t.name, label: t.name }));
+  const deptOptions = departments.filter(d => d.isActive).map(d => ({ value: d.name, label: d.name }));
   const clientOptions = clients.map(c => ({ value: String(c.id), label: c.brandName }));
   const fabricOptions = fabrics.map(f => ({ value: String(f.id), label: `${f.fabricCode} — ${f.fabricType} ${f.quality}` }));
   const styleOptions = (styleRefs ?? []).map((s: StyleRefOption) => ({
@@ -327,6 +330,9 @@ export default function SwatchOrderDetail() {
   const [addUnitTypeOpen, setAddUnitTypeOpen] = useState(false);
   const [newUnitTypeName, setNewUnitTypeName] = useState("");
   const [unitTypeError, setUnitTypeError] = useState("");
+  const [addDeptOpen, setAddDeptOpen] = useState(false);
+  const [newDeptName, setNewDeptName] = useState("");
+  const [deptError, setDeptError] = useState("");
 
   const [artworkToDelete, setArtworkToDelete] = useState<number | null>(null);
   const [imgUploadTarget, setImgUploadTarget] = useState<{ artId: number; type: "wip" | "final" } | null>(null);
@@ -454,6 +460,31 @@ export default function SwatchOrderDetail() {
           setUnitTypeError(`"${trimmed}" already exists — select it from the dropdown`);
         } else {
           setUnitTypeError("Failed to add unit type. Please try again.");
+        }
+      },
+    });
+  }
+
+  function handleAddDept() {
+    const trimmed = newDeptName.trim();
+    if (!trimmed) return;
+    const alreadyExists = departments.some(d => d.name.toLowerCase() === trimmed.toLowerCase());
+    if (alreadyExists) {
+      setDeptError(`"${trimmed}" already exists — select it from the dropdown`);
+      return;
+    }
+    setDeptError("");
+    createDept.mutate({ name: trimmed, isActive: true }, {
+      onSuccess: (result) => {
+        set("department", result.name);
+        setAddDeptOpen(false);
+      },
+      onError: (err: unknown) => {
+        const msg = err instanceof Error ? err.message : "";
+        if (msg.toLowerCase().includes("conflict") || msg.toLowerCase().includes("already exists") || msg.includes("409")) {
+          setDeptError(`"${trimmed}" already exists — select it from the dropdown`);
+        } else {
+          setDeptError("Failed to add department. Please try again.");
         }
       },
     });
@@ -761,12 +792,12 @@ export default function SwatchOrderDetail() {
                       value={form.targetHours} onChange={e => set("targetHours", e.target.value)} />
                   </Field>
                   <Field label="Department">
-                    <SearchableSelect
+                    <AddableSelect
                       value={form.department}
                       onChange={v => set("department", v)}
-                      options={DEPARTMENTS}
+                      onAdd={() => { setNewDeptName(""); setDeptError(""); setAddDeptOpen(true); }}
+                      options={deptOptions}
                       placeholder="— Select department —"
-                      clearable
                     />
                   </Field>
                 </div>
@@ -1440,6 +1471,38 @@ export default function SwatchOrderDetail() {
                 <button onClick={handleDeleteArtworkConfirm} disabled={deleteArtwork.isPending}
                   className="px-4 py-2 rounded-xl bg-red-600 text-white text-sm font-medium hover:bg-red-700 transition-colors disabled:opacity-60">
                   {deleteArtwork.isPending ? "Deleting…" : "Delete"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Add Department Modal */}
+        {addDeptOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+            <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm mx-4">
+              <h3 className="text-base font-semibold text-gray-900 mb-4">Add Department</h3>
+              <input
+                autoFocus
+                className={`${inputCls} ${deptError ? "border-red-400 focus:ring-red-200" : ""}`}
+                placeholder="e.g. Design, Artwork, Sampling"
+                value={newDeptName}
+                onChange={e => { setNewDeptName(e.target.value); setDeptError(""); }}
+                onKeyDown={e => { if (e.key === "Enter") { handleAddDept(); } }}
+              />
+              {deptError && (
+                <p className="mt-2 text-xs text-red-600 flex items-center gap-1">
+                  <span className="font-medium">⚠</span> {deptError}
+                </p>
+              )}
+              <div className="flex justify-end gap-2 mt-4">
+                <button onClick={() => { setAddDeptOpen(false); setDeptError(""); }}
+                  className="px-4 py-2 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-100 transition-colors">
+                  Cancel
+                </button>
+                <button onClick={handleAddDept} disabled={!newDeptName.trim() || createDept.isPending}
+                  className="px-4 py-2 rounded-xl bg-gray-900 text-[#C9B45C] text-sm font-medium hover:bg-black transition-colors disabled:opacity-60">
+                  {createDept.isPending ? "Adding…" : "Add"}
                 </button>
               </div>
             </div>

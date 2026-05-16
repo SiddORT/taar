@@ -111,6 +111,7 @@ router.get("/styles", requireAuth, async (req: AuthRequest, res): Promise<void> 
   const status = (req.query.status as string) ?? "all";
   const clientFilter = (req.query.client as string) ?? "";
   const locationFilter = (req.query.location as string) ?? "";
+  const categoryFilter = (req.query.category as string) ?? "";
   const page = Math.max(1, parseInt((req.query.page as string) ?? "1", 10));
   const limit = Math.min(100, Math.max(1, parseInt((req.query.limit as string) ?? "10", 10)));
   const offset = (page - 1) * limit;
@@ -120,6 +121,7 @@ router.get("/styles", requireAuth, async (req: AuthRequest, res): Promise<void> 
   else if (status === "inactive") conditions.push(eq(stylesTable.isActive, false));
   if (clientFilter) conditions.push(ilike(stylesTable.client, `%${clientFilter}%`));
   if (locationFilter) conditions.push(ilike(stylesTable.placeOfIssue, `%${locationFilter}%`));
+  if (categoryFilter) conditions.push(ilike(stylesTable.styleCategory, `%${categoryFilter}%`));
   if (search) {
     conditions.push(or(
       ilike(stylesTable.styleNo, `%${search}%`),

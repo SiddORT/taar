@@ -11,7 +11,6 @@ import * as XLSX from "xlsx";
 import AppLayout from "@/components/layout/AppLayout";
 import SearchBar from "@/components/master/SearchBar";
 import MasterTable, { type Column, type TableRow } from "@/components/master/MasterTable";
-import StatusToggle from "@/components/master/StatusToggle";
 import ConfirmModal from "@/components/ui/ConfirmModal";
 import ImportResultModal, { normalizeImportResult, type NormalizedImportResult } from "@/components/ui/ImportResultModal";
 
@@ -21,6 +20,7 @@ import {
   type StyleRecord, type StatusFilter,
 } from "@/hooks/useStyles";
 import { useAllClients, type ClientRecord } from "@/hooks/useClients";
+import { useAllStyleCategories, type StyleCategoryRecord } from "@/hooks/useStyleCategories";
 
 // ─── Constants ──────────────────────────────────────────────────────────────────
 const PLACE_OPTIONS = ["In-house", "Out-house"];
@@ -29,7 +29,7 @@ const STATUS_OPTIONS = [
   { value: "active", label: "Active" },
   { value: "inactive", label: "Inactive" },
 ];
-const SELECT_CLS = "border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-900";
+const SELECT_CLS = "rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 shadow-sm outline-none focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10";
 
 function formatDate(val: string | null | undefined) {
   if (!val) return "—";
@@ -62,6 +62,7 @@ export default function StyleMaster() {
   const [status, setStatus] = useState<StatusFilter>("all");
   const [filterClient, setFilterClient] = useState("");
   const [filterLocation, setFilterLocation] = useState("");
+  const [filterCategory, setFilterCategory] = useState("");
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
 
@@ -78,15 +79,17 @@ export default function StyleMaster() {
   const [importResultOpen, setImportResultOpen] = useState(false);
 
   // ── Data ──
-  const { data, isLoading } = useStyleList({ search, status, client: filterClient, location: filterLocation, page, limit });
+  const { data, isLoading } = useStyleList({ search, status, client: filterClient, location: filterLocation, category: filterCategory, page, limit });
   const { data: clientsData } = useAllClients();
+  const { data: styleCatData } = useAllStyleCategories();
 
   const toggleStatus = useToggleStyleStatus();
   const deleteMutation = useDeleteStyle();
   const importMutation = useImportStyles();
 
   const clientOptions = ((clientsData ?? []) as ClientRecord[]).map(c => c.brandName);
-  const hasFilters = !!(search || status !== "all" || filterClient || filterLocation);
+  const styleCatOptions = ((styleCatData ?? []) as StyleCategoryRecord[]).map(c => ({ value: c.categoryName, label: c.categoryName }));
+  const hasFilters = !!(search || status !== "all" || filterClient || filterLocation || filterCategory);
 
   // ── Handlers ──
   async function handleDelete() {
@@ -104,7 +107,7 @@ export default function StyleMaster() {
   }
 
   function clearFilters() {
-    setSearch(""); setStatus("all"); setFilterClient(""); setFilterLocation(""); setPage(1);
+    setSearch(""); setStatus("all"); setFilterClient(""); setFilterLocation(""); setFilterCategory(""); setPage(1);
   }
 
   // ── Import ──
@@ -198,13 +201,16 @@ export default function StyleMaster() {
         return new Date(d).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
       } catch { return d; }
     }},
-    { key: "isActive", label: "Status", render: r => (
-      <StatusToggle isActive={asStyle(r).isActive} onToggle={() => setStatusConfirm({ id: asStyle(r).id, isActive: asStyle(r).isActive })} />
-    )},
+    { key: "isActive", label: "Status", render: r => {
+      const rec = asStyle(r);
+      return (
+        <button type="button" onClick={() => setStatusConfirm({ id: rec.id, isActive: rec.isActive })}
+          className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${rec.isActive ? "bg-gray-900" : "bg-gray-300"}`}>
+          <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${rec.isActive ? "translate-x-[18px]" : "translate-x-0.5"}`} />
+        </button>
+      );
+    }},
     { key: "createdBy", label: "Created By", render: r => asStyle(r).createdBy },
-    { key: "createdAt", label: "Created At", render: r => formatDate(asStyle(r).createdAt) },
-    { key: "updatedBy", label: "Updated By", render: r => asStyle(r).updatedBy || "—" },
-    { key: "updatedAt", label: "Updated At", render: r => formatDate(asStyle(r).updatedAt) },
     {
       key: "actions", label: "Actions", render: r => {
         const rec = asStyle(r);
@@ -225,10 +231,10 @@ export default function StyleMaster() {
       <div className="max-w-screen-xl mx-auto space-y-5">
 
         {/* ── Header ── */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Style Master</h1>
-            <p className="text-sm text-gray-500 mt-0.5">{data?.total ?? 0} styles</p>
+            <h1 className="text-xl font-semibold text-gray-900">Style Master</h1>
+            <p className="text-sm text-gray-400 mt-0.5">{data?.total ?? 0} styles</p>
           </div>
           <div className="flex items-center gap-2">
 
@@ -279,8 +285,10 @@ export default function StyleMaster() {
         </div>
 
         {/* ── Filters ── */}
-        <div className="flex items-center gap-3 flex-wrap">
-          <SearchBar value={search} onChange={v => { setSearch(v); setPage(1); }} placeholder="Search styles…" className="flex-1 min-w-[200px]" />
+        <div className="flex gap-3 items-center flex-wrap">
+          <div className="flex-1 min-w-[200px]">
+            <SearchBar value={search} onChange={v => { setSearch(v); setPage(1); }} placeholder="Search styles…" />
+          </div>
           <select value={filterClient} onChange={e => { setFilterClient(e.target.value); setPage(1); }} className={SELECT_CLS}>
             <option value="">All Clients</option>
             {clientOptions.map(c => <option key={c} value={c}>{c}</option>)}
@@ -289,11 +297,15 @@ export default function StyleMaster() {
             <option value="">All Locations</option>
             {PLACE_OPTIONS.map(p => <option key={p} value={p}>{p}</option>)}
           </select>
+          <select value={filterCategory} onChange={e => { setFilterCategory(e.target.value); setPage(1); }} className={SELECT_CLS}>
+            <option value="">All Categories</option>
+            {styleCatOptions.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+          </select>
           <select value={status} onChange={e => { setStatus(e.target.value as StatusFilter); setPage(1); }} className={SELECT_CLS}>
             {STATUS_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
           {hasFilters && (
-            <button onClick={clearFilters} className="px-3 py-2 text-sm rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50 transition whitespace-nowrap">
+            <button onClick={clearFilters} className="px-3 py-2 text-sm rounded-lg border border-gray-300 bg-white text-gray-600 hover:bg-gray-50 hover:border-gray-400 transition whitespace-nowrap">
               Clear Filters
             </button>
           )}

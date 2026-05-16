@@ -414,14 +414,14 @@ export default function StyleOrderDetail() {
     { id: number; brandName: string; contactName: string; email: string; contactNo: string; country?: string } | undefined;
 
   const deptOptions = departments.map((d: { id: number; name: string }) => ({
-    value: String(d.id), label: d.name,
+    value: d.name, label: d.name,
   }));
 
   async function handleAddDept() {
     if (!newDeptName.trim()) { setDeptError("Name is required"); return; }
     try {
       const result = await createDept.mutateAsync({ name: newDeptName.trim(), isActive: true });
-      set("department", String((result as { id: number }).id));
+      set("department", result.name);
       setAddDeptOpen(false);
       setNewDeptName("");
       setDeptError("");

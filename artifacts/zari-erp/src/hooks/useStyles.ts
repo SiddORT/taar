@@ -32,11 +32,11 @@ export type StatusFilter = "all" | "active" | "inactive";
 const BASE = "/api/styles";
 const QK = "styles";
 
-export function useStyleList(p: { search: string; status: StatusFilter; client: string; location: string; page: number; limit: number }) {
+export function useStyleList(p: { search: string; status: StatusFilter; client: string; location: string; category: string; page: number; limit: number }) {
   return useQuery({
     queryKey: [QK, p],
     queryFn: () => customFetch<{ data: StyleRecord[]; total: number; page: number; limit: number }>(
-      `${BASE}?search=${encodeURIComponent(p.search)}&status=${p.status}&client=${encodeURIComponent(p.client)}&location=${encodeURIComponent(p.location)}&page=${p.page}&limit=${p.limit}`),
+      `${BASE}?search=${encodeURIComponent(p.search)}&status=${p.status}&client=${encodeURIComponent(p.client)}&location=${encodeURIComponent(p.location)}&category=${encodeURIComponent(p.category)}&page=${p.page}&limit=${p.limit}`),
     placeholderData: (prev) => prev,
   });
 }
