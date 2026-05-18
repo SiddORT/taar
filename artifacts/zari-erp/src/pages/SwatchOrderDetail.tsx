@@ -591,20 +591,22 @@ export default function SwatchOrderDetail() {
             </div>
           </div>
           {/* Tab bar */}
-          <div className="px-6 md:px-8 flex items-end gap-0 overflow-x-auto scrollbar-none">
-            {visibleTabs.map((tab) => (
-              <button
-                key={tab.label}
-                onClick={() => setActiveTab(tab.label)}
-                className={`flex items-center gap-1.5 px-4 py-2.5 text-xs font-medium whitespace-nowrap border-b-2 transition-colors ${
-                  activeTab === tab.label
-                    ? "border-gray-900 text-gray-900"
-                    : "border-transparent text-gray-400 hover:text-gray-600"
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
+          <div className="px-6 md:px-8 max-w-6xl mx-auto overflow-x-auto scrollbar-none">
+            <div className="flex items-end gap-0">
+              {visibleTabs.map((tab) => (
+                <button
+                  key={tab.label}
+                  onClick={() => setActiveTab(tab.label)}
+                  className={`flex items-center gap-1.5 px-4 py-2.5 text-xs font-medium whitespace-nowrap border-b-2 transition-colors ${
+                    activeTab === tab.label
+                      ? "border-gray-900 text-gray-900"
+                      : "border-transparent text-gray-400 hover:text-gray-600"
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
