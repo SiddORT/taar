@@ -23,7 +23,7 @@ export default function AppLayout({
         onLogout={onLogout}
         isLoggingOut={isLoggingOut}
       />
-      <main className="flex-1 p-6 md:p-8 max-w-screen-2xl mx-auto w-full">
+      <main className="flex-1 p-6 md:p-8 w-full">
         {children}
       </main>
     </div>
