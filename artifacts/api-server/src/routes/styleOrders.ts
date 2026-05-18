@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db, styleOrdersTable } from "@workspace/db";
-import { eq, and, ilike, or, desc } from "drizzle-orm";
+import { eq, and, ilike, or, desc, sql } from "drizzle-orm";
 import { requireAuth } from "../middlewares/requireAuth";
 import { insertStyleOrderSchema, updateStyleOrderSchema } from "@workspace/db";
 
@@ -102,10 +102,43 @@ router.put("/style-orders/:id", requireAuth, async (req, res) => {
   return res.json({ data: row });
 });
 
-// Delete (soft)
+// Patch status (cancel / priority change)
+router.patch("/style-orders/:id/status", requireAuth, async (req, res) => {
+  const id = parseInt(String(req.params.id));
+  if (isNaN(id)) return res.status(400).json({ error: "Invalid id" });
+  const { orderStatus, priority } = req.body as { orderStatus?: string; priority?: string };
+  const updates: Partial<typeof styleOrdersTable.$inferInsert> = {};
+  if (orderStatus) updates.orderStatus = orderStatus;
+  if (priority) updates.priority = priority;
+  const [row] = await db.update(styleOrdersTable).set(updates).where(eq(styleOrdersTable.id, id)).returning();
+  if (!row) return res.status(404).json({ error: "Not found" });
+  return res.json({ data: row });
+});
+
+// Delete (soft) — only Draft orders with no linked records
 router.delete("/style-orders/:id", requireAuth, async (req, res) => {
   const id = parseInt(String(req.params.id));
   if (isNaN(id)) return res.status(400).json({ error: "Invalid id" });
+
+  const [order] = await db.select({ orderStatus: styleOrdersTable.orderStatus })
+    .from(styleOrdersTable).where(eq(styleOrdersTable.id, id));
+  if (!order) return res.status(404).json({ error: "Not found" });
+
+  if (order.orderStatus !== "Draft") {
+    return res.status(409).json({ error: `Cannot delete an order in "${order.orderStatus}" status. Use "Cancel Order" to deactivate it instead.` });
+  }
+
+  const linked = await db.execute(sql`
+    SELECT (
+      SELECT COUNT(*) FROM style_order_artworks WHERE style_order_id = ${id}
+    ) + (
+      SELECT COUNT(*) FROM consumption_log WHERE style_order_id = ${id}
+    ) AS total
+  `);
+  if (Number((linked.rows?.[0] as Record<string, unknown>)?.total ?? 0) > 0) {
+    return res.status(409).json({ error: "This order has linked artworks or stock consumptions. Use 'Cancel Order' to deactivate it instead." });
+  }
+
   await db.update(styleOrdersTable).set({ isDeleted: true }).where(eq(styleOrdersTable.id, id));
   return res.json({ message: "Deleted" });
 });

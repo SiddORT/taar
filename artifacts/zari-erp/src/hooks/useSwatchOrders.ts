@@ -104,3 +104,15 @@ export function useDeleteSwatchOrder() {
     onSuccess: () => qc.invalidateQueries({ queryKey: [QK] }),
   });
 }
+
+export function useCancelSwatchOrder() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) =>
+      customFetch<{ data: SwatchOrderRecord }>(`${BASE}/${id}/status`, {
+        method: "PATCH",
+        body: JSON.stringify({ orderStatus: "Cancelled" }),
+      }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: [QK] }),
+  });
+}

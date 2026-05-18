@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
-import { Plus, Search, Eye, Trash2, Copy, ChevronLeft, ChevronRight, Layers, Calendar, User, Hash, Palette, LayoutGrid, LayoutList } from "lucide-react";
+import { Plus, Search, Eye, Trash2, XCircle, Copy, ChevronLeft, ChevronRight, Layers, Calendar, User, Hash, Palette, LayoutGrid, LayoutList } from "lucide-react";
 import { useGetMe, useLogout, getGetMeQueryKey } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
 import AppLayout from "@/components/layout/AppLayout";
 import ConfirmModal from "@/components/ui/ConfirmModal";
-import { useStyleOrderList, useDeleteStyleOrder, useCreateStyleOrder, type StyleOrderRecord } from "@/hooks/useStyleOrders";
+import { useStyleOrderList, useDeleteStyleOrder, useCancelStyleOrder, useCreateStyleOrder, type StyleOrderRecord } from "@/hooks/useStyleOrders";
 
 const ORDER_STATUSES = ["Draft", "Issued", "In Production", "In Review", "Pending Approval", "Completed", "Rejected", "Cancelled"];
 const PRIORITIES = ["Low", "Medium", "High", "Urgent"];
@@ -59,12 +59,18 @@ function PriorityDot({ priority }: { priority: string }) {
   );
 }
 
-function OrderCard({ order, onView, onDelete, onCopy }: {
+const CANCELLABLE = new Set(["Issued", "In Production", "In Review", "Pending Approval"]);
+
+function OrderCard({ order, onView, onDelete, onCancel, onCopy }: {
   order: StyleOrderRecord;
   onView: () => void;
   onDelete: () => void;
+  onCancel: () => void;
   onCopy: () => void;
 }) {
+  const isDraft = order.orderStatus === "Draft";
+  const canCancel = CANCELLABLE.has(order.orderStatus);
+
   return (
     <div className={CARD}>
       <div className={`h-1 w-full ${STATUS_BAR[order.orderStatus] ?? "bg-gray-200"}`} />
@@ -129,10 +135,18 @@ function OrderCard({ order, onView, onDelete, onCopy }: {
             className="p-2 rounded-xl text-gray-400 hover:text-sky-600 hover:bg-sky-50 transition-colors border border-gray-100">
             <Copy className="h-3.5 w-3.5" />
           </button>
-          <button onClick={onDelete}
-            className="p-2 rounded-xl text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors border border-gray-100">
-            <Trash2 className="h-3.5 w-3.5" />
-          </button>
+          {isDraft && (
+            <button onClick={onDelete} title="Delete draft"
+              className="p-2 rounded-xl text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors border border-gray-100">
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          )}
+          {canCancel && (
+            <button onClick={onCancel} title="Cancel order"
+              className="p-2 rounded-xl text-gray-400 hover:text-orange-500 hover:bg-orange-50 transition-colors border border-gray-100">
+              <XCircle className="h-3.5 w-3.5" />
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -155,10 +169,12 @@ export default function StyleOrders() {
   const [inhouseFilter, setInhouseFilter] = useState("all");
   const [page, setPage] = useState(1);
   const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [cancelId, setCancelId] = useState<number | null>(null);
   const [view, setView] = useState<"grid" | "table">("grid");
 
   const { data, isLoading } = useStyleOrderList({ search, status: statusFilter, priority: priorityFilter, chargeable: chargeableFilter, inhouse: inhouseFilter, page, limit: 24 });
   const deleteOrder = useDeleteStyleOrder();
+  const cancelOrder = useCancelStyleOrder();
   const copyOrder = useCreateStyleOrder();
 
   const orders = data?.data ?? [];
@@ -180,10 +196,23 @@ export default function StyleOrders() {
     try {
       await deleteOrder.mutateAsync(deleteId);
       toast({ title: "Style order deleted" });
-    } catch {
-      toast({ title: "Error", description: "Failed to delete", variant: "destructive" });
+    } catch (err: unknown) {
+      const msg = (err as { data?: { error?: string } })?.data?.error ?? "Failed to delete order.";
+      toast({ title: "Cannot Delete", description: msg, variant: "destructive" });
     } finally {
       setDeleteId(null);
+    }
+  }
+
+  async function handleCancel() {
+    if (!cancelId) return;
+    try {
+      await cancelOrder.mutateAsync(cancelId);
+      toast({ title: "Order cancelled", description: "The order has been marked as Cancelled." });
+    } catch {
+      toast({ title: "Error", description: "Failed to cancel order.", variant: "destructive" });
+    } finally {
+      setCancelId(null);
     }
   }
 
@@ -317,6 +346,7 @@ export default function StyleOrders() {
               <OrderCard key={order.id} order={order}
                 onView={() => setLocation(`/style-orders/${order.id}`)}
                 onDelete={() => setDeleteId(order.id)}
+                onCancel={() => setCancelId(order.id)}
                 onCopy={() => void handleCopy(order)}
               />
             ))}
@@ -358,10 +388,18 @@ export default function StyleOrders() {
                           className="p-1.5 rounded-lg text-gray-400 hover:text-sky-600 hover:bg-sky-50 transition-colors">
                           <Copy className="h-3.5 w-3.5" />
                         </button>
-                        <button onClick={() => setDeleteId(order.id)}
-                          className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors">
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
+                        {order.orderStatus === "Draft" && (
+                          <button onClick={() => setDeleteId(order.id)} title="Delete draft"
+                            className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors">
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        )}
+                        {CANCELLABLE.has(order.orderStatus) && (
+                          <button onClick={() => setCancelId(order.id)} title="Cancel order"
+                            className="p-1.5 rounded-lg text-gray-400 hover:text-orange-500 hover:bg-orange-50 transition-colors">
+                            <XCircle className="h-3.5 w-3.5" />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -395,6 +433,13 @@ export default function StyleOrders() {
         message="This style order will be permanently deleted. Are you sure?"
         onCancel={() => setDeleteId(null)}
         onConfirm={() => { void handleDelete(); }}
+      />
+      <ConfirmModal
+        open={cancelId !== null}
+        title="Cancel Style Order"
+        message="Are you sure you want to cancel this style order? It will be marked as Cancelled and cannot be reactivated."
+        onCancel={() => setCancelId(null)}
+        onConfirm={() => { void handleCancel(); }}
       />
     </AppLayout>
   );

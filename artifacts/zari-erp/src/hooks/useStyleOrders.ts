@@ -100,3 +100,15 @@ export function useDeleteStyleOrder() {
     onSuccess: () => qc.invalidateQueries({ queryKey: [QK] }),
   });
 }
+
+export function useCancelStyleOrder() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) =>
+      customFetch<{ data: StyleOrderRecord }>(`${BASE}/${id}/status`, {
+        method: "PATCH",
+        body: JSON.stringify({ orderStatus: "Cancelled" }),
+      }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: [QK] }),
+  });
+}

@@ -194,6 +194,28 @@ router.patch("/swatch-orders/:id/status", requireAuth, async (req, res): Promise
 router.delete("/swatch-orders/:id", requireAuth, async (req, res): Promise<void> => {
   const id = parseInt(String(req.params.id));
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+
+  const [order] = await db.select({ orderStatus: swatchOrdersTable.orderStatus })
+    .from(swatchOrdersTable).where(eq(swatchOrdersTable.id, id));
+  if (!order) { res.status(404).json({ error: "Not found" }); return; }
+
+  if (order.orderStatus !== "Draft") {
+    res.status(409).json({ error: `Cannot delete an order in "${order.orderStatus}" status. Use "Cancel Order" to deactivate it instead.` });
+    return;
+  }
+
+  const linked = await db.execute(sql`
+    SELECT (
+      SELECT COUNT(*) FROM swatch_order_artworks WHERE swatch_order_id = ${id}
+    ) + (
+      SELECT COUNT(*) FROM consumption_log WHERE swatch_order_id = ${id}
+    ) AS total
+  `);
+  if (Number((linked.rows?.[0] as Record<string, unknown>)?.total ?? 0) > 0) {
+    res.status(409).json({ error: "This order has linked artworks or stock consumptions. Use 'Cancel Order' to deactivate it instead." });
+    return;
+  }
+
   const user = (req as typeof req & { user?: { email: string } }).user;
   await db.update(swatchOrdersTable).set({ isDeleted: true, updatedBy: user?.email ?? "system", updatedAt: new Date() })
     .where(eq(swatchOrdersTable.id, id));
