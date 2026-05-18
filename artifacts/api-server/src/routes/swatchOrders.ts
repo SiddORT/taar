@@ -177,7 +177,7 @@ router.patch("/swatch-orders/:id/status", requireAuth, async (req, res): Promise
   const id = parseInt(String(req.params.id));
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   const user = (req as typeof req & { user?: { email: string } }).user;
-  const { orderStatus, priority } = req.body as { orderStatus?: string; priority?: string };
+  const { orderStatus, priority, cancelReason } = req.body as { orderStatus?: string; priority?: string; cancelReason?: string };
 
   const updates: Partial<typeof swatchOrdersTable.$inferInsert> = {
     updatedBy: user?.email ?? "system",
@@ -185,6 +185,7 @@ router.patch("/swatch-orders/:id/status", requireAuth, async (req, res): Promise
   };
   if (orderStatus) updates.orderStatus = orderStatus;
   if (priority) updates.priority = priority;
+  if (cancelReason !== undefined) updates.cancelReason = cancelReason;
 
   const [row] = await db.update(swatchOrdersTable).set(updates).where(eq(swatchOrdersTable.id, id)).returning();
   if (!row) { res.status(404).json({ error: "Not found" }); return; }

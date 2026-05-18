@@ -4,7 +4,7 @@ import { useUnsavedChanges } from "@/hooks/useUnsavedChanges";
 import { useLocation, useParams } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
 import {
-  ArrowLeft, Save, Loader2, ChevronDown,
+  ArrowLeft, Save, Loader2, ChevronDown, XCircle,
   User, CalendarDays, MessageSquare, CheckCircle2,
   Layers, Paperclip, Plus, X, FileText, Image as ImageIcon, Video,
 } from "lucide-react";
@@ -14,7 +14,8 @@ import AppLayout from "@/components/layout/AppLayout";
 import { useAllClients } from "@/hooks/useClients";
 import AddableSelect from "@/components/ui/AddableSelect";
 import { useDepartments, useCreateDepartment } from "@/hooks/useLookups";
-import { useStyleOrder, useCreateStyleOrder, useUpdateStyleOrder, type ReferenceItem, type FileAttachment } from "@/hooks/useStyleOrders";
+import { useStyleOrder, useCreateStyleOrder, useUpdateStyleOrder, useCancelStyleOrder, type ReferenceItem, type FileAttachment } from "@/hooks/useStyleOrders";
+import CancelOrderModal from "@/components/ui/CancelOrderModal";
 import { useStylesForReference, type StyleRefOption } from "@/hooks/useStyles";
 import { useSwatchesForReference, type SwatchRefOption } from "@/hooks/useSwatches";
 import ProductsTab from "./ProductsTab";
@@ -277,6 +278,8 @@ export default function StyleOrderDetail() {
   const { data: orderData, isLoading: loadingOrder } = useStyleOrder(numId);
   const createOrder = useCreateStyleOrder();
   const updateOrder = useUpdateStyleOrder();
+  const cancelOrderMutation = useCancelStyleOrder();
+  const [cancelOpen, setCancelOpen] = useState(false);
 
   const { data: clientsData } = useAllClients();
   const clients = (clientsData as any)?.data ?? clientsData ?? [];
@@ -458,6 +461,22 @@ export default function StyleOrderDetail() {
   const handleSaveForGuard = useCallback(async () => { await handleSave(); }, [form, isNew, numId]);
   const { clearDirty } = useUnsavedChanges(isDirty, handleSaveForGuard);
 
+  const CANCELLABLE_STATUSES = new Set(["Issued", "In Production", "In Review", "Pending Approval"]);
+  const canCancelOrder = !isNew && CANCELLABLE_STATUSES.has(form.orderStatus);
+
+  async function handleCancelOrder(reason: string) {
+    if (!numId) return;
+    try {
+      await cancelOrderMutation.mutateAsync({ id: numId, reason });
+      toast({ title: "Order cancelled", description: "The order has been marked as Cancelled." });
+      setCancelOpen(false);
+      setForm(prev => ({ ...prev, orderStatus: "Cancelled" }));
+      savedFormRef.current = { ...savedFormRef.current, orderStatus: "Cancelled" };
+    } catch {
+      toast({ title: "Error", description: "Failed to cancel order.", variant: "destructive" });
+    }
+  }
+
   function handleLogout() {
     logoutMutation.mutate(undefined, {
       onSuccess: () => {
@@ -505,6 +524,13 @@ export default function StyleOrderDetail() {
                 </select>
                 <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 pointer-events-none opacity-60" />
               </div>
+              {canCancelOrder && (
+                <button onClick={() => setCancelOpen(true)}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium text-orange-600 bg-orange-50 hover:bg-orange-100 border border-orange-200 transition-colors shrink-0">
+                  <XCircle className="h-4 w-4" />
+                  Cancel Order
+                </button>
+              )}
               <button onClick={() => { void handleSave(); }} disabled={saving}
                 style={{ background: "linear-gradient(135deg, #C6AF4B, #a8922e)" }}
                 className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-50 transition-all shadow-md shrink-0">
@@ -1152,6 +1178,12 @@ export default function StyleOrderDetail() {
         </div>
       )}
 
+      <CancelOrderModal
+        open={cancelOpen}
+        orderCode={isNew ? undefined : (orderData?.data?.orderCode ?? undefined)}
+        onConfirm={(reason) => { void handleCancelOrder(reason); }}
+        onCancel={() => setCancelOpen(false)}
+      />
     </AppLayout>
   );
 }

@@ -48,6 +48,7 @@ export const styleOrdersTable = pgTable("style_orders", {
   actualCompletionDate: text("actual_completion_date"),
   actualCompletionTime: text("actual_completion_time"),
   delayReason: text("delay_reason"),
+  cancelReason: text("cancel_reason"),
   approvalDate: text("approval_date"),
   revisionCount: integer("revision_count").notNull().default(0),
 
@@ -97,6 +98,7 @@ export const insertStyleOrderSchema = z.object({
   actualCompletionDate: z.string().optional(),
   actualCompletionTime: z.string().optional(),
   delayReason: z.string().optional(),
+  cancelReason: z.string().optional(),
   approvalDate: z.string().optional(),
 });
 

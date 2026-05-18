@@ -6,6 +6,7 @@ import { useGetMe, useLogout, getGetMeQueryKey } from "@workspace/api-client-rea
 import { useToast } from "@/hooks/use-toast";
 import AppLayout from "@/components/layout/AppLayout";
 import ConfirmModal from "@/components/ui/ConfirmModal";
+import CancelOrderModal from "@/components/ui/CancelOrderModal";
 import { useStyleOrderList, useDeleteStyleOrder, useCancelStyleOrder, useCreateStyleOrder, type StyleOrderRecord } from "@/hooks/useStyleOrders";
 
 const ORDER_STATUSES = ["Draft", "Issued", "In Production", "In Review", "Pending Approval", "Completed", "Rejected", "Cancelled"];
@@ -204,10 +205,10 @@ export default function StyleOrders() {
     }
   }
 
-  async function handleCancel() {
+  async function handleCancel(reason: string) {
     if (!cancelId) return;
     try {
-      await cancelOrder.mutateAsync(cancelId);
+      await cancelOrder.mutateAsync({ id: cancelId, reason });
       toast({ title: "Order cancelled", description: "The order has been marked as Cancelled." });
     } catch {
       toast({ title: "Error", description: "Failed to cancel order.", variant: "destructive" });
@@ -434,12 +435,10 @@ export default function StyleOrders() {
         onCancel={() => setDeleteId(null)}
         onConfirm={() => { void handleDelete(); }}
       />
-      <ConfirmModal
+      <CancelOrderModal
         open={cancelId !== null}
-        title="Cancel Style Order"
-        message="Are you sure you want to cancel this style order? It will be marked as Cancelled and cannot be reactivated."
+        onConfirm={(reason) => { void handleCancel(reason); }}
         onCancel={() => setCancelId(null)}
-        onConfirm={() => { void handleCancel(); }}
       />
     </AppLayout>
   );

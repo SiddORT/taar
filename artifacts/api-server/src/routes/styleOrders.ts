@@ -106,10 +106,15 @@ router.put("/style-orders/:id", requireAuth, async (req, res) => {
 router.patch("/style-orders/:id/status", requireAuth, async (req, res) => {
   const id = parseInt(String(req.params.id));
   if (isNaN(id)) return res.status(400).json({ error: "Invalid id" });
-  const { orderStatus, priority } = req.body as { orderStatus?: string; priority?: string };
-  const updates: Partial<typeof styleOrdersTable.$inferInsert> = {};
+  const { orderStatus, priority, cancelReason } = req.body as { orderStatus?: string; priority?: string; cancelReason?: string };
+  const user = (req as typeof req & { user?: { email: string } }).user;
+  const updates: Partial<typeof styleOrdersTable.$inferInsert> = {
+    updatedBy: user?.email ?? "system",
+    updatedAt: new Date(),
+  };
   if (orderStatus) updates.orderStatus = orderStatus;
   if (priority) updates.priority = priority;
+  if (cancelReason !== undefined) updates.cancelReason = cancelReason;
   const [row] = await db.update(styleOrdersTable).set(updates).where(eq(styleOrdersTable.id, id)).returning();
   if (!row) return res.status(404).json({ error: "Not found" });
   return res.json({ data: row });
