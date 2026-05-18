@@ -28,7 +28,7 @@ import ShippingTab from "@/pages/ShippingTab";
 import LinkedInvoicesPanel from "@/components/LinkedInvoicesPanel";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
-const ORDER_STATUSES = ["Draft", "Issued", "In Production", "In Review", "Pending Approval", "Completed", "Rejected", "Cancelled"];
+const ORDER_STATUSES = ["Draft", "Issued", "In Production", "In Review", "Pending Approval", "Completed", "Rejected"];
 
 const STANDARD_ESTIMATE_ITEMS = [
   "Sampling", "Artwork", "Material", "Embroidery",

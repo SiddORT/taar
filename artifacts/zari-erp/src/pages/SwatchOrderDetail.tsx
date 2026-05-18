@@ -29,7 +29,7 @@ import ShippingTab from "@/pages/ShippingTab";
 import LinkedInvoicesPanel from "@/components/LinkedInvoicesPanel";
 
 const PRIORITIES = ["Low", "Medium", "High", "Urgent"];
-const ORDER_STATUSES = ["Draft", "Issued", "In Sampling", "In Artwork", "Pending Approval", "Completed", "Rejected", "Cancelled"];
+const ORDER_STATUSES = ["Draft", "Issued", "In Sampling", "In Artwork", "Pending Approval", "Completed", "Rejected"];
 
 const PRIORITY_STYLES: Record<string, string> = {
   Low: "bg-gray-900 text-[#C9B45C] ring-gray-900",
