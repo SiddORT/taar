@@ -44,6 +44,7 @@ const OPERATIONS_SECTIONS = [
   {
     title: "Procurement",
     items: [
+      { label: "Vendor Challans",   href: "/procurement/vendor-challans" },
       { label: "Purchase Orders",   href: "/procurement/purchase-orders" },
       { label: "Purchase Receipts", href: "/procurement/purchase-receipts" },
     ],

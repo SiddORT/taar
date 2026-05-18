@@ -40,6 +40,7 @@ import dashboardOverviewRouter from "./dashboardOverview";
 import reportsRouter from "./reports";
 import packingListsRouter from "./packingLists";
 import itemsRouter from "./items";
+import vendorChallansRouter from "./vendorChallans";
 
 const router: IRouter = Router();
 
@@ -84,5 +85,6 @@ router.use(dashboardOverviewRouter);
 router.use(reportsRouter);
 router.use(packingListsRouter);
 router.use(itemsRouter);
+router.use(vendorChallansRouter);
 
 export default router;

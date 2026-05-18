@@ -23,3 +23,4 @@ export * from "./vendorLedger";
 export * from "./inventory";
 export * from "./purchaseReceipts";
 export * from "./items";
+export * from "./vendorChallans";

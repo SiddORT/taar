@@ -67,6 +67,8 @@ import AccountPurchases from "@/pages/AccountPurchases";
 import AccountSales from "@/pages/AccountSales";
 import OtherExpenses from "@/pages/OtherExpenses";
 import AccountsDashboard from "@/pages/AccountsDashboard";
+import VendorChallans from "@/pages/VendorChallans";
+import VendorChallanDetail from "@/pages/VendorChallanDetail";
 
 import Reports from "@/pages/Reports";
 
@@ -157,6 +159,9 @@ function Router() {
       <Route path="/quotation" component={QuotationList} />
       <Route path="/inventory/purchase-receipts/:id" component={PurchaseReceiptForm} />
       <Route path="/inventory/purchase-receipts" component={PurchaseReceipts} />
+      <Route path="/procurement/vendor-challans/new" component={VendorChallanDetail} />
+      <Route path="/procurement/vendor-challans/:id" component={VendorChallanDetail} />
+      <Route path="/procurement/vendor-challans" component={VendorChallans} />
       <Route path="/procurement/purchase-orders/:id" component={PurchaseOrderForm} />
       <Route path="/procurement/purchase-orders" component={PurchaseOrderList} />
       <Route path="/procurement/purchase-receipts/:id" component={PurchaseReceiptForm} />

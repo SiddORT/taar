@@ -1,0 +1,445 @@
+import { useState, useEffect, useCallback } from "react";
+import { useLocation } from "wouter";
+import {
+  Plus, Search, X, CheckCircle, XCircle, ArrowRight,
+  FileText, ChevronLeft, ChevronRight, Loader2, RefreshCw,
+} from "lucide-react";
+
+const BASE = (import.meta.env.BASE_URL ?? "/").replace(/\/$/, "");
+
+const CHALLAN_TYPES = [
+  "Material", "Artwork", "Outsource",
+  "Toile Artisan", "Pattern Artisan", "Custom Artisan",
+  "Packing", "Shipping", "Other Expense",
+];
+const CHALLAN_STATUSES = ["Draft", "Verified", "Converted to PO", "Converted to PR", "Billed", "Paid", "Cancelled"];
+const DURATION_OPTIONS = [
+  { label: "1 Month",  value: 1 },
+  { label: "3 Months", value: 3 },
+  { label: "6 Months", value: 6 },
+  { label: "1 Year",   value: 12 },
+];
+
+const STATUS_COLORS: Record<string, string> = {
+  "Draft":           "bg-gray-100 text-gray-600",
+  "Verified":        "bg-blue-100 text-blue-700",
+  "Converted to PO": "bg-violet-100 text-violet-700",
+  "Converted to PR": "bg-indigo-100 text-indigo-700",
+  "Billed":          "bg-amber-100 text-amber-700",
+  "Paid":            "bg-green-100 text-green-700",
+  "Cancelled":       "bg-red-100 text-red-600",
+};
+
+type Challan = {
+  id: number;
+  challan_number: string;
+  challan_date: string;
+  vendor_name: string;
+  challan_type: string;
+  description: string;
+  amount: string;
+  status: string;
+  linked_po_number: string | null;
+  linked_pr_number: string | null;
+};
+
+type Vendor = { id: number; brand_name: string };
+
+function authHeaders() {
+  const token = localStorage.getItem("zarierp_token");
+  return { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) };
+}
+
+async function apiFetch(path: string, opts?: RequestInit) {
+  const r = await fetch(`${BASE}${path}`, { ...opts, headers: { ...authHeaders(), ...(opts?.headers ?? {}) } });
+  return r;
+}
+
+export default function VendorChallans() {
+  const [, setLocation] = useLocation();
+  const [challans, setChallans]     = useState<Challan[]>([]);
+  const [total, setTotal]           = useState(0);
+  const [page, setPage]             = useState(1);
+  const [loading, setLoading]       = useState(false);
+
+  const [search, setSearch]         = useState("");
+  const [vendorFilter, setVendorFilter] = useState("");
+  const [typeFilter, setTypeFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [dateFrom, setDateFrom]     = useState("");
+  const [dateTo, setDateTo]         = useState("");
+
+  const [vendors, setVendors]       = useState<Vendor[]>([]);
+  const [actionId, setActionId]     = useState<number | null>(null);
+
+  // Convert to PO modal state
+  const [convertOpen, setConvertOpen]   = useState(false);
+  const [cvVendorId, setCvVendorId]     = useState("");
+  const [cvType, setCvType]             = useState("");
+  const [cvDuration, setCvDuration]     = useState(1);
+  const [cvPreview, setCvPreview]       = useState<Challan[]>([]);
+  const [cvPreviewing, setCvPreviewing] = useState(false);
+  const [cvConverting, setCvConverting] = useState(false);
+  const [cvSuccess, setCvSuccess]       = useState("");
+  const [cvError, setCvError]           = useState("");
+
+  const LIMIT = 20;
+
+  const fetchVendors = useCallback(async () => {
+    const r = await apiFetch("/api/vendors/all");
+    if (r.ok) { const d = await r.json(); setVendors(d); }
+  }, []);
+
+  const fetchChallans = useCallback(async () => {
+    setLoading(true);
+    const params = new URLSearchParams({
+      search, vendor: vendorFilter, challanType: typeFilter, status: statusFilter,
+      dateFrom, dateTo, page: String(page), limit: String(LIMIT),
+    });
+    const r = await apiFetch(`/api/vendor-challans?${params}`);
+    if (r.ok) { const d = await r.json(); setChallans(d.data); setTotal(d.total); }
+    setLoading(false);
+  }, [search, vendorFilter, typeFilter, statusFilter, dateFrom, dateTo, page]);
+
+  useEffect(() => { void fetchVendors(); }, [fetchVendors]);
+  useEffect(() => { setPage(1); }, [search, vendorFilter, typeFilter, statusFilter, dateFrom, dateTo]);
+  useEffect(() => { void fetchChallans(); }, [fetchChallans]);
+
+  async function handleVerify(id: number) {
+    setActionId(id);
+    const r = await apiFetch(`/api/vendor-challans/${id}/verify`, { method: "PATCH" });
+    if (r.ok) void fetchChallans();
+    else { const e = await r.json(); alert(e.error ?? "Failed to verify"); }
+    setActionId(null);
+  }
+
+  async function handleCancel(id: number) {
+    if (!confirm("Cancel this challan?")) return;
+    setActionId(id);
+    const r = await apiFetch(`/api/vendor-challans/${id}/cancel`, { method: "PATCH" });
+    if (r.ok) void fetchChallans();
+    else { const e = await r.json(); alert(e.error ?? "Failed to cancel"); }
+    setActionId(null);
+  }
+
+  async function handleDelete(id: number) {
+    if (!confirm("Delete this challan? This cannot be undone.")) return;
+    setActionId(id);
+    const r = await apiFetch(`/api/vendor-challans/${id}`, { method: "DELETE" });
+    if (r.ok) void fetchChallans();
+    else { const e = await r.json(); alert(e.error ?? "Failed to delete"); }
+    setActionId(null);
+  }
+
+  async function handlePreviewPO() {
+    if (!cvVendorId || !cvType) { setCvError("Select a vendor and challan type"); return; }
+    setCvError(""); setCvPreviewing(true); setCvPreview([]);
+    const r = await apiFetch("/api/vendor-challans/preview-po", {
+      method: "POST",
+      body: JSON.stringify({ vendorId: parseInt(cvVendorId, 10), challanType: cvType, durationMonths: cvDuration }),
+    });
+    const d = await r.json();
+    if (r.ok) { setCvPreview(d.data); if (!d.data.length) setCvError("No eligible Verified challans found for this selection."); }
+    else setCvError(d.error ?? "Failed to preview");
+    setCvPreviewing(false);
+  }
+
+  async function handleConvertToPO() {
+    if (!cvPreview.length) return;
+    setCvConverting(true); setCvError(""); setCvSuccess("");
+    const vendorObj = vendors.find(v => String(v.id) === cvVendorId);
+    const r = await apiFetch("/api/vendor-challans/convert-to-po", {
+      method: "POST",
+      body: JSON.stringify({ vendorId: parseInt(cvVendorId, 10), vendorName: vendorObj?.brand_name ?? "", challanType: cvType, durationMonths: cvDuration }),
+    });
+    const d = await r.json();
+    if (r.ok) {
+      setCvSuccess(`${d.message} — PO #${d.poNumber} created`);
+      void fetchChallans();
+      setCvPreview([]);
+    } else setCvError(d.error ?? "Failed to convert");
+    setCvConverting(false);
+  }
+
+  function resetConvert() {
+    setCvVendorId(""); setCvType(""); setCvDuration(1); setCvPreview([]);
+    setCvError(""); setCvSuccess(""); setConvertOpen(false);
+  }
+
+  const totalPages = Math.ceil(total / LIMIT);
+  const hasFilters = search || vendorFilter || typeFilter || statusFilter || dateFrom || dateTo;
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <div className="bg-white border-b border-gray-200 px-6 py-4">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
+          <div>
+            <h1 className="text-xl font-bold text-gray-900">Vendor Challans</h1>
+            <p className="text-sm text-gray-500 mt-0.5">Daily vendor challan entries before PO creation</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button onClick={() => setConvertOpen(true)}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-violet-50 text-violet-700 border border-violet-200 hover:bg-violet-100 transition-colors">
+              <ArrowRight className="h-4 w-4" /> Convert to PO
+            </button>
+            <button onClick={() => setLocation("/procurement/vendor-challans/new")}
+              style={{ background: "linear-gradient(135deg, #C6AF4B, #a8922e)" }}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white transition-all shadow-sm">
+              <Plus className="h-4 w-4" /> New Challan
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className="max-w-7xl mx-auto px-6 py-4">
+        <div className="bg-white rounded-2xl border border-gray-200 p-4 flex flex-wrap gap-3 items-end">
+          <div className="relative flex-1 min-w-48">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search challan, vendor, description…"
+              className="pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-xl w-full focus:outline-none focus:ring-2 focus:ring-gray-300" />
+          </div>
+          <select value={vendorFilter} onChange={e => setVendorFilter(e.target.value)}
+            className="px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-300 min-w-36">
+            <option value="">All Vendors</option>
+            {vendors.map(v => <option key={v.id} value={String(v.id)}>{v.brand_name}</option>)}
+          </select>
+          <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)}
+            className="px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-300 min-w-36">
+            <option value="">All Types</option>
+            {CHALLAN_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+          </select>
+          <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
+            className="px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-300 min-w-36">
+            <option value="">All Statuses</option>
+            {CHALLAN_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
+          </select>
+          <div className="flex items-center gap-2">
+            <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
+              className="px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-300" />
+            <span className="text-gray-400 text-xs">to</span>
+            <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
+              className="px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-300" />
+          </div>
+          {hasFilters && (
+            <button onClick={() => { setSearch(""); setVendorFilter(""); setTypeFilter(""); setStatusFilter(""); setDateFrom(""); setDateTo(""); }}
+              className="flex items-center gap-1 px-3 py-2 rounded-xl text-sm text-gray-500 hover:bg-gray-100 border border-gray-200 transition-colors">
+              <X className="h-3.5 w-3.5" /> Clear
+            </button>
+          )}
+          <button onClick={fetchChallans} className="p-2 rounded-xl border border-gray-200 text-gray-500 hover:bg-gray-100 transition-colors">
+            <RefreshCw className="h-4 w-4" />
+          </button>
+        </div>
+
+        {/* Table */}
+        <div className="mt-4 bg-white rounded-2xl border border-gray-200 overflow-hidden">
+          {loading ? (
+            <div className="flex items-center justify-center py-16 gap-2 text-gray-400">
+              <Loader2 className="h-5 w-5 animate-spin" /> Loading…
+            </div>
+          ) : challans.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 gap-3 text-gray-400">
+              <FileText className="h-10 w-10 text-gray-200" />
+              <p className="text-sm">No challans found</p>
+              <button onClick={() => setLocation("/procurement/vendor-challans/new")}
+                className="text-sm text-gray-700 underline">Create your first challan</button>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-gray-50 border-b border-gray-100">
+                    {["Challan #", "Date", "Vendor", "Type", "Description", "Amount", "Status", "Linked PO", "Linked PR", "Actions"].map(h => (
+                      <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {challans.map(ch => (
+                    <tr key={ch.id} className="hover:bg-gray-50 transition-colors group">
+                      <td className="px-4 py-3">
+                        <button onClick={() => setLocation(`/procurement/vendor-challans/${ch.id}`)}
+                          className="font-mono text-xs font-semibold text-gray-900 hover:text-[#C9B45C] transition-colors">
+                          {ch.challan_number}
+                        </button>
+                      </td>
+                      <td className="px-4 py-3 text-xs text-gray-600 whitespace-nowrap">{ch.challan_date}</td>
+                      <td className="px-4 py-3 text-xs text-gray-700 max-w-32 truncate">{ch.vendor_name ?? "—"}</td>
+                      <td className="px-4 py-3">
+                        <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">{ch.challan_type}</span>
+                      </td>
+                      <td className="px-4 py-3 text-xs text-gray-600 max-w-48 truncate">{ch.description ?? "—"}</td>
+                      <td className="px-4 py-3 text-xs font-semibold text-gray-900 whitespace-nowrap">
+                        {ch.amount ? `₹${parseFloat(ch.amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}` : "—"}
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[ch.status] ?? "bg-gray-100 text-gray-600"}`}>
+                          {ch.status}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-xs font-mono text-violet-600">{ch.linked_po_number ?? "—"}</td>
+                      <td className="px-4 py-3 text-xs font-mono text-indigo-600">{ch.linked_pr_number ?? "—"}</td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          {ch.status === "Draft" && (
+                            <button onClick={() => handleVerify(ch.id)} disabled={actionId === ch.id}
+                              title="Verify"
+                              className="p-1.5 rounded-lg text-blue-600 hover:bg-blue-50 transition-colors disabled:opacity-40">
+                              {actionId === ch.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle className="h-3.5 w-3.5" />}
+                            </button>
+                          )}
+                          {!["Converted to PO", "Converted to PR", "Billed", "Paid", "Cancelled"].includes(ch.status) && (
+                            <button onClick={() => handleCancel(ch.id)} disabled={actionId === ch.id}
+                              title="Cancel"
+                              className="p-1.5 rounded-lg text-orange-500 hover:bg-orange-50 transition-colors disabled:opacity-40">
+                              <XCircle className="h-3.5 w-3.5" />
+                            </button>
+                          )}
+                          {["Draft", "Cancelled"].includes(ch.status) && (
+                            <button onClick={() => handleDelete(ch.id)} disabled={actionId === ch.id}
+                              title="Delete"
+                              className="p-1.5 rounded-lg text-red-500 hover:bg-red-50 transition-colors disabled:opacity-40">
+                              <X className="h-3.5 w-3.5" />
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="px-4 py-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500">
+              <span>{total} total</span>
+              <div className="flex items-center gap-2">
+                <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
+                  className="p-1.5 rounded-lg border border-gray-200 disabled:opacity-40 hover:bg-gray-100 transition-colors">
+                  <ChevronLeft className="h-3.5 w-3.5" />
+                </button>
+                <span>Page {page} of {totalPages}</span>
+                <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
+                  className="p-1.5 rounded-lg border border-gray-200 disabled:opacity-40 hover:bg-gray-100 transition-colors">
+                  <ChevronRight className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Convert to PO Modal */}
+      {convertOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+              <div>
+                <h2 className="text-base font-bold text-gray-900">Convert Challans to PO</h2>
+                <p className="text-xs text-gray-500 mt-0.5">Consolidate Verified challans into a Purchase Order</p>
+              </div>
+              <button onClick={resetConvert} className="p-2 rounded-xl text-gray-400 hover:bg-gray-100">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4 overflow-y-auto flex-1">
+              {/* Selection row */}
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1.5">Vendor *</label>
+                  <select value={cvVendorId} onChange={e => { setCvVendorId(e.target.value); setCvPreview([]); setCvSuccess(""); }}
+                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-300">
+                    <option value="">— Select vendor —</option>
+                    {vendors.map(v => <option key={v.id} value={String(v.id)}>{v.brand_name}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1.5">Challan Type *</label>
+                  <select value={cvType} onChange={e => { setCvType(e.target.value); setCvPreview([]); setCvSuccess(""); }}
+                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-300">
+                    <option value="">— Select type —</option>
+                    {CHALLAN_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1.5">Duration Period</label>
+                  <select value={cvDuration} onChange={e => { setCvDuration(parseInt(e.target.value, 10)); setCvPreview([]); setCvSuccess(""); }}
+                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-300">
+                    {DURATION_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                  </select>
+                </div>
+              </div>
+
+              <button onClick={handlePreviewPO} disabled={cvPreviewing || !cvVendorId || !cvType}
+                className="w-full py-2 rounded-xl text-sm font-medium border border-gray-200 text-gray-700 hover:bg-gray-50 disabled:opacity-40 transition-colors flex items-center justify-center gap-2">
+                {cvPreviewing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                {cvPreviewing ? "Fetching…" : "Fetch Eligible Challans"}
+              </button>
+
+              {cvError && <p className="text-xs text-red-600 bg-red-50 px-3 py-2 rounded-xl border border-red-100">{cvError}</p>}
+              {cvSuccess && <p className="text-xs text-green-700 bg-green-50 px-3 py-2 rounded-xl border border-green-100">{cvSuccess}</p>}
+
+              {cvPreview.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                    {cvPreview.length} challan{cvPreview.length !== 1 ? "s" : ""} found
+                  </p>
+                  <div className="overflow-x-auto rounded-xl border border-gray-200">
+                    <table className="w-full text-xs">
+                      <thead className="bg-gray-50 border-b border-gray-100">
+                        <tr>
+                          {["Challan #", "Date", "Description", "Qty", "Rate", "Amount"].map(h => (
+                            <th key={h} className="px-3 py-2 text-left font-semibold text-gray-500 uppercase tracking-wide">{h}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-50">
+                        {cvPreview.map((c: any) => (
+                          <tr key={c.id}>
+                            <td className="px-3 py-2 font-mono font-semibold text-gray-900">{c.challan_number}</td>
+                            <td className="px-3 py-2 text-gray-600">{c.challan_date}</td>
+                            <td className="px-3 py-2 text-gray-600 max-w-40 truncate">{c.description ?? "—"}</td>
+                            <td className="px-3 py-2 text-gray-600">{c.quantity ?? "—"}</td>
+                            <td className="px-3 py-2 text-gray-600">{c.rate ?? "—"}</td>
+                            <td className="px-3 py-2 font-semibold text-gray-900">
+                              {c.amount ? `₹${parseFloat(c.amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}` : "—"}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                      <tfoot className="bg-gray-50 border-t border-gray-100">
+                        <tr>
+                          <td colSpan={5} className="px-3 py-2 text-xs font-bold text-gray-700 text-right">Total</td>
+                          <td className="px-3 py-2 text-xs font-bold text-gray-900">
+                            ₹{cvPreview.reduce((s, c: any) => s + parseFloat(c.amount ?? "0"), 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                          </td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-3">
+              <button onClick={resetConvert} className="px-5 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-100 transition-colors">
+                Close
+              </button>
+              <button onClick={handleConvertToPO} disabled={cvConverting || cvPreview.length === 0 || !!cvSuccess}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition-all disabled:opacity-40"
+                style={{ background: "linear-gradient(135deg, #C6AF4B, #a8922e)" }}>
+                {cvConverting ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
+                {cvConverting ? "Creating PO…" : "Confirm & Create PO"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
