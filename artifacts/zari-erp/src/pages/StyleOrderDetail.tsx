@@ -461,7 +461,7 @@ export default function StyleOrderDetail() {
   const handleSaveForGuard = useCallback(async () => { await handleSave(); }, [form, isNew, numId]);
   const { clearDirty } = useUnsavedChanges(isDirty, handleSaveForGuard);
 
-  const CANCELLABLE_STATUSES = new Set(["Issued", "In Production", "In Review", "Pending Approval"]);
+  const CANCELLABLE_STATUSES = new Set(["Issued", "In Production", "In Review", "Pending Approval", "Completed"]);
   const canCancelOrder = !isNew && CANCELLABLE_STATUSES.has(form.orderStatus);
 
   async function handleCancelOrder(reason: string) {

@@ -444,7 +444,7 @@ export default function SwatchOrderDetail() {
   const handleSaveForGuard = useCallback(async () => { await handleSave(); }, [form, isNew, numId]);
   const { clearDirty } = useUnsavedChanges(isDirty, handleSaveForGuard);
 
-  const CANCELLABLE_STATUSES = new Set(["Issued", "In Sampling", "In Artwork", "Pending Approval"]);
+  const CANCELLABLE_STATUSES = new Set(["Issued", "In Sampling", "In Artwork", "Pending Approval", "Completed"]);
   const canCancelOrder = !isNew && CANCELLABLE_STATUSES.has(form.orderStatus);
 
   async function handleCancelOrder(reason: string) {

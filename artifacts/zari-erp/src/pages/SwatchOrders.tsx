@@ -60,7 +60,7 @@ function PriorityDot({ priority }: { priority: string }) {
   );
 }
 
-const CANCELLABLE = new Set(["Issued", "In Sampling", "In Artwork", "Pending Approval"]);
+const CANCELLABLE = new Set(["Issued", "In Sampling", "In Artwork", "Pending Approval", "Completed"]);
 
 function OrderCard({ order, onView, onDelete, onCancel, onCopy }: {
   order: SwatchOrderRecord;

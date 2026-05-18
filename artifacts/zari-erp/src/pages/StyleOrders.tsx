@@ -60,7 +60,7 @@ function PriorityDot({ priority }: { priority: string }) {
   );
 }
 
-const CANCELLABLE = new Set(["Issued", "In Production", "In Review", "Pending Approval"]);
+const CANCELLABLE = new Set(["Issued", "In Production", "In Review", "Pending Approval", "Completed"]);
 
 function OrderCard({ order, onView, onDelete, onCancel, onCopy }: {
   order: StyleOrderRecord;
