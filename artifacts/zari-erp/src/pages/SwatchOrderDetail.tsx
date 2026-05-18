@@ -424,6 +424,7 @@ export default function SwatchOrderDetail() {
         const res = await createOrder.mutateAsync(form);
         toast({ title: "Swatch order created", description: res.data.orderCode });
         savedFormRef.current = form;
+        clearDirty();
         setLocation(`/swatch-orders/${res.data.id}`);
       } else if (numId) {
         await updateOrder.mutateAsync({ id: numId, data: form });
@@ -438,7 +439,7 @@ export default function SwatchOrderDetail() {
   }
 
   const handleSaveForGuard = useCallback(async () => { await handleSave(); }, [form, isNew, numId]);
-  useUnsavedChanges(isDirty, handleSaveForGuard);
+  const { clearDirty } = useUnsavedChanges(isDirty, handleSaveForGuard);
 
   function handleAddUnitType() {
     const trimmed = newUnitTypeName.trim();

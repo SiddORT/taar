@@ -474,29 +474,15 @@ export default function ArtworkDetail() {
                       />
                     </Field>
 
-                    <div className="grid grid-cols-2 gap-3">
-                      <Field label="Payment Date">
-                        <input
-                          type="date"
-                          className={`${inputCls} ${isViewMode ? "bg-gray-50 text-gray-500 cursor-default" : ""}`}
-                          readOnly={isViewMode}
-                          value={form.outsourcePaymentDate}
-                          onChange={e => set("outsourcePaymentDate", e.target.value)}
-                        />
-                      </Field>
-                      <Field label="Payment Amount">
-                        <div className="relative">
-                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">₹</span>
-                          <input
-                            type="number" min="0" step="0.01" placeholder="0.00"
-                            className={`${inputCls} pl-7 ${isViewMode ? "bg-gray-50 text-gray-500 cursor-default" : ""}`}
-                            readOnly={isViewMode}
-                            value={form.outsourcePaymentAmount}
-                            onChange={e => set("outsourcePaymentAmount", e.target.value)}
-                          />
-                        </div>
-                      </Field>
-                    </div>
+                    <Field label="Payment Date">
+                      <input
+                        type="date"
+                        className={`${inputCls} ${isViewMode ? "bg-gray-50 text-gray-500 cursor-default" : ""}`}
+                        readOnly={isViewMode}
+                        value={form.outsourcePaymentDate}
+                        onChange={e => set("outsourcePaymentDate", e.target.value)}
+                      />
+                    </Field>
 
                     <div className="grid grid-cols-2 gap-3">
                       <Field label="Payment Mode">
@@ -546,7 +532,11 @@ export default function ArtworkDetail() {
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">₹</span>
                     <input className={`${inputCls} pl-7 ${isViewMode ? "bg-gray-50 text-gray-500 cursor-default" : ""}`}
                       type="number" min="0" step="0.01" placeholder="0.00" readOnly={isViewMode}
-                      value={form.totalCost} onChange={e => set("totalCost", e.target.value)} />
+                      value={form.totalCost}
+                      onChange={e => {
+                        set("totalCost", e.target.value);
+                        if (form.artworkCreated === "Outsource") set("outsourcePaymentAmount", e.target.value);
+                      }} />
                   </div>
                 </Field>
               </div>

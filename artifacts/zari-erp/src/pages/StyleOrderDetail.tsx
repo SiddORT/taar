@@ -441,6 +441,7 @@ export default function StyleOrderDetail() {
         const res = await createOrder.mutateAsync(form as any);
         toast({ title: "Style order created", description: res.data.orderCode });
         savedFormRef.current = form;
+        clearDirty();
         setLocation(`/style-orders/${res.data.id}`);
       } else if (numId) {
         await updateOrder.mutateAsync({ id: numId, data: form as any });
@@ -455,7 +456,7 @@ export default function StyleOrderDetail() {
   }
 
   const handleSaveForGuard = useCallback(async () => { await handleSave(); }, [form, isNew, numId]);
-  useUnsavedChanges(isDirty, handleSaveForGuard);
+  const { clearDirty } = useUnsavedChanges(isDirty, handleSaveForGuard);
 
   function handleLogout() {
     logoutMutation.mutate(undefined, {

@@ -480,21 +480,11 @@ export default function StyleOrderArtworkDetail() {
                         }}
                         placeholder="Select vendor…" disabled={isViewMode} />
                     </Field>
-                    <div className="grid grid-cols-2 gap-3">
-                      <Field label="Payment Date">
-                        <input type="date" className={`${inputCls} ${isViewMode ? "bg-gray-50 text-gray-500 cursor-default" : ""}`}
-                          readOnly={isViewMode} value={form.outsourcePaymentDate}
-                          onChange={e => set("outsourcePaymentDate", e.target.value)} />
-                      </Field>
-                      <Field label="Amount" hint="Auto-computed: hours × rate">
-                        <div className="relative">
-                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">₹</span>
-                          <input type="number" min="0" step="0.01" placeholder="0.00"
-                            className={`${inputCls} pl-7 bg-gray-50 text-gray-700 cursor-default`}
-                            readOnly value={form.outsourcePaymentAmount} />
-                        </div>
-                      </Field>
-                    </div>
+                    <Field label="Payment Date">
+                      <input type="date" className={`${inputCls} ${isViewMode ? "bg-gray-50 text-gray-500 cursor-default" : ""}`}
+                        readOnly={isViewMode} value={form.outsourcePaymentDate}
+                        onChange={e => set("outsourcePaymentDate", e.target.value)} />
+                    </Field>
                     <div className="grid grid-cols-2 gap-3">
                       <Field label="Payment Mode">
                         <select className={`${inputCls} ${isViewMode ? "bg-gray-50 text-gray-500 cursor-default" : ""}`}
