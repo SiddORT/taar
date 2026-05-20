@@ -670,20 +670,36 @@ export default function ItemMaster() {
                 <p className="text-[10px] text-gray-400 mt-2">First image is the thumbnail · Max 3 MB per image</p>
               </div>
 
-              {/* Stock Levels */}
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#C6AF4B] mb-4">Stock Levels</p>
-                <div className="space-y-3">
-                  <InputField label="Reorder Level" value={form.reorderLevel}
-                    onChange={(e) => setForm((f) => ({ ...f, reorderLevel: e.target.value }))}
-                    error={errors.reorderLevel} placeholder="0" />
-                  <InputField label="Minimum Level" value={form.minimumLevel}
-                    onChange={(e) => setForm((f) => ({ ...f, minimumLevel: e.target.value }))}
-                    error={errors.minimumLevel} placeholder="0" />
-                  <InputField label="Maximum Level" value={form.maximumLevel}
-                    onChange={(e) => setForm((f) => ({ ...f, maximumLevel: e.target.value }))}
-                    error={errors.maximumLevel} placeholder="0" />
+              {/* Stock Control Thresholds */}
+              <div className="rounded-2xl border border-amber-100 bg-amber-50/40 p-5">
+                <div className="flex items-center gap-2 mb-4">
+                  <p className="text-[10px] font-black uppercase tracking-[0.18em]" style={{ color: "#B8A240" }}>Stock Control</p>
+                  <span className="text-[9px] font-medium text-gray-400 uppercase tracking-wider">(Optional)</span>
                 </div>
+                <div className="space-y-3">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-sm font-medium text-gray-700">Minimum Level</label>
+                    <input type="number" min="0" placeholder="0" value={form.minimumLevel ?? ""}
+                      onChange={(e) => setForm(f => ({ ...f, minimumLevel: e.target.value }))}
+                      className="border border-gray-300 rounded-lg px-3 py-2.5 text-sm bg-white outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-900" />
+                    {errors.minimumLevel && <p className="text-xs text-red-500">{errors.minimumLevel}</p>}
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-sm font-medium text-gray-700">Reorder Level</label>
+                    <input type="number" min="0" placeholder="0" value={form.reorderLevel ?? ""}
+                      onChange={(e) => setForm(f => ({ ...f, reorderLevel: e.target.value }))}
+                      className="border border-gray-300 rounded-lg px-3 py-2.5 text-sm bg-white outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-900" />
+                    {errors.reorderLevel && <p className="text-xs text-red-500">{errors.reorderLevel}</p>}
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-sm font-medium text-gray-700">Maximum Level</label>
+                    <input type="number" min="0" placeholder="0" value={form.maximumLevel ?? ""}
+                      onChange={(e) => setForm(f => ({ ...f, maximumLevel: e.target.value }))}
+                      className="border border-gray-300 rounded-lg px-3 py-2.5 text-sm bg-white outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-900" />
+                    {errors.maximumLevel && <p className="text-xs text-red-500">{errors.maximumLevel}</p>}
+                  </div>
+                </div>
+                <p className="text-[10px] text-gray-400 mt-3">Low Stock alert triggers when stock ≤ Reorder Level.</p>
               </div>
 
               {/* Status */}
