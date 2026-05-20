@@ -463,25 +463,28 @@ export default function StyleCostSheetTab({
         <SheetSection title="Outsource Jobs">
           <SheetTable
             colWidths={(!isFiltered && products.length > 0)
-              ? ["14%", "22%", "10%", "7%", "10%", "10%", "11%", "16%"]
-              : ["28%", "11%", "8%", "12%", "12%", "13%", "16%"]}
+              ? ["12%", "18%", "8%", "6%", "8%", "8%", "9%", "9%", "9%", "13%"]
+              : ["22%", "9%", "7%", "9%", "9%", "10%", "11%", "11%", "12%"]}
             wrapCols={(!isFiltered && products.length > 0) ? [0, 1] : [0]}
             headers={[
               ...((!isFiltered && products.length > 0) ? ["Product"] : []),
               "Vendor", "HSN", "GST%", "Issued", "Target", "Delivered",
-              includeGst ? "Total (incl. GST) ₹" : "Total Cost ₹",
+              "Cost ₹", "GST ₹", "Total ₹",
             ]}
             rows={filteredOutsource.map(r => {
               const base = parseFloat(r.totalCost) || 0;
               const gstPct = parseFloat(r.gstPercentage) || 0;
-              const totalWithGst = base * (1 + (includeGst ? gstPct / 100 : 0));
+              const gstAmt = includeGst ? base * gstPct / 100 : 0;
+              const totalWithGst = base + gstAmt;
               const row: (string | React.ReactNode)[] = [
                 r.vendorName,
-                includeGst ? (r.hsnCode || "—") : "—",
-                includeGst && gstPct > 0 ? `${gstPct}%` : "—",
+                r.hsnCode || "—",
+                gstPct > 0 ? `${gstPct}%` : "—",
                 r.issueDate,
                 r.targetDate ?? "—",
                 r.deliveryDate ?? "—",
+                rupee(base),
+                includeGst ? rupee(gstAmt) : "—",
                 rupee(totalWithGst),
               ];
               if (!isFiltered && products.length > 0) row.unshift((r as any).styleOrderProductName ?? "—");
@@ -490,6 +493,8 @@ export default function StyleCostSheetTab({
             footer={filteredOutsource.length > 0 ? [
               ...(!isFiltered && products.length > 0 ? [""] : []),
               "", "", "", "", "", "Total",
+              rupee(outsourceBaseTotal),
+              includeGst ? rupee(outsourceGstTotal) : "—",
               rupee(outsourceTotal),
             ] : undefined}
           />
@@ -501,19 +506,22 @@ export default function StyleCostSheetTab({
             headers={[
               ...((!isFiltered && products.length > 0) ? ["Product"] : []),
               "Vendor", "HSN", "GST%", "Description", "Unit Price ₹", "Qty",
-              includeGst ? "Total (incl. GST) ₹" : "Total ₹",
+              "Cost ₹", "GST ₹", "Total ₹",
             ]}
             rows={filteredCustom.map(r => {
               const base = parseFloat(r.totalAmount) || 0;
               const gstPct = parseFloat(r.gstPercentage) || 0;
-              const totalWithGst = base * (1 + (includeGst ? gstPct / 100 : 0));
+              const gstAmt = includeGst ? base * gstPct / 100 : 0;
+              const totalWithGst = base + gstAmt;
               const row: (string | React.ReactNode)[] = [
                 r.vendorName,
-                includeGst ? (r.hsnCode || "—") : "—",
-                includeGst && gstPct > 0 ? `${gstPct}%` : "—",
+                r.hsnCode || "—",
+                gstPct > 0 ? `${gstPct}%` : "—",
                 r.description,
                 rupee(parseFloat(r.unitPrice)),
                 parseFloat(r.quantity).toFixed(2),
+                rupee(base),
+                includeGst ? rupee(gstAmt) : "—",
                 rupee(totalWithGst),
               ];
               if (!isFiltered && products.length > 0) row.unshift((r as any).styleOrderProductName ?? "—");
@@ -522,6 +530,8 @@ export default function StyleCostSheetTab({
             footer={filteredCustom.length > 0 ? [
               ...(!isFiltered && products.length > 0 ? [""] : []),
               "", "", "", "", "", "Total",
+              rupee(customBaseTotal),
+              includeGst ? rupee(customGstTotal) : "—",
               rupee(customTotal),
             ] : undefined}
           />

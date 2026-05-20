@@ -362,46 +362,52 @@ export default function CostSheetTab({
         {/* ── 3. Outsource Jobs ───────────────────────────────────────────── */}
         <SheetSection title="Outsource Jobs">
           <SheetTable
-            colWidths={["28%", "11%", "8%", "12%", "12%", "13%", "16%"]}
+            colWidths={["22%", "9%", "7%", "9%", "9%", "10%", "11%", "11%", "12%"]}
             wrapCols={[0]}
-            headers={["Vendor", "HSN", "GST%", "Issued", "Target", "Delivered", includeGst ? "Total (incl. GST) ₹" : "Total Cost ₹"]}
+            headers={["Vendor", "HSN", "GST%", "Issued", "Target", "Delivered", "Cost ₹", "GST ₹", "Total ₹"]}
             rows={outsourceJobs.map(r => {
               const base = parseFloat(r.totalCost) || 0;
               const gstPct = parseFloat(r.gstPercentage) || 0;
-              const totalWithGst = base * (1 + (includeGst ? gstPct / 100 : 0));
+              const gstAmt = includeGst ? base * gstPct / 100 : 0;
+              const totalWithGst = base + gstAmt;
               return [
                 r.vendorName,
-                includeGst ? (r.hsnCode || "—") : "—",
-                includeGst && gstPct > 0 ? `${gstPct}%` : "—",
+                r.hsnCode || "—",
+                gstPct > 0 ? `${gstPct}%` : "—",
                 r.issueDate,
                 r.targetDate ?? "—",
                 r.deliveryDate ?? "—",
+                rupee(base),
+                includeGst ? rupee(gstAmt) : "—",
                 rupee(totalWithGst),
               ];
             })}
-            footer={outsourceJobs.length > 0 ? ["", "", "", "", "", "Total", rupee(outsourceTotal)] : undefined}
+            footer={outsourceJobs.length > 0 ? ["", "", "", "", "", "Total", rupee(outsourceBaseTotal), includeGst ? rupee(outsourceGstTotal) : "—", rupee(outsourceTotal)] : undefined}
           />
         </SheetSection>
 
         {/* ── 4. Custom Charges ───────────────────────────────────────────── */}
         <SheetSection title="Custom Charges">
           <SheetTable
-            headers={["Vendor", "HSN", "GST%", "Description", "Unit Price ₹", "Qty", includeGst ? "Total (incl. GST) ₹" : "Total ₹"]}
+            headers={["Vendor", "HSN", "GST%", "Description", "Unit Price ₹", "Qty", "Cost ₹", "GST ₹", "Total ₹"]}
             rows={customCharges.map(r => {
               const base = parseFloat(r.totalAmount) || 0;
               const gstPct = parseFloat(r.gstPercentage) || 0;
-              const totalWithGst = base * (1 + (includeGst ? gstPct / 100 : 0));
+              const gstAmt = includeGst ? base * gstPct / 100 : 0;
+              const totalWithGst = base + gstAmt;
               return [
                 r.vendorName,
-                includeGst ? (r.hsnCode || "—") : "—",
-                includeGst && gstPct > 0 ? `${gstPct}%` : "—",
+                r.hsnCode || "—",
+                gstPct > 0 ? `${gstPct}%` : "—",
                 r.description,
                 rupee(parseFloat(r.unitPrice)),
                 parseFloat(r.quantity).toFixed(2),
+                rupee(base),
+                includeGst ? rupee(gstAmt) : "—",
                 rupee(totalWithGst),
               ];
             })}
-            footer={customCharges.length > 0 ? ["", "", "", "", "", "Total", rupee(customTotal)] : undefined}
+            footer={customCharges.length > 0 ? ["", "", "", "", "", "Total", rupee(customBaseTotal), includeGst ? rupee(customGstTotal) : "—", rupee(customTotal)] : undefined}
           />
         </SheetSection>
 
