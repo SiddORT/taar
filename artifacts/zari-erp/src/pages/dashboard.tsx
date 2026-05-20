@@ -204,15 +204,15 @@ export default function Dashboard() {
   const kpiCards = [
     {
       label: "STYLE ORDERS",
-      value: kpi ? String(kpi.styleOrders.active) : "—",
-      sub:   ovLoading ? "Fetching data…" : kpi ? `${kpi.styleOrders.thisMonth} issued this month` : "—",
+      value: kpi ? String(kpi.styleOrders.total) : "—",
+      sub:   ovLoading ? "Fetching data…" : kpi ? `${kpi.styleOrders.active} active · ${kpi.styleOrders.thisMonth} this month` : "—",
       change: ovLoading ? null : fmtPct(kpi?.styleOrders.pctChange),
       up: styleUp, icon: Layers, delay: "0ms", path: "/style-orders",
     },
     {
       label: "SWATCH ORDERS",
-      value: kpi ? String(kpi.swatchOrders.active) : "—",
-      sub:   ovLoading ? "Fetching data…" : kpi ? `${kpi.swatchOrders.thisMonth} issued this month` : "—",
+      value: kpi ? String(kpi.swatchOrders.total) : "—",
+      sub:   ovLoading ? "Fetching data…" : kpi ? `${kpi.swatchOrders.active} active · ${kpi.swatchOrders.thisMonth} this month` : "—",
       change: ovLoading ? null : fmtPct(kpi?.swatchOrders.pctChange),
       up: swatchUp, icon: Package, delay: "80ms", path: "/swatch-orders",
     },

@@ -32,17 +32,27 @@ router.get("/dashboard/overview", requireAuth, async (_req, res) => {
           (SELECT COUNT(*) FROM swatch_orders WHERE (is_deleted = false OR is_deleted IS NULL) AND order_status NOT IN ('Completed','Cancelled'))::int AS swatch_active,
           (SELECT COUNT(*) FROM swatch_orders WHERE (is_deleted = false OR is_deleted IS NULL) AND date_trunc('month', NULLIF(order_issue_date,'')::date) = date_trunc('month', NOW()))::int AS swatch_this_month,
           (SELECT COUNT(*) FROM swatch_orders WHERE (is_deleted = false OR is_deleted IS NULL) AND date_trunc('month', NULLIF(order_issue_date,'')::date) = date_trunc('month', NOW() - INTERVAL '1 month'))::int AS swatch_last_month,
-          (SELECT COUNT(*) FROM style_order_artworks)::int + (SELECT COUNT(*) FROM artworks)::int   AS artwork_total,
-          (SELECT COUNT(*) FROM style_order_artworks WHERE date_trunc('month', created_at) = date_trunc('month', NOW()))::int
-          + (SELECT COUNT(*) FROM artworks WHERE date_trunc('month', created_at) = date_trunc('month', NOW()))::int AS artwork_this_month,
-          (SELECT COUNT(*) FROM style_order_artworks WHERE date_trunc('month', created_at) = date_trunc('month', NOW() - INTERVAL '1 month'))::int
-          + (SELECT COUNT(*) FROM artworks WHERE date_trunc('month', created_at) = date_trunc('month', NOW() - INTERVAL '1 month'))::int AS artwork_last_month,
-          (SELECT COUNT(DISTINCT client_id) FROM style_orders  WHERE (is_deleted = false OR is_deleted IS NULL) AND order_status NOT IN ('Completed','Cancelled') AND client_id IS NOT NULL)::int
-          + (SELECT COUNT(DISTINCT client_id) FROM swatch_orders WHERE (is_deleted = false OR is_deleted IS NULL) AND order_status NOT IN ('Completed','Cancelled') AND client_id IS NOT NULL)::int AS active_clients,
-          (SELECT COUNT(DISTINCT client_id) FROM style_orders  WHERE (is_deleted = false OR is_deleted IS NULL) AND client_id IS NOT NULL AND date_trunc('month', NULLIF(order_issue_date,'')::date) = date_trunc('month', NOW()))::int
-          + (SELECT COUNT(DISTINCT client_id) FROM swatch_orders WHERE (is_deleted = false OR is_deleted IS NULL) AND client_id IS NOT NULL AND date_trunc('month', NULLIF(order_issue_date,'')::date) = date_trunc('month', NOW()))::int AS clients_this_month,
-          (SELECT COUNT(DISTINCT client_id) FROM style_orders  WHERE (is_deleted = false OR is_deleted IS NULL) AND client_id IS NOT NULL AND date_trunc('month', NULLIF(order_issue_date,'')::date) = date_trunc('month', NOW() - INTERVAL '1 month'))::int
-          + (SELECT COUNT(DISTINCT client_id) FROM swatch_orders WHERE (is_deleted = false OR is_deleted IS NULL) AND client_id IS NOT NULL AND date_trunc('month', NULLIF(order_issue_date,'')::date) = date_trunc('month', NOW() - INTERVAL '1 month'))::int AS clients_last_month
+          (SELECT COUNT(*) FROM style_order_artworks WHERE is_deleted = false OR is_deleted IS NULL)::int
+          + (SELECT COUNT(*) FROM artworks WHERE is_deleted = false OR is_deleted IS NULL)::int AS artwork_total,
+          (SELECT COUNT(*) FROM style_order_artworks WHERE (is_deleted = false OR is_deleted IS NULL) AND date_trunc('month', created_at) = date_trunc('month', NOW()))::int
+          + (SELECT COUNT(*) FROM artworks WHERE (is_deleted = false OR is_deleted IS NULL) AND date_trunc('month', created_at) = date_trunc('month', NOW()))::int AS artwork_this_month,
+          (SELECT COUNT(*) FROM style_order_artworks WHERE (is_deleted = false OR is_deleted IS NULL) AND date_trunc('month', created_at) = date_trunc('month', NOW() - INTERVAL '1 month'))::int
+          + (SELECT COUNT(*) FROM artworks WHERE (is_deleted = false OR is_deleted IS NULL) AND date_trunc('month', created_at) = date_trunc('month', NOW() - INTERVAL '1 month'))::int AS artwork_last_month,
+          (SELECT COUNT(*) FROM (
+            SELECT client_id FROM style_orders  WHERE (is_deleted = false OR is_deleted IS NULL) AND order_status NOT IN ('Completed','Cancelled') AND client_id IS NOT NULL
+            UNION
+            SELECT client_id FROM swatch_orders WHERE (is_deleted = false OR is_deleted IS NULL) AND order_status NOT IN ('Completed','Cancelled') AND client_id IS NOT NULL
+          ) u)::int AS active_clients,
+          (SELECT COUNT(*) FROM (
+            SELECT client_id FROM style_orders  WHERE (is_deleted = false OR is_deleted IS NULL) AND client_id IS NOT NULL AND date_trunc('month', NULLIF(order_issue_date,'')::date) = date_trunc('month', NOW())
+            UNION
+            SELECT client_id FROM swatch_orders WHERE (is_deleted = false OR is_deleted IS NULL) AND client_id IS NOT NULL AND date_trunc('month', NULLIF(order_issue_date,'')::date) = date_trunc('month', NOW())
+          ) u)::int AS clients_this_month,
+          (SELECT COUNT(*) FROM (
+            SELECT client_id FROM style_orders  WHERE (is_deleted = false OR is_deleted IS NULL) AND client_id IS NOT NULL AND date_trunc('month', NULLIF(order_issue_date,'')::date) = date_trunc('month', NOW() - INTERVAL '1 month')
+            UNION
+            SELECT client_id FROM swatch_orders WHERE (is_deleted = false OR is_deleted IS NULL) AND client_id IS NOT NULL AND date_trunc('month', NULLIF(order_issue_date,'')::date) = date_trunc('month', NOW() - INTERVAL '1 month')
+          ) u)::int AS clients_last_month
       `),
 
       /* ── Trend: style orders (last 6 months) ────────────────── */
@@ -160,10 +170,12 @@ router.get("/dashboard/overview", requireAuth, async (_req, res) => {
           COALESCE(feedback_status, 'Pending') AS status,
           COUNT(*)::int AS count
         FROM artworks
+        WHERE is_deleted = false OR is_deleted IS NULL
         GROUP BY feedback_status
         UNION ALL
         SELECT 'Style Artworks' AS status, COUNT(*)::int AS count
         FROM style_order_artworks
+        WHERE is_deleted = false OR is_deleted IS NULL
       `),
 
       /* ── Priority × Status heatmap (style orders) ───────────── */
@@ -193,13 +205,6 @@ router.get("/dashboard/overview", requireAuth, async (_req, res) => {
     /* ── build heatmap ──────────────────────────────────────── */
     const priorities = ["Urgent", "High", "Medium", "Low"];
     const statuses   = ["Draft", "Issued", "In Progress", "Completed", "Cancelled"];
-    const heatRaw: Record<string, Record<string, number>> = {};
-    heatmapRes.rows.forEach((r: any) => {
-      if (!heatRaw[r.priority]) heatRaw[r.priority] = {};
-      heatRaw[r.status]
-        ? (heatRaw[r.priority][r.status] = r.count)
-        : (heatRaw[r.priority][r.status] = r.count);
-    });
     const heatmap = priorities.map(p => ({
       priority: p,
       values:   statuses.map(s => heatmapRes.rows.find((r: any) => r.priority === p && r.status === s)?.count ?? 0),
