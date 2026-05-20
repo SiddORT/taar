@@ -6,7 +6,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft, Save, Plus, Trash2, Info, Upload, X, FileText, Image as ImageIcon,
   User, Layers, Scissors, CalendarDays, MessageSquare, Paperclip, CheckCircle2,
-  ChevronDown, Loader2, Palette, ExternalLink, Pencil, Video, XCircle,
+  ChevronDown, Loader2, Palette, ExternalLink, Pencil, Video, XCircle, Eye,
 } from "lucide-react";
 import { useGetMe, useLogout, getGetMeQueryKey } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
@@ -187,6 +187,36 @@ function fileToAttachment(file: File): Promise<FileAttachment> {
   });
 }
 
+function FilePreviewModal({ file, onClose }: { file: FileAttachment | null; onClose: () => void }) {
+  if (!file) return null;
+  return (
+    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 p-4" onClick={onClose}>
+      <div className="relative max-w-4xl w-full max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+        <button onClick={onClose} className="absolute -top-10 right-0 text-white hover:text-gray-300">
+          <X className="h-6 w-6" />
+        </button>
+        <div className="bg-white rounded-xl overflow-hidden flex items-center justify-center" style={{ maxHeight: "85vh" }}>
+          {file.type.startsWith("image/") ? (
+            <img src={file.data} alt={file.name} className="max-w-full max-h-[85vh] object-contain" />
+          ) : file.type.startsWith("video/") ? (
+            <video src={file.data} controls className="max-w-full max-h-[85vh]" />
+          ) : file.type === "application/pdf" ? (
+            <iframe src={file.data} title={file.name} className="w-[80vw] h-[85vh]" />
+          ) : (
+            <div className="p-8 text-center">
+              <FileText className="h-16 w-16 text-gray-300 mx-auto mb-3" />
+              <p className="text-sm font-medium text-gray-700 mb-1">{file.name}</p>
+              <p className="text-xs text-gray-400 mb-4">Preview not available for this file type</p>
+              <a href={file.data} download={file.name} className="inline-block px-4 py-2 bg-gray-900 text-[#C9B45C] rounded-lg text-sm font-semibold">Download</a>
+            </div>
+          )}
+        </div>
+        <p className="text-white text-sm mt-3 text-center truncate">{file.name}</p>
+      </div>
+    </div>
+  );
+}
+
 function FileUploadZone({ files, onChange, accept, icon, label }: {
   files: FileAttachment[];
   onChange: (files: FileAttachment[]) => void;
@@ -195,6 +225,7 @@ function FileUploadZone({ files, onChange, accept, icon, label }: {
   label: string;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const [previewFile, setPreviewFile] = useState<FileAttachment | null>(null);
 
   async function handleFiles(fileList: FileList | null) {
     if (!fileList) return;
@@ -230,24 +261,35 @@ function FileUploadZone({ files, onChange, accept, icon, label }: {
                 <img
                   src={f.data}
                   alt={f.name}
-                  className="h-14 w-14 rounded-lg object-cover border border-gray-200 shrink-0"
+                  onClick={() => setPreviewFile(f)}
+                  className="h-14 w-14 rounded-lg object-cover border border-gray-200 shrink-0 cursor-pointer hover:opacity-80"
                 />
               ) : f.type.startsWith("video/") ? (
-                <div className="h-10 w-10 rounded-lg bg-gray-900 flex items-center justify-center shrink-0">
+                <div className="h-10 w-10 rounded-lg bg-gray-900 flex items-center justify-center shrink-0 cursor-pointer hover:opacity-80"
+                  onClick={() => setPreviewFile(f)}>
                   <Video className="h-5 w-5 text-[#C9B45C]" />
                 </div>
-              ) : null}
+              ) : (
+                <div className="h-10 w-10 rounded-lg bg-gray-200 flex items-center justify-center shrink-0 cursor-pointer hover:opacity-80 text-gray-500"
+                  onClick={() => setPreviewFile(f)}>
+                  <FileText className="h-5 w-5" />
+                </div>
+              )}
               <div className="flex-1 min-w-0 flex flex-col justify-center gap-0.5">
                 <span className="text-xs font-medium text-gray-700 truncate">{f.name}</span>
                 <span className="text-xs text-gray-400">{(f.size / 1024).toFixed(0)} KB</span>
               </div>
-              <button onClick={() => remove(i)} className="text-gray-400 hover:text-red-500 transition-colors mt-1 shrink-0">
+              <button onClick={() => setPreviewFile(f)} className="text-gray-400 hover:text-gray-800 transition-colors mt-1 shrink-0" title="Preview">
+                <Eye className="h-3.5 w-3.5" />
+              </button>
+              <button onClick={() => remove(i)} className="text-gray-400 hover:text-red-500 transition-colors mt-1 shrink-0" title="Remove">
                 <X className="h-3.5 w-3.5" />
               </button>
             </div>
           ))}
         </div>
       )}
+      <FilePreviewModal file={previewFile} onClose={() => setPreviewFile(null)} />
     </div>
   );
 }

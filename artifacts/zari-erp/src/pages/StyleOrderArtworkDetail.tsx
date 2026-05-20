@@ -256,9 +256,44 @@ export default function StyleOrderArtworkDetail() {
 
   const isViewMode = !isNew && artworkData?.data?.feedbackStatus === "Approved";
 
+  function validateNumbers(): string | null {
+    const fields: Array<[string, string]> = [
+      ["unitLength", "Length"],
+      ["unitWidth", "Width"],
+      ["workHours", "Work Hours"],
+      ["hourlyRate", "Hourly Rate"],
+      ["totalCost", "Total Cost"],
+    ];
+    for (const [k, label] of fields) {
+      const v = (form as any)[k];
+      if (v === "" || v === null || v === undefined) continue;
+      const n = parseFloat(v);
+      if (isNaN(n)) return `${label} must be a valid number`;
+      if (n < 0) return `${label} cannot be negative`;
+    }
+    if (form.artworkCreated === "Inhouse" || form.artworkCreated === "Outsource") {
+      const wh = parseFloat(form.workHours || "0");
+      const hr = parseFloat(form.hourlyRate || "0");
+      const tc = parseFloat(form.totalCost || "0");
+      if (wh > 0 && hr <= 0) return "Hourly Rate must be greater than 0 when Work Hours are entered";
+      if (hr > 0 && wh <= 0) return "Work Hours must be greater than 0 when Hourly Rate is entered";
+      if (wh > 0 && hr > 0 && tc <= 0) return "Total Cost must be greater than 0";
+    }
+    if (form.artworkCreated === "Outsource") {
+      const amt = parseFloat((form as any).outsourcePaymentAmount || "0");
+      if (amt < 0) return "Payment Amount cannot be negative";
+    }
+    return null;
+  }
+
   async function handleSave() {
     if (!form.artworkName.trim()) {
       toast({ title: "Artwork Name is required", variant: "destructive" }); return;
+    }
+    const numErr = validateNumbers();
+    if (numErr) {
+      toast({ title: numErr, variant: "destructive" });
+      return;
     }
     setSaving(true);
     try {
