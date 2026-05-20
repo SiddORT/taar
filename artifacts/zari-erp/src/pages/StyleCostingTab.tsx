@@ -1886,7 +1886,7 @@ function StyleConsumptionSection({ styleOrderId }: { styleOrderId: number }) {
 
       {/* Add Consumption Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
           <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md space-y-4">
             <div className="flex items-center justify-between">
               <h4 className="text-sm font-semibold text-gray-900">Add Consumption</h4>
@@ -2519,7 +2519,7 @@ function StyleOutsourceSection({ styleOrderId }: { styleOrderId: number }) {
                       className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500"><X className="h-3 w-3" /></button>
                   )}
                   {showVendorDrop && !form.vendorId && vendorResults.length > 0 && (
-                    <div className="absolute z-10 left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-44 overflow-y-auto">
+                    <div className="absolute z-30 left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-44 overflow-y-auto">
                       {vendorResults.map(v => (
                         <button key={v.id} type="button"
                           onClick={() => { setForm(f => ({ ...f, vendorId: String(v.id), vendorName: v.brandName, vendorQuery: "" })); setShowVendorDrop(false); }}
@@ -2549,7 +2549,7 @@ function StyleOutsourceSection({ styleOrderId }: { styleOrderId: number }) {
                       className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500"><X className="h-3 w-3" /></button>
                   )}
                   {showHsnDrop && !form.hsnId && hsnResults.length > 0 && (
-                    <div className="absolute z-10 left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-44 overflow-y-auto">
+                    <div className="absolute z-30 left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-44 overflow-y-auto">
                       {hsnResults.map(h => (
                         <button key={h.id} type="button"
                           onClick={() => { setForm(f => ({ ...f, hsnId: String(h.id), hsnCode: h.hsnCode, gstPercentage: h.gstPercentage, hsnQuery: "" })); setShowHsnDrop(false); }}
@@ -2820,7 +2820,7 @@ function StyleCustomChargesSection({ styleOrderId }: { styleOrderId: number }) {
                       className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500"><X className="h-3 w-3" /></button>
                   )}
                   {showVendorDrop && !form.vendorId && vendorResults.length > 0 && (
-                    <div className="absolute z-10 left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-44 overflow-y-auto">
+                    <div className="absolute z-30 left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-44 overflow-y-auto">
                       {vendorResults.map(v => (
                         <button key={v.id} type="button"
                           onClick={() => { setForm(f => ({ ...f, vendorId: String(v.id), vendorName: v.brandName, vendorQuery: "" })); setShowVendorDrop(false); }}
@@ -2850,7 +2850,7 @@ function StyleCustomChargesSection({ styleOrderId }: { styleOrderId: number }) {
                       className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500"><X className="h-3 w-3" /></button>
                   )}
                   {showHsnDrop && !form.hsnId && hsnResults.length > 0 && (
-                    <div className="absolute z-10 left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-44 overflow-y-auto">
+                    <div className="absolute z-30 left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-44 overflow-y-auto">
                       {hsnResults.map(h => (
                         <button key={h.id} type="button"
                           onClick={() => { setForm(f => ({ ...f, hsnId: String(h.id), hsnCode: h.hsnCode, gstPercentage: h.gstPercentage, hsnQuery: "" })); setShowHsnDrop(false); }}
