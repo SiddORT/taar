@@ -167,6 +167,12 @@ export const ALL_PERMISSIONS = [
   { key: "accounts:other_expenses:add_edit",  label: "Other Expenses",      resource: "accounts:other_expenses",     action: "add_edit", menu: "Accounts", subgroup: null },
   { key: "accounts:other_expenses:delete",    label: "Other Expenses",      resource: "accounts:other_expenses",     action: "delete",   menu: "Accounts", subgroup: null },
 
+  /* ── Procurement › Vendor Challans ─────────────────────── */
+  { key: "procurement:vendor_challans:view",     label: "Vendor Challans", resource: "procurement:vendor_challans", action: "view",     menu: "Stock", subgroup: "Procurement" },
+  { key: "procurement:vendor_challans:add_edit", label: "Vendor Challans", resource: "procurement:vendor_challans", action: "add_edit", menu: "Stock", subgroup: "Procurement" },
+  { key: "procurement:vendor_challans:delete",   label: "Vendor Challans", resource: "procurement:vendor_challans", action: "delete",   menu: "Stock", subgroup: "Procurement" },
+  { key: "procurement:vendor_challans:verify",   label: "Vendor Challans", resource: "procurement:vendor_challans", action: "verify",   menu: "Stock", subgroup: "Procurement" },
+
   /* ── Admin › Settings ──────────────────────────────────── */
   { key: "settings:profile:view",          label: "Profile",           resource: "settings:profile",          action: "view",     menu: "Admin", subgroup: "Settings" },
   { key: "settings:profile:add_edit",      label: "Profile",           resource: "settings:profile",          action: "add_edit", menu: "Admin", subgroup: "Settings" },

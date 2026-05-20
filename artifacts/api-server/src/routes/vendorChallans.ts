@@ -83,18 +83,21 @@ router.post("/vendor-challans", requireAuth, async (req: AuthRequest, res) => {
     if (!challanType) { res.status(400).json({ error: "Challan type is required" }); return; }
 
     const challanNumber = await nextChallanNumber();
+    // Admin-created challans are auto-verified
+    const isAdmin = (req.user?.role ?? "") === "admin";
+    const initialStatus = isAdmin ? "Verified" : "Draft";
     const r = await pool.query(
       `INSERT INTO vendor_challans
          (challan_number, challan_date, vendor_id, vendor_name, challan_type,
           reference_order_id, description, quantity, unit, rate, amount,
           attachment, line_items, status, remarks, created_by, created_at, updated_at)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,'Draft',$14,$15,NOW(),NOW())
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,NOW(),NOW())
        RETURNING *`,
       [challanNumber, challanDate, vendorId, vendorName ?? null, challanType,
        referenceOrderId ?? null, description ?? null, quantity ?? null, unit ?? null,
        rate ?? null, amount ?? null, attachment ? JSON.stringify(attachment) : null,
        lineItems ? JSON.stringify(lineItems) : null,
-       remarks ?? null, userName]
+       initialStatus, remarks ?? null, userName]
     );
     res.status(201).json({ data: r.rows[0] });
   } catch (err) {
@@ -147,9 +150,22 @@ router.delete("/vendor-challans/:id", requireAuth, async (req, res) => {
 });
 
 // ── VERIFY ────────────────────────────────────────────────────────────────────
-router.patch("/vendor-challans/:id/verify", requireAuth, async (req, res) => {
+router.patch("/vendor-challans/:id/verify", requireAuth, async (req: AuthRequest, res) => {
   const id = parseInt(String(req.params.id), 10);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid ID" }); return; }
+
+  // Check permission: only roles with procurement:vendor_challans:verify may approve
+  const userRole = req.user?.role ?? "";
+  const permCheck = await pool.query(
+    `SELECT rp.permission FROM role_permissions rp
+     JOIN roles r ON r.id = rp.role_id
+     WHERE r.name = $1 AND rp.permission = 'procurement:vendor_challans:verify'`,
+    [userRole]
+  );
+  if (!permCheck.rows.length) {
+    res.status(403).json({ error: "You do not have permission to verify challans" }); return;
+  }
+
   const existing = await pool.query(`SELECT status FROM vendor_challans WHERE id=$1 AND is_deleted=false`, [id]);
   if (!existing.rows[0]) { res.status(404).json({ error: "Not found" }); return; }
   if (existing.rows[0].status !== "Draft") {

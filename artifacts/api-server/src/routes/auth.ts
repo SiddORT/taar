@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { eq } from "drizzle-orm";
-import { db, usersTable } from "@workspace/db";
+import { db, usersTable, rolesTable, rolePermissionsTable } from "@workspace/db";
 import {
   LoginBody,
   LoginResponse,
@@ -188,6 +188,19 @@ router.post("/auth/accept-invite", async (req, res): Promise<void> => {
 
   logger.info({ userId: user.id }, "Invite accepted, account activated");
   res.json({ message: "Account activated. You can now sign in." });
+});
+
+router.get("/auth/my-permissions", requireAuth, async (req, res): Promise<void> => {
+  const user = (req as typeof req & { user?: { role?: string } }).user;
+  if (!user?.role) { res.json({ permissions: [] }); return; }
+
+  const rows = await db
+    .select({ permission: rolePermissionsTable.permission })
+    .from(rolePermissionsTable)
+    .innerJoin(rolesTable, eq(rolesTable.id, rolePermissionsTable.roleId))
+    .where(eq(rolesTable.name, user.role));
+
+  res.json({ permissions: rows.map(r => r.permission) });
 });
 
 router.get("/auth/me", requireAuth, async (req, res): Promise<void> => {

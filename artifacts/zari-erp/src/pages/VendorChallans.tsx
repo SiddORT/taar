@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { useGetMe, useLogout, getGetMeQueryKey } from "@workspace/api-client-react";
 import TopNavbar from "@/components/layout/TopNavbar";
+import { useMyPermissions } from "@/hooks/useMyPermissions";
 
 const BASE = (import.meta.env.BASE_URL ?? "/").replace(/\/$/, "");
 
@@ -63,6 +64,7 @@ export default function VendorChallans() {
   const queryClient = useQueryClient();
   const { data: user } = useGetMe();
   const logoutMutation = useLogout();
+  const { can } = useMyPermissions();
 
   async function handleLogout() {
     await logoutMutation.mutateAsync();
@@ -386,7 +388,7 @@ export default function VendorChallans() {
                         <td className="px-4 py-3 text-xs font-mono text-indigo-600">{ch.linked_pr_number ?? "—"}</td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            {ch.status === "Draft" && (
+                            {ch.status === "Draft" && can("procurement:vendor_challans:verify") && (
                               <button onClick={() => handleVerify(ch.id)} disabled={actionId === ch.id}
                                 title="Verify"
                                 className="p-1.5 rounded-lg text-blue-600 hover:bg-blue-50 transition-colors disabled:opacity-40">

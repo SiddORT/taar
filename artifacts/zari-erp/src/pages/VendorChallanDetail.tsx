@@ -6,6 +6,7 @@ import { useGetMe, useLogout, getGetMeQueryKey } from "@workspace/api-client-rea
 import TopNavbar from "@/components/layout/TopNavbar";
 import { SmallSearchSelect } from "@/components/ui/SearchableSelect";
 import { useToast } from "@/hooks/use-toast";
+import { useMyPermissions } from "@/hooks/useMyPermissions";
 
 const G = "#C6AF4B";
 const BASE = (import.meta.env.BASE_URL ?? "/").replace(/\/$/, "");
@@ -384,6 +385,8 @@ export default function VendorChallanDetail() {
     }
   };
 
+  const { can } = useMyPermissions();
+
   const [form, setForm]                     = useState(emptyForm());
   const [lineItems, setLineItems]           = useState<LineItem[]>([newLine()]);
   const [status, setStatus]                 = useState("Draft");
@@ -543,7 +546,7 @@ export default function VendorChallanDetail() {
             )}
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            {!isNew && status === "Draft" && (
+            {!isNew && status === "Draft" && can("procurement:vendor_challans:verify") && (
               <button onClick={handleVerify} disabled={!!actionLoading}
                 className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium border transition-colors disabled:opacity-40"
                 style={{ borderColor: "#C6AF4B", color: "#a8922e", background: "#fdf8ee" }}>

@@ -19,6 +19,11 @@ export function useMyPermissions() {
     return role ? new Set(role.permissions) : new Set<string>();
   }, [isAdmin, myRole, rolesData?.data]);
 
+  function can(permKey: string): boolean {
+    if (isAdmin || myPermSet === null) return true;
+    return myPermSet.has(permKey);
+  }
+
   function hasTabPermission(tabKey: string): boolean {
     if (isAdmin || myPermSet === null) return true;
     const prefix = tabKey.replace(/:tab:.*$/, "");
@@ -29,5 +34,5 @@ export function useMyPermissions() {
     return myPermSet.has(tabKey);
   }
 
-  return { hasTabPermission, isAdmin };
+  return { hasTabPermission, can, isAdmin };
 }
