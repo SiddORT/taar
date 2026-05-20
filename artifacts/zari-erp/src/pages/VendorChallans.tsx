@@ -198,29 +198,29 @@ export default function VendorChallans() {
           <div className="relative flex-1 min-w-48">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
             <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search challan, vendor, description…"
-              className="pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-xl w-full focus:outline-none focus:ring-2 focus:ring-gray-300" />
+              className="pl-9 pr-3 py-2 text-sm text-gray-900 border border-gray-200 rounded-xl w-full focus:outline-none focus:ring-2 focus:ring-gray-300 placeholder-gray-400" />
           </div>
           <select value={vendorFilter} onChange={e => setVendorFilter(e.target.value)}
-            className="px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-300 min-w-36">
+            className="px-3 py-2 text-sm text-gray-900 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-300 min-w-36">
             <option value="">All Vendors</option>
             {vendors.map(v => <option key={v.id} value={String(v.id)}>{v.brandName}</option>)}
           </select>
           <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)}
-            className="px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-300 min-w-36">
+            className="px-3 py-2 text-sm text-gray-900 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-300 min-w-36">
             <option value="">All Types</option>
             {CHALLAN_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
           </select>
           <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
-            className="px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-300 min-w-36">
+            className="px-3 py-2 text-sm text-gray-900 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-300 min-w-36">
             <option value="">All Statuses</option>
             {CHALLAN_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
           </select>
           <div className="flex items-center gap-2">
             <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
-              className="px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-300" />
+              className="px-3 py-2 text-sm text-gray-900 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-300" />
             <span className="text-gray-400 text-xs">to</span>
             <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
-              className="px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-300" />
+              className="px-3 py-2 text-sm text-gray-900 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-300" />
           </div>
           {hasFilters && (
             <button onClick={() => { setSearch(""); setVendorFilter(""); setTypeFilter(""); setStatusFilter(""); setDateFrom(""); setDateTo(""); }}

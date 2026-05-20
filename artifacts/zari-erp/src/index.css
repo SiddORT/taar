@@ -225,19 +225,16 @@
   body {
     @apply font-sans antialiased bg-background text-foreground;
   }
+}
 
-  select {
-    color: #111827;
-  }
+/* Force input text to be dark regardless of inherited theme color */
+input, textarea, select {
+  color: #111827;
+}
 
-  select option {
-    color: #111827;
-    background-color: #ffffff;
-  }
-
-  input, textarea {
-    color: #111827;
-  }
+select option {
+  color: #111827;
+  background-color: #ffffff;
 }
 
 /**
