@@ -483,6 +483,14 @@ export default function HSNMaster() {
             </select>
           </div>
 
+          {(search || statusFilter !== "all") && (
+            <button
+              onClick={() => { setSearch(""); setStatusFilter("all"); setPage(1); }}
+              className="px-3 py-2 rounded-lg text-xs font-medium text-gray-500 border border-gray-200 hover:bg-gray-100 transition-colors whitespace-nowrap">
+              Clear Filters
+            </button>
+          )}
+
           {/* Export — fetches all filtered records */}
           <button
             onClick={handleExportAll}

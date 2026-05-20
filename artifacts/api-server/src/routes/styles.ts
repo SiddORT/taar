@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
-import { eq, ilike, or, and, desc, ne } from "drizzle-orm";
-import { db, pool, stylesTable } from "@workspace/db";
+import { eq, ilike, or, and, desc, ne, sql } from "drizzle-orm";
+import { db, pool, stylesTable, swatchesTable } from "@workspace/db";
 import { insertStyleSchema, updateStyleSchema } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
 import { logger } from "../lib/logger";
@@ -132,7 +132,34 @@ router.get("/styles", requireAuth, async (req: AuthRequest, res): Promise<void> 
 
   const whereClause = and(...conditions);
   const [rows, countRows] = await Promise.all([
-    db.select().from(stylesTable).where(whereClause).orderBy(desc(stylesTable.createdAt)).limit(limit).offset(offset),
+    db.select({
+      id: stylesTable.id,
+      styleNo: stylesTable.styleNo,
+      client: stylesTable.client,
+      styleCategory: stylesTable.styleCategory,
+      description: stylesTable.description,
+      placeOfIssue: stylesTable.placeOfIssue,
+      invoiceNo: stylesTable.invoiceNo,
+      vendorPoNo: stylesTable.vendorPoNo,
+      shippingDate: stylesTable.shippingDate,
+      attachLink: stylesTable.attachLink,
+      referenceSwatchId: stylesTable.referenceSwatchId,
+      referenceSwatchCode: swatchesTable.swatchCode,
+      wipMedia: stylesTable.wipMedia,
+      finalMedia: stylesTable.finalMedia,
+      isActive: stylesTable.isActive,
+      isDeleted: stylesTable.isDeleted,
+      createdBy: stylesTable.createdBy,
+      createdAt: stylesTable.createdAt,
+      updatedBy: stylesTable.updatedBy,
+      updatedAt: stylesTable.updatedAt,
+    })
+      .from(stylesTable)
+      .leftJoin(swatchesTable, sql`${swatchesTable.id}::text = ${stylesTable.referenceSwatchId}`)
+      .where(whereClause)
+      .orderBy(desc(stylesTable.createdAt))
+      .limit(limit)
+      .offset(offset),
     db.select({ id: stylesTable.id }).from(stylesTable).where(whereClause),
   ]);
   res.json({ data: rows, total: countRows.length, page, limit });

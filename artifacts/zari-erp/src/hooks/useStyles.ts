@@ -8,6 +8,7 @@ export type StyleRecord = {
   description: string | null; attachLink: string | null; placeOfIssue: string | null;
   vendorPoNo: string | null; shippingDate: string | null; styleCategory: string;
   referenceSwatchId: string | null;
+  referenceSwatchCode: string | null;
   wipMedia: MediaItem[] | null; finalMedia: MediaItem[] | null;
   isActive: boolean; isDeleted: boolean;
   createdBy: string; createdAt: string; updatedBy: string | null; updatedAt: string | null;

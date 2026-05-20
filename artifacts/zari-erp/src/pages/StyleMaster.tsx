@@ -196,17 +196,13 @@ export default function StyleMaster() {
     { key: "styleNo", label: "Style No", render: r => <span className="font-mono text-xs font-semibold text-gray-700">{asStyle(r).styleNo}</span> },
     { key: "styleCategory", label: "Category", render: r => asStyle(r).styleCategory || "—" },
     { key: "description", label: "Description", render: r => asStyle(r).description || "—" },
-    { key: "referenceSwatchId", label: "Linked Swatch", render: r => asStyle(r).referenceSwatchId
-      ? <span className="font-mono text-xs bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-full">{asStyle(r).referenceSwatchId}</span>
-      : "—" },
-    { key: "placeOfIssue", label: "Location", render: r => asStyle(r).placeOfIssue || "—" },
-    { key: "shippingDate", label: "Shipping Date", render: r => {
-      const d = asStyle(r).shippingDate;
-      if (!d) return "—";
-      try {
-        return new Date(d).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
-      } catch { return d; }
+    { key: "referenceSwatchId", label: "Linked Swatch", render: r => {
+      const code = asStyle(r).referenceSwatchCode || asStyle(r).referenceSwatchId;
+      return code
+        ? <span className="font-mono text-xs bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-full">{code}</span>
+        : "—";
     }},
+    { key: "placeOfIssue", label: "Location", render: r => asStyle(r).placeOfIssue || "—" },
     { key: "isActive", label: "Status", render: r => {
       const rec = asStyle(r);
       return (

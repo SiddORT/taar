@@ -5,6 +5,7 @@ import {
   Pencil, Trash2, ImagePlus, X as XIcon, ZoomIn,
   ArrowLeft, Save, Loader2,
   FileDown, FileUp, FileSpreadsheet,
+  Star, ChevronLeft, ChevronRight,
 } from "lucide-react";
 import { useGetMe, useLogout, getGetMeQueryKey } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
@@ -128,7 +129,8 @@ export default function ItemMaster() {
   const [errors, setErrors] = useState<FormErrors>({});
   const [deleteTarget, setDeleteTarget] = useState<ItemRecord | null>(null);
   const [confirmToggleTarget, setConfirmToggleTarget] = useState<ItemRecord | null>(null);
-  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+  const [carouselImages, setCarouselImages] = useState<ItemImage[]>([]);
+  const [carouselIdx, setCarouselIdx] = useState<number | null>(null);
   const imgInputRef = useRef<HTMLInputElement>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
   const [importMenuOpen, setImportMenuOpen] = useState(false);
@@ -197,6 +199,15 @@ export default function ItemMaster() {
     });
   };
   const removeImage = (id: string) => setForm((f) => ({ ...f, images: f.images.filter((i) => i.id !== id) }));
+  const setAsThumbnail = (id: string) => setForm((f) => {
+    const idx = f.images.findIndex((i) => i.id === id);
+    if (idx <= 0) return f;
+    const imgs = [...f.images];
+    [imgs[0], imgs[idx]] = [imgs[idx], imgs[0]];
+    return { ...f, images: imgs };
+  });
+  const openCarousel = (images: ItemImage[], startIdx: number) => { setCarouselImages(images); setCarouselIdx(startIdx); };
+  const closeCarousel = () => setCarouselIdx(null);
 
   /* ─── Location stocks ────────────────────────────────────── */
   const addLocationStock = () => setForm((f) => ({ ...f, locationStocks: [...f.locationStocks, { location: "", stock: "" }] }));
@@ -450,14 +461,14 @@ export default function ItemMaster() {
             </button>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-3 gap-6">
 
-            {/* ── LEFT COLUMN ── */}
-            <div className="space-y-5">
+            {/* ── Left column (main fields) ── */}
+            <div className="col-span-2 space-y-5">
 
               {/* Basic Info */}
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4">
-                <p className={sectionTitle}>Basic Information</p>
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#C6AF4B] mb-4">Basic Information</p>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="col-span-2">
                     <InputField label="Item Name" required value={form.itemName}
@@ -465,21 +476,15 @@ export default function ItemMaster() {
                       error={errors.itemName} placeholder="e.g. Cotton Thread" />
                     {!errors.itemName && <p className="text-[10px] text-gray-400 mt-0.5">{form.itemName.length}/100 chars</p>}
                   </div>
-
-                  {/* Item Type */}
-                  <div>
-                    <AddableSelect
-                      label="Item Type"
-                      value={form.itemType}
-                      options={itemTypes.filter((t) => t.isActive).map((t) => ({ value: t.name, label: t.name }))}
-                      onChange={(v) => setForm((f) => ({ ...f, itemType: v }))}
-                      onAdd={() => setAddItemTypeOpen(true)}
-                      placeholder="Select or add…"
-                      error={errors.itemType}
-                    />
-                  </div>
-
-                  {/* Description */}
+                  <AddableSelect
+                    label="Item Type"
+                    value={form.itemType}
+                    options={itemTypes.filter((t) => t.isActive).map((t) => ({ value: t.name, label: t.name }))}
+                    onChange={(v) => setForm((f) => ({ ...f, itemType: v }))}
+                    onAdd={() => setAddItemTypeOpen(true)}
+                    placeholder="Select or add…"
+                    error={errors.itemType}
+                  />
                   <div>
                     <label className={labelCls}>Description</label>
                     <textarea
@@ -490,123 +495,52 @@ export default function ItemMaster() {
                       className={`${inputCls} resize-none`}
                     />
                   </div>
-
-                  {/* Unit Type */}
-                  <div>
-                    <AddableSelect
-                      label="Unit Type"
-                      required
-                      value={form.unitType}
-                      options={unitTypes.filter((t) => t.isActive).map((t) => ({ value: t.name, label: t.name }))}
-                      onChange={(v) => setForm((f) => ({ ...f, unitType: v }))}
-                      onAdd={() => setAddUnitTypeOpen(true)}
-                      placeholder="Select or add…"
-                      error={errors.unitType}
-                    />
-                  </div>
-
-                  {/* Unit Price */}
-                  <div>
-                    <InputField label="Unit Price (₹)" required value={form.unitPrice}
-                      onChange={(e) => setForm((f) => ({ ...f, unitPrice: e.target.value }))}
-                      error={errors.unitPrice} placeholder="0.00" />
-                  </div>
+                  <AddableSelect
+                    label="Unit Type"
+                    required
+                    value={form.unitType}
+                    options={unitTypes.filter((t) => t.isActive).map((t) => ({ value: t.name, label: t.name }))}
+                    onChange={(v) => setForm((f) => ({ ...f, unitType: v }))}
+                    onAdd={() => setAddUnitTypeOpen(true)}
+                    placeholder="Select or add…"
+                    error={errors.unitType}
+                  />
+                  <InputField label="Unit Price (₹)" required value={form.unitPrice}
+                    onChange={(e) => setForm((f) => ({ ...f, unitPrice: e.target.value }))}
+                    error={errors.unitPrice} placeholder="0.00" />
                 </div>
               </div>
 
               {/* Tax Info */}
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4">
-                <p className={sectionTitle}>Tax Information</p>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <AddableSelect
-                      label="HSN Code"
-                      value={form.hsnCode}
-                      options={hsnOptions.map((h) => ({ value: h.hsnCode, label: h.hsnCode }))}
-                      onChange={(v) => {
-                        setForm((f) => {
-                          const found = hsnOptions.find((h) => h.hsnCode === v);
-                          return { ...f, hsnCode: v, gstPercent: found ? String(found.gstPercentage) : f.gstPercent };
-                        });
-                      }}
-                      onAdd={() => setAddHSNOpen(true)}
-                      placeholder="Select HSN…"
-                      error={errors.hsnCode}
-                    />
-                  </div>
-                  <div>
-                    <label className={labelCls}>GST %</label>
-                    <select value={form.gstPercent} onChange={(e) => setForm((f) => ({ ...f, gstPercent: e.target.value }))}
-                      className={inputCls}>
-                      {GST_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-                    </select>
-                  </div>
-                </div>
-              </div>
-
-              {/* Stock Levels */}
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4">
-                <p className={sectionTitle}>Stock Levels</p>
-                <div className="grid grid-cols-3 gap-3">
-                  <InputField label="Reorder Level" value={form.reorderLevel}
-                    onChange={(e) => setForm((f) => ({ ...f, reorderLevel: e.target.value }))}
-                    error={errors.reorderLevel} placeholder="0" />
-                  <InputField label="Minimum Level" value={form.minimumLevel}
-                    onChange={(e) => setForm((f) => ({ ...f, minimumLevel: e.target.value }))}
-                    error={errors.minimumLevel} placeholder="0" />
-                  <InputField label="Maximum Level" value={form.maximumLevel}
-                    onChange={(e) => setForm((f) => ({ ...f, maximumLevel: e.target.value }))}
-                    error={errors.maximumLevel} placeholder="0" />
-                </div>
-              </div>
-
-              {/* Status */}
               <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-                <p className={sectionTitle}>Status</p>
-                <div className="flex items-center gap-3">
-                  <button type="button" onClick={() => setForm((f) => ({ ...f, isActive: !f.isActive }))}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${form.isActive ? "bg-gray-900" : "bg-gray-300"}`}>
-                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${form.isActive ? "translate-x-6" : "translate-x-1"}`} />
-                  </button>
-                  <span className={`text-sm font-medium ${form.isActive ? "text-emerald-600" : "text-gray-400"}`}>
-                    {form.isActive ? "Active" : "Inactive"}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* ── RIGHT COLUMN ── */}
-            <div className="space-y-5">
-
-              {/* Images */}
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-3">
-                <div className="flex items-center justify-between">
-                  <p className={sectionTitle}>Item Images</p>
-                  <span className="text-xs text-gray-400">{form.images.length}/5 — max 3 MB each</span>
-                </div>
-                <div className="flex flex-wrap gap-3">
-                  {form.images.map((img) => (
-                    <div key={img.id} className="relative group h-20 w-20 rounded-xl overflow-hidden border border-gray-200 flex-shrink-0">
-                      <img src={img.data} alt={img.name} className="h-full w-full object-cover" />
-                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-1">
-                        <button type="button" onClick={() => setLightboxUrl(img.data)} className="p-1 rounded-full bg-white/90 text-gray-700 hover:text-gray-900">
-                          <ZoomIn className="h-3.5 w-3.5" />
-                        </button>
-                        <button type="button" onClick={() => removeImage(img.id)} className="p-1 rounded-full bg-white/90 text-red-500 hover:text-red-700">
-                          <XIcon className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
+                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#C6AF4B] mb-4">Tax Information</p>
+                <div className="grid grid-cols-2 gap-4">
+                  <AddableSelect
+                    label="HSN Code"
+                    value={form.hsnCode}
+                    options={hsnOptions.map((h) => ({ value: h.hsnCode, label: h.hsnCode }))}
+                    onChange={(v) => {
+                      setForm((f) => {
+                        const found = hsnOptions.find((h) => h.hsnCode === v);
+                        return { ...f, hsnCode: v, gstPercent: found ? String(found.gstPercentage) : f.gstPercent };
+                      });
+                    }}
+                    onAdd={() => setAddHSNOpen(true)}
+                    placeholder="Select HSN…"
+                    error={errors.hsnCode}
+                  />
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-sm font-medium text-gray-700">GST %</label>
+                    <div className="relative">
+                      <input type="text" readOnly value={form.gstPercent ? `${form.gstPercent}%` : ""}
+                        placeholder="Auto-filled from HSN"
+                        className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-sm text-gray-500 outline-none cursor-default" />
+                      {form.gstPercent && (
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-semibold text-emerald-600 bg-emerald-50 border border-emerald-100 px-1.5 py-0.5 rounded-full">AUTO</span>
+                      )}
                     </div>
-                  ))}
-                  {form.images.length < 5 && (
-                    <button type="button" onClick={() => imgInputRef.current?.click()}
-                      className="h-20 w-20 rounded-xl border-2 border-dashed border-gray-200 hover:border-[#C9B45C] text-gray-400 hover:text-[#C9B45C] transition flex flex-col items-center justify-center gap-1 flex-shrink-0">
-                      <ImagePlus className="h-5 w-5" />
-                      <span className="text-[10px]">Add</span>
-                    </button>
-                  )}
+                  </div>
                 </div>
-                <input ref={imgInputRef} type="file" accept="image/*" multiple className="hidden" onChange={(e) => handleImageFiles(e.target.files)} />
               </div>
 
               {/* Stock by Location */}
@@ -633,13 +567,12 @@ export default function ItemMaster() {
                   <div className="space-y-2">
                     {form.locationStocks.map((ls, idx) => (
                       <div key={idx} className="flex gap-2 items-center">
-                        <input list={`item-loc-list-${idx}`} value={ls.location}
+                        <select value={ls.location}
                           onChange={(e) => updateLocationStock(idx, "location", e.target.value)}
-                          placeholder="Type or select location"
-                          className="flex-1 rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100" />
-                        <datalist id={`item-loc-list-${idx}`}>
-                          {locationOptions.map((l) => <option key={l} value={l} />)}
-                        </datalist>
+                          className="flex-1 rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100">
+                          <option value="">Select warehouse…</option>
+                          {locationOptions.map((l) => <option key={l} value={l}>{l}</option>)}
+                        </select>
                         <div className="flex items-center gap-1.5 shrink-0">
                           <span className="text-xs text-gray-500 whitespace-nowrap">Stock:</span>
                           <input type="number" min="0" placeholder="0" value={ls.stock}
@@ -673,6 +606,104 @@ export default function ItemMaster() {
                 )}
               </div>
             </div>
+
+            {/* ── Right column ── */}
+            <div className="space-y-5">
+
+              {/* Item Images */}
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-black uppercase tracking-[0.18em] text-[#C6AF4B]">Item Images</span>
+                    <span className="text-[10px] text-gray-400">{form.images.length}/5</span>
+                  </div>
+                  {form.images.length < 5 && (
+                    <button type="button" onClick={() => imgInputRef.current?.click()}
+                      className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg border border-dashed border-[#C6AF4B] text-[#8a7a2e] hover:bg-[#C6AF4B]/10 transition-colors">
+                      <ImagePlus className="h-3.5 w-3.5" /> Add
+                    </button>
+                  )}
+                  <input ref={imgInputRef} type="file" accept="image/*" multiple className="hidden" onChange={(e) => handleImageFiles(e.target.files)} />
+                </div>
+                {form.images.length === 0 ? (
+                  <div className="border-2 border-dashed border-gray-200 rounded-xl flex flex-col items-center justify-center py-10 gap-2 cursor-pointer hover:border-[#C6AF4B]/50 transition-colors"
+                    onClick={() => imgInputRef.current?.click()}>
+                    <ImagePlus className="h-8 w-8 text-gray-300" />
+                    <p className="text-xs text-gray-400 text-center">Click to add images<br />(JPG, PNG, WebP · max 3 MB)</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-3 gap-2">
+                    {form.images.map((img, imgIdx) => (
+                      <div key={img.id} className="relative group aspect-square rounded-xl border border-gray-200 overflow-hidden bg-gray-50">
+                        <img src={img.data} alt={img.name} className="w-full h-full object-cover" />
+                        {imgIdx === 0 && (
+                          <div className="absolute top-1 left-1 bg-[#C6AF4B] rounded-full p-0.5 shadow" title="Thumbnail">
+                            <Star className="h-2.5 w-2.5 text-white fill-white" />
+                          </div>
+                        )}
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/35 transition-colors flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100">
+                          <button type="button" onClick={() => openCarousel(form.images, imgIdx)}
+                            className="p-1 rounded-full bg-white/90 hover:bg-white transition-colors" title="View">
+                            <ZoomIn className="h-3 w-3 text-gray-700" />
+                          </button>
+                          {imgIdx !== 0 && (
+                            <button type="button" onClick={() => setAsThumbnail(img.id)}
+                              className="p-1 rounded-full bg-white/90 hover:bg-white transition-colors" title="Set as thumbnail">
+                              <Star className="h-3 w-3 text-[#C6AF4B]" />
+                            </button>
+                          )}
+                          <button type="button" onClick={() => removeImage(img.id)}
+                            className="p-1 rounded-full bg-white/90 hover:bg-white transition-colors" title="Remove">
+                            <XIcon className="h-3 w-3 text-red-500" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                    {form.images.length < 5 && (
+                      <button type="button" onClick={() => imgInputRef.current?.click()}
+                        className="aspect-square rounded-xl border-2 border-dashed border-gray-200 flex items-center justify-center hover:border-[#C6AF4B]/50 transition-colors">
+                        <ImagePlus className="h-5 w-5 text-gray-300" />
+                      </button>
+                    )}
+                  </div>
+                )}
+                <p className="text-[10px] text-gray-400 mt-2">First image is the thumbnail · Max 3 MB per image</p>
+              </div>
+
+              {/* Stock Levels */}
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#C6AF4B] mb-4">Stock Levels</p>
+                <div className="space-y-3">
+                  <InputField label="Reorder Level" value={form.reorderLevel}
+                    onChange={(e) => setForm((f) => ({ ...f, reorderLevel: e.target.value }))}
+                    error={errors.reorderLevel} placeholder="0" />
+                  <InputField label="Minimum Level" value={form.minimumLevel}
+                    onChange={(e) => setForm((f) => ({ ...f, minimumLevel: e.target.value }))}
+                    error={errors.minimumLevel} placeholder="0" />
+                  <InputField label="Maximum Level" value={form.maximumLevel}
+                    onChange={(e) => setForm((f) => ({ ...f, maximumLevel: e.target.value }))}
+                    error={errors.maximumLevel} placeholder="0" />
+                </div>
+              </div>
+
+              {/* Status */}
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                <div className="flex items-center gap-3">
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-gray-700">Status</p>
+                    <p className="text-xs text-gray-400 mt-0.5">{form.isActive ? "Visible and active in the system" : "Hidden from active lists"}</p>
+                  </div>
+                  <button type="button" onClick={() => setForm((f) => ({ ...f, isActive: !f.isActive }))}
+                    className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors focus:outline-none ${form.isActive ? "bg-gray-900" : "bg-gray-300"}`}
+                    role="switch" aria-checked={form.isActive}>
+                    <span className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transform transition-transform ${form.isActive ? "translate-x-5" : "translate-x-0"}`} />
+                  </button>
+                  <span className={`text-sm font-medium min-w-[48px] ${form.isActive ? "text-emerald-600" : "text-gray-400"}`}>
+                    {form.isActive ? "Active" : "Inactive"}
+                  </span>
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Bottom action bar */}
@@ -691,12 +722,35 @@ export default function ItemMaster() {
           </div>
         </div>
 
-        {/* Lightbox */}
-        {lightboxUrl && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70" onClick={() => setLightboxUrl(null)}>
-            <div className="relative max-h-[90vh] max-w-[90vw]" onClick={(e) => e.stopPropagation()}>
-              <img src={lightboxUrl} alt="Preview" className="max-h-[85vh] max-w-[85vw] rounded-2xl object-contain shadow-2xl" />
-              <button onClick={() => setLightboxUrl(null)} className="absolute -top-3 -right-3 bg-white rounded-full p-1.5 shadow-lg text-gray-600 hover:text-gray-900">
+        {/* Image Carousel Lightbox */}
+        {carouselIdx !== null && carouselImages.length > 0 && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 p-4" onClick={closeCarousel}>
+            <div className="relative flex items-center gap-3 max-w-3xl w-full" onClick={(e) => e.stopPropagation()}>
+              <button onClick={() => setCarouselIdx((i) => ((i ?? 0) - 1 + carouselImages.length) % carouselImages.length)}
+                className="shrink-0 p-2 rounded-full bg-white/20 hover:bg-white/40 transition-colors text-white"
+                disabled={carouselImages.length <= 1}>
+                <ChevronLeft className="h-6 w-6" />
+              </button>
+              <div className="flex-1 flex flex-col items-center gap-3">
+                <img src={carouselImages[carouselIdx]?.data} alt={carouselImages[carouselIdx]?.name}
+                  className="max-h-[75vh] max-w-full rounded-2xl shadow-2xl object-contain" />
+                {carouselImages.length > 1 && (
+                  <div className="flex gap-1.5">
+                    {carouselImages.map((_, dotIdx) => (
+                      <button key={dotIdx} onClick={() => setCarouselIdx(dotIdx)}
+                        className={`w-2 h-2 rounded-full transition-colors ${dotIdx === carouselIdx ? "bg-white" : "bg-white/40 hover:bg-white/70"}`} />
+                    ))}
+                  </div>
+                )}
+                <p className="text-white/60 text-xs">{carouselIdx + 1} / {carouselImages.length}</p>
+              </div>
+              <button onClick={() => setCarouselIdx((i) => ((i ?? 0) + 1) % carouselImages.length)}
+                className="shrink-0 p-2 rounded-full bg-white/20 hover:bg-white/40 transition-colors text-white"
+                disabled={carouselImages.length <= 1}>
+                <ChevronRight className="h-6 w-6" />
+              </button>
+              <button onClick={closeCarousel}
+                className="absolute -top-10 right-0 p-2 bg-white/20 hover:bg-white/40 rounded-full transition-colors text-white">
                 <XIcon className="h-4 w-4" />
               </button>
             </div>
@@ -838,6 +892,13 @@ export default function ItemMaster() {
             className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 shadow-sm outline-none transition focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10">
             {STATUS_FILTER_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
+
+          {(search || statusFilter !== "all") && (
+            <button onClick={() => { setSearch(""); setDebouncedSearch(""); setStatusFilter("all"); setPage(1); }}
+              className="px-3 py-2 rounded-lg text-xs font-medium text-gray-500 border border-gray-200 hover:bg-gray-100 transition-colors whitespace-nowrap">
+              Clear Filters
+            </button>
+          )}
         </div>
 
         <MasterTable
