@@ -270,6 +270,97 @@ router.post("/vendor-challans/convert-to-po", requireAuth, async (req: AuthReque
   }
 });
 
+// ── CONVERT SELECTED IDs TO PO ────────────────────────────────────────────────
+router.post("/vendor-challans/convert-selected-to-po", requireAuth, async (req: AuthRequest, res) => {
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const { challanIds } = req.body as { challanIds: number[] };
+    if (!Array.isArray(challanIds) || !challanIds.length) {
+      res.status(400).json({ error: "No challans selected" }); return;
+    }
+
+    const placeholders = challanIds.map((_, i) => `$${i + 1}`).join(",");
+    const challans = await client.query(
+      `SELECT * FROM vendor_challans WHERE id IN (${placeholders}) AND is_deleted=false ORDER BY challan_date ASC`,
+      challanIds
+    );
+
+    if (!challans.rows.length) {
+      await client.query("ROLLBACK");
+      res.status(400).json({ error: "No matching challans found" }); return;
+    }
+
+    const nonVerified = challans.rows.filter((c: any) => c.status !== "Verified");
+    if (nonVerified.length) {
+      await client.query("ROLLBACK");
+      res.status(400).json({ error: `Only Verified challans can be converted. Non-verified: ${nonVerified.map((c: any) => c.challan_number).join(", ")}` }); return;
+    }
+
+    const vendorIds: Set<number> = new Set(challans.rows.map((c: any) => c.vendor_id));
+    if (vendorIds.size > 1) {
+      await client.query("ROLLBACK");
+      res.status(400).json({ error: "All selected challans must belong to the same vendor" }); return;
+    }
+
+    const vendorId: number = challans.rows[0].vendor_id;
+    const vendorName: string = challans.rows[0].vendor_name ?? "";
+    const challanType: string = challans.rows[0].challan_type;
+
+    const fy = financialYear();
+    const countRes = await client.query(`SELECT COUNT(*) FROM purchase_orders WHERE po_number LIKE $1`, [`PO/${fy}/%`]);
+    const seq = (parseInt(countRes.rows[0].count) + 1).toString().padStart(4, "0");
+    const poNumber = `PO/${fy}/${seq}`;
+    const userName = req.user?.email ?? "system";
+    const notes = `Consolidated from ${challans.rows.length} vendor challan(s) — Type: ${challanType}`;
+
+    const poRes = await client.query(
+      `INSERT INTO purchase_orders
+         (po_number, vendor_id, vendor_name, po_date, status, notes,
+          reference_type, reference_id, swatch_order_id, style_order_id,
+          bom_row_ids, bom_items, created_by, created_at)
+       VALUES ($1,$2,$3,NOW(),'Draft',$4,'Challan',NULL,NULL,NULL,'[]','[]',$5,NOW())
+       RETURNING *`,
+      [poNumber, vendorId, vendorName, notes, userName]
+    );
+    const po = poRes.rows[0];
+
+    for (const ch of challans.rows) {
+      await client.query(
+        `INSERT INTO purchase_order_items
+           (po_id, item_name, item_code, ordered_quantity, received_quantity, unit_price, remarks)
+         VALUES ($1,$2,$3,$4,0,$5,$6)`,
+        [
+          po.id,
+          ch.description ?? ch.challan_type,
+          ch.challan_number,
+          ch.quantity ?? 1,
+          ch.rate ?? 0,
+          `Challan: ${ch.challan_number} | Date: ${ch.challan_date}`,
+        ]
+      );
+      await client.query(
+        `UPDATE vendor_challans SET status='Converted to PO', linked_po_id=$1, linked_po_number=$2, updated_at=NOW() WHERE id=$3`,
+        [po.id, poNumber, ch.id]
+      );
+    }
+
+    await client.query("COMMIT");
+    res.status(201).json({
+      data: po,
+      message: `${challans.rows.length} challan(s) converted to PO successfully`,
+      poNumber,
+      count: challans.rows.length,
+    });
+  } catch (err) {
+    await client.query("ROLLBACK");
+    req.log?.error(err);
+    res.status(500).json({ error: "Failed to convert challans to PO" });
+  } finally {
+    client.release();
+  }
+});
+
 // ── DOCUMENT UPLOAD ───────────────────────────────────────────────────────────
 router.post("/vendor-challans/:id/document", requireAuth, uploadMiddleware.single("file"), async (req, res) => {
   const id = parseInt(String(req.params.id), 10);

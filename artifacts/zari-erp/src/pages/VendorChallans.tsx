@@ -72,7 +72,16 @@ export default function VendorChallans() {
   const [vendors, setVendors]       = useState<Vendor[]>([]);
   const [actionId, setActionId]     = useState<number | null>(null);
 
-  // Convert to PO modal state
+  // Row selection
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+
+  // Bulk convert modal state
+  const [bulkConvertOpen, setBulkConvertOpen] = useState(false);
+  const [bulkConverting, setBulkConverting]   = useState(false);
+  const [bulkError, setBulkError]             = useState("");
+  const [bulkSuccess, setBulkSuccess]         = useState("");
+
+  // Legacy filter-based convert modal
   const [convertOpen, setConvertOpen]   = useState(false);
   const [cvVendorId, setCvVendorId]     = useState("");
   const [cvType, setCvType]             = useState("");
@@ -102,7 +111,7 @@ export default function VendorChallans() {
   }, [search, vendorFilter, typeFilter, statusFilter, dateFrom, dateTo, page]);
 
   useEffect(() => { void fetchVendors(); }, [fetchVendors]);
-  useEffect(() => { setPage(1); }, [search, vendorFilter, typeFilter, statusFilter, dateFrom, dateTo]);
+  useEffect(() => { setPage(1); setSelectedIds(new Set()); }, [search, vendorFilter, typeFilter, statusFilter, dateFrom, dateTo]);
   useEffect(() => { void fetchChallans(); }, [fetchChallans]);
 
   async function handleVerify(id: number) {
@@ -131,6 +140,53 @@ export default function VendorChallans() {
     setActionId(null);
   }
 
+  // Selection helpers
+  function toggleRow(id: number) {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
+
+  const pageIds = challans.map(c => c.id);
+  const allPageSelected = pageIds.length > 0 && pageIds.every(id => selectedIds.has(id));
+  const somePageSelected = pageIds.some(id => selectedIds.has(id));
+
+  function toggleSelectAll() {
+    if (allPageSelected) {
+      setSelectedIds(prev => { const next = new Set(prev); pageIds.forEach(id => next.delete(id)); return next; });
+    } else {
+      setSelectedIds(prev => { const next = new Set(prev); pageIds.forEach(id => next.add(id)); return next; });
+    }
+  }
+
+  const selectedChallans = challans.filter(c => selectedIds.has(c.id));
+  const selectedTotal = selectedChallans.reduce((s, c) => s + parseFloat(c.amount ?? "0"), 0);
+
+  // Bulk convert
+  async function handleBulkConvert() {
+    setBulkConverting(true); setBulkError(""); setBulkSuccess("");
+    const r = await apiFetch("/api/vendor-challans/convert-selected-to-po", {
+      method: "POST",
+      body: JSON.stringify({ challanIds: [...selectedIds] }),
+    });
+    const d = await r.json();
+    if (r.ok) {
+      setBulkSuccess(`${d.message} — PO #${d.poNumber} created`);
+      setSelectedIds(new Set());
+      void fetchChallans();
+    } else {
+      setBulkError(d.error ?? "Failed to convert");
+    }
+    setBulkConverting(false);
+  }
+
+  function closeBulkConvert() {
+    setBulkConvertOpen(false); setBulkError(""); setBulkSuccess("");
+  }
+
+  // Legacy filter-based convert
   async function handlePreviewPO() {
     if (!cvVendorId || !cvType) { setCvError("Select a vendor and challan type"); return; }
     setCvError(""); setCvPreviewing(true); setCvPreview([]);
@@ -251,63 +307,91 @@ export default function VendorChallans() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="bg-gray-50 border-b border-gray-100">
+                    {/* Select-all checkbox */}
+                    <th className="pl-4 pr-2 py-3 w-8">
+                      <input
+                        type="checkbox"
+                        checked={allPageSelected}
+                        ref={el => { if (el) el.indeterminate = somePageSelected && !allPageSelected; }}
+                        onChange={toggleSelectAll}
+                        className="h-4 w-4 rounded border-gray-300 accent-gray-800 cursor-pointer"
+                      />
+                    </th>
+                    <th className="px-3 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide w-12">Sr.</th>
                     {["Challan #", "Date", "Vendor", "Type", "Description", "Amount", "Status", "Linked PO", "Linked PR", "Actions"].map(h => (
                       <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
-                  {challans.map(ch => (
-                    <tr key={ch.id} className="hover:bg-gray-50 transition-colors group">
-                      <td className="px-4 py-3">
-                        <button onClick={() => setLocation(`/procurement/vendor-challans/${ch.id}`)}
-                          className="font-mono text-xs font-semibold text-gray-900 hover:text-[#C9B45C] transition-colors">
-                          {ch.challan_number}
-                        </button>
-                      </td>
-                      <td className="px-4 py-3 text-xs text-gray-600 whitespace-nowrap">{ch.challan_date}</td>
-                      <td className="px-4 py-3 text-xs text-gray-700 max-w-32 truncate">{ch.vendor_name ?? "—"}</td>
-                      <td className="px-4 py-3">
-                        <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">{ch.challan_type}</span>
-                      </td>
-                      <td className="px-4 py-3 text-xs text-gray-600 max-w-48 truncate">{ch.description ?? "—"}</td>
-                      <td className="px-4 py-3 text-xs font-semibold text-gray-900 whitespace-nowrap">
-                        {ch.amount ? `₹${parseFloat(ch.amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}` : "—"}
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[ch.status] ?? "bg-gray-100 text-gray-600"}`}>
-                          {ch.status}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-xs font-mono text-violet-600">{ch.linked_po_number ?? "—"}</td>
-                      <td className="px-4 py-3 text-xs font-mono text-indigo-600">{ch.linked_pr_number ?? "—"}</td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          {ch.status === "Draft" && (
-                            <button onClick={() => handleVerify(ch.id)} disabled={actionId === ch.id}
-                              title="Verify"
-                              className="p-1.5 rounded-lg text-blue-600 hover:bg-blue-50 transition-colors disabled:opacity-40">
-                              {actionId === ch.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle className="h-3.5 w-3.5" />}
-                            </button>
-                          )}
-                          {!["Converted to PO", "Converted to PR", "Billed", "Paid", "Cancelled"].includes(ch.status) && (
-                            <button onClick={() => handleCancel(ch.id)} disabled={actionId === ch.id}
-                              title="Cancel"
-                              className="p-1.5 rounded-lg text-orange-500 hover:bg-orange-50 transition-colors disabled:opacity-40">
-                              <XCircle className="h-3.5 w-3.5" />
-                            </button>
-                          )}
-                          {["Draft", "Cancelled"].includes(ch.status) && (
-                            <button onClick={() => handleDelete(ch.id)} disabled={actionId === ch.id}
-                              title="Delete"
-                              className="p-1.5 rounded-lg text-red-500 hover:bg-red-50 transition-colors disabled:opacity-40">
-                              <X className="h-3.5 w-3.5" />
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                  {challans.map((ch, idx) => {
+                    const isSelected = selectedIds.has(ch.id);
+                    return (
+                      <tr key={ch.id}
+                        className={`transition-colors group ${isSelected ? "bg-blue-50/60" : "hover:bg-gray-50"}`}>
+                        {/* Checkbox */}
+                        <td className="pl-4 pr-2 py-3">
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => toggleRow(ch.id)}
+                            className="h-4 w-4 rounded border-gray-300 accent-gray-800 cursor-pointer"
+                          />
+                        </td>
+                        {/* Sr. No. */}
+                        <td className="px-3 py-3 text-xs text-gray-400 font-mono">
+                          {(page - 1) * LIMIT + idx + 1}
+                        </td>
+                        <td className="px-4 py-3">
+                          <button onClick={() => setLocation(`/procurement/vendor-challans/${ch.id}`)}
+                            className="font-mono text-xs font-semibold text-gray-900 hover:text-[#C9B45C] transition-colors">
+                            {ch.challan_number}
+                          </button>
+                        </td>
+                        <td className="px-4 py-3 text-xs text-gray-600 whitespace-nowrap">{ch.challan_date}</td>
+                        <td className="px-4 py-3 text-xs text-gray-700 max-w-32 truncate">{ch.vendor_name ?? "—"}</td>
+                        <td className="px-4 py-3">
+                          <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">{ch.challan_type}</span>
+                        </td>
+                        <td className="px-4 py-3 text-xs text-gray-600 max-w-48 truncate">{ch.description ?? "—"}</td>
+                        <td className="px-4 py-3 text-xs font-semibold text-gray-900 whitespace-nowrap">
+                          {ch.amount ? `₹${parseFloat(ch.amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}` : "—"}
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[ch.status] ?? "bg-gray-100 text-gray-600"}`}>
+                            {ch.status}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-xs font-mono text-violet-600">{ch.linked_po_number ?? "—"}</td>
+                        <td className="px-4 py-3 text-xs font-mono text-indigo-600">{ch.linked_pr_number ?? "—"}</td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            {ch.status === "Draft" && (
+                              <button onClick={() => handleVerify(ch.id)} disabled={actionId === ch.id}
+                                title="Verify"
+                                className="p-1.5 rounded-lg text-blue-600 hover:bg-blue-50 transition-colors disabled:opacity-40">
+                                {actionId === ch.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle className="h-3.5 w-3.5" />}
+                              </button>
+                            )}
+                            {!["Converted to PO", "Converted to PR", "Billed", "Paid", "Cancelled"].includes(ch.status) && (
+                              <button onClick={() => handleCancel(ch.id)} disabled={actionId === ch.id}
+                                title="Cancel"
+                                className="p-1.5 rounded-lg text-orange-500 hover:bg-orange-50 transition-colors disabled:opacity-40">
+                                <XCircle className="h-3.5 w-3.5" />
+                              </button>
+                            )}
+                            {["Draft", "Cancelled"].includes(ch.status) && (
+                              <button onClick={() => handleDelete(ch.id)} disabled={actionId === ch.id}
+                                title="Delete"
+                                className="p-1.5 rounded-lg text-red-500 hover:bg-red-50 transition-colors disabled:opacity-40">
+                                <X className="h-3.5 w-3.5" />
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -333,7 +417,115 @@ export default function VendorChallans() {
         </div>
       </div>
 
-      {/* Convert to PO Modal */}
+      {/* ── Sticky Selection Action Bar ─────────────────────────────────────── */}
+      {selectedIds.size > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40">
+          <div className="flex items-center gap-4 bg-gray-900 text-white rounded-2xl shadow-2xl px-5 py-3 text-sm">
+            <span className="font-medium">
+              {selectedIds.size} challan{selectedIds.size !== 1 ? "s" : ""} selected
+              {selectedTotal > 0 && (
+                <span className="ml-2 text-[#C9B45C] font-semibold">
+                  ₹{selectedTotal.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                </span>
+              )}
+            </span>
+            <div className="w-px h-5 bg-white/20" />
+            <button
+              onClick={() => { setBulkError(""); setBulkSuccess(""); setBulkConvertOpen(true); }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-semibold transition-all"
+              style={{ background: "linear-gradient(135deg, #C6AF4B, #a8922e)" }}>
+              <ArrowRight className="h-3.5 w-3.5" /> Convert to PO
+            </button>
+            <button onClick={() => setSelectedIds(new Set())}
+              className="p-1.5 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition-colors">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Bulk Convert Confirm Modal ──────────────────────────────────────── */}
+      {bulkConvertOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xl max-h-[85vh] flex flex-col">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+              <div>
+                <h2 className="text-base font-bold text-gray-900">Convert to Purchase Order</h2>
+                <p className="text-xs text-gray-500 mt-0.5">{selectedIds.size} challan{selectedIds.size !== 1 ? "s" : ""} selected for conversion</p>
+              </div>
+              <button onClick={closeBulkConvert} className="p-2 rounded-xl text-gray-400 hover:bg-gray-100">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="p-6 overflow-y-auto flex-1 space-y-4">
+              {bulkError && <p className="text-xs text-red-600 bg-red-50 px-3 py-2 rounded-xl border border-red-100">{bulkError}</p>}
+              {bulkSuccess && <p className="text-xs text-green-700 bg-green-50 px-3 py-2 rounded-xl border border-green-100">{bulkSuccess}</p>}
+
+              {!bulkSuccess && (
+                <>
+                  <p className="text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2">
+                    Only <strong>Verified</strong> challans from the <strong>same vendor</strong> can be converted. Others will be rejected.
+                  </p>
+
+                  <div className="rounded-xl border border-gray-200 overflow-hidden">
+                    <table className="w-full text-xs">
+                      <thead className="bg-gray-50 border-b border-gray-100">
+                        <tr>
+                          <th className="px-3 py-2 text-left font-semibold text-gray-500 uppercase tracking-wide">Challan #</th>
+                          <th className="px-3 py-2 text-left font-semibold text-gray-500 uppercase tracking-wide">Vendor</th>
+                          <th className="px-3 py-2 text-left font-semibold text-gray-500 uppercase tracking-wide">Status</th>
+                          <th className="px-3 py-2 text-right font-semibold text-gray-500 uppercase tracking-wide">Amount</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-50">
+                        {selectedChallans.map(c => (
+                          <tr key={c.id}>
+                            <td className="px-3 py-2 font-mono font-semibold text-gray-900">{c.challan_number}</td>
+                            <td className="px-3 py-2 text-gray-600 max-w-32 truncate">{c.vendor_name ?? "—"}</td>
+                            <td className="px-3 py-2">
+                              <span className={`inline-block px-1.5 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[c.status] ?? "bg-gray-100 text-gray-600"}`}>
+                                {c.status}
+                              </span>
+                            </td>
+                            <td className="px-3 py-2 font-semibold text-gray-900 text-right">
+                              {c.amount ? `₹${parseFloat(c.amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}` : "—"}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                      <tfoot className="bg-gray-50 border-t border-gray-100">
+                        <tr>
+                          <td colSpan={3} className="px-3 py-2 text-xs font-bold text-gray-700 text-right">Total</td>
+                          <td className="px-3 py-2 text-xs font-bold text-gray-900 text-right">
+                            ₹{selectedTotal.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                          </td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
+                </>
+              )}
+            </div>
+
+            <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-3">
+              <button onClick={closeBulkConvert} className="px-5 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-100 transition-colors">
+                {bulkSuccess ? "Close" : "Cancel"}
+              </button>
+              {!bulkSuccess && (
+                <button onClick={handleBulkConvert} disabled={bulkConverting}
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition-all disabled:opacity-40"
+                  style={{ background: "linear-gradient(135deg, #C6AF4B, #a8922e)" }}>
+                  {bulkConverting ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
+                  {bulkConverting ? "Creating PO…" : "Confirm & Create PO"}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Legacy Filter-based Convert to PO Modal ─────────────────────────── */}
       {convertOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
@@ -348,12 +540,11 @@ export default function VendorChallans() {
             </div>
 
             <div className="p-6 space-y-4 overflow-y-auto flex-1">
-              {/* Selection row */}
               <div className="grid grid-cols-3 gap-3">
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1.5">Vendor *</label>
                   <select value={cvVendorId} onChange={e => { setCvVendorId(e.target.value); setCvPreview([]); setCvSuccess(""); }}
-                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-300">
+                    className="w-full px-3 py-2 text-sm text-gray-900 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-300">
                     <option value="">— Select vendor —</option>
                     {vendors.map(v => <option key={v.id} value={String(v.id)}>{v.brandName}</option>)}
                   </select>
@@ -361,7 +552,7 @@ export default function VendorChallans() {
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1.5">Challan Type *</label>
                   <select value={cvType} onChange={e => { setCvType(e.target.value); setCvPreview([]); setCvSuccess(""); }}
-                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-300">
+                    className="w-full px-3 py-2 text-sm text-gray-900 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-300">
                     <option value="">— Select type —</option>
                     {CHALLAN_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
                   </select>
@@ -369,7 +560,7 @@ export default function VendorChallans() {
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1.5">Duration Period</label>
                   <select value={cvDuration} onChange={e => { setCvDuration(parseInt(e.target.value, 10)); setCvPreview([]); setCvSuccess(""); }}
-                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-300">
+                    className="w-full px-3 py-2 text-sm text-gray-900 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-300">
                     {DURATION_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                   </select>
                 </div>
