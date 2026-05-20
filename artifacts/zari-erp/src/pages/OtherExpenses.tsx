@@ -7,6 +7,7 @@ import {
 import { useGetMe } from "@workspace/api-client-react";
 import { customFetch } from "@workspace/api-client-react";
 import TopNavbar from "@/components/layout/TopNavbar";
+import SearchableSelect from "@/components/ui/SearchableSelect";
 import { useToast } from "@/hooks/use-toast";
 
 /* ── styles ─────────────────────────────────────────── */
@@ -132,11 +133,14 @@ function ExpenseModal({
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className={LBL}>Expense Category <span className="text-red-500 ml-0.5">*</span></label>
-              <select className={INP} value={form.expense_category} onChange={e => set("expense_category", e.target.value)}>
-                <option value="">Select category…</option>
-                {allCategories.map(c => <option key={c} value={c}>{c}</option>)}
-                <option value="__custom__">+ Add new category…</option>
-              </select>
+              <SearchableSelect
+                value={form.expense_category === "__custom__" ? "" : form.expense_category}
+                displayValue={form.expense_category === "__custom__" ? (form.custom_category || "Custom category…") : undefined}
+                options={allCategories}
+                placeholder="Select category…"
+                onChange={v => set("expense_category", v)}
+                footerAction={{ label: "+ Add new category…", onClick: () => set("expense_category", "__custom__") }}
+              />
             </div>
             {form.expense_category === "__custom__" && (
               <div>

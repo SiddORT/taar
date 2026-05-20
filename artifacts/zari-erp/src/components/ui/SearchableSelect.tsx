@@ -11,10 +11,13 @@ interface SearchableSelectProps {
   required?: boolean;
   error?: string;
   clearable?: boolean;
+  footerAction?: { label: string; onClick: () => void };
+  displayValue?: string;
 }
 
 export default function SearchableSelect({
   label, value, onChange, options, placeholder = "Select...", required, error, clearable,
+  footerAction, displayValue,
 }: SearchableSelectProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -93,6 +96,15 @@ export default function SearchableSelect({
           </button>
         ))}
       </div>
+      {footerAction && (
+        <div className="border-t border-gray-100">
+          <button type="button"
+            onClick={() => { setOpen(false); setSearch(""); footerAction.onClick(); }}
+            className="w-full text-left px-3 py-2.5 text-sm font-medium text-[#a8922e] hover:bg-[#fdf8ee] transition-colors flex items-center gap-1.5">
+            {footerAction.label}
+          </button>
+        </div>
+      )}
     </div>
   ) : null;
 
@@ -107,7 +119,7 @@ export default function SearchableSelect({
         <button ref={buttonRef} type="button" onClick={openDropdown}
           className={`w-full flex items-center justify-between rounded-lg border px-3.5 py-2.5 text-sm bg-white shadow-sm transition outline-none text-left
             ${open ? "border-gray-900 ring-2 ring-gray-900/10" : error ? "border-red-400" : "border-gray-300 hover:border-gray-400"}`}>
-          <span className={value ? "text-gray-900" : "text-gray-400"}>{value || placeholder}</span>
+          <span className={(displayValue ?? value) ? "text-gray-900" : "text-gray-400"}>{displayValue ?? (value || placeholder)}</span>
           <div className="flex items-center gap-1 shrink-0">
             {clearable && value && (
               <span role="button" onClick={handleClear} className="text-gray-400 hover:text-gray-600 p-0.5 rounded">
