@@ -77,7 +77,7 @@ router.get("/vendor-challans/:id", requireAuth, async (req, res) => {
 router.post("/vendor-challans", requireAuth, async (req: AuthRequest, res) => {
   try {
     const userName = req.user?.email ?? "system";
-    const { challanDate, vendorId, vendorName, challanType, referenceOrderId, description, quantity, unit, rate, amount, attachment, remarks } = req.body;
+    const { challanDate, vendorId, vendorName, challanType, referenceOrderId, description, quantity, unit, rate, amount, attachment, remarks, lineItems } = req.body;
     if (!vendorId) { res.status(400).json({ error: "Vendor is required" }); return; }
     if (!challanDate) { res.status(400).json({ error: "Challan date is required" }); return; }
     if (!challanType) { res.status(400).json({ error: "Challan type is required" }); return; }
@@ -87,12 +87,13 @@ router.post("/vendor-challans", requireAuth, async (req: AuthRequest, res) => {
       `INSERT INTO vendor_challans
          (challan_number, challan_date, vendor_id, vendor_name, challan_type,
           reference_order_id, description, quantity, unit, rate, amount,
-          attachment, status, remarks, created_by, created_at, updated_at)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,'Draft',$13,$14,NOW(),NOW())
+          attachment, line_items, status, remarks, created_by, created_at, updated_at)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,'Draft',$14,$15,NOW(),NOW())
        RETURNING *`,
       [challanNumber, challanDate, vendorId, vendorName ?? null, challanType,
        referenceOrderId ?? null, description ?? null, quantity ?? null, unit ?? null,
        rate ?? null, amount ?? null, attachment ? JSON.stringify(attachment) : null,
+       lineItems ? JSON.stringify(lineItems) : null,
        remarks ?? null, userName]
     );
     res.status(201).json({ data: r.rows[0] });
@@ -112,16 +113,18 @@ router.put("/vendor-challans/:id", requireAuth, async (req: AuthRequest, res) =>
     if (!["Draft"].includes(existing.rows[0].status)) {
       res.status(400).json({ error: "Only Draft challans can be edited" }); return;
     }
-    const { challanDate, vendorId, vendorName, challanType, referenceOrderId, description, quantity, unit, rate, amount, attachment, remarks } = req.body;
+    const { challanDate, vendorId, vendorName, challanType, referenceOrderId, description, quantity, unit, rate, amount, attachment, remarks, lineItems } = req.body;
     const r = await pool.query(
       `UPDATE vendor_challans SET
          challan_date=$1, vendor_id=$2, vendor_name=$3, challan_type=$4,
          reference_order_id=$5, description=$6, quantity=$7, unit=$8,
-         rate=$9, amount=$10, attachment=$11, remarks=$12, updated_at=NOW()
-       WHERE id=$13 RETURNING *`,
+         rate=$9, amount=$10, attachment=$11, line_items=$12, remarks=$13, updated_at=NOW()
+       WHERE id=$14 RETURNING *`,
       [challanDate, vendorId, vendorName ?? null, challanType, referenceOrderId ?? null,
        description ?? null, quantity ?? null, unit ?? null, rate ?? null, amount ?? null,
-       attachment ? JSON.stringify(attachment) : null, remarks ?? null, id]
+       attachment ? JSON.stringify(attachment) : null,
+       lineItems ? JSON.stringify(lineItems) : null,
+       remarks ?? null, id]
     );
     res.json({ data: r.rows[0] });
   } catch (err) {
