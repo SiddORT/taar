@@ -472,6 +472,7 @@ export default function VendorForm() {
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">Contact Name at this Address</label>
                     <input value={addr.name}
+                      maxLength={100}
                       onChange={e => updateAddress(addr.id, { name: e.target.value })}
                       placeholder="Name of person at this address" className={inputCls} />
                   </div>
@@ -488,12 +489,14 @@ export default function VendorForm() {
                   <div className="col-span-2">
                     <label className="block text-xs font-medium text-gray-600 mb-1">Address Line 1</label>
                     <input value={addr.address1}
+                      maxLength={150}
                       onChange={e => updateAddress(addr.id, { address1: e.target.value })}
                       placeholder="Street / building name" className={inputCls} />
                   </div>
                   <div className="col-span-2">
                     <label className="block text-xs font-medium text-gray-600 mb-1">Address Line 2</label>
                     <input value={addr.address2}
+                      maxLength={150}
                       onChange={e => updateAddress(addr.id, { address2: e.target.value })}
                       placeholder="Area / locality" className={inputCls} />
                   </div>
@@ -502,8 +505,10 @@ export default function VendorForm() {
                       {pincodeLoading[addr.id] ? "Pincode (looking up…)" : "Pincode"}
                     </label>
                     <input value={addr.pincode}
+                      maxLength={10}
+                      inputMode="numeric"
                       onChange={e => {
-                        const val = e.target.value;
+                        const val = e.target.value.replace(/\D/g, "").slice(0, 10);
                         updateAddress(addr.id, { pincode: val, state: "", city: "" });
                         setPincodeAutoFilled(prev => ({ ...prev, [addr.id]: false }));
                         void lookupPincodeForAddress(addr.id, val);
@@ -528,6 +533,7 @@ export default function VendorForm() {
                       {pincodeAutoFilled[addr.id] && <span title="Auto-filled from Pincode"><Lock size={10} className="text-amber-400" /></span>}
                     </label>
                     <input value={addr.state}
+                      maxLength={100}
                       readOnly={pincodeAutoFilled[addr.id]}
                       onChange={e => !pincodeAutoFilled[addr.id] && updateAddress(addr.id, { state: e.target.value })}
                       placeholder="State"
@@ -540,6 +546,7 @@ export default function VendorForm() {
                       {pincodeAutoFilled[addr.id] && <span title="Auto-filled from Pincode"><Lock size={10} className="text-amber-400" /></span>}
                     </label>
                     <input value={addr.city}
+                      maxLength={100}
                       readOnly={pincodeAutoFilled[addr.id]}
                       onChange={e => !pincodeAutoFilled[addr.id] && updateAddress(addr.id, { city: e.target.value })}
                       placeholder="City or district"
@@ -575,13 +582,17 @@ export default function VendorForm() {
                   <X size={14} />
                 </button>
                 <InputField label="Bank Name" value={acc.bankName}
-                  onChange={e => updateBankAccount(idx, "bankName", e.target.value)}
+                  maxLength={100}
+                  onChange={e => updateBankAccount(idx, "bankName", e.target.value.replace(/[^A-Za-z .&]/g, ""))}
                   placeholder="e.g. HDFC Bank" />
                 <InputField label="Account No" value={acc.accountNo}
-                  onChange={e => updateBankAccount(idx, "accountNo", e.target.value)}
-                  placeholder="Account number" />
+                  maxLength={18}
+                  inputMode="numeric"
+                  onChange={e => updateBankAccount(idx, "accountNo", e.target.value.replace(/\D/g, "").slice(0, 18))}
+                  placeholder="Account number (digits only)" />
                 <InputField label="IFSC Code" value={acc.ifscCode}
-                  onChange={e => updateBankAccount(idx, "ifscCode", e.target.value)}
+                  maxLength={11}
+                  onChange={e => updateBankAccount(idx, "ifscCode", e.target.value.replace(/[^A-Za-z0-9]/g, "").toUpperCase().slice(0, 11))}
                   placeholder="HDFC0001234" />
               </div>
             ))}

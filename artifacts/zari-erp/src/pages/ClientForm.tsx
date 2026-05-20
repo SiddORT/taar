@@ -515,6 +515,7 @@ export default function ClientForm() {
                       <span className="text-gray-400 font-normal ml-1">(who to contact / deliver to)</span>
                     </label>
                     <input value={addr.name}
+                      maxLength={100}
                       onChange={e => updateAddress(addr.id, { name: e.target.value })}
                       placeholder="e.g. John Smith or ABC Pvt Ltd" className={inputCls} />
                   </div>
@@ -531,12 +532,14 @@ export default function ClientForm() {
                   <div className="col-span-2">
                     <label className="block text-xs font-medium text-gray-600 mb-1">Address Line 1</label>
                     <input value={addr.address1}
+                      maxLength={150}
                       onChange={e => updateAddress(addr.id, { address1: e.target.value })}
                       placeholder="Street / building name" className={inputCls} />
                   </div>
                   <div className="col-span-2">
                     <label className="block text-xs font-medium text-gray-600 mb-1">Address Line 2</label>
                     <input value={addr.address2}
+                      maxLength={150}
                       onChange={e => updateAddress(addr.id, { address2: e.target.value })}
                       placeholder="Area / locality" className={inputCls} />
                   </div>
@@ -545,8 +548,10 @@ export default function ClientForm() {
                       {pincodeLoading[addr.id] ? "Pincode (looking up…)" : "Pincode"}
                     </label>
                     <input value={addr.pincode}
+                      maxLength={10}
+                      inputMode="numeric"
                       onChange={e => {
-                        const val = e.target.value;
+                        const val = e.target.value.replace(/\D/g, "").slice(0, 10);
                         updateAddress(addr.id, { pincode: val });
                         void lookupPincodeForAddress(addr.id, val);
                       }}
@@ -564,12 +569,14 @@ export default function ClientForm() {
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">State</label>
                     <input value={addr.state}
+                      maxLength={100}
                       onChange={e => updateAddress(addr.id, { state: e.target.value })}
                       placeholder="State" className={inputCls} />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">City / District</label>
                     <input value={addr.city}
+                      maxLength={100}
                       onChange={e => updateAddress(addr.id, { city: e.target.value })}
                       placeholder="City or district" className={inputCls} />
                   </div>

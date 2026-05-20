@@ -372,7 +372,7 @@ export default function FabricMaster() {
   const handleAddWidthUnitType = async () => {
     const val = newWidthUnitTypeName.trim();
     if (!val) { toast({ title: "Validation Error", description: "Unit Type cannot be empty.", variant: "destructive" }); return; }
-    if (val.length > 50) { toast({ title: "Validation Error", description: "Unit Type must be at most 50 characters.", variant: "destructive" }); return; }
+    if (!NAME_REGEX.test(val) || val.length > 50) { toast({ title: "Validation Error", description: "Unit Type must contain only letters and spaces (max 50 characters).", variant: "destructive" }); return; }
     try {
       await createWidthUnitType.mutateAsync({ name: val, isActive: true });
       setForm((f) => ({ ...f, widthUnitType: val }));
@@ -1106,16 +1106,27 @@ export default function FabricMaster() {
       {/* ══ Add Fabric Type mini-modal ══ */}
       <MasterFormModal open={addFabricTypeOpen} title="Add Fabric Type" onClose={() => setAddFabricTypeOpen(false)}
         onSubmit={handleAddFabricType} submitting={createFabricType.isPending} submitLabel="Add">
-        <InputField label="Fabric Type Name" required placeholder="e.g. Cotton, Silk, Velvet" value={newFabricTypeName}
-          onChange={(e) => setNewFabricTypeName(e.target.value)} />
+        <div className="flex flex-col gap-1">
+          <InputField label="Fabric Type Name" required placeholder="e.g. Cotton, Silk, Velvet" value={newFabricTypeName}
+            maxLength={100}
+            onChange={(e) => setNewFabricTypeName(e.target.value.replace(/[^A-Za-z ]/g, ""))} />
+          <p className={`text-xs text-right ${newFabricTypeName.length >= 100 ? "text-red-500" : "text-gray-400"}`}>
+            {newFabricTypeName.length} / 100 characters used
+          </p>
+        </div>
       </MasterFormModal>
 
       {/* ══ Add Width Unit Type mini-modal ══ */}
       <MasterFormModal open={addWidthUnitTypeOpen} title="Add Width Unit Type" onClose={() => setAddWidthUnitTypeOpen(false)}
         onSubmit={handleAddWidthUnitType} submitting={createWidthUnitType.isPending} submitLabel="Add">
-        <InputField label="Unit Type Name" required placeholder="e.g. cm, inches" value={newWidthUnitTypeName}
-          maxLength={50}
-          onChange={(e) => setNewWidthUnitTypeName(e.target.value.replace(/[^A-Za-z ]/g, ""))} />
+        <div className="flex flex-col gap-1">
+          <InputField label="Unit Type Name" required placeholder="e.g. cm, inches" value={newWidthUnitTypeName}
+            maxLength={50}
+            onChange={(e) => setNewWidthUnitTypeName(e.target.value.replace(/[^A-Za-z ]/g, ""))} />
+          <p className={`text-xs text-right ${newWidthUnitTypeName.length >= 50 ? "text-red-500" : "text-gray-400"}`}>
+            {newWidthUnitTypeName.length} / 50 characters used
+          </p>
+        </div>
       </MasterFormModal>
 
       {/* ══ Add HSN mini-modal ══ */}
