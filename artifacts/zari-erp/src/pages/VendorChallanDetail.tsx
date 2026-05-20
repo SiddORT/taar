@@ -58,7 +58,7 @@ const inputCls = "w-full px-3 py-2 text-sm border border-gray-200 rounded-xl foc
 export default function VendorChallanDetail() {
   const params = useParams<{ id: string }>();
   const [, setLocation] = useLocation();
-  const isNew = params.id === "new";
+  const isNew = !params.id || params.id === "new";
   const numId = isNew ? null : parseInt(params.id, 10);
 
   const [form, setForm] = useState(emptyForm());
