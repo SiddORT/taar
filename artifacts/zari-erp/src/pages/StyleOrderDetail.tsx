@@ -433,9 +433,29 @@ export default function StyleOrderDetail() {
     }
   }
 
+  function validateDates(): string | null {
+    const { orderIssueDate, deliveryDate, actualStartDate, actualCompletionDate, tentativeDeliveryDate, approvalDate } = form;
+    if (orderIssueDate && deliveryDate && deliveryDate < orderIssueDate)
+      return "Delivery Date cannot be earlier than Order Issue Date";
+    if (orderIssueDate && actualStartDate && actualStartDate < orderIssueDate)
+      return "Actual Start Date cannot be earlier than Order Issue Date";
+    if (actualStartDate && actualCompletionDate && actualCompletionDate < actualStartDate)
+      return "Actual Completion Date cannot be earlier than Actual Start Date";
+    if (orderIssueDate && tentativeDeliveryDate && tentativeDeliveryDate < orderIssueDate)
+      return "Tentative Delivery Date cannot be earlier than Order Issue Date";
+    if (actualCompletionDate && approvalDate && approvalDate < actualCompletionDate)
+      return "Approval Date cannot be earlier than Actual Completion Date";
+    return null;
+  }
+
   async function handleSave() {
     if (!form.styleName.trim()) {
       toast({ title: "Style Name is required", variant: "destructive" });
+      return;
+    }
+    const dateErr = validateDates();
+    if (dateErr) {
+      toast({ title: dateErr, variant: "destructive" });
       return;
     }
     setSaving(true);
@@ -655,7 +675,7 @@ export default function StyleOrderDetail() {
                     <input type="date" className={inputCls} value={form.orderIssueDate} onChange={e => set("orderIssueDate", e.target.value)} />
                   </Field>
                   <Field label="Delivery Date">
-                    <input type="date" className={inputCls} value={form.deliveryDate} onChange={e => set("deliveryDate", e.target.value)} />
+                    <input type="date" className={inputCls} value={form.deliveryDate} min={form.orderIssueDate || undefined} onChange={e => set("deliveryDate", e.target.value)} />
                   </Field>
                   <Field label="Target Hours" hint="Estimated production hours">
                     <input type="number" min="0" step="0.5" className={inputCls} placeholder="e.g. 48"
@@ -720,18 +740,18 @@ export default function StyleOrderDetail() {
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-3">
                     <Field label="Actual Start Date">
-                      <input type="date" className={inputCls} value={form.actualStartDate} onChange={e => set("actualStartDate", e.target.value)} />
+                      <input type="date" className={inputCls} value={form.actualStartDate} min={form.orderIssueDate || undefined} onChange={e => set("actualStartDate", e.target.value)} />
                     </Field>
                     <Field label="Actual Completion Date">
-                      <input type="date" className={inputCls} value={form.actualCompletionDate} onChange={e => set("actualCompletionDate", e.target.value)} />
+                      <input type="date" className={inputCls} value={form.actualCompletionDate} min={form.actualStartDate || form.orderIssueDate || undefined} onChange={e => set("actualCompletionDate", e.target.value)} />
                     </Field>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <Field label="Tentative Delivery Date">
-                      <input type="date" className={inputCls} value={form.tentativeDeliveryDate} onChange={e => set("tentativeDeliveryDate", e.target.value)} />
+                      <input type="date" className={inputCls} value={form.tentativeDeliveryDate} min={form.orderIssueDate || undefined} onChange={e => set("tentativeDeliveryDate", e.target.value)} />
                     </Field>
                     <Field label="Approval Date">
-                      <input type="date" className={inputCls} value={form.approvalDate} onChange={e => set("approvalDate", e.target.value)} />
+                      <input type="date" className={inputCls} value={form.approvalDate} min={form.actualCompletionDate || form.actualStartDate || form.orderIssueDate || undefined} onChange={e => set("approvalDate", e.target.value)} />
                     </Field>
                   </div>
                   <Field label="Delay Reason" hint="Explain if order was delayed beyond delivery date">
