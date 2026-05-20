@@ -73,6 +73,32 @@ export type SwatchCategory = typeof swatchCategoriesTable.$inferSelect;
 
 const CATEGORY_NAME_REGEX = /^[A-Za-z]+( [A-Za-z]+)*$/;
 
+export const insertDepartmentSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(1, "Department Name is required.")
+    .max(100, "Department Name must be 100 characters or fewer.")
+    .regex(CATEGORY_NAME_REGEX, "Department Name must contain only letters and spaces (max 100 characters)."),
+  isActive: z.boolean().default(true),
+});
+
+export const updateDepartmentSchema = insertDepartmentSchema.partial().extend({
+  updatedBy: z.string().optional(),
+});
+
+export const insertUnitTypeSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(1, "Unit Type Name is required.")
+    .max(100, "Unit Type Name must be 100 characters or fewer.")
+    .regex(CATEGORY_NAME_REGEX, "Unit Type Name must contain only letters and spaces (max 100 characters)."),
+  isActive: z.boolean().default(true),
+});
+
+export const updateUnitTypeSchema = insertUnitTypeSchema.partial();
+
 export const insertSwatchCategorySchema = z.object({
   name: z
     .string()

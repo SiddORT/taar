@@ -21,6 +21,8 @@ const MASTERS_ITEMS = [
   { label: "Style",             href: "/masters/styles" },
   { label: "Item Types",        href: "/masters/item-types" },
   { label: "Item Master",       href: "/masters/items" },
+  { label: "Department",        href: "/masters/departments" },
+  { label: "Unit Type",         href: "/masters/unit-types" },
   { label: "Shipping Vendors",  href: "/masters/shipping-vendors" },
 ];
 
