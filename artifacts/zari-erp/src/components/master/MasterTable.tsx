@@ -51,14 +51,14 @@ export default function MasterTable({
           <thead>
             <tr className="border-b border-[#C6AF4B]/10" style={{ background: "linear-gradient(to right, rgba(198,175,75,0.04), rgba(198,175,75,0.02))" }}>
               {showSerial && (
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap w-12">
+                <th className="px-4 py-3 align-middle text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap w-12">
                   Sr.
                 </th>
               )}
               {columns.map((col) => (
                 <th
                   key={col.key}
-                  className={`px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap ${col.className ?? ""}`}
+                  className={`px-4 py-3 align-middle text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap ${col.className ?? ""}`}
                 >
                   {col.label}
                 </th>
@@ -86,12 +86,12 @@ export default function MasterTable({
               rows.map((row, idx) => (
                 <tr key={rowKey(row)} className="hover:bg-amber-50/40 transition-colors">
                   {showSerial && (
-                    <td className="px-4 py-3 text-gray-400 text-xs font-medium w-12">
+                    <td className="px-4 py-3 align-middle text-gray-400 text-xs font-medium w-12">
                       {serialStart + idx}
                     </td>
                   )}
                   {columns.map((col) => (
-                    <td key={col.key} className={`px-4 py-3 text-gray-700 ${col.className ?? ""}`}>
+                    <td key={col.key} className={`px-4 py-3 align-middle text-gray-700 ${col.className ?? ""}`}>
                       {col.render ? col.render(row) : String(row[col.key] ?? "")}
                     </td>
                   ))}

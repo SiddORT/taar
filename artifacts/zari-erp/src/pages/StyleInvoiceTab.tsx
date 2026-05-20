@@ -192,7 +192,11 @@ export default function StyleInvoiceTab({
   function updateItem(id: string, field: keyof InvoiceLineItem, raw: string | number) {
     setItems(p => p.map(i => {
       if (i.id !== id) return i;
-      const u = { ...i, [field]: field === "description" || field === "category" ? raw : pf(raw) };
+      const value =
+        field === "description" || field === "category"
+          ? raw
+          : Math.max(0, pf(raw));
+      const u = { ...i, [field]: value };
       if (field === "quantity" || field === "unitPrice") {
         u.total = parseFloat((u.quantity * u.unitPrice).toFixed(2));
       }

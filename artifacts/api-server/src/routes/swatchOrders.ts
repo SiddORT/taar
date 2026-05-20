@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { eq, and, ilike, desc, sql } from "drizzle-orm";
+import { eq, and, ilike, or, desc, sql } from "drizzle-orm";
 import { db, swatchOrdersTable } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
 import { logger } from "../lib/logger";
@@ -26,7 +26,16 @@ router.get("/swatch-orders", requireAuth, async (req, res): Promise<void> => {
   const offset = (pg - 1) * lim;
 
   const conditions = [eq(swatchOrdersTable.isDeleted, false)];
-  if (search) conditions.push(ilike(swatchOrdersTable.swatchName, `%${search}%`));
+  const q = search.trim();
+  if (q) {
+    conditions.push(
+      or(
+        ilike(swatchOrdersTable.swatchName, `%${q}%`),
+        ilike(swatchOrdersTable.clientName, `%${q}%`),
+        ilike(swatchOrdersTable.orderCode, `%${q}%`),
+      )!,
+    );
+  }
   if (status !== "all") conditions.push(eq(swatchOrdersTable.orderStatus, status));
   if (priority !== "all") conditions.push(eq(swatchOrdersTable.priority, priority));
   if (chargeable === "yes") conditions.push(eq(swatchOrdersTable.isChargeable, true));
