@@ -4,6 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Save, Loader2, CheckCircle, XCircle, FileText } from "lucide-react";
 import { useGetMe, useLogout, getGetMeQueryKey } from "@workspace/api-client-react";
 import TopNavbar from "@/components/layout/TopNavbar";
+import { SmallSearchSelect } from "@/components/ui/SearchableSelect";
 import { useToast } from "@/hooks/use-toast";
 
 const G = "#C6AF4B";
@@ -26,7 +27,7 @@ const STATUS_BADGE: Record<string, string> = {
   "Cancelled":       "bg-red-100 text-red-600",
 };
 
-type Vendor = { id: number; brand_name: string };
+type Vendor = { id: number; brandName: string };
 
 const card        = "bg-white rounded-2xl border border-gray-100 shadow-sm";
 const sectionLbl  = "text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3";
@@ -147,7 +148,7 @@ export default function VendorChallanDetail() {
     const body = {
       challanDate:      form.challanDate,
       vendorId:         parseInt(form.vendorId, 10),
-      vendorName:       vendorObj?.brand_name ?? "",
+      vendorName:       vendorObj?.brandName ?? "",
       challanType:      form.challanType,
       referenceOrderId: form.referenceOrderId  || undefined,
       description:      form.description       || undefined,
@@ -296,11 +297,13 @@ export default function VendorChallanDetail() {
 
             <div>
               <label className={labelCls}>Vendor <span className="text-red-500">*</span></label>
-              <select value={form.vendorId} onChange={e => set("vendorId", e.target.value)}
-                disabled={!canEdit} className={inputCls}>
-                <option value="">— Select vendor —</option>
-                {vendors.map(v => <option key={v.id} value={String(v.id)}>{v.brand_name}</option>)}
-              </select>
+              <SmallSearchSelect
+                value={form.vendorId}
+                onChange={v => set("vendorId", v)}
+                options={vendors.map(v => ({ value: String(v.id), label: v.brandName }))}
+                placeholder="— Search vendor —"
+                disabled={!canEdit}
+              />
             </div>
 
             <div>

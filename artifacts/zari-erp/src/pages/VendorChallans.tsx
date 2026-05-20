@@ -43,7 +43,7 @@ type Challan = {
   linked_pr_number: string | null;
 };
 
-type Vendor = { id: number; brand_name: string };
+type Vendor = { id: number; brandName: string };
 
 function authHeaders() {
   const token = localStorage.getItem("zarierp_token");
@@ -150,7 +150,7 @@ export default function VendorChallans() {
     const vendorObj = vendors.find(v => String(v.id) === cvVendorId);
     const r = await apiFetch("/api/vendor-challans/convert-to-po", {
       method: "POST",
-      body: JSON.stringify({ vendorId: parseInt(cvVendorId, 10), vendorName: vendorObj?.brand_name ?? "", challanType: cvType, durationMonths: cvDuration }),
+      body: JSON.stringify({ vendorId: parseInt(cvVendorId, 10), vendorName: vendorObj?.brandName ?? "", challanType: cvType, durationMonths: cvDuration }),
     });
     const d = await r.json();
     if (r.ok) {
@@ -203,7 +203,7 @@ export default function VendorChallans() {
           <select value={vendorFilter} onChange={e => setVendorFilter(e.target.value)}
             className="px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-300 min-w-36">
             <option value="">All Vendors</option>
-            {vendors.map(v => <option key={v.id} value={String(v.id)}>{v.brand_name}</option>)}
+            {vendors.map(v => <option key={v.id} value={String(v.id)}>{v.brandName}</option>)}
           </select>
           <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)}
             className="px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-300 min-w-36">
@@ -355,7 +355,7 @@ export default function VendorChallans() {
                   <select value={cvVendorId} onChange={e => { setCvVendorId(e.target.value); setCvPreview([]); setCvSuccess(""); }}
                     className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-300">
                     <option value="">— Select vendor —</option>
-                    {vendors.map(v => <option key={v.id} value={String(v.id)}>{v.brand_name}</option>)}
+                    {vendors.map(v => <option key={v.id} value={String(v.id)}>{v.brandName}</option>)}
                   </select>
                 </div>
                 <div>
