@@ -2,6 +2,7 @@ import { Router } from "express";
 import { pool } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
 import type { AuthRequest } from "../middlewares/requireAuth";
+import { uploadMiddleware, uploadFile, deleteUpload } from "../utils/uploadHelper";
 
 const router = Router();
 
@@ -65,7 +66,7 @@ router.get("/vendor-challans", requireAuth, async (req: AuthRequest, res) => {
 
 // ── SINGLE ────────────────────────────────────────────────────────────────────
 router.get("/vendor-challans/:id", requireAuth, async (req, res) => {
-  const id = parseInt(req.params.id, 10);
+  const id = parseInt(String(req.params.id), 10);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid ID" }); return; }
   const r = await pool.query(`SELECT * FROM vendor_challans WHERE id = $1 AND is_deleted = false`, [id]);
   if (!r.rows[0]) { res.status(404).json({ error: "Not found" }); return; }
@@ -103,7 +104,7 @@ router.post("/vendor-challans", requireAuth, async (req: AuthRequest, res) => {
 
 // ── UPDATE ────────────────────────────────────────────────────────────────────
 router.put("/vendor-challans/:id", requireAuth, async (req: AuthRequest, res) => {
-  const id = parseInt(req.params.id, 10);
+  const id = parseInt(String(req.params.id), 10);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid ID" }); return; }
   try {
     const existing = await pool.query(`SELECT status FROM vendor_challans WHERE id = $1 AND is_deleted = false`, [id]);
@@ -131,7 +132,7 @@ router.put("/vendor-challans/:id", requireAuth, async (req: AuthRequest, res) =>
 
 // ── DELETE (soft) ─────────────────────────────────────────────────────────────
 router.delete("/vendor-challans/:id", requireAuth, async (req, res) => {
-  const id = parseInt(req.params.id, 10);
+  const id = parseInt(String(req.params.id), 10);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid ID" }); return; }
   const existing = await pool.query(`SELECT status FROM vendor_challans WHERE id=$1 AND is_deleted=false`, [id]);
   if (!existing.rows[0]) { res.status(404).json({ error: "Not found" }); return; }
@@ -144,7 +145,7 @@ router.delete("/vendor-challans/:id", requireAuth, async (req, res) => {
 
 // ── VERIFY ────────────────────────────────────────────────────────────────────
 router.patch("/vendor-challans/:id/verify", requireAuth, async (req, res) => {
-  const id = parseInt(req.params.id, 10);
+  const id = parseInt(String(req.params.id), 10);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid ID" }); return; }
   const existing = await pool.query(`SELECT status FROM vendor_challans WHERE id=$1 AND is_deleted=false`, [id]);
   if (!existing.rows[0]) { res.status(404).json({ error: "Not found" }); return; }
@@ -157,7 +158,7 @@ router.patch("/vendor-challans/:id/verify", requireAuth, async (req, res) => {
 
 // ── CANCEL ────────────────────────────────────────────────────────────────────
 router.patch("/vendor-challans/:id/cancel", requireAuth, async (req, res) => {
-  const id = parseInt(req.params.id, 10);
+  const id = parseInt(String(req.params.id), 10);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid ID" }); return; }
   const existing = await pool.query(`SELECT status FROM vendor_challans WHERE id=$1 AND is_deleted=false`, [id]);
   if (!existing.rows[0]) { res.status(404).json({ error: "Not found" }); return; }
@@ -264,6 +265,43 @@ router.post("/vendor-challans/convert-to-po", requireAuth, async (req: AuthReque
   } finally {
     client.release();
   }
+});
+
+// ── DOCUMENT UPLOAD ───────────────────────────────────────────────────────────
+router.post("/vendor-challans/:id/document", requireAuth, uploadMiddleware.single("file"), async (req, res) => {
+  const id = parseInt(String(req.params.id), 10);
+  if (isNaN(id)) { res.status(400).json({ error: "Invalid ID" }); return; }
+  const existing = await pool.query(`SELECT status, attachment FROM vendor_challans WHERE id=$1 AND is_deleted=false`, [id]);
+  if (!existing.rows[0]) { res.status(404).json({ error: "Not found" }); return; }
+  if (!req.file) { res.status(400).json({ error: "No file uploaded" }); return; }
+
+  const old = existing.rows[0].attachment as { url?: string } | null;
+  if (old?.url) {
+    try { await deleteUpload(old.url); } catch { /* ignore */ }
+  }
+
+  const url = await uploadFile(req.file, { entity: "vendor-challans", id: String(id), category: "document" });
+  const attachment = { url, originalName: req.file.originalname, mimeType: req.file.mimetype, size: req.file.size };
+  const r = await pool.query(
+    `UPDATE vendor_challans SET attachment=$1, updated_at=NOW() WHERE id=$2 RETURNING *`,
+    [JSON.stringify(attachment), id]
+  );
+  res.json({ data: r.rows[0] });
+});
+
+// ── DOCUMENT DELETE ───────────────────────────────────────────────────────────
+router.delete("/vendor-challans/:id/document", requireAuth, async (req, res) => {
+  const id = parseInt(String(req.params.id), 10);
+  if (isNaN(id)) { res.status(400).json({ error: "Invalid ID" }); return; }
+  const existing = await pool.query(`SELECT attachment FROM vendor_challans WHERE id=$1 AND is_deleted=false`, [id]);
+  if (!existing.rows[0]) { res.status(404).json({ error: "Not found" }); return; }
+
+  const att = existing.rows[0].attachment as { url?: string } | null;
+  if (att?.url) {
+    try { await deleteUpload(att.url); } catch { /* ignore */ }
+  }
+  await pool.query(`UPDATE vendor_challans SET attachment=NULL, updated_at=NOW() WHERE id=$1`, [id]);
+  res.json({ success: true });
 });
 
 export default router;

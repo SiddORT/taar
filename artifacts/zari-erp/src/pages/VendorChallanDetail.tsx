@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useLocation, useParams } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Save, Loader2, CheckCircle, XCircle, FileText } from "lucide-react";
+import { ArrowLeft, Save, Loader2, CheckCircle, XCircle, FileText, Upload, X, Paperclip } from "lucide-react";
 import { useGetMe, useLogout, getGetMeQueryKey } from "@workspace/api-client-react";
 import TopNavbar from "@/components/layout/TopNavbar";
 import { SmallSearchSelect } from "@/components/ui/SearchableSelect";
@@ -27,42 +27,244 @@ const STATUS_BADGE: Record<string, string> = {
   "Cancelled":       "bg-red-100 text-red-600",
 };
 
-type Vendor = { id: number; brandName: string };
+type Vendor     = { id: number; brandName: string };
+type OrderHit   = { code: string; label: string; type: "SWATCH" | "STYLE" };
+type Attachment = { url: string; originalName: string; mimeType?: string; size?: number };
 
-const card        = "bg-white rounded-2xl border border-gray-100 shadow-sm";
-const sectionLbl  = "text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3";
-const inputCls    = "w-full px-2.5 py-1.5 text-sm text-gray-900 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30 placeholder-gray-400 disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed";
-const labelCls    = "text-sm font-medium text-gray-700 block mb-1";
+const card       = "bg-white rounded-2xl border border-gray-100 shadow-sm";
+const sectionLbl = "text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3";
+const inputCls   = "w-full px-2.5 py-1.5 text-sm text-gray-900 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30 placeholder-gray-400 disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed";
+const labelCls   = "text-sm font-medium text-gray-700 block mb-1";
 
 function authHeaders() {
   const token = localStorage.getItem("zarierp_token");
   return { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) };
+}
+function authToken(): Record<string, string> {
+  const token = localStorage.getItem("zarierp_token");
+  return token ? { Authorization: `Bearer ${token}` } : {};
 }
 async function apiFetch(path: string, opts?: RequestInit) {
   return fetch(`${BASE}${path}`, { ...opts, headers: { ...authHeaders(), ...(opts?.headers ?? {}) } });
 }
 
 const emptyForm = () => ({
-  challanDate: new Date().toISOString().slice(0, 10),
-  vendorId: "",
-  challanType: "",
+  challanDate:      new Date().toISOString().slice(0, 10),
+  vendorId:         "",
+  challanType:      "",
   referenceOrderId: "",
-  description: "",
-  quantity: "",
-  unit: "",
-  rate: "",
-  amount: "",
-  remarks: "",
+  description:      "",
+  quantity:         "",
+  unit:             "",
+  rate:             "",
+  amount:           "",
+  remarks:          "",
 });
 
+// ── Order search autocomplete ─────────────────────────────────────────────────
+function OrderSearchInput({
+  value, onChange, disabled,
+}: { value: string; onChange: (v: string) => void; disabled: boolean }) {
+  const [query, setQuery]     = useState(value);
+  const [results, setResults] = useState<OrderHit[]>([]);
+  const [open, setOpen]       = useState(false);
+  const [loading, setLoading] = useState(false);
+  const timerRef              = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const containerRef          = useRef<HTMLDivElement>(null);
+
+  useEffect(() => { setQuery(value); }, [value]);
+
+  useEffect(() => {
+    if (!open) return;
+    function handler(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open]);
+
+  function search(q: string) {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    if (!q.trim()) { setResults([]); setOpen(false); return; }
+    timerRef.current = setTimeout(async () => {
+      setLoading(true);
+      try {
+        const token = localStorage.getItem("zarierp_token");
+        const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
+        const [sw, st] = await Promise.all([
+          fetch(`${BASE}/api/swatch-orders?search=${encodeURIComponent(q)}&limit=8`, { headers }).then(r => r.json()),
+          fetch(`${BASE}/api/style-orders?search=${encodeURIComponent(q)}&limit=8`, { headers }).then(r => r.json()),
+        ]);
+        const hits: OrderHit[] = [
+          ...(sw.data ?? []).map((o: any) => ({ code: o.orderCode, label: o.swatchName ?? o.orderCode, type: "SWATCH" as const })),
+          ...(st.data ?? []).map((o: any) => ({ code: o.orderCode, label: o.styleName ?? o.orderCode,  type: "STYLE"  as const })),
+        ];
+        setResults(hits);
+        setOpen(hits.length > 0);
+      } catch { /* ignore */ }
+      setLoading(false);
+    }, 280);
+  }
+
+  function select(hit: OrderHit) {
+    const display = `${hit.code} — ${hit.label}`;
+    setQuery(display);
+    onChange(display);
+    setOpen(false);
+    setResults([]);
+  }
+
+  function handleChange(v: string) {
+    setQuery(v);
+    onChange(v);
+    search(v);
+  }
+
+  if (disabled) {
+    return (
+      <input value={query} readOnly className={inputCls}
+        placeholder="e.g. ZSW-0001 or ZST-0001" />
+    );
+  }
+
+  return (
+    <div ref={containerRef} className="relative">
+      <div className="relative">
+        <input
+          value={query}
+          onChange={e => handleChange(e.target.value)}
+          onFocus={() => { if (results.length) setOpen(true); }}
+          className={inputCls}
+          placeholder="Type order code or name to search…"
+          autoComplete="off"
+        />
+        {loading && (
+          <div className="absolute right-2.5 top-1/2 -translate-y-1/2">
+            <Loader2 className="h-3.5 w-3.5 animate-spin text-gray-400" />
+          </div>
+        )}
+        {!loading && query && (
+          <button type="button"
+            onClick={() => { setQuery(""); onChange(""); setResults([]); setOpen(false); }}
+            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-300 hover:text-gray-500">
+            <X size={14} />
+          </button>
+        )}
+      </div>
+      {open && results.length > 0 && (
+        <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-[200] overflow-hidden">
+          <div className="max-h-56 overflow-y-auto">
+            {results.map(hit => (
+              <button key={hit.code} type="button"
+                onClick={() => select(hit)}
+                className="w-full text-left px-3 py-2.5 hover:bg-gray-50 transition-colors flex items-center gap-2.5 border-b border-gray-50 last:border-0">
+                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
+                  hit.type === "SWATCH" ? "bg-amber-100 text-amber-700" : "bg-indigo-100 text-indigo-700"
+                }`}>{hit.type}</span>
+                <span className="font-mono text-xs font-semibold text-gray-700">{hit.code}</span>
+                <span className="text-xs text-gray-500 truncate">{hit.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Document upload section ───────────────────────────────────────────────────
+function DocumentUpload({
+  challanId, attachment, onChanged,
+}: { challanId: number | null; attachment: Attachment | null; onChanged: () => void }) {
+  const fileRef             = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [removing,  setRemoving]  = useState(false);
+  const { toast } = useToast();
+
+  async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !challanId) return;
+    setUploading(true);
+    const fd = new FormData();
+    fd.append("file", file);
+    const r = await fetch(`${BASE}/api/vendor-challans/${challanId}/document`, {
+      method: "POST", headers: authToken(), body: fd,
+    });
+    if (r.ok) { toast({ title: "Document uploaded" }); onChanged(); }
+    else { const d = await r.json(); toast({ title: d.error ?? "Upload failed", variant: "destructive" }); }
+    setUploading(false);
+    if (fileRef.current) fileRef.current.value = "";
+  }
+
+  async function handleRemove() {
+    if (!challanId || !confirm("Remove this document?")) return;
+    setRemoving(true);
+    const r = await fetch(`${BASE}/api/vendor-challans/${challanId}/document`, {
+      method: "DELETE", headers: authToken(),
+    });
+    if (r.ok) { toast({ title: "Document removed" }); onChanged(); }
+    else { toast({ title: "Failed to remove document", variant: "destructive" }); }
+    setRemoving(false);
+  }
+
+  if (!challanId) {
+    return (
+      <p className="text-xs text-gray-400 italic">Save the challan first to attach a document.</p>
+    );
+  }
+
+  if (attachment) {
+    const size = attachment.size ? ` (${(attachment.size / 1024).toFixed(1)} KB)` : "";
+    return (
+      <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
+        <Paperclip className="h-4 w-4 text-gray-400 shrink-0" />
+        <div className="min-w-0 flex-1">
+          <a href={`${BASE}${attachment.url}`} target="_blank" rel="noreferrer"
+            className="text-sm font-medium text-blue-600 hover:underline truncate block">
+            {attachment.originalName}
+          </a>
+          <p className="text-xs text-gray-400">{size}</p>
+        </div>
+        <div className="flex gap-2 shrink-0">
+          <button type="button" onClick={() => fileRef.current?.click()}
+            disabled={uploading}
+            className="text-xs px-2.5 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-100 transition-colors">
+            Replace
+          </button>
+          <button type="button" onClick={handleRemove} disabled={removing}
+            className="text-xs px-2.5 py-1.5 rounded-lg border border-red-200 text-red-500 hover:bg-red-50 transition-colors">
+            {removing ? <Loader2 className="h-3 w-3 animate-spin" /> : "Remove"}
+          </button>
+        </div>
+        <input ref={fileRef} type="file" className="hidden" onChange={handleUpload} />
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <button type="button" onClick={() => fileRef.current?.click()}
+        disabled={uploading}
+        className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-dashed border-gray-300 text-sm text-gray-500 hover:border-gray-400 hover:text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50">
+        {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+        {uploading ? "Uploading…" : "Attach Document"}
+      </button>
+      <input ref={fileRef} type="file" className="hidden" onChange={handleUpload} />
+    </div>
+  );
+}
+
+// ── Main page ─────────────────────────────────────────────────────────────────
 export default function VendorChallanDetail() {
   const params = useParams<{ id: string }>();
   const [, setLocation] = useLocation();
   const qc = useQueryClient();
   const { toast } = useToast();
 
-  const isNew = !params.id || params.id === "new";
-  const numId = isNew ? null : parseInt(params.id, 10);
+  const isNew  = !params.id || params.id === "new";
+  const numId  = isNew ? null : parseInt(params.id, 10);
 
   const token = localStorage.getItem("zarierp_token");
   const { data: user, isLoading: loadingUser } = useGetMe({ query: { enabled: !!token } as any });
@@ -76,15 +278,16 @@ export default function VendorChallanDetail() {
     }
   };
 
-  const [form, setForm]               = useState(emptyForm());
-  const [status, setStatus]           = useState("Draft");
-  const [challanNumber, setChallanNumber] = useState<string | null>(null);
+  const [form, setForm]                   = useState(emptyForm());
+  const [status, setStatus]               = useState("Draft");
+  const [challanNumber, setChallanNumber]  = useState<string | null>(null);
   const [linkedPoNumber, setLinkedPoNumber] = useState<string | null>(null);
   const [linkedPrNumber, setLinkedPrNumber] = useState<string | null>(null);
-  const [vendors, setVendors]         = useState<Vendor[]>([]);
-  const [loading, setLoading]         = useState(!isNew);
-  const [saving, setSaving]           = useState(false);
-  const [error, setError]             = useState("");
+  const [attachment, setAttachment]        = useState<Attachment | null>(null);
+  const [vendors, setVendors]             = useState<Vendor[]>([]);
+  const [loading, setLoading]             = useState(!isNew);
+  const [saving,  setSaving]              = useState(false);
+  const [error,   setError]               = useState("");
   const [actionLoading, setActionLoading] = useState<"verify" | "cancel" | null>(null);
 
   function set(k: keyof ReturnType<typeof emptyForm>, v: string) {
@@ -128,6 +331,7 @@ export default function VendorChallanDetail() {
       setChallanNumber(c.challan_number ?? null);
       setLinkedPoNumber(c.linked_po_number ?? null);
       setLinkedPrNumber(c.linked_pr_number ?? null);
+      setAttachment(c.attachment ?? null);
     }
     setLoading(false);
   }, [numId]);
@@ -316,10 +520,15 @@ export default function VendorChallanDetail() {
             </div>
 
             <div>
-              <label className={labelCls}>Reference Order <span className="text-xs text-gray-400 font-normal">(optional)</span></label>
-              <input className={inputCls} placeholder="e.g. SO-2026-001 or PO number"
-                value={form.referenceOrderId} onChange={e => set("referenceOrderId", e.target.value)}
-                disabled={!canEdit} />
+              <label className={labelCls}>
+                Reference Order
+                <span className="text-xs text-gray-400 font-normal ml-1">(optional)</span>
+              </label>
+              <OrderSearchInput
+                value={form.referenceOrderId}
+                onChange={v => set("referenceOrderId", v)}
+                disabled={!canEdit}
+              />
             </div>
 
             <div className="col-span-2">
@@ -366,6 +575,16 @@ export default function VendorChallanDetail() {
             </div>
 
           </div>
+        </div>
+
+        {/* ── Section: Document Attachment ──────────────────────────────────── */}
+        <div className={`${card} p-5`}>
+          <p className={sectionLbl}>Attachment</p>
+          <DocumentUpload
+            challanId={numId}
+            attachment={attachment}
+            onChanged={fetchChallan}
+          />
         </div>
 
         {/* ── Section: Remarks ─────────────────────────────────────────────── */}
