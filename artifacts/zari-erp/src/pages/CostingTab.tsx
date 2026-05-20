@@ -24,12 +24,12 @@ import { useHSNList } from "@/hooks/useHSN";
 import {
   useSwatchBom, useAddBomRow, useDeleteBomRow, useUpdateBomQty, useBomChangeLog,
   useSwatchPOs, useCreatePO, useUpdatePO, useDeletePO,
-  useSwatchPRs, useCreatePR, useDeletePR,
+  useSwatchPRs, useCreatePR, useDeletePR, useUpdatePR,
   usePrPayments, useAddPayment, useDeletePayment,
-  useSwatchConsumptionLog, useAddConsumptionEntry, useDeleteConsumptionEntry,
-  useArtisanTimesheets, useCreateArtisanTimesheet, useDeleteArtisanTimesheet,
-  useOutsourceJobs, useCreateOutsourceJob, useDeleteOutsourceJob,
-  useCustomCharges, useCreateCustomCharge, useDeleteCustomCharge,
+  useSwatchConsumptionLog, useAddConsumptionEntry, useDeleteConsumptionEntry, useUpdateConsumptionEntry,
+  useArtisanTimesheets, useCreateArtisanTimesheet, useDeleteArtisanTimesheet, useUpdateArtisanTimesheet,
+  useOutsourceJobs, useCreateOutsourceJob, useDeleteOutsourceJob, useUpdateOutsourceJob,
+  useCustomCharges, useCreateCustomCharge, useDeleteCustomCharge, useUpdateCustomCharge,
   useVendorSearch, useHsnSearch,
   type BomRecord, type PurchaseOrderRecord, type PurchaseReceiptRecord,
   type PrPaymentRecord, type PoLineItem, type ConsumptionLogRecord,
@@ -1006,8 +1006,33 @@ function PrPaymentsPanel({ prId }: { prId: number }) {
 
 // ─── PR Table Row (flat table view) ───────────────────────────────────────────
 function PrTableRow({ pr, poNumber, bomItems }: { pr: PurchaseReceiptRecord; poNumber: string; bomItems: PoLineItem[] }) {
+  const { toast } = useToast();
   const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState(false);
   const deletePR = useDeletePR();
+  const updatePR = useUpdatePR();
+  const [editForm, setEditForm] = useState({
+    actualPrice: pr.actualPrice,
+    warehouseLocation: pr.warehouseLocation ?? "",
+    receivedDate: (pr.receivedDate ?? "").slice(0, 10),
+  });
+  function openEdit() {
+    setEditForm({
+      actualPrice: pr.actualPrice,
+      warehouseLocation: pr.warehouseLocation ?? "",
+      receivedDate: (pr.receivedDate ?? "").slice(0, 10),
+    });
+    setEditing(true);
+  }
+  function saveEdit() {
+    updatePR.mutate(
+      { id: pr.id, actualPrice: editForm.actualPrice, warehouseLocation: editForm.warehouseLocation || undefined, receivedDate: editForm.receivedDate || undefined },
+      {
+        onSuccess: () => { setEditing(false); toast({ title: "Receipt updated" }); },
+        onError: (e: any) => toast({ title: e?.message ?? "Update failed", variant: "destructive" }),
+      },
+    );
+  }
   const total = (parseFloat(pr.receivedQty) || 0) * (parseFloat(pr.actualPrice) || 0);
 
   return (
@@ -1044,6 +1069,10 @@ function PrTableRow({ pr, poNumber, bomItems }: { pr: PurchaseReceiptRecord; poN
               <CreditCard className="h-3 w-3" /> Payments
               {open ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
             </button>
+            <button onClick={openEdit}
+              className="p-1.5 rounded-lg text-gray-500 hover:text-blue-600 hover:bg-blue-50 transition-colors" title="Edit receipt">
+              <Pencil className="h-3 w-3" />
+            </button>
             <button onClick={() => deletePR.mutate(pr.id)} disabled={deletePR.isPending}
               className="p-1.5 rounded-lg text-gray-500 hover:text-red-500 hover:bg-red-50 transition-colors">
               <Trash2 className="h-3 w-3" />
@@ -1057,6 +1086,47 @@ function PrTableRow({ pr, poNumber, bomItems }: { pr: PurchaseReceiptRecord; poN
             <PrPaymentsPanel prId={pr.id} />
           </td>
         </tr>
+      )}
+      {editing && (
+        <tr><td colSpan={9}>
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+            <div className="bg-white rounded-2xl shadow-xl w-full max-w-md">
+              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+                <h3 className="text-sm font-semibold text-gray-900">Edit Receipt — {pr.prNumber}</h3>
+                <button onClick={() => setEditing(false)} className="p-1 rounded-lg hover:bg-gray-100"><X className="h-4 w-4 text-gray-500" /></button>
+              </div>
+              <div className="px-6 py-4 space-y-3">
+                <p className="text-[11px] text-gray-400">Received quantity cannot be edited; create a new receipt or delete and re-create instead.</p>
+                <div>
+                  <label className="text-[10px] text-gray-500 font-medium">Actual Price (₹) <span className="text-red-500 ml-0.5">*</span></label>
+                  <input type="number" min="0" step="any" value={editForm.actualPrice}
+                    onChange={e => setEditForm(f => ({ ...f, actualPrice: e.target.value }))}
+                    className="w-full mt-1 border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-800 outline-none focus:border-[#C9B45C]" />
+                  <p className="text-[10px] text-amber-600 mt-1">Note: editing the price does not retroactively change weighted-average inventory cost.</p>
+                </div>
+                <div>
+                  <label className="text-[10px] text-gray-500 font-medium">Received Date</label>
+                  <input type="date" value={editForm.receivedDate}
+                    onChange={e => setEditForm(f => ({ ...f, receivedDate: e.target.value }))}
+                    className="w-full mt-1 border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-800 outline-none focus:border-[#C9B45C]" />
+                </div>
+                <div>
+                  <label className="text-[10px] text-gray-500 font-medium">Warehouse Location</label>
+                  <input type="text" value={editForm.warehouseLocation}
+                    onChange={e => setEditForm(f => ({ ...f, warehouseLocation: e.target.value }))}
+                    className="w-full mt-1 border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-800 outline-none focus:border-[#C9B45C]" placeholder="Optional" />
+                </div>
+              </div>
+              <div className="px-6 py-4 border-t border-gray-200 flex justify-end gap-2">
+                <button onClick={() => setEditing(false)} className="px-4 py-2 rounded-xl text-xs text-gray-500 border border-gray-200 hover:bg-gray-50">Cancel</button>
+                <button onClick={saveEdit} disabled={updatePR.isPending}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold bg-gray-900 text-[#C9B45C] hover:bg-black disabled:opacity-50">
+                  {updatePR.isPending ? "Saving…" : "Save Changes"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </td></tr>
       )}
     </>
   );
@@ -1946,6 +2016,8 @@ function ConsumptionSection({ swatchOrderId }: { swatchOrderId: number }) {
   const { data: consumptionLog = [] } = useSwatchConsumptionLog(swatchOrderId);
   const addEntry = useAddConsumptionEntry();
   const deleteEntry = useDeleteConsumptionEntry();
+  const updateEntry = useUpdateConsumptionEntry();
+  const [editEntry, setEditEntry] = useState<null | { id: number; consumedQty: string; notes: string; warehouseLocation: string }>(null);
 
   const [filterBomRowId, setFilterBomRowId] = useState<string>("all");
   const [showAddModal, setShowAddModal] = useState(false);
@@ -2300,10 +2372,16 @@ function ConsumptionSection({ swatchOrderId }: { swatchOrderId: number }) {
                         <td className="px-3 py-2.5 text-gray-600">{entry.consumedBy}</td>
                         <td className="px-3 py-2.5 text-gray-400">{entry.notes || "—"}</td>
                         <td className="px-3 py-2.5">
-                          <button onClick={() => deleteEntry.mutate(entry.id)} disabled={deleteEntry.isPending}
-                            className="p-1.5 rounded-lg text-gray-500 hover:text-red-500 hover:bg-red-50 transition-colors">
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
+                          <div className="flex items-center gap-1">
+                            <button onClick={() => setEditEntry({ id: entry.id, consumedQty: entry.consumedQty, notes: entry.notes ?? "", warehouseLocation: (entry as any).warehouseLocation ?? "" })}
+                              className="p-1.5 rounded-lg text-gray-500 hover:text-blue-600 hover:bg-blue-50 transition-colors" title="Edit entry">
+                              <Pencil className="h-3.5 w-3.5" />
+                            </button>
+                            <button onClick={() => deleteEntry.mutate(entry.id)} disabled={deleteEntry.isPending}
+                              className="p-1.5 rounded-lg text-gray-500 hover:text-red-500 hover:bg-red-50 transition-colors">
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -2331,6 +2409,52 @@ function ConsumptionSection({ swatchOrderId }: { swatchOrderId: number }) {
           </div>
         </div>
       )}
+
+      {editEntry && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+              <h3 className="text-sm font-semibold text-gray-900">Edit Consumption Entry</h3>
+              <button onClick={() => setEditEntry(null)} className="p-1 rounded-lg hover:bg-gray-100"><X className="h-4 w-4 text-gray-500" /></button>
+            </div>
+            <div className="px-6 py-4 space-y-3">
+              <p className="text-[11px] text-amber-600">Note: changing the quantity will adjust the available inventory by the delta.</p>
+              <div>
+                <label className="text-[10px] text-gray-500 font-medium">Consumed Qty <span className="text-red-500 ml-0.5">*</span></label>
+                <input type="number" min="0" step="any" value={editEntry.consumedQty}
+                  onChange={e => setEditEntry(s => s ? { ...s, consumedQty: e.target.value } : s)}
+                  className="w-full mt-1 border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-800 outline-none focus:border-[#C9B45C]" />
+              </div>
+              <div>
+                <label className="text-[10px] text-gray-500 font-medium">Warehouse Location</label>
+                <input type="text" value={editEntry.warehouseLocation}
+                  onChange={e => setEditEntry(s => s ? { ...s, warehouseLocation: e.target.value } : s)}
+                  className="w-full mt-1 border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-800 outline-none focus:border-[#C9B45C]" placeholder="Optional" />
+              </div>
+              <div>
+                <label className="text-[10px] text-gray-500 font-medium">Notes</label>
+                <input type="text" value={editEntry.notes}
+                  onChange={e => setEditEntry(s => s ? { ...s, notes: e.target.value } : s)}
+                  className="w-full mt-1 border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-800 outline-none focus:border-[#C9B45C]" placeholder="Optional" />
+              </div>
+            </div>
+            <div className="px-6 py-4 border-t border-gray-200 flex justify-end gap-2">
+              <button onClick={() => setEditEntry(null)} className="px-4 py-2 rounded-xl text-xs text-gray-500 border border-gray-200 hover:bg-gray-50">Cancel</button>
+              <button disabled={updateEntry.isPending}
+                onClick={() => editEntry && updateEntry.mutate(
+                  { id: editEntry.id, consumedQty: editEntry.consumedQty, notes: editEntry.notes || null, warehouseLocation: editEntry.warehouseLocation || null },
+                  {
+                    onSuccess: () => { setEditEntry(null); toast({ title: "Consumption updated" }); },
+                    onError: (e: any) => toast({ title: e?.message ?? "Update failed", variant: "destructive" }),
+                  },
+                )}
+                className="px-4 py-2 rounded-xl text-xs font-semibold bg-gray-900 text-[#C9B45C] hover:bg-black disabled:opacity-50">
+                {updateEntry.isPending ? "Saving…" : "Save Changes"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -2352,10 +2476,22 @@ function ArtisanTimesheetSection({ swatchOrderId }: { swatchOrderId: number }) {
   const { data: rows = [], isLoading } = useArtisanTimesheets(swatchOrderId);
   const createMutation = useCreateArtisanTimesheet();
   const deleteMutation = useDeleteArtisanTimesheet();
+  const updateMutation = useUpdateArtisanTimesheet();
 
   const [showModal, setShowModal] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState(defaultArtisanForm);
   const [filterType, setFilterType] = useState("all");
+
+  function openEdit(r: ArtisanTimesheetRecord) {
+    setEditingId(r.id);
+    setForm({
+      noOfArtisans: String(r.noOfArtisans),
+      startDate: r.startDate, endDate: r.endDate, shiftType: r.shiftType,
+      totalHours: r.totalHours, hourlyRate: r.hourlyRate, notes: r.notes ?? "",
+    });
+    setShowModal(true);
+  }
 
   const computedTotal = (() => {
     const n = parseFloat(form.noOfArtisans) || 0;
@@ -2364,9 +2500,20 @@ function ArtisanTimesheetSection({ swatchOrderId }: { swatchOrderId: number }) {
     return (n * h * r).toFixed(2);
   })();
 
-  function handleAdd() {
+  function handleSave() {
     if (!form.startDate || !form.endDate || !form.totalHours || !form.hourlyRate) {
       toast({ title: "Fill all required fields", variant: "destructive" }); return;
+    }
+    if (editingId !== null) {
+      updateMutation.mutate({
+        id: editingId, noOfArtisans: parseInt(form.noOfArtisans) || 1,
+        startDate: form.startDate, endDate: form.endDate, shiftType: form.shiftType,
+        totalHours: form.totalHours, hourlyRate: form.hourlyRate, notes: form.notes || null,
+      }, {
+        onSuccess: () => { setShowModal(false); setEditingId(null); setForm(defaultArtisanForm); toast({ title: "Timesheet entry updated" }); },
+        onError: (e: any) => toast({ title: e?.message ?? "Error", variant: "destructive" }),
+      });
+      return;
     }
     createMutation.mutate({
       swatchOrderId, noOfArtisans: parseInt(form.noOfArtisans) || 1,
@@ -2390,7 +2537,7 @@ function ArtisanTimesheetSection({ swatchOrderId }: { swatchOrderId: number }) {
             <option value="all">All Types</option>
             {SHIFT_TYPES.map(t => <option key={t} value={t}>{SHIFT_LABELS[t]}</option>)}
           </select>
-          <button onClick={() => { setForm(defaultArtisanForm); setShowModal(true); }}
+          <button onClick={() => { setEditingId(null); setForm(defaultArtisanForm); setShowModal(true); }}
             className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl bg-gray-900 text-[#C9B45C] hover:bg-black transition-colors">
             <Plus className="h-3.5 w-3.5" /> Add Artisan
           </button>
@@ -2433,12 +2580,17 @@ function ArtisanTimesheetSection({ swatchOrderId }: { swatchOrderId: number }) {
                   <td className="px-3 py-2.5 text-right font-semibold text-amber-700">₹{parseFloat(r.totalRate).toFixed(2)}</td>
                   <td className="px-3 py-2.5 text-gray-500 text-[10px]">{r.createdBy}</td>
                   <td className="px-3 py-2.5 text-right">
-                    <button onClick={() => deleteMutation.mutate(r.id, {
-                      onSuccess: () => toast({ title: "Entry deleted" }),
-                      onError: (e: any) => toast({ title: e?.message ?? "Error", variant: "destructive" }),
-                    })} className="p-1 rounded hover:bg-red-50 text-gray-500 hover:text-red-500 transition-colors">
-                      <Trash2 className="h-3 w-3" />
-                    </button>
+                    <div className="flex items-center gap-1 justify-end">
+                      <button onClick={() => openEdit(r)} className="p-1 rounded hover:bg-blue-50 text-gray-500 hover:text-blue-600 transition-colors" title="Edit">
+                        <Pencil className="h-3 w-3" />
+                      </button>
+                      <button onClick={() => deleteMutation.mutate(r.id, {
+                        onSuccess: () => toast({ title: "Entry deleted" }),
+                        onError: (e: any) => toast({ title: e?.message ?? "Error", variant: "destructive" }),
+                      })} className="p-1 rounded hover:bg-red-50 text-gray-500 hover:text-red-500 transition-colors">
+                        <Trash2 className="h-3 w-3" />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -2460,8 +2612,8 @@ function ArtisanTimesheetSection({ swatchOrderId }: { swatchOrderId: number }) {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md">
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-              <h3 className="text-sm font-semibold text-gray-900">Add Artisan Timesheet Entry</h3>
-              <button onClick={() => setShowModal(false)} className="p-1 rounded-lg hover:bg-gray-100"><X className="h-4 w-4 text-gray-500" /></button>
+              <h3 className="text-sm font-semibold text-gray-900">{editingId !== null ? "Edit" : "Add"} Artisan Timesheet Entry</h3>
+              <button onClick={() => { setShowModal(false); setEditingId(null); }} className="p-1 rounded-lg hover:bg-gray-100"><X className="h-4 w-4 text-gray-500" /></button>
             </div>
             <div className="px-6 py-4 space-y-3">
               <div className="grid grid-cols-2 gap-3">
@@ -2519,10 +2671,10 @@ function ArtisanTimesheetSection({ swatchOrderId }: { swatchOrderId: number }) {
               </div>
             </div>
             <div className="px-6 py-4 border-t border-gray-200 flex justify-end gap-2">
-              <button onClick={() => setShowModal(false)} className="px-4 py-2 rounded-xl text-xs text-gray-500 border border-gray-200 hover:bg-gray-50">Cancel</button>
-              <button onClick={handleAdd} disabled={createMutation.isPending}
+              <button onClick={() => { setShowModal(false); setEditingId(null); }} className="px-4 py-2 rounded-xl text-xs text-gray-500 border border-gray-200 hover:bg-gray-50">Cancel</button>
+              <button onClick={handleSave} disabled={createMutation.isPending || updateMutation.isPending}
                 className="px-4 py-2 rounded-xl text-xs font-semibold bg-gray-900 text-[#C9B45C] hover:bg-black disabled:opacity-50">
-                {createMutation.isPending ? "Saving…" : "Add Entry"}
+                {(createMutation.isPending || updateMutation.isPending) ? "Saving…" : (editingId !== null ? "Save Changes" : "Add Entry")}
               </button>
             </div>
           </div>
@@ -2544,8 +2696,10 @@ function OutsourceJobSection({ swatchOrderId }: { swatchOrderId: number }) {
   const { data: rows = [], isLoading } = useOutsourceJobs(swatchOrderId);
   const createMutation = useCreateOutsourceJob();
   const deleteMutation = useDeleteOutsourceJob();
+  const updateMutation = useUpdateOutsourceJob();
 
   const [showModal, setShowModal] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState(defaultOutsourceForm);
   const [filterVendor, setFilterVendor] = useState("all");
   const [showVendorDrop, setShowVendorDrop] = useState(false);
@@ -2556,9 +2710,35 @@ function OutsourceJobSection({ swatchOrderId }: { swatchOrderId: number }) {
   const { data: vendorResults = [] } = useVendorSearch(form.vendorQuery);
   const { data: hsnResults = [] } = useHsnSearch(form.hsnQuery);
 
-  function handleAdd() {
+  function openEdit(r: OutsourceJobRecord) {
+    setEditingId(r.id);
+    setForm({
+      vendorId: String(r.vendorId), vendorName: r.vendorName, vendorQuery: "",
+      hsnId: String(r.hsnId), hsnCode: r.hsnCode, gstPercentage: r.gstPercentage, hsnQuery: "",
+      issueDate: (r.issueDate ?? "").slice(0,10),
+      targetDate: (r.targetDate ?? "").slice(0,10),
+      deliveryDate: (r.deliveryDate ?? "").slice(0,10),
+      totalCost: r.totalCost, notes: r.notes ?? "",
+    });
+    setShowModal(true);
+  }
+
+  function handleSave() {
     if (!form.vendorId || !form.hsnId || !form.issueDate) {
       toast({ title: "Vendor, HSN Code and Issue Date are required", variant: "destructive" }); return;
+    }
+    if (editingId !== null) {
+      updateMutation.mutate({
+        id: editingId,
+        vendorId: parseInt(form.vendorId), vendorName: form.vendorName,
+        hsnId: parseInt(form.hsnId), hsnCode: form.hsnCode, gstPercentage: form.gstPercentage || "5",
+        issueDate: form.issueDate, targetDate: form.targetDate || null, deliveryDate: form.deliveryDate || null,
+        totalCost: form.totalCost || "0", notes: form.notes || null,
+      }, {
+        onSuccess: () => { setShowModal(false); setEditingId(null); setForm(defaultOutsourceForm); toast({ title: "Outsource job updated" }); },
+        onError: (e: any) => toast({ title: e?.message ?? "Error", variant: "destructive" }),
+      });
+      return;
     }
     createMutation.mutate({
       swatchOrderId,
@@ -2593,7 +2773,7 @@ function OutsourceJobSection({ swatchOrderId }: { swatchOrderId: number }) {
             <option value="all">All Vendors</option>
             {uniqueVendors.map(v => <option key={v} value={v}>{v}</option>)}
           </select>
-          <button onClick={() => { setForm(defaultOutsourceForm); setShowModal(true); }}
+          <button onClick={() => { setEditingId(null); setForm(defaultOutsourceForm); setShowModal(true); }}
             className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl bg-gray-900 text-[#C9B45C] hover:bg-black transition-colors">
             <Plus className="h-3.5 w-3.5" /> Add Job
           </button>
@@ -2653,6 +2833,9 @@ function OutsourceJobSection({ swatchOrderId }: { swatchOrderId: number }) {
                             <CreditCard className="h-3 w-3" /> Pay
                           </button>
                         ); })()}
+                        <button onClick={() => openEdit(r)} className="p-1 rounded hover:bg-blue-50 text-gray-500 hover:text-blue-600 transition-colors" title="Edit">
+                          <Pencil className="h-3 w-3" />
+                        </button>
                         <button onClick={() => deleteMutation.mutate(r.id, {
                           onSuccess: () => toast({ title: "Job deleted" }),
                           onError: (e: any) => toast({ title: e?.message ?? "Error", variant: "destructive" }),
@@ -2697,8 +2880,8 @@ function OutsourceJobSection({ swatchOrderId }: { swatchOrderId: number }) {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg">
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-              <h3 className="text-sm font-semibold text-gray-900">Add Outsource Job</h3>
-              <button onClick={() => setShowModal(false)} className="p-1 rounded-lg hover:bg-gray-100"><X className="h-4 w-4 text-gray-500" /></button>
+              <h3 className="text-sm font-semibold text-gray-900">{editingId !== null ? "Edit" : "Add"} Outsource Job</h3>
+              <button onClick={() => { setShowModal(false); setEditingId(null); }} className="p-1 rounded-lg hover:bg-gray-100"><X className="h-4 w-4 text-gray-500" /></button>
             </div>
             <div className="px-6 py-4 space-y-3 max-h-[70vh] overflow-y-auto">
               {/* Vendor search */}
@@ -2811,9 +2994,9 @@ function OutsourceJobSection({ swatchOrderId }: { swatchOrderId: number }) {
             </div>
             <div className="px-6 py-4 border-t border-gray-200 flex justify-end gap-2">
               <button onClick={() => setShowModal(false)} className="px-4 py-2 rounded-xl text-xs text-gray-500 border border-gray-200 hover:bg-gray-50">Cancel</button>
-              <button onClick={handleAdd} disabled={createMutation.isPending}
+              <button onClick={handleSave} disabled={createMutation.isPending || updateMutation.isPending}
                 className="px-4 py-2 rounded-xl text-xs font-semibold bg-gray-900 text-[#C9B45C] hover:bg-black disabled:opacity-50">
-                {createMutation.isPending ? "Saving…" : "Add Job"}
+                {(createMutation.isPending || updateMutation.isPending) ? "Saving…" : (editingId !== null ? "Save Changes" : "Add Job")}
               </button>
             </div>
           </div>
@@ -2835,8 +3018,10 @@ function CustomChargesSection({ swatchOrderId }: { swatchOrderId: number }) {
   const { data: rows = [], isLoading } = useCustomCharges(swatchOrderId);
   const createMutation = useCreateCustomCharge();
   const deleteMutation = useDeleteCustomCharge();
+  const updateMutation = useUpdateCustomCharge();
 
   const [showModal, setShowModal] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState(defaultCustomChargeForm);
   const [filterVendor, setFilterVendor] = useState("all");
   const [showVendorDrop, setShowVendorDrop] = useState(false);
@@ -2849,9 +3034,31 @@ function CustomChargesSection({ swatchOrderId }: { swatchOrderId: number }) {
 
   const computedTotal = ((parseFloat(form.unitPrice) || 0) * (parseFloat(form.quantity) || 0)).toFixed(2);
 
-  function handleAdd() {
+  function openEdit(r: CustomChargeRecord) {
+    setEditingId(r.id);
+    setForm({
+      vendorId: String(r.vendorId), vendorName: r.vendorName, vendorQuery: "",
+      hsnId: String(r.hsnId), hsnCode: r.hsnCode, gstPercentage: r.gstPercentage, hsnQuery: "",
+      description: r.description, unitPrice: r.unitPrice, quantity: r.quantity,
+    });
+    setShowModal(true);
+  }
+
+  function handleSave() {
     if (!form.vendorId || !form.hsnId || !form.description) {
       toast({ title: "Vendor, HSN Code and Description are required", variant: "destructive" }); return;
+    }
+    if (editingId !== null) {
+      updateMutation.mutate({
+        id: editingId,
+        vendorId: parseInt(form.vendorId), vendorName: form.vendorName,
+        hsnId: parseInt(form.hsnId), hsnCode: form.hsnCode, gstPercentage: form.gstPercentage || "5",
+        description: form.description, unitPrice: form.unitPrice || "0", quantity: form.quantity || "1",
+      }, {
+        onSuccess: () => { setShowModal(false); setEditingId(null); setForm(defaultCustomChargeForm); toast({ title: "Custom charge updated" }); },
+        onError: (e: any) => toast({ title: e?.message ?? "Error", variant: "destructive" }),
+      });
+      return;
     }
     createMutation.mutate({
       swatchOrderId,
@@ -2884,7 +3091,7 @@ function CustomChargesSection({ swatchOrderId }: { swatchOrderId: number }) {
             <option value="all">All Vendors</option>
             {uniqueVendors.map(v => <option key={v} value={v}>{v}</option>)}
           </select>
-          <button onClick={() => { setForm(defaultCustomChargeForm); setShowModal(true); }}
+          <button onClick={() => { setEditingId(null); setForm(defaultCustomChargeForm); setShowModal(true); }}
             className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl bg-gray-900 text-[#C9B45C] hover:bg-black transition-colors">
             <Plus className="h-3.5 w-3.5" /> Add Charge
           </button>
@@ -2942,6 +3149,9 @@ function CustomChargesSection({ swatchOrderId }: { swatchOrderId: number }) {
                             <CreditCard className="h-3 w-3" /> Pay
                           </button>
                         ); })()}
+                        <button onClick={() => openEdit(r)} className="p-1 rounded hover:bg-blue-50 text-gray-500 hover:text-blue-600 transition-colors" title="Edit">
+                          <Pencil className="h-3 w-3" />
+                        </button>
                         <button onClick={() => deleteMutation.mutate(r.id, {
                           onSuccess: () => toast({ title: "Charge deleted" }),
                           onError: (e: any) => toast({ title: e?.message ?? "Error", variant: "destructive" }),
@@ -2986,8 +3196,8 @@ function CustomChargesSection({ swatchOrderId }: { swatchOrderId: number }) {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg">
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-              <h3 className="text-sm font-semibold text-gray-900">Add Custom Charge</h3>
-              <button onClick={() => setShowModal(false)} className="p-1 rounded-lg hover:bg-gray-100"><X className="h-4 w-4 text-gray-500" /></button>
+              <h3 className="text-sm font-semibold text-gray-900">{editingId !== null ? "Edit" : "Add"} Custom Charge</h3>
+              <button onClick={() => { setShowModal(false); setEditingId(null); }} className="p-1 rounded-lg hover:bg-gray-100"><X className="h-4 w-4 text-gray-500" /></button>
             </div>
             <div className="px-6 py-4 space-y-3 max-h-[70vh] overflow-y-auto">
 
@@ -3096,10 +3306,10 @@ function CustomChargesSection({ swatchOrderId }: { swatchOrderId: number }) {
               </div>
             </div>
             <div className="px-6 py-4 border-t border-gray-200 flex justify-end gap-2">
-              <button onClick={() => setShowModal(false)} className="px-4 py-2 rounded-xl text-xs text-gray-500 border border-gray-200 hover:bg-gray-50">Cancel</button>
-              <button onClick={handleAdd} disabled={createMutation.isPending}
+              <button onClick={() => { setShowModal(false); setEditingId(null); }} className="px-4 py-2 rounded-xl text-xs text-gray-500 border border-gray-200 hover:bg-gray-50">Cancel</button>
+              <button onClick={handleSave} disabled={createMutation.isPending || updateMutation.isPending}
                 className="px-4 py-2 rounded-xl text-xs font-semibold bg-gray-900 text-[#C9B45C] hover:bg-black disabled:opacity-50">
-                {createMutation.isPending ? "Saving…" : "Add Charge"}
+                {(createMutation.isPending || updateMutation.isPending) ? "Saving…" : (editingId !== null ? "Save Changes" : "Add Charge")}
               </button>
             </div>
           </div>

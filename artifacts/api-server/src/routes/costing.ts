@@ -1049,9 +1049,14 @@ router.post("/pr", requireAuth, async (req, res) => {
 
 router.patch("/pr/:id", requireAuth, async (req, res) => {
   const user = (req as any).user;
-  const { status } = req.body as { status?: string };
+  const { status, actualPrice, warehouseLocation, receivedDate } = req.body as {
+    status?: string; actualPrice?: string | number; warehouseLocation?: string; receivedDate?: string;
+  };
   const updates: Record<string, unknown> = { updatedBy: user.email, updatedAt: new Date() };
   if (status !== undefined) updates.status = status;
+  if (actualPrice !== undefined) updates.actualPrice = String(actualPrice);
+  if (warehouseLocation !== undefined) updates.warehouseLocation = String(warehouseLocation);
+  if (receivedDate !== undefined) updates.receivedDate = new Date(String(receivedDate));
   const [row] = await db.update(purchaseReceiptsTable).set(updates).where(eq(purchaseReceiptsTable.id, Number(String(req.params.id)))).returning();
   return res.json({ data: row });
 });
@@ -1175,6 +1180,83 @@ router.post("/consumption", requireAuth, async (req, res) => {
   return res.status(201).json({ data: entry, inventoryUpdated: true });
 });
 
+router.put("/consumption/:id", requireAuth, async (req, res) => {
+  const user = (req as any).user;
+  const id = Number(String(req.params.id));
+  const { consumedQty, notes, warehouseLocation } = req.body as Record<string, string | number | null>;
+
+  const [entry] = await db.select().from(consumptionLogTable).where(eq(consumptionLogTable.id, id));
+  if (!entry) { res.status(404).json({ error: "Consumption entry not found" }); return; }
+
+  const [bomRow] = await db.select().from(swatchBomTable).where(eq(swatchBomTable.id, entry.bomRowId)).limit(1);
+  if (!bomRow) { res.status(404).json({ error: "BOM row not found" }); return; }
+
+  const newQty = consumedQty !== undefined ? (parseFloat(String(consumedQty)) || 0) : (parseFloat(entry.consumedQty) || 0);
+  const newLocation = warehouseLocation !== undefined ? (warehouseLocation === null ? null : String(warehouseLocation)) : entry.warehouseLocation;
+
+  // Validate against reservation (allow up to reserved + already consumed by this entry)
+  if (consumedQty !== undefined && newQty !== parseFloat(entry.consumedQty)) {
+    const invR = await db.select({ id: inventoryItemsTable.id }).from(inventoryItemsTable)
+      .where(and(eq(inventoryItemsTable.sourceType, bomRow.materialType ?? ""), eq(inventoryItemsTable.sourceId, bomRow.materialId ?? 0))).limit(1);
+    if (invR.length > 0) {
+      const reservationType = entry.styleOrderId ? "Style" : "Swatch";
+      const orderId = entry.styleOrderId ?? entry.swatchOrderId;
+      const resvR = await pool.query(
+        `SELECT reserved_quantity FROM material_reservations
+         WHERE inventory_id = $1 AND reservation_type = $2 AND reference_id = $3 AND status IN ('Active','Converted')
+         ORDER BY id DESC LIMIT 1`,
+        [invR[0].id, reservationType, orderId]
+      );
+      if (resvR.rows.length > 0) {
+        const reserved = parseFloat(resvR.rows[0].reserved_quantity);
+        const oldQty = parseFloat(entry.consumedQty) || 0;
+        const headroom = reserved + oldQty;
+        if (newQty > headroom) {
+          return res.status(400).json({ error: `Cannot consume ${newQty} — only ${headroom.toFixed(4)} is available within the active reservation.` });
+        }
+      }
+    }
+  }
+
+  // Reverse current entry effect on inventory
+  await reverseConsumptionFromInventory({
+    entry: { id: entry.id, swatchOrderId: entry.swatchOrderId, styleOrderId: entry.styleOrderId, bomRowId: entry.bomRowId, consumedQty: entry.consumedQty, warehouseLocation: entry.warehouseLocation },
+    materialType: bomRow.materialType,
+    materialId: bomRow.materialId,
+    actor: user.email,
+  });
+
+  // Update the entry row
+  const [updated] = await db.update(consumptionLogTable).set({
+    consumedQty: String(newQty),
+    notes: notes !== undefined ? (notes === null ? null : String(notes)) : entry.notes,
+    warehouseLocation: newLocation,
+  }).where(eq(consumptionLogTable.id, id)).returning();
+
+  // Re-apply new effect on inventory
+  const orderId = entry.styleOrderId ?? entry.swatchOrderId;
+  const reservationType: "Style" | "Swatch" = entry.styleOrderId ? "Style" : "Swatch";
+  if (orderId && newQty > 0) {
+    await syncConsumptionWithInventory({
+      bomRow: { materialType: bomRow.materialType, materialId: bomRow.materialId },
+      orderId,
+      reservationType,
+      consumedQty: newQty,
+      consumptionId: entry.id,
+      actor: user.email,
+      warehouseLocation: newLocation,
+    });
+  }
+
+  // Recompute BOM consumed qty
+  const allEntries = await db.select().from(consumptionLogTable).where(eq(consumptionLogTable.bomRowId, entry.bomRowId));
+  const totalConsumed = allEntries.reduce((s, e) => s + (parseFloat(e.consumedQty) || 0), 0);
+  await db.update(swatchBomTable).set({ consumedQty: totalConsumed.toString(), updatedBy: user.email, updatedAt: new Date() })
+    .where(eq(swatchBomTable.id, entry.bomRowId));
+
+  return res.json({ data: updated, inventoryUpdated: true });
+});
+
 router.delete("/consumption/:id", requireAuth, async (req, res) => {
   const user = (req as any).user;
   const [entry] = await db.select().from(consumptionLogTable).where(eq(consumptionLogTable.id, Number(String(req.params.id))));
@@ -1269,6 +1351,32 @@ router.post("/artisan-timesheets", requireAuth, async (req, res) => {
   return res.status(201).json({ data: row });
 });
 
+router.put("/artisan-timesheets/:id", requireAuth, async (req, res) => {
+  const user = (req as any).user;
+  const id = Number(String(req.params.id));
+  const { noOfArtisans, startDate, endDate, shiftType, totalHours, hourlyRate, notes } = req.body as Record<string, string | number | null>;
+  const [existing] = await db.select().from(artisanTimesheetsTable).where(eq(artisanTimesheetsTable.id, id));
+  if (!existing) { res.status(404).json({ error: "Timesheet entry not found" }); return; }
+  const totalHoursNum = totalHours !== undefined ? (parseFloat(String(totalHours)) || 0) : parseFloat(existing.totalHours);
+  const hourlyRateNum = hourlyRate !== undefined ? (parseFloat(String(hourlyRate)) || 0) : parseFloat(existing.hourlyRate);
+  const noOfArtisansNum = noOfArtisans !== undefined ? (parseInt(String(noOfArtisans)) || 1) : existing.noOfArtisans;
+  const totalRate = (totalHoursNum * hourlyRateNum * noOfArtisansNum).toFixed(2);
+  const updates: Record<string, unknown> = {
+    noOfArtisans: noOfArtisansNum,
+    totalHours: String(totalHoursNum),
+    hourlyRate: String(hourlyRateNum),
+    totalRate,
+    updatedBy: user.email,
+    updatedAt: new Date(),
+  };
+  if (startDate !== undefined) updates.startDate = String(startDate);
+  if (endDate !== undefined) updates.endDate = String(endDate);
+  if (shiftType !== undefined) updates.shiftType = String(shiftType);
+  if (notes !== undefined) updates.notes = notes === null ? null : String(notes);
+  const [row] = await db.update(artisanTimesheetsTable).set(updates).where(eq(artisanTimesheetsTable.id, id)).returning();
+  return res.json({ data: row });
+});
+
 router.delete("/artisan-timesheets/:id", requireAuth, async (req, res) => {
   await db.delete(artisanTimesheetsTable).where(eq(artisanTimesheetsTable.id, Number(String(req.params.id))));
   return res.json({ success: true });
@@ -1303,6 +1411,27 @@ router.post("/outsource-jobs", requireAuth, async (req, res) => {
     createdBy: user.email,
   }).returning();
   return res.status(201).json({ data: row });
+});
+
+router.put("/outsource-jobs/:id", requireAuth, async (req, res) => {
+  const user = (req as any).user;
+  const id = Number(String(req.params.id));
+  const { vendorId, vendorName, hsnId, hsnCode, gstPercentage, issueDate, targetDate, deliveryDate, totalCost, notes } = req.body as Record<string, string | number | null>;
+  const [existing] = await db.select().from(outsourceJobsTable).where(eq(outsourceJobsTable.id, id));
+  if (!existing) { res.status(404).json({ error: "Outsource job not found" }); return; }
+  const updates: Record<string, unknown> = { updatedBy: user.email, updatedAt: new Date() };
+  if (vendorId !== undefined) updates.vendorId = Number(vendorId);
+  if (vendorName !== undefined) updates.vendorName = String(vendorName);
+  if (hsnId !== undefined) updates.hsnId = Number(hsnId);
+  if (hsnCode !== undefined) updates.hsnCode = String(hsnCode);
+  if (gstPercentage !== undefined) updates.gstPercentage = String(gstPercentage);
+  if (issueDate !== undefined) updates.issueDate = String(issueDate);
+  if (targetDate !== undefined) updates.targetDate = targetDate === null || targetDate === "" ? null : String(targetDate);
+  if (deliveryDate !== undefined) updates.deliveryDate = deliveryDate === null || deliveryDate === "" ? null : String(deliveryDate);
+  if (totalCost !== undefined) updates.totalCost = String(parseFloat(String(totalCost)) || 0);
+  if (notes !== undefined) updates.notes = notes === null ? null : String(notes);
+  const [row] = await db.update(outsourceJobsTable).set(updates).where(eq(outsourceJobsTable.id, id)).returning();
+  return res.json({ data: row });
 });
 
 router.delete("/outsource-jobs/:id", requireAuth, async (req, res) => {
@@ -1341,6 +1470,32 @@ router.post("/custom-charges", requireAuth, async (req, res) => {
     createdBy: user.email,
   }).returning();
   return res.status(201).json({ data: row });
+});
+
+router.put("/custom-charges/:id", requireAuth, async (req, res) => {
+  const user = (req as any).user;
+  const id = Number(String(req.params.id));
+  const { vendorId, vendorName, hsnId, hsnCode, gstPercentage, description, unitPrice, quantity } = req.body as Record<string, string | number>;
+  const [existing] = await db.select().from(customChargesTable).where(eq(customChargesTable.id, id));
+  if (!existing) { res.status(404).json({ error: "Custom charge not found" }); return; }
+  const unitPriceNum = unitPrice !== undefined ? (parseFloat(String(unitPrice)) || 0) : parseFloat(existing.unitPrice);
+  const quantityNum = quantity !== undefined ? (parseFloat(String(quantity)) || 1) : parseFloat(existing.quantity);
+  const totalAmount = (unitPriceNum * quantityNum).toFixed(2);
+  const updates: Record<string, unknown> = {
+    unitPrice: String(unitPriceNum),
+    quantity: String(quantityNum),
+    totalAmount,
+    updatedBy: user.email,
+    updatedAt: new Date(),
+  };
+  if (vendorId !== undefined) updates.vendorId = Number(vendorId);
+  if (vendorName !== undefined) updates.vendorName = String(vendorName);
+  if (hsnId !== undefined) updates.hsnId = Number(hsnId);
+  if (hsnCode !== undefined) updates.hsnCode = String(hsnCode);
+  if (gstPercentage !== undefined) updates.gstPercentage = String(gstPercentage);
+  if (description !== undefined) updates.description = String(description);
+  const [row] = await db.update(customChargesTable).set(updates).where(eq(customChargesTable.id, id)).returning();
+  return res.json({ data: row });
 });
 
 router.delete("/custom-charges/:id", requireAuth, async (req, res) => {

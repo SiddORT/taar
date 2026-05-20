@@ -47,17 +47,25 @@ function SheetSection({ title, children }: { title: string; children: React.Reac
   );
 }
 
-function SheetTable({ headers, rows, footer }: {
+function SheetTable({ headers, rows, footer, colWidths, wrapCols }: {
   headers: string[];
   rows: (string | React.ReactNode)[][];
   footer?: (string | React.ReactNode)[];
+  colWidths?: (string | undefined)[];
+  wrapCols?: number[];
 }) {
+  const isWrap = (i: number) => wrapCols?.includes(i);
   return (
-    <table className="w-full text-[11px] border-collapse mb-2">
+    <table className="w-full text-[11px] border-collapse mb-2 table-fixed">
+      {colWidths && (
+        <colgroup>
+          {colWidths.map((w, i) => <col key={i} style={w ? { width: w } : undefined} />)}
+        </colgroup>
+      )}
       <thead>
         <tr className="bg-gray-900 text-[#C9B45C]">
           {headers.map((h, i) => (
-            <th key={i} className="px-2 py-1.5 text-left font-semibold whitespace-nowrap">{h}</th>
+            <th key={i} className={`px-2 py-1.5 text-left font-semibold ${isWrap(i) ? "" : "whitespace-nowrap"}`}>{h}</th>
           ))}
         </tr>
       </thead>
@@ -67,7 +75,7 @@ function SheetTable({ headers, rows, footer }: {
         ) : rows.map((row, ri) => (
           <tr key={ri} className={ri % 2 === 0 ? "bg-white" : "bg-gray-50/60"}>
             {row.map((cell, ci) => (
-              <td key={ci} className="px-2 py-1.5 border-b border-gray-100 text-gray-800">{cell}</td>
+              <td key={ci} className={`px-2 py-1.5 border-b border-gray-100 text-gray-800 align-top ${isWrap(ci) ? "whitespace-normal break-words" : ""}`}>{cell}</td>
             ))}
           </tr>
         ))}
@@ -454,9 +462,13 @@ export default function StyleCostSheetTab({
         {/* ── 3. Outsource Jobs ───────────────────────────────────────────── */}
         <SheetSection title="Outsource Jobs">
           <SheetTable
+            colWidths={(!isFiltered && products.length > 0)
+              ? ["14%", "22%", "10%", "7%", "10%", "10%", "11%", "16%"]
+              : ["28%", "11%", "8%", "12%", "12%", "13%", "16%"]}
+            wrapCols={(!isFiltered && products.length > 0) ? [0, 1] : [0]}
             headers={[
               ...((!isFiltered && products.length > 0) ? ["Product"] : []),
-              "Vendor", "HSN", "GST%", "Issue Date", "Target Date", "Delivery Date",
+              "Vendor", "HSN", "GST%", "Issued", "Target", "Delivered",
               includeGst ? "Total (incl. GST) ₹" : "Total Cost ₹",
             ]}
             rows={filteredOutsource.map(r => {

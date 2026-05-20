@@ -234,9 +234,63 @@ export function useCreatePR() {
 export function useUpdatePR() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, ...body }: { id: number; status?: string }) =>
+    mutationFn: ({ id, ...body }: { id: number; status?: string; actualPrice?: string; warehouseLocation?: string; receivedDate?: string }) =>
       customFetch<{ data: PurchaseReceiptRecord }>(`/api/costing/pr/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
-    onSuccess: () => { void qc.invalidateQueries({ queryKey: ["swatch-prs"] }); },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["swatch-prs"] });
+      void qc.invalidateQueries({ queryKey: ["style-prs"] });
+    },
+  });
+}
+
+export function useUpdateConsumptionEntry() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...body }: { id: number; consumedQty?: string; notes?: string | null; warehouseLocation?: string | null }) =>
+      customFetch<{ data: ConsumptionLogRecord; inventoryUpdated?: boolean }>(`/api/costing/consumption/${id}`, { method: "PUT", body: JSON.stringify(body) }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["consumption-log"] });
+      void qc.invalidateQueries({ queryKey: ["style-consumption-log"] });
+      void qc.invalidateQueries({ queryKey: ["swatch-bom"] });
+      void qc.invalidateQueries({ queryKey: ["style-bom"] });
+      void qc.invalidateQueries({ queryKey: ["inventory-items"] });
+    },
+  });
+}
+
+export function useUpdateArtisanTimesheet() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...body }: { id: number; noOfArtisans?: number; startDate?: string; endDate?: string; shiftType?: string; totalHours?: string; hourlyRate?: string; notes?: string | null }) =>
+      customFetch<{ data: ArtisanTimesheetRecord }>(`/api/costing/artisan-timesheets/${id}`, { method: "PUT", body: JSON.stringify(body) }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["artisan-timesheets"] });
+      void qc.invalidateQueries({ queryKey: ["style-artisan-timesheets"] });
+    },
+  });
+}
+
+export function useUpdateOutsourceJob() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...body }: { id: number; vendorId?: number; vendorName?: string; hsnId?: number; hsnCode?: string; gstPercentage?: string; issueDate?: string; targetDate?: string | null; deliveryDate?: string | null; totalCost?: string; notes?: string | null }) =>
+      customFetch<{ data: OutsourceJobRecord }>(`/api/costing/outsource-jobs/${id}`, { method: "PUT", body: JSON.stringify(body) }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["outsource-jobs"] });
+      void qc.invalidateQueries({ queryKey: ["style-outsource-jobs"] });
+    },
+  });
+}
+
+export function useUpdateCustomCharge() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...body }: { id: number; vendorId?: number; vendorName?: string; hsnId?: number; hsnCode?: string; gstPercentage?: string; description?: string; unitPrice?: string; quantity?: string }) =>
+      customFetch<{ data: CustomChargeRecord }>(`/api/costing/custom-charges/${id}`, { method: "PUT", body: JSON.stringify(body) }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["custom-charges"] });
+      void qc.invalidateQueries({ queryKey: ["style-custom-charges"] });
+    },
   });
 }
 
@@ -570,7 +624,7 @@ export function useCreateStylePR() {
 export function useUpdateStylePR() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, ...body }: { id: number; status?: string }) =>
+    mutationFn: ({ id, ...body }: { id: number; status?: string; actualPrice?: string; warehouseLocation?: string | null; receivedDate?: string | null }) =>
       customFetch<{ data: PurchaseReceiptRecord }>(`/api/costing/pr/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
     onSuccess: () => { void qc.invalidateQueries({ queryKey: ["style-prs"] }); },
   });
