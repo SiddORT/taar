@@ -377,15 +377,25 @@ export default function ShippingVendors() {
       ),
     },
     {
+      key: "created_by",
+      label: "Created By",
+      render: () => <span className="text-gray-500">—</span>,
+    },
+    {
       key: "created_at",
-      label: "Created",
+      label: "Created At",
       render: (r) => (
         <span className="text-gray-500 whitespace-nowrap">{formatDate(asV(r).created_at)}</span>
       ),
     },
     {
+      key: "updated_by",
+      label: "Updated By",
+      render: () => <span className="text-gray-500">—</span>,
+    },
+    {
       key: "updated_at",
-      label: "Updated",
+      label: "Updated At",
       render: (r) => (
         <span className="text-gray-500 whitespace-nowrap">{formatDate(asV(r).updated_at)}</span>
       ),

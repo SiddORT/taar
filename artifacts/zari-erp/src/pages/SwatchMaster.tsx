@@ -192,6 +192,9 @@ export default function SwatchMaster() {
       );
     }},
     { key: "createdBy", label: "Created By", render: r => asSwatch(r).createdBy },
+    { key: "createdAt", label: "Created At", render: r => <span className="text-gray-500 text-xs whitespace-nowrap">{formatDate(asSwatch(r).createdAt)}</span> },
+    { key: "updatedBy", label: "Updated By", render: r => <span className="text-gray-500">{asSwatch(r).updatedBy || "—"}</span> },
+    { key: "updatedAt", label: "Updated At", render: r => <span className="text-gray-500 text-xs whitespace-nowrap">{asSwatch(r).updatedAt ? formatDate(asSwatch(r).updatedAt) : "—"}</span> },
     { key: "actions", label: "Actions", render: r => {
       const rec = asSwatch(r);
       return (

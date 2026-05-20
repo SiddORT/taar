@@ -213,6 +213,9 @@ export default function StyleMaster() {
       );
     }},
     { key: "createdBy", label: "Created By", render: r => asStyle(r).createdBy },
+    { key: "createdAt", label: "Created At", render: r => <span className="text-gray-500 text-xs whitespace-nowrap">{formatDate(asStyle(r).createdAt)}</span> },
+    { key: "updatedBy", label: "Updated By", render: r => <span className="text-gray-500">{asStyle(r).updatedBy || "—"}</span> },
+    { key: "updatedAt", label: "Updated At", render: r => <span className="text-gray-500 text-xs whitespace-nowrap">{asStyle(r).updatedAt ? formatDate(asStyle(r).updatedAt) : "—"}</span> },
     {
       key: "actions", label: "Actions", render: r => {
         const rec = asStyle(r);

@@ -224,7 +224,9 @@ export default function UnitTypeMaster() {
     { key: "_srNo", label: "Sr No", className: "w-16 text-center" },
     { key: "name", label: "Unit Type Name", render: (r) => <span className="font-medium text-gray-900">{asRec(r).name}</span> },
     { key: "isActive", label: "Status", render: (r) => <StatusToggle isActive={asRec(r).isActive} onToggle={() => setToggleTarget(asRec(r))} loading={toggleStatus.isPending && toggleTarget?.id === asRec(r).id} /> },
+    { key: "createdBy", label: "Created By", render: () => <span className="text-gray-500">—</span> },
     { key: "createdAt", label: "Created At", render: (r) => <span className="text-gray-500 whitespace-nowrap">{formatDateTable(asRec(r).createdAt)}</span> },
+    { key: "updatedBy", label: "Updated By", render: () => <span className="text-gray-500">—</span> },
     { key: "updatedAt", label: "Updated At", render: () => <span className="text-gray-500">—</span> },
     {
       key: "actions", label: "Actions", render: (r) => {

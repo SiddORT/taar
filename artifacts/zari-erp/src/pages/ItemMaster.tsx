@@ -406,7 +406,10 @@ export default function ItemMaster() {
       key: "isActive", label: "Status",
       render: (r) => <StatusToggle isActive={asItem(r).isActive} onToggle={() => setConfirmToggleTarget(asItem(r))} loading={toggleMutation.isPending} />,
     },
-    { key: "createdAt", label: "Created At", render: (r) => <span className="text-gray-400 text-xs whitespace-nowrap">{formatDate(asItem(r).createdAt)}</span> },
+    { key: "createdBy", label: "Created By", render: (r) => <span className="text-gray-600">{asItem(r).createdBy}</span> },
+    { key: "createdAt", label: "Created At", render: (r) => <span className="text-gray-500 text-xs whitespace-nowrap">{formatDate(asItem(r).createdAt)}</span> },
+    { key: "updatedBy", label: "Updated By", render: (r) => <span className="text-gray-500">{asItem(r).updatedBy || "—"}</span> },
+    { key: "updatedAt", label: "Updated At", render: (r) => <span className="text-gray-500 text-xs whitespace-nowrap">{asItem(r).updatedAt ? formatDate(asItem(r).updatedAt) : "—"}</span> },
     {
       key: "actions", label: "Actions",
       render: (r) => {
