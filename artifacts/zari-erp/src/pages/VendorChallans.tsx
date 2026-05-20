@@ -1,9 +1,12 @@
 import { useState, useEffect, useCallback } from "react";
 import { useLocation } from "wouter";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Plus, Search, X, CheckCircle, XCircle, ArrowRight,
   FileText, ChevronLeft, ChevronRight, Loader2, RefreshCw,
 } from "lucide-react";
+import { useGetMe, useLogout, getGetMeQueryKey } from "@workspace/api-client-react";
+import TopNavbar from "@/components/layout/TopNavbar";
 
 const BASE = (import.meta.env.BASE_URL ?? "/").replace(/\/$/, "");
 
@@ -57,6 +60,16 @@ async function apiFetch(path: string, opts?: RequestInit) {
 
 export default function VendorChallans() {
   const [, setLocation] = useLocation();
+  const queryClient = useQueryClient();
+  const { data: user } = useGetMe();
+  const logoutMutation = useLogout();
+
+  async function handleLogout() {
+    await logoutMutation.mutateAsync();
+    queryClient.removeQueries({ queryKey: getGetMeQueryKey() });
+    setLocation("/login");
+  }
+
   const [challans, setChallans]     = useState<Challan[]>([]);
   const [total, setTotal]           = useState(0);
   const [page, setPage]             = useState(1);
@@ -227,6 +240,13 @@ export default function VendorChallans() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <TopNavbar
+        username={(user as any)?.name ?? (user as any)?.username ?? ""}
+        role={(user as any)?.role ?? ""}
+        onLogout={handleLogout}
+        isLoggingOut={logoutMutation.isPending}
+      />
+
       {/* Header */}
       <div className="bg-white border-b border-gray-200 px-6 py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
