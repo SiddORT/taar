@@ -29,13 +29,14 @@ router.get("/style-orders", requireAuth, async (req, res) => {
 
   const conditions = [eq(styleOrdersTable.isDeleted, false)];
 
-  if (search.trim()) {
+  const q = search.trim();
+  if (q) {
     conditions.push(
       or(
-        ilike(styleOrdersTable.styleName, `%${search}%`),
-        ilike(styleOrdersTable.styleNo, `%${search}%`),
-        ilike(styleOrdersTable.clientName, `%${search}%`),
-        ilike(styleOrdersTable.orderCode, `%${search}%`),
+        ilike(styleOrdersTable.styleName, `%${q}%`),
+        ilike(styleOrdersTable.styleNo, `%${q}%`),
+        ilike(styleOrdersTable.clientName, `%${q}%`),
+        ilike(styleOrdersTable.orderCode, `%${q}%`),
       )!,
     );
   }

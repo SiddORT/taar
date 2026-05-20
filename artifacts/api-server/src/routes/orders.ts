@@ -20,14 +20,15 @@ router.get("/orders", requireAuth, async (req: AuthRequest, res): Promise<void> 
   const conditions = [eq(ordersTable.isDeleted, false)];
   if (status !== "all") conditions.push(eq(ordersTable.status, status));
   if (orderType !== "all") conditions.push(eq(ordersTable.orderType, orderType));
-  if (search) {
+  const q = search.trim();
+  if (q) {
     conditions.push(
       or(
-        ilike(ordersTable.orderId, `%${search}%`),
-        ilike(ordersTable.client, `%${search}%`),
-        ilike(ordersTable.assignedTo, `%${search}%`),
-        ilike(ordersTable.product, `%${search}%`),
-        ilike(ordersTable.fabric, `%${search}%`),
+        ilike(ordersTable.orderId, `%${q}%`),
+        ilike(ordersTable.client, `%${q}%`),
+        ilike(ordersTable.assignedTo, `%${q}%`),
+        ilike(ordersTable.product, `%${q}%`),
+        ilike(ordersTable.fabric, `%${q}%`),
       )!,
     );
   }
