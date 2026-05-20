@@ -2544,7 +2544,9 @@ function StyleOutsourceSection({ styleOrderId }: { styleOrderId: number }) {
     if (filterProductId !== "all" && String((r as any).styleOrderProductId ?? "") !== filterProductId) return false;
     return true;
   });
-  const grandTotal = filtered.reduce((s, r) => s + (parseFloat(r.totalCost) || 0), 0);
+  const grandBase = filtered.reduce((s, r) => s + (parseFloat(r.totalCost) || 0), 0);
+  const grandGst = filtered.reduce((s, r) => s + ((parseFloat(r.totalCost) || 0) * (parseFloat(r.gstPercentage) || 0) / 100), 0);
+  const grandTotal = grandBase + grandGst;
   const grandPaid = filtered.reduce((s, r) => s + (outsourcePaidTotals.get(r.id) ?? 0), 0);
   const grandBalance = Math.max(0, grandTotal - grandPaid);
 
@@ -2585,7 +2587,9 @@ function StyleOutsourceSection({ styleOrderId }: { styleOrderId: number }) {
                 <th className="text-left text-[10px] font-semibold text-gray-400 px-3 py-2 whitespace-nowrap">Issue Date</th>
                 <th className="text-left text-[10px] font-semibold text-gray-400 px-3 py-2 whitespace-nowrap">Target Date</th>
                 <th className="text-left text-[10px] font-semibold text-gray-400 px-3 py-2 whitespace-nowrap">Delivery Date</th>
-                <th className="text-right text-[10px] font-semibold text-amber-500 px-3 py-2 whitespace-nowrap">Total Cost (₹)</th>
+                <th className="text-right text-[10px] font-semibold text-gray-400 px-3 py-2 whitespace-nowrap">Cost (₹)</th>
+                <th className="text-right text-[10px] font-semibold text-blue-500 px-3 py-2 whitespace-nowrap">GST (₹)</th>
+                <th className="text-right text-[10px] font-semibold text-amber-500 px-3 py-2 whitespace-nowrap">Total (₹)</th>
                 <th className="text-right text-[10px] font-semibold text-emerald-600 px-3 py-2 whitespace-nowrap">Paid (₹)</th>
                 <th className="text-right text-[10px] font-semibold text-red-500 px-3 py-2 whitespace-nowrap">Balance (₹)</th>
                 <th className="text-left text-[10px] font-semibold text-gray-400 px-3 py-2 whitespace-nowrap">Notes</th>
@@ -2595,7 +2599,15 @@ function StyleOutsourceSection({ styleOrderId }: { styleOrderId: number }) {
             <tbody>
               {filtered.length === 0 ? (
                 <EmptyRow text={rows.length === 0 ? "No outsource jobs yet." : "No jobs for selected filter."} />
-              ) : filtered.map(r => (
+              ) : filtered.map(r => {
+                const base = parseFloat(r.totalCost) || 0;
+                const gstPct = parseFloat(r.gstPercentage) || 0;
+                const gstAmt = base * gstPct / 100;
+                const total = base + gstAmt;
+                const paid = outsourcePaidTotals.get(r.id) ?? 0;
+                const balance = Math.max(0, total - paid);
+                const fullyPaid = total > 0 && paid >= total;
+                return (
                 <React.Fragment key={r.id}>
                   <tr className="border-b border-gray-50 hover:bg-gray-50/40">
                     <td className="px-3 py-2.5 text-gray-600 text-[10px]">{(r as any).styleOrderProductName ?? <span className="text-gray-300">—</span>}</td>
@@ -2605,15 +2617,15 @@ function StyleOutsourceSection({ styleOrderId }: { styleOrderId: number }) {
                     <td className="px-3 py-2.5 text-gray-600">{r.issueDate}</td>
                     <td className="px-3 py-2.5 text-gray-400">{r.targetDate ?? "—"}</td>
                     <td className="px-3 py-2.5 text-gray-400">{r.deliveryDate ?? "—"}</td>
-                    <td className="px-3 py-2.5 text-right font-semibold text-amber-700">₹{parseFloat(r.totalCost).toFixed(2)}</td>
-                    {(() => { const cost = parseFloat(r.totalCost); const paid = outsourcePaidTotals.get(r.id) ?? 0; const balance = Math.max(0, cost - paid); return (<>
-                      <td className="px-3 py-2.5 text-right font-semibold text-emerald-700">₹{paid.toFixed(2)}</td>
-                      <td className={`px-3 py-2.5 text-right font-semibold ${balance <= 0 ? "text-emerald-600" : "text-red-500"}`}>₹{balance.toFixed(2)}</td>
-                    </>); })()}
+                    <td className="px-3 py-2.5 text-right text-gray-800">₹{base.toFixed(2)}</td>
+                    <td className="px-3 py-2.5 text-right text-blue-700">₹{gstAmt.toFixed(2)}</td>
+                    <td className="px-3 py-2.5 text-right font-semibold text-amber-700">₹{total.toFixed(2)}</td>
+                    <td className="px-3 py-2.5 text-right font-semibold text-emerald-700">₹{paid.toFixed(2)}</td>
+                    <td className={`px-3 py-2.5 text-right font-semibold ${balance <= 0 ? "text-emerald-600" : "text-red-500"}`}>₹{balance.toFixed(2)}</td>
                     <td className="px-3 py-2.5 text-gray-400 max-w-[120px] truncate" title={r.notes ?? ""}>{r.notes ?? "—"}</td>
                     <td className="px-3 py-2.5 text-right">
                       <div className="flex items-center gap-1 justify-end">
-                        {(() => { const cost = parseFloat(r.totalCost); const paid = outsourcePaidTotals.get(r.id) ?? 0; const fullyPaid = cost > 0 && paid >= cost; return fullyPaid ? (
+                        {fullyPaid ? (
                           <button onClick={() => setExpandedPayRow(v => v === r.id ? null : r.id)}
                             className={`flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-lg border transition-colors ${expandedPayRow === r.id ? "bg-green-700 text-white border-green-700" : "border-green-200 bg-green-50 text-green-700 hover:bg-green-100"}`}>
                             <CreditCard className="h-3 w-3" /> Paid
@@ -2623,7 +2635,7 @@ function StyleOutsourceSection({ styleOrderId }: { styleOrderId: number }) {
                             className={`flex items-center gap-1 text-[10px] font-medium px-2 py-1 rounded-lg border transition-colors ${expandedPayRow === r.id ? "bg-gray-900 text-[#C9B45C] border-gray-900" : "border-gray-200 text-gray-500 hover:bg-gray-50"}`}>
                             <CreditCard className="h-3 w-3" /> Pay
                           </button>
-                        ); })()}
+                        )}
                         <button onClick={() => openEdit(r)} className="p-1 rounded hover:bg-blue-50 text-gray-500 hover:text-blue-600 transition-colors" title="Edit">
                           <Pencil className="h-3 w-3" />
                         </button>
@@ -2638,7 +2650,7 @@ function StyleOutsourceSection({ styleOrderId }: { styleOrderId: number }) {
                   </tr>
                   {expandedPayRow === r.id && (
                     <tr className="bg-amber-50/30 border-b border-amber-100">
-                      <td colSpan={12} className="px-5 py-3">
+                      <td colSpan={14} className="px-5 py-3">
                         <CostingPaymentsPanel
                           referenceType="outsource_job"
                           referenceId={r.id}
@@ -2650,12 +2662,14 @@ function StyleOutsourceSection({ styleOrderId }: { styleOrderId: number }) {
                     </tr>
                   )}
                 </React.Fragment>
-              ))}
+              ); })}
             </tbody>
             {filtered.length > 0 && (
               <tfoot>
                 <tr className="bg-gray-50 border-t border-gray-200">
                   <td colSpan={7} className="px-3 py-2 text-right text-[10px] font-semibold text-gray-400">Total</td>
+                  <td className="px-3 py-2 text-right font-bold text-gray-700">₹{grandBase.toFixed(2)}</td>
+                  <td className="px-3 py-2 text-right font-bold text-blue-700">₹{grandGst.toFixed(2)}</td>
                   <td className="px-3 py-2 text-right font-bold text-amber-700">₹{grandTotal.toFixed(2)}</td>
                   <td className="px-3 py-2 text-right font-bold text-emerald-700">₹{grandPaid.toFixed(2)}</td>
                   <td className={`px-3 py-2 text-right font-bold ${grandBalance <= 0 ? "text-emerald-600" : "text-red-500"}`}>₹{grandBalance.toFixed(2)}</td>
@@ -2876,7 +2890,9 @@ function StyleCustomChargesSection({ styleOrderId }: { styleOrderId: number }) {
     if (filterProductId !== "all" && String((r as any).styleOrderProductId ?? "") !== filterProductId) return false;
     return true;
   });
-  const grandTotal = filtered.reduce((s, r) => s + (parseFloat(r.totalAmount) || 0), 0);
+  const grandBase = filtered.reduce((s, r) => s + (parseFloat(r.totalAmount) || 0), 0);
+  const grandGst = filtered.reduce((s, r) => s + ((parseFloat(r.totalAmount) || 0) * (parseFloat(r.gstPercentage) || 0) / 100), 0);
+  const grandTotal = grandBase + grandGst;
   const grandPaid = filtered.reduce((s, r) => s + (customChargePaidTotals.get(r.id) ?? 0), 0);
   const grandBalance = Math.max(0, grandTotal - grandPaid);
 
@@ -2917,6 +2933,8 @@ function StyleCustomChargesSection({ styleOrderId }: { styleOrderId: number }) {
                 <th className="text-left text-[10px] font-semibold text-gray-400 px-3 py-2">Description</th>
                 <th className="text-right text-[10px] font-semibold text-gray-400 px-3 py-2 whitespace-nowrap">Unit Price (₹)</th>
                 <th className="text-right text-[10px] font-semibold text-gray-400 px-3 py-2 whitespace-nowrap">Qty</th>
+                <th className="text-right text-[10px] font-semibold text-gray-400 px-3 py-2 whitespace-nowrap">Cost (₹)</th>
+                <th className="text-right text-[10px] font-semibold text-blue-500 px-3 py-2 whitespace-nowrap">GST (₹)</th>
                 <th className="text-right text-[10px] font-semibold text-amber-500 px-3 py-2 whitespace-nowrap">Total (₹)</th>
                 <th className="text-right text-[10px] font-semibold text-emerald-600 px-3 py-2 whitespace-nowrap">Paid (₹)</th>
                 <th className="text-right text-[10px] font-semibold text-red-500 px-3 py-2 whitespace-nowrap">Balance (₹)</th>
@@ -2926,7 +2944,15 @@ function StyleCustomChargesSection({ styleOrderId }: { styleOrderId: number }) {
             <tbody>
               {filtered.length === 0 ? (
                 <EmptyRow text={rows.length === 0 ? "No custom charges yet." : "No charges for selected filter."} />
-              ) : filtered.map(r => (
+              ) : filtered.map(r => {
+                const base = parseFloat(r.totalAmount) || 0;
+                const gstPct = parseFloat(r.gstPercentage) || 0;
+                const gstAmt = base * gstPct / 100;
+                const total = base + gstAmt;
+                const paid = customChargePaidTotals.get(r.id) ?? 0;
+                const balance = Math.max(0, total - paid);
+                const fullyPaid = total > 0 && paid >= total;
+                return (
                 <React.Fragment key={r.id}>
                   <tr className="border-b border-gray-50 hover:bg-gray-50/40">
                   <td className="px-3 py-2.5 text-gray-600 text-[10px]">{(r as any).styleOrderProductName ?? <span className="text-gray-300">—</span>}</td>
@@ -2936,14 +2962,14 @@ function StyleCustomChargesSection({ styleOrderId }: { styleOrderId: number }) {
                   <td className="px-3 py-2.5 text-gray-800">{r.description}</td>
                   <td className="px-3 py-2.5 text-right text-gray-800">₹{parseFloat(r.unitPrice).toFixed(2)}</td>
                   <td className="px-3 py-2.5 text-right text-gray-800">{parseFloat(r.quantity).toFixed(2)}</td>
-                  <td className="px-3 py-2.5 text-right font-semibold text-amber-700">₹{parseFloat(r.totalAmount).toFixed(2)}</td>
-                  {(() => { const amt = parseFloat(r.totalAmount); const paid = customChargePaidTotals.get(r.id) ?? 0; const balance = Math.max(0, amt - paid); return (<>
-                    <td className="px-3 py-2.5 text-right font-semibold text-emerald-700">₹{paid.toFixed(2)}</td>
-                    <td className={`px-3 py-2.5 text-right font-semibold ${balance <= 0 ? "text-emerald-600" : "text-red-500"}`}>₹{balance.toFixed(2)}</td>
-                  </>); })()}
+                  <td className="px-3 py-2.5 text-right text-gray-800">₹{base.toFixed(2)}</td>
+                  <td className="px-3 py-2.5 text-right text-blue-700">₹{gstAmt.toFixed(2)}</td>
+                  <td className="px-3 py-2.5 text-right font-semibold text-amber-700">₹{total.toFixed(2)}</td>
+                  <td className="px-3 py-2.5 text-right font-semibold text-emerald-700">₹{paid.toFixed(2)}</td>
+                  <td className={`px-3 py-2.5 text-right font-semibold ${balance <= 0 ? "text-emerald-600" : "text-red-500"}`}>₹{balance.toFixed(2)}</td>
                   <td className="px-3 py-2.5 text-right">
                     <div className="flex items-center gap-1 justify-end">
-                      {(() => { const amt = parseFloat(r.totalAmount); const paid = customChargePaidTotals.get(r.id) ?? 0; const fullyPaid = amt > 0 && paid >= amt; return fullyPaid ? (
+                      {fullyPaid ? (
                         <button onClick={() => setExpandedPayRow(v => v === r.id ? null : r.id)}
                           className={`flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-lg border transition-colors ${expandedPayRow === r.id ? "bg-green-700 text-white border-green-700" : "border-green-200 bg-green-50 text-green-700 hover:bg-green-100"}`}>
                           <CreditCard className="h-3 w-3" /> Paid
@@ -2953,7 +2979,7 @@ function StyleCustomChargesSection({ styleOrderId }: { styleOrderId: number }) {
                           className={`flex items-center gap-1 text-[10px] font-medium px-2 py-1 rounded-lg border transition-colors ${expandedPayRow === r.id ? "bg-gray-900 text-[#C9B45C] border-gray-900" : "border-gray-200 text-gray-500 hover:bg-gray-50"}`}>
                           <CreditCard className="h-3 w-3" /> Pay
                         </button>
-                      ); })()}
+                      )}
                       <button onClick={() => openEdit(r)} className="p-1 rounded hover:bg-blue-50 text-gray-500 hover:text-blue-600 transition-colors" title="Edit">
                         <Pencil className="h-3 w-3" />
                       </button>
@@ -2968,7 +2994,7 @@ function StyleCustomChargesSection({ styleOrderId }: { styleOrderId: number }) {
                   </tr>
                   {expandedPayRow === r.id && (
                     <tr className="bg-amber-50/30 border-b border-amber-100">
-                      <td colSpan={11} className="px-5 py-3">
+                      <td colSpan={13} className="px-5 py-3">
                         <CostingPaymentsPanel
                           referenceType="custom_charge"
                           referenceId={r.id}
@@ -2980,16 +3006,18 @@ function StyleCustomChargesSection({ styleOrderId }: { styleOrderId: number }) {
                     </tr>
                   )}
                 </React.Fragment>
-              ))}
+              ); })}
             </tbody>
             {filtered.length > 0 && (
               <tfoot>
                 <tr className="bg-gray-50 border-t border-gray-200">
                   <td colSpan={7} className="px-3 py-2 text-right text-[10px] font-semibold text-gray-400">Total</td>
+                  <td className="px-3 py-2 text-right font-bold text-gray-700">₹{grandBase.toFixed(2)}</td>
+                  <td className="px-3 py-2 text-right font-bold text-blue-700">₹{grandGst.toFixed(2)}</td>
                   <td className="px-3 py-2 text-right font-bold text-amber-700">₹{grandTotal.toFixed(2)}</td>
                   <td className="px-3 py-2 text-right font-bold text-emerald-700">₹{grandPaid.toFixed(2)}</td>
                   <td className={`px-3 py-2 text-right font-bold ${grandBalance <= 0 ? "text-emerald-600" : "text-red-500"}`}>₹{grandBalance.toFixed(2)}</td>
-                  <td colSpan={2} />
+                  <td />
                 </tr>
               </tfoot>
             )}
