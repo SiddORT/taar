@@ -24,7 +24,6 @@ import { useAllFabrics } from "@/hooks/useFabrics";
 import { useWarehouseLocations } from "@/hooks/useWarehouseLocations";
 
 // ─── Constants ──────────────────────────────────────────────────────────────────
-const PLACE_OPTIONS = ["In-house", "Out-house"];
 const URL_REGEX = /^https?:\/\/.+/i;
 
 const EMPTY_FORM: StyleFormData = {
@@ -135,6 +134,7 @@ function CreateSwatchMiniModal({ open, onClose, prefillClient, onCreated }: Crea
   const fabricOptions = (fabricsData ?? []).map(f => `${f.fabricType} – ${f.quality}`.trim());
   const unitOptions = (unitTypesData ?? []).filter(u => u.isActive).map(u => u.name);
   const activeWarehouses = warehouseLocations.filter(w => w.isActive);
+  const placeOptions = [...activeWarehouses.map(w => w.name), "Out-house"];
   const miniLocType = form.location === "Client" ? "Client" : "Inhouse";
   const miniWarehouseVal = miniLocType === "Inhouse" ? form.location : "";
 
@@ -233,10 +233,8 @@ function CreateSwatchMiniModal({ open, onClose, prefillClient, onCreated }: Crea
             {/* Category */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Swatch Category</label>
-              <select value={form.swatchCategory} onChange={e => setF("swatchCategory", e.target.value)} className={sel}>
-                <option value="">— None —</option>
-                {catOptions.map(c => <option key={c} value={c}>{c}</option>)}
-              </select>
+              <SearchableSelect value={form.swatchCategory} onChange={v => setF("swatchCategory", v)}
+                options={catOptions} placeholder="— None —" clearable />
             </div>
 
             {/* Base Fabric */}
@@ -259,10 +257,8 @@ function CreateSwatchMiniModal({ open, onClose, prefillClient, onCreated }: Crea
                 ))}
               </div>
               {miniLocType === "Inhouse" && (
-                <select value={miniWarehouseVal} onChange={e => setF("location", e.target.value)} className={sel}>
-                  <option value="">— Select warehouse —</option>
-                  {activeWarehouses.map(w => <option key={w.id} value={w.name}>{w.name}</option>)}
-                </select>
+                <SearchableSelect value={miniWarehouseVal} onChange={v => setF("location", v)}
+                  options={activeWarehouses.map(w => w.name)} placeholder="— Select warehouse —" clearable />
               )}
             </div>
 
@@ -289,7 +285,7 @@ function CreateSwatchMiniModal({ open, onClose, prefillClient, onCreated }: Crea
             {/* Length */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Length</label>
-              <input type="text" value={form.length}
+              <input type="text" value={form.length} maxLength={20}
                 onChange={e => setF("length", e.target.value)}
                 placeholder="e.g. 120"
                 className={`w-full border rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900 ${errors.length ? "border-red-400" : "border-gray-300"}`} />
@@ -299,7 +295,7 @@ function CreateSwatchMiniModal({ open, onClose, prefillClient, onCreated }: Crea
             {/* Width */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Width</label>
-              <input type="text" value={form.width}
+              <input type="text" value={form.width} maxLength={20}
                 onChange={e => setF("width", e.target.value)}
                 placeholder="e.g. 60"
                 className={`w-full border rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900 ${errors.width ? "border-red-400" : "border-gray-300"}`} />
@@ -309,10 +305,8 @@ function CreateSwatchMiniModal({ open, onClose, prefillClient, onCreated }: Crea
             {/* Unit Type */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Unit Type</label>
-              <select value={form.unitType} onChange={e => setF("unitType", e.target.value)} className={sel}>
-                <option value="">— None —</option>
-                {unitOptions.map(u => <option key={u} value={u}>{u}</option>)}
-              </select>
+              <SearchableSelect value={form.unitType} onChange={v => setF("unitType", v)}
+                options={unitOptions} placeholder="— None —" clearable />
             </div>
 
           </div>
@@ -393,6 +387,7 @@ export default function StyleForm() {
   const createMutation = useCreateStyle();
   const updateMutation = useUpdateStyle();
 
+  const { data: warehouseLocationsMain = [] } = useWarehouseLocations();
   const clientOptions = ((clientsData ?? []) as ClientRecord[]).map(c => c.brandName);
   const styleCatOptions = ((styleCatsData ?? []) as StyleCategoryRecord[])
     .filter(c => c.isActive)
@@ -400,6 +395,7 @@ export default function StyleForm() {
   const swatchOptions = ((swatchRefs ?? []) as SwatchRefOption[])
     .filter(s => s.source === "master")
     .map(s => ({ value: s.code, label: `${s.code}${s.name ? ` – ${s.name}` : ""}${s.client ? ` (${s.client})` : ""}` }));
+  const placeOptions = [...warehouseLocationsMain.filter(w => w.isActive).map(w => w.name), "Out-house"];
 
   useEffect(() => {
     if (!isNew && existing && !populated) {
@@ -578,7 +574,7 @@ export default function StyleForm() {
 
                     <FieldWrap label="Place of Issue" required error={errors.placeOfIssue}>
                       <SearchableSelect value={form.placeOfIssue} onChange={v => setField("placeOfIssue", v)}
-                        options={PLACE_OPTIONS} placeholder="Select place" clearable />
+                        options={placeOptions} placeholder="Select place" clearable />
                     </FieldWrap>
 
                     <InputField label="Invoice No" value={form.invoiceNo}

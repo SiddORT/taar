@@ -21,15 +21,15 @@ import {
 } from "@/hooks/useStyles";
 import { useAllClients, type ClientRecord } from "@/hooks/useClients";
 import { useAllStyleCategories, type StyleCategoryRecord } from "@/hooks/useStyleCategories";
+import { SmallSearchSelect } from "@/components/ui/SearchableSelect";
+import { useWarehouseLocations } from "@/hooks/useWarehouseLocations";
 
 // ─── Constants ──────────────────────────────────────────────────────────────────
-const PLACE_OPTIONS = ["In-house", "Out-house"];
 const STATUS_OPTIONS = [
   { value: "all", label: "All Status" },
   { value: "active", label: "Active" },
   { value: "inactive", label: "Inactive" },
 ];
-const SELECT_CLS = "rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 shadow-sm outline-none focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10";
 
 function formatDate(val: string | null | undefined) {
   if (!val) return "—";
@@ -87,8 +87,14 @@ export default function StyleMaster() {
   const deleteMutation = useDeleteStyle();
   const importMutation = useImportStyles();
 
+  const { data: warehouseLocations = [] } = useWarehouseLocations();
   const clientOptions = ((clientsData ?? []) as ClientRecord[]).map(c => c.brandName);
   const styleCatOptions = ((styleCatData ?? []) as StyleCategoryRecord[]).map(c => ({ value: c.categoryName, label: c.categoryName }));
+  const locationOptions = [
+    { value: "", label: "All Locations" },
+    ...warehouseLocations.filter(w => w.isActive).map(w => ({ value: w.name, label: w.name })),
+    { value: "Out-house", label: "Out-house" },
+  ];
   const hasFilters = !!(search || status !== "all" || filterClient || filterLocation || filterCategory);
 
   // ── Handlers ──
@@ -289,21 +295,42 @@ export default function StyleMaster() {
           <div className="flex-1 min-w-[200px]">
             <SearchBar value={search} onChange={v => { setSearch(v); setPage(1); }} placeholder="Search styles…" />
           </div>
-          <select value={filterClient} onChange={e => { setFilterClient(e.target.value); setPage(1); }} className={SELECT_CLS}>
-            <option value="">All Clients</option>
-            {clientOptions.map(c => <option key={c} value={c}>{c}</option>)}
-          </select>
-          <select value={filterLocation} onChange={e => { setFilterLocation(e.target.value); setPage(1); }} className={SELECT_CLS}>
-            <option value="">All Locations</option>
-            {PLACE_OPTIONS.map(p => <option key={p} value={p}>{p}</option>)}
-          </select>
-          <select value={filterCategory} onChange={e => { setFilterCategory(e.target.value); setPage(1); }} className={SELECT_CLS}>
-            <option value="">All Categories</option>
-            {styleCatOptions.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
-          </select>
-          <select value={status} onChange={e => { setStatus(e.target.value as StatusFilter); setPage(1); }} className={SELECT_CLS}>
-            {STATUS_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-          </select>
+          <div className="w-44">
+            <SmallSearchSelect
+              value={filterClient}
+              onChange={v => { setFilterClient(v); setPage(1); }}
+              options={[{ value: "", label: "All Clients" }, ...clientOptions.map(c => ({ value: c, label: c }))]}
+              placeholder="All Clients"
+              clearable={false}
+            />
+          </div>
+          <div className="w-48">
+            <SmallSearchSelect
+              value={filterLocation}
+              onChange={v => { setFilterLocation(v); setPage(1); }}
+              options={locationOptions}
+              placeholder="All Locations"
+              clearable={false}
+            />
+          </div>
+          <div className="w-44">
+            <SmallSearchSelect
+              value={filterCategory}
+              onChange={v => { setFilterCategory(v); setPage(1); }}
+              options={[{ value: "", label: "All Categories" }, ...styleCatOptions]}
+              placeholder="All Categories"
+              clearable={false}
+            />
+          </div>
+          <div className="w-36">
+            <SmallSearchSelect
+              value={status}
+              onChange={v => { setStatus(v as StatusFilter); setPage(1); }}
+              options={STATUS_OPTIONS}
+              placeholder="All Status"
+              clearable={false}
+            />
+          </div>
           {hasFilters && (
             <button onClick={clearFilters} className="px-3 py-2 text-sm rounded-lg border border-gray-300 bg-white text-gray-600 hover:bg-gray-50 hover:border-gray-400 transition whitespace-nowrap">
               Clear Filters
