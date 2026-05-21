@@ -55,6 +55,7 @@ interface LedgerRow {
   swatch_order_code: string | null;
   style_order_code: string | null;
   style_order_style_no: string | null;
+  is_deletable: boolean;
 }
 
 interface InventoryItemOption {
@@ -198,12 +199,18 @@ export default function InventoryLedger() {
 
   const handleDelete = async (row: LedgerRow) => {
     try {
-      await customFetch(`/api/inventory/ledger/${row.id}`, { method: "DELETE" });
-      toast({ title: "Ledger entry deleted" });
+      const res = await customFetch(`/api/inventory/ledger/${row.id}`, { method: "DELETE" }) as { newStock?: number; newAvailable?: number };
+      toast({
+        title: "Ledger entry deleted & stock reversed",
+        description: typeof res?.newStock === "number"
+          ? `New current stock: ${res.newStock}  ·  Available: ${res.newAvailable}`
+          : undefined,
+      });
       setDeleteConfirm(null);
       loadData(true);
-    } catch {
-      toast({ title: "Failed to delete entry", variant: "destructive" });
+    } catch (e: unknown) {
+      const msg = (e as { message?: string })?.message ?? "Failed to delete entry";
+      toast({ title: "Delete failed", description: msg, variant: "destructive" });
     }
   };
 
@@ -447,10 +454,19 @@ export default function InventoryLedger() {
                       </td>
                       {isAdmin && (
                         <td className={tdCls}>
-                          <button onClick={() => setDeleteConfirm(row)}
-                            className="p-1.5 rounded-lg text-red-400 hover:bg-red-50 hover:text-red-600 transition-colors">
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
+                          {row.is_deletable ? (
+                            <button onClick={() => setDeleteConfirm(row)}
+                              title="Delete this manual entry and reverse its stock effect"
+                              className="p-1.5 rounded-lg text-red-400 hover:bg-red-50 hover:text-red-600 transition-colors">
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          ) : (
+                            <button disabled
+                              title="System-generated entries (from orders, receipts, reservations) cannot be deleted — they are part of the audit trail"
+                              className="p-1.5 rounded-lg text-gray-200 cursor-not-allowed">
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          )}
                         </td>
                       )}
                     </tr>
@@ -605,11 +621,19 @@ export default function InventoryLedger() {
                 <AlertTriangle className="h-5 w-5 text-red-600" />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-gray-900">Delete Ledger Entry?</h3>
+                <h3 className="text-sm font-bold text-gray-900">Delete & Reverse Stock?</h3>
                 <p className="text-xs text-gray-500 mt-1">
-                  This will permanently delete the <span className="font-semibold">{TX_TYPES[deleteConfirm.transaction_type]?.label ?? deleteConfirm.transaction_type}</span> entry for <span className="font-semibold">{deleteConfirm.item_name}</span>.
-                  This action cannot be undone.
+                  This will permanently delete the <span className="font-semibold">{TX_TYPES[deleteConfirm.transaction_type]?.label ?? deleteConfirm.transaction_type}</span> entry for <span className="font-semibold">{deleteConfirm.item_name}</span> and reverse its effect on current stock.
                 </p>
+                <div className="mt-2 p-2 rounded-lg bg-amber-50 border border-amber-200 text-[11px] text-amber-800">
+                  {parseFloat(deleteConfirm.in_quantity ?? "0") > 0 && (
+                    <span>Stock will be <strong>reduced by {deleteConfirm.in_quantity}</strong> (reversing the inbound entry). </span>
+                  )}
+                  {parseFloat(deleteConfirm.out_quantity ?? "0") > 0 && (
+                    <span>Stock will be <strong>increased by {deleteConfirm.out_quantity}</strong> (reversing the outbound entry). </span>
+                  )}
+                  This reversal will be logged in the activity history. The operation will fail if it would leave stock negative or below current reservations.
+                </div>
               </div>
             </div>
             <div className="flex gap-2 justify-end">

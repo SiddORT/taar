@@ -6,12 +6,32 @@ import type { AuthRequest } from "../middlewares/requireAuth";
 
 const router = Router();
 
-router.get("/inventory/summary", requireAuth, async (_req, res) => {
+router.get("/inventory/summary", requireAuth, async (req, res) => {
   try {
+    const {
+      search = "", category = "all", department = "all", location = "all",
+      sourceType = "all", stockLevel = "all", fromDate = "", toDate = "",
+    } = req.query as Record<string, string>;
+
+    const conditions: string[] = ["is_active = true"];
+    const params: (string | number)[] = [];
+    if (search)                { params.push(`%${search}%`); conditions.push(`(item_name ILIKE $${params.length} OR item_code ILIKE $${params.length})`); }
+    if (category !== "all")    { params.push(category);       conditions.push(`category = $${params.length}`); }
+    if (department !== "all")  { params.push(department);     conditions.push(`department = $${params.length}`); }
+    if (location !== "all")    { params.push(location);       conditions.push(`warehouse_location = $${params.length}`); }
+    if (sourceType !== "all")  { params.push(sourceType);     conditions.push(`source_type = $${params.length}`); }
+    if (stockLevel === "in-stock") conditions.push(`available_stock::numeric > 0 AND (reorder_level::numeric = 0 OR available_stock::numeric > reorder_level::numeric)`);
+    else if (stockLevel === "low") conditions.push(`available_stock::numeric > 0 AND reorder_level::numeric > 0 AND available_stock::numeric <= reorder_level::numeric`);
+    else if (stockLevel === "out") conditions.push(`available_stock::numeric <= 0`);
+    if (fromDate)              { params.push(fromDate);       conditions.push(`last_updated_at >= $${params.length}::date`); }
+    if (toDate)                { params.push(toDate);         conditions.push(`last_updated_at < ($${params.length}::date + INTERVAL '1 day')`); }
+    const where = `WHERE ${conditions.join(" AND ")}`;
+
     const r = await pool.query(`
       SELECT
         COUNT(*)                                               AS total_items,
-        COUNT(*) FILTER (WHERE available_stock::numeric > 0)  AS in_stock,
+        COUNT(*) FILTER (WHERE available_stock::numeric > 0
+          AND (reorder_level::numeric = 0 OR available_stock::numeric > reorder_level::numeric)) AS in_stock,
         COUNT(*) FILTER (WHERE available_stock::numeric <= 0) AS out_of_stock,
         COUNT(*) FILTER (WHERE
           available_stock::numeric > 0
@@ -24,8 +44,8 @@ router.get("/inventory/summary", requireAuth, async (_req, res) => {
         COUNT(*) FILTER (WHERE source_type = 'material')       AS material_count,
         COUNT(*) FILTER (WHERE source_type = 'packaging')      AS packaging_count
       FROM inventory_items
-      WHERE is_active = true
-    `);
+      ${where}
+    `, params);
     return res.json(r.rows[0]);
   } catch (err) {
     console.error(err);
@@ -233,9 +253,9 @@ router.get("/inventory/items/:id/reservations", requireAuth, async (req, res) =>
 router.get("/inventory/filters", requireAuth, async (_req, res) => {
   try {
     const [cats, depts, locs] = await Promise.all([
-      pool.query(`SELECT DISTINCT category FROM inventory_items WHERE category IS NOT NULL AND is_active=true ORDER BY category`),
-      pool.query(`SELECT DISTINCT department FROM inventory_items WHERE department IS NOT NULL AND is_active=true ORDER BY department`),
-      pool.query(`SELECT DISTINCT warehouse_location FROM inventory_items WHERE warehouse_location IS NOT NULL AND is_active=true ORDER BY warehouse_location`),
+      pool.query(`SELECT DISTINCT TRIM(category) AS category FROM inventory_items WHERE category IS NOT NULL AND TRIM(category) <> '' AND is_active=true ORDER BY category`),
+      pool.query(`SELECT DISTINCT TRIM(department) AS department FROM inventory_items WHERE department IS NOT NULL AND TRIM(department) <> '' AND is_active=true ORDER BY department`),
+      pool.query(`SELECT DISTINCT TRIM(warehouse_location) AS warehouse_location FROM inventory_items WHERE warehouse_location IS NOT NULL AND TRIM(warehouse_location) <> '' AND is_active=true ORDER BY warehouse_location`),
     ]);
     return res.json({
       categories: cats.rows.map((r: { category: string }) => r.category),
@@ -312,7 +332,9 @@ router.get("/inventory/ledger", requireAuth, async (req, res) => {
         `SELECT sl.*, ii.item_name, ii.item_code, ii.unit_type,
                 sw.order_code AS swatch_order_code,
                 so.order_code AS style_order_code,
-                so.style_no   AS style_order_style_no
+                so.style_no   AS style_order_style_no,
+                (sl.transaction_type IN ('opening_stock','adjustment_in','adjustment_out','wastage')
+                 AND sl.reference_type = 'manual_entry') AS is_deletable
          FROM stock_ledger sl
          JOIN inventory_items ii ON ii.id = sl.item_id
          LEFT JOIN swatch_orders sw ON sl.reference_type = 'Swatch'
@@ -389,16 +411,91 @@ router.post("/inventory/ledger/wastage", requireAuth, async (req: AuthRequest, r
   }
 });
 
+const DELETABLE_TX_TYPES = ["opening_stock", "adjustment_in", "adjustment_out", "wastage"];
+
 router.delete("/inventory/ledger/:id", requireAuth, async (req: AuthRequest, res) => {
+  const client = await pool.connect();
   try {
     if (req.user?.role !== "admin") return res.status(403).json({ error: "Admin only" });
     const id = parseInt(String(req.params.id));
-    const r = await pool.query(`DELETE FROM stock_ledger WHERE id = $1 RETURNING id`, [id]);
-    if (!r.rows.length) return res.status(404).json({ error: "Not found" });
-    return res.json({ deleted: true });
+
+    const preCheck = await client.query(
+      `SELECT transaction_type, reference_type, item_id FROM stock_ledger WHERE id = $1`, [id]
+    );
+    if (!preCheck.rows.length) return res.status(404).json({ error: "Not found" });
+    const isManual = DELETABLE_TX_TYPES.includes(preCheck.rows[0].transaction_type)
+                  && preCheck.rows[0].reference_type === "manual_entry";
+    if (!isManual) {
+      return res.status(422).json({
+        error: "Cannot delete this ledger entry. Only manually-created entries (opening stock, adjustments, wastage) can be deleted. Entries auto-created from orders, receipts, or reservations are part of the audit trail.",
+      });
+    }
+
+    await client.query("BEGIN");
+    // Re-read with FOR UPDATE inside the transaction to prevent TOCTOU races
+    const entryRes = await client.query(
+      `SELECT sl.*, ii.current_stock, ii.style_reserved_qty, ii.swatch_reserved_qty, ii.item_name
+       FROM stock_ledger sl
+       JOIN inventory_items ii ON ii.id = sl.item_id
+       WHERE sl.id = $1
+       FOR UPDATE OF ii, sl`, [id]
+    );
+    if (!entryRes.rows.length) {
+      await client.query("ROLLBACK");
+      return res.status(404).json({ error: "Not found" });
+    }
+    const entry = entryRes.rows[0];
+    // Re-verify manual status (defensive; could not have changed but cheap)
+    if (!DELETABLE_TX_TYPES.includes(entry.transaction_type) || entry.reference_type !== "manual_entry") {
+      await client.query("ROLLBACK");
+      return res.status(422).json({ error: "Entry is no longer deletable (changed concurrently)" });
+    }
+    const inQ  = parseFloat(entry.in_quantity  ?? "0");
+    const outQ = parseFloat(entry.out_quantity ?? "0");
+    const curStock = parseFloat(entry.current_stock ?? "0");
+    const sRes = parseFloat(entry.style_reserved_qty ?? "0");
+    const wRes = parseFloat(entry.swatch_reserved_qty ?? "0");
+    const newStock = curStock - inQ + outQ;
+    if (newStock < 0) {
+      await client.query("ROLLBACK");
+      return res.status(422).json({
+        error: `Cannot reverse this entry: it would make current stock negative (${curStock} − ${inQ} + ${outQ} = ${newStock}). Stock has already been consumed downstream.`,
+      });
+    }
+    if (newStock < sRes + wRes) {
+      await client.query("ROLLBACK");
+      return res.status(422).json({
+        error: `Cannot reverse this entry: resulting stock (${newStock}) would be below current reservations (${sRes + wRes}).`,
+      });
+    }
+    const newAvail = Math.max(0, newStock - sRes - wRes);
+    await client.query(
+      `UPDATE inventory_items SET current_stock = $1, available_stock = $2, last_updated_at = NOW() WHERE id = $3`,
+      [newStock, newAvail, entry.item_id]
+    );
+    await client.query(`DELETE FROM stock_ledger WHERE id = $1`, [id]);
+
+    const userName = req.user?.name || req.user?.email || "Admin";
+    await client.query(
+      `INSERT INTO inventory_stock_logs
+         (inventory_item_id, action_type, quantity_before, quantity_after, quantity_delta, reference_type, notes, created_by_name, created_at)
+       VALUES ($1, 'ledger_delete_reversal', $2, $3, $4, 'manual',
+         $5, $6, NOW())`,
+      [
+        entry.item_id, curStock, newStock, newStock - curStock,
+        `Deleted ledger entry #${id} (${entry.transaction_type}, +${inQ}/-${outQ}); reversed stock effect`,
+        userName,
+      ]
+    );
+
+    await client.query("COMMIT");
+    return res.json({ deleted: true, reversed: true, newStock, newAvailable: newAvail });
   } catch (err) {
+    await client.query("ROLLBACK").catch(() => {});
     console.error(err);
     return res.status(500).json({ error: "Failed to delete ledger entry" });
+  } finally {
+    client.release();
   }
 });
 
@@ -422,65 +519,86 @@ router.put("/inventory/items/:id/stock", requireAuth, async (req: AuthRequest, r
       notes,
     } = req.body;
 
-    const prevRes = await pool.query(`SELECT current_stock FROM inventory_items WHERE id = $1`, [id]);
-    if (!prevRes.rows.length) return res.status(404).json({ error: "Not found" });
-    const prevStock = parseFloat(prevRes.rows[0].current_stock ?? "0");
+    const stock = parseFloat(currentStock ?? "0");
+    if (isNaN(stock)) return res.status(422).json({ error: "Current stock must be a valid number" });
+    if (stock < 0)    return res.status(422).json({ error: "Stock cannot be negative" });
 
-    const stock = parseFloat(currentStock ?? "0") || 0;
-    const styleRes = 0;
-    const swatchRes = 0;
-    const availableStock = Math.max(0, stock - styleRes - swatchRes);
+    const client = await pool.connect();
+    let prevStock = 0, styleRes = 0, swatchRes = 0, availableStock = 0;
+    let updatedRow: { rows: Array<Record<string, unknown>> };
+    try {
+      await client.query("BEGIN");
+      const prevRes = await client.query(
+        `SELECT current_stock, style_reserved_qty, swatch_reserved_qty FROM inventory_items WHERE id = $1 FOR UPDATE`,
+        [id]
+      );
+      if (!prevRes.rows.length) {
+        await client.query("ROLLBACK");
+        client.release();
+        return res.status(404).json({ error: "Not found" });
+      }
+      prevStock = parseFloat(prevRes.rows[0].current_stock ?? "0");
+      styleRes  = parseFloat(prevRes.rows[0].style_reserved_qty  ?? "0");
+      swatchRes = parseFloat(prevRes.rows[0].swatch_reserved_qty ?? "0");
 
-    const r = await pool.query(
-      `UPDATE inventory_items SET
-         current_stock       = $1,
-         available_stock     = $2,
-         average_price       = COALESCE(NULLIF($3,'')::numeric, average_price),
-         last_purchase_price = COALESCE(NULLIF($4,'')::numeric, last_purchase_price),
-         minimum_level       = COALESCE(NULLIF($5,'')::numeric, minimum_level),
-         reorder_level       = COALESCE(NULLIF($6,'')::numeric, reorder_level),
-         maximum_level       = COALESCE(NULLIF($7,'')::numeric, maximum_level),
-         warehouse_location  = COALESCE(NULLIF($8,''), warehouse_location),
-         department          = COALESCE(NULLIF($9,''), department),
-         last_updated_at     = NOW()
-       WHERE id = $10
-       RETURNING *`,
-      [
-        stock,
-        availableStock,
-        String(averagePrice ?? ""),
-        String(lastPurchasePrice ?? ""),
-        String(minimumLevel ?? ""),
-        String(reorderLevel ?? ""),
-        String(maximumLevel ?? ""),
-        warehouseLocation ?? "",
-        department ?? "",
-        id,
-      ]
-    );
-    if (!r.rows.length) return res.status(404).json({ error: "Not found" });
+      if (stock < styleRes + swatchRes) {
+        await client.query("ROLLBACK");
+        client.release();
+        return res.status(422).json({
+          error: `Stock (${stock}) cannot be less than reserved quantity (Style: ${styleRes} + Swatch: ${swatchRes} = ${styleRes + swatchRes})`,
+        });
+      }
+      availableStock = Math.max(0, stock - styleRes - swatchRes);
 
-    const delta = stock - prevStock;
-    const actionType = prevStock === 0 ? "opening" : delta >= 0 ? "adjustment_in" : "adjustment_out";
-    const userName = req.user?.name || req.user?.email || "Admin";
+      updatedRow = await client.query(
+        `UPDATE inventory_items SET
+           current_stock       = $1,
+           available_stock     = $2,
+           average_price       = COALESCE(NULLIF($3,'')::numeric, average_price),
+           last_purchase_price = COALESCE(NULLIF($4,'')::numeric, last_purchase_price),
+           minimum_level       = COALESCE(NULLIF($5,'')::numeric, minimum_level),
+           reorder_level       = COALESCE(NULLIF($6,'')::numeric, reorder_level),
+           maximum_level       = COALESCE(NULLIF($7,'')::numeric, maximum_level),
+           warehouse_location  = COALESCE(NULLIF($8,''), warehouse_location),
+           department          = COALESCE(NULLIF($9,''), department),
+           last_updated_at     = NOW()
+         WHERE id = $10
+         RETURNING *`,
+        [
+          stock, availableStock,
+          String(averagePrice ?? ""), String(lastPurchasePrice ?? ""),
+          String(minimumLevel ?? ""), String(reorderLevel ?? ""), String(maximumLevel ?? ""),
+          warehouseLocation ?? "", department ?? "", id,
+        ]
+      );
 
-    await pool.query(
-      `INSERT INTO inventory_stock_logs
-         (inventory_item_id, action_type, quantity_before, quantity_after, quantity_delta, reference_type, notes, created_by_name, created_at)
-       VALUES ($1,$2,$3,$4,$5,'manual',$6,$7,NOW())`,
-      [id, actionType, prevStock, stock, delta, notes ?? null, userName]
-    ).catch(e => console.error("[StockLog] Failed to write log:", e));
+      const delta = stock - prevStock;
+      const actionType = prevStock === 0 ? "opening" : delta >= 0 ? "adjustment_in" : "adjustment_out";
+      const userName = req.user?.name || req.user?.email || "Admin";
+      await client.query(
+        `INSERT INTO inventory_stock_logs
+           (inventory_item_id, action_type, quantity_before, quantity_after, quantity_delta, reference_type, notes, created_by_name, created_at)
+         VALUES ($1,$2,$3,$4,$5,'manual',$6,$7,NOW())`,
+        [id, actionType, prevStock, stock, delta, notes ?? null, userName]
+      );
 
-    const ledgerType = prevStock === 0 ? "opening_stock" : delta >= 0 ? "adjustment_in" : "adjustment_out";
-    const inQty  = delta > 0 ? delta : 0;
-    const outQty = delta < 0 ? Math.abs(delta) : 0;
-    await pool.query(
-      `INSERT INTO stock_ledger (item_id, transaction_type, reference_number, reference_type, in_quantity, out_quantity, balance_quantity, remarks, created_by, created_at)
-       VALUES ($1,$2,'Manual Entry','manual_entry',$3,$4,$5,$6,$7,NOW())`,
-      [id, ledgerType, inQty, outQty, stock, notes ?? null, userName]
-    ).catch(e => console.error("[Ledger] Failed to write ledger entry:", e));
+      const ledgerType = prevStock === 0 ? "opening_stock" : delta >= 0 ? "adjustment_in" : "adjustment_out";
+      const inQty  = delta > 0 ? delta : 0;
+      const outQty = delta < 0 ? Math.abs(delta) : 0;
+      await client.query(
+        `INSERT INTO stock_ledger (item_id, transaction_type, reference_number, reference_type, in_quantity, out_quantity, balance_quantity, remarks, created_by, created_at)
+         VALUES ($1,$2,'Manual Entry','manual_entry',$3,$4,$5,$6,$7,NOW())`,
+        [id, ledgerType, inQty, outQty, stock, notes ?? null, userName]
+      );
 
-    return res.json(r.rows[0]);
+      await client.query("COMMIT");
+      return res.json(updatedRow.rows[0]);
+    } catch (err) {
+      await client.query("ROLLBACK").catch(() => {});
+      throw err;
+    } finally {
+      client.release();
+    }
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: "Failed to update stock" });

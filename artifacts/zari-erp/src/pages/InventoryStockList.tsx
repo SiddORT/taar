@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useLocation } from "wouter";
 import {
   Search, Filter, RefreshCw, Package, AlertTriangle,
@@ -6,6 +6,7 @@ import {
   Edit2, X, ChevronLeft, ChevronRight, Boxes,
   Clock, CalendarRange, ArrowUpCircle, ArrowDownCircle,
   MinusCircle, Info, BookOpen, ZoomIn, ShoppingCart,
+  SlidersHorizontal, Check,
 } from "lucide-react";
 import { useGetMe, getGetMeQueryKey, useLogout } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -162,6 +163,85 @@ function SortIcon({ col, sort, order }: { col: string; sort: string; order: stri
   return order === "asc" ? <ChevronUp className="h-3.5 w-3.5" style={{ color: G }} /> : <ChevronDown className="h-3.5 w-3.5" style={{ color: G }} />;
 }
 
+function SearchableSelect({
+  value, onChange, options, placeholder, allLabel,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  options: string[];
+  placeholder: string;
+  allLabel: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [q, setQ] = useState("");
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, [open]);
+  const filtered = q.trim()
+    ? options.filter(o => o.toLowerCase().includes(q.trim().toLowerCase()))
+    : options;
+  const display = value === "all" ? allLabel : value;
+  return (
+    <div ref={ref} className="relative min-w-[160px]">
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center justify-between gap-2 px-3 py-2 text-sm text-gray-900 rounded-xl border border-gray-200 bg-white hover:border-[#C6AF4B]/60 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30"
+      >
+        <span className={`truncate ${value === "all" ? "text-gray-500" : "text-gray-900"}`}>{display}</span>
+        <ChevronDown className={`h-4 w-4 text-gray-400 flex-shrink-0 transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+      {open && (
+        <div className="absolute z-30 mt-1 w-full min-w-[220px] bg-white rounded-xl border border-gray-200 shadow-lg overflow-hidden">
+          <div className="p-2 border-b border-gray-100">
+            <div className="relative">
+              <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
+              <input
+                autoFocus
+                value={q}
+                onChange={e => setQ(e.target.value)}
+                placeholder={placeholder}
+                className="w-full pl-7 pr-2 py-1.5 text-xs text-gray-900 rounded-lg border border-gray-200 focus:outline-none focus:ring-1 focus:ring-[#C6AF4B]/30"
+              />
+            </div>
+          </div>
+          <div className="max-h-56 overflow-y-auto py-1">
+            <button
+              type="button"
+              onClick={() => { onChange("all"); setOpen(false); setQ(""); }}
+              className={`w-full flex items-center justify-between px-3 py-1.5 text-sm hover:bg-gray-50 ${value === "all" ? "text-[#A8943E] font-medium" : "text-gray-700"}`}
+            >
+              <span>{allLabel}</span>
+              {value === "all" && <Check className="h-3.5 w-3.5" />}
+            </button>
+            {filtered.length === 0 ? (
+              <p className="px-3 py-3 text-xs text-gray-400 text-center">No matches</p>
+            ) : (
+              filtered.map(opt => (
+                <button
+                  key={opt}
+                  type="button"
+                  onClick={() => { onChange(opt); setOpen(false); setQ(""); }}
+                  className={`w-full flex items-center justify-between px-3 py-1.5 text-sm hover:bg-gray-50 ${value === opt ? "text-[#A8943E] font-medium" : "text-gray-700"}`}
+                >
+                  <span className="truncate">{opt}</span>
+                  {value === opt && <Check className="h-3.5 w-3.5 flex-shrink-0" />}
+                </button>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function StatusPill({ status }: { status: string }) {
   const s = status?.toLowerCase() ?? "";
   const map: Record<string, string> = {
@@ -196,8 +276,8 @@ export default function InventoryStockList() {
   const [summary, setSummary] = useState<SummaryData | null>(null);
   const [filters, setFilters] = useState<FilterOptions>({ categories: [], departments: [], locations: [] });
   const [loading, setLoading] = useState(true);
-  const [syncing, setSyncing] = useState(false);
   const [total, setTotal]     = useState(0);
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [page, setPage]       = useState(1);
   const limit                 = 10;
 
@@ -240,9 +320,10 @@ export default function InventoryStockList() {
     if (!token) return;
     setLoading(true);
     const ts = bust ? `&_t=${Date.now()}` : "";
+    const qs = buildQs();
     Promise.all([
-      customFetch(`/api/inventory/items?${buildQs()}${ts}`),
-      customFetch(`/api/inventory/summary${bust ? `?_t=${Date.now()}` : ""}`),
+      customFetch(`/api/inventory/items?${qs}${ts}`),
+      customFetch(`/api/inventory/summary?${qs}${ts}`),
       customFetch(`/api/inventory/filters${bust ? `?_t=${Date.now()}` : ""}`),
     ])
       .then(([itemsRes, summaryRes, filtersRes]) => {
@@ -266,19 +347,6 @@ export default function InventoryStockList() {
     setPage(1);
   };
 
-  const handleSync = async () => {
-    setSyncing(true);
-    try {
-      const res = await customFetch("/api/inventory/sync", { method: "POST" }) as { message: string };
-      toast({ title: res.message });
-      loadData(true);
-    } catch {
-      toast({ title: "Sync failed", variant: "destructive" });
-    } finally {
-      setSyncing(false);
-    }
-  };
-
   const openStockModal = (item: InventoryItem) => {
     setStockForm({
       currentStock: item.current_stock ?? "0",
@@ -297,20 +365,31 @@ export default function InventoryStockList() {
 
   const handleStockSubmit = async () => {
     if (!stockModal.item) return;
+    const base   = parseFloat(stockForm.currentStock) || 0;
+    const delta  = parseFloat(stockForm.stockChange)  || 0;
+    const newQty = base + delta;
+    const sRes = parseFloat(stockModal.item.style_reserved_qty ?? "0");
+    const wRes = parseFloat(stockModal.item.swatch_reserved_qty ?? "0");
+    if (newQty < 0) {
+      toast({ title: "Stock cannot be negative", description: `New stock would be ${newQty.toFixed(2)}. Reduce the negative adjustment.`, variant: "destructive" });
+      return;
+    }
+    if (newQty < sRes + wRes) {
+      toast({ title: "Below reserved quantity", description: `New stock (${newQty.toFixed(2)}) is less than total reservations (${(sRes + wRes).toFixed(2)}). Release reservations first or reduce the deduction.`, variant: "destructive" });
+      return;
+    }
     setSubmitting(true);
     try {
-      const base   = parseFloat(stockForm.currentStock) || 0;
-      const delta  = parseFloat(stockForm.stockChange)  || 0;
-      const newQty = (base + delta).toFixed(2);
       await customFetch(`/api/inventory/items/${stockModal.item.id}/stock`, {
         method: "PUT",
-        body: JSON.stringify({ ...stockForm, currentStock: newQty }),
+        body: JSON.stringify({ ...stockForm, currentStock: newQty.toFixed(2) }),
       });
       toast({ title: "Stock updated successfully" });
       setStockModal({ item: null, open: false });
       loadData(true);
-    } catch {
-      toast({ title: "Failed to update stock", variant: "destructive" });
+    } catch (err) {
+      const msg = (err as { message?: string })?.message || "Failed to update stock";
+      toast({ title: "Update failed", description: msg, variant: "destructive" });
     } finally {
       setSubmitting(false);
     }
@@ -376,41 +455,118 @@ export default function InventoryStockList() {
             <p className="text-sm text-gray-700 mt-0.5">Track and manage all inventory across fabrics, materials & item master</p>
           </div>
           <div className="flex items-center gap-3 flex-wrap">
-            <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 py-2 shadow-sm">
-              <CalendarRange className="h-4 w-4 text-gray-500" />
-              <input
-                type="date"
-                value={fromDate}
-                onChange={e => { setFromDate(e.target.value); setPage(1); }}
-                className="text-sm text-gray-900 border-0 outline-none bg-transparent w-32"
-                placeholder="From"
-              />
-              <span className="text-gray-400 text-xs">—</span>
-              <input
-                type="date"
-                value={toDate}
-                onChange={e => { setToDate(e.target.value); setPage(1); }}
-                className="text-sm text-gray-900 border-0 outline-none bg-transparent w-32"
-                placeholder="To"
-              />
-              {(fromDate || toDate) && (
-                <button onClick={() => { setFromDate(""); setToDate(""); setPage(1); }} className="ml-1 text-gray-400 hover:text-red-500">
-                  <X className="h-3.5 w-3.5" />
-                </button>
+            <button
+              onClick={() => setFiltersOpen(o => !o)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold border transition-all ${
+                filtersOpen || hasFilters
+                  ? "bg-gray-900 text-[#C9B45C] border-gray-900"
+                  : "bg-white text-gray-700 border-gray-200 hover:border-[#C6AF4B]/60"
+              }`}
+            >
+              <SlidersHorizontal className="h-4 w-4" />
+              Filters
+              {hasFilters && (
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[#C9B45C]/20 text-[#C9B45C] font-bold">ON</span>
               )}
-            </div>
-            {isAdmin && (
-              <button onClick={handleSync} disabled={syncing}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white transition-all disabled:opacity-60"
-                style={{ background: `linear-gradient(135deg, ${G}, ${G_DIM})` }}>
-                <RefreshCw className={`h-4 w-4 ${syncing ? "animate-spin" : ""}`} />
-                {syncing ? "Syncing…" : "Sync from Masters"}
-              </button>
-            )}
+              <ChevronDown className={`h-3.5 w-3.5 transition-transform ${filtersOpen ? "rotate-180" : ""}`} />
+            </button>
           </div>
         </div>
 
-        {/* Summary Cards */}
+        {/* Collapsible Filters Drawer */}
+        {filtersOpen && (
+          <div className={`${card} p-4 space-y-3`}>
+            <div className="flex flex-wrap gap-3 items-start">
+              <div className="relative flex-1 min-w-[220px] max-w-sm">
+                <label className="block text-[11px] font-medium text-gray-700 mb-1">Search</label>
+                <Search className="absolute left-3 top-[34px] h-4 w-4 text-gray-400" />
+                <input
+                  value={search}
+                  onChange={e => { setSearch(e.target.value); setPage(1); }}
+                  placeholder="Item name or code…"
+                  className="w-full pl-9 pr-3 py-2 text-sm text-gray-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30"
+                />
+              </div>
+              <div className="flex-1 min-w-[160px]">
+                <label className="block text-[11px] font-medium text-gray-700 mb-1">Source</label>
+                <select value={sourceType}
+                  onChange={e => { setSourceType(e.target.value); setPage(1); }}
+                  className="w-full px-3 py-2 text-sm text-gray-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30">
+                  <option value="all">All Sources</option>
+                  <option value="fabric">Fabric</option>
+                  <option value="material">Material</option>
+                  <option value="packaging">Item Master</option>
+                </select>
+              </div>
+              <div className="flex-1 min-w-[160px]">
+                <label className="block text-[11px] font-medium text-gray-700 mb-1">Category</label>
+                <SearchableSelect value={category} onChange={v => { setCategory(v); setPage(1); }}
+                  options={filters.categories} placeholder="Search category…" allLabel="All Categories" />
+              </div>
+              <div className="flex-1 min-w-[160px]">
+                <label className="block text-[11px] font-medium text-gray-700 mb-1">Department</label>
+                <SearchableSelect value={department} onChange={v => { setDepartment(v); setPage(1); }}
+                  options={filters.departments} placeholder="Search department…" allLabel="All Departments" />
+              </div>
+              <div className="flex-1 min-w-[160px]">
+                <label className="block text-[11px] font-medium text-gray-700 mb-1">Location</label>
+                <SearchableSelect value={location} onChange={v => { setLocation(v); setPage(1); }}
+                  options={filters.locations} placeholder="Search location…" allLabel="All Locations" />
+              </div>
+              <div className="flex-1 min-w-[160px]">
+                <label className="block text-[11px] font-medium text-gray-700 mb-1">Stock Level</label>
+                <select value={stockLevel}
+                  onChange={e => { setStockLevel(e.target.value); setPage(1); }}
+                  className="w-full px-3 py-2 text-sm text-gray-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30">
+                  <option value="all">All Stock Levels</option>
+                  <option value="in-stock">Normal</option>
+                  <option value="low">Low Stock</option>
+                  <option value="out">Out of Stock</option>
+                </select>
+              </div>
+              <div className="flex-1 min-w-[260px]">
+                <label className="block text-[11px] font-medium text-gray-700 mb-1">Updated Between</label>
+                <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 py-2">
+                  <CalendarRange className="h-4 w-4 text-gray-500" />
+                  <input type="date" value={fromDate}
+                    onChange={e => { setFromDate(e.target.value); setPage(1); }}
+                    className="text-sm text-gray-900 border-0 outline-none bg-transparent w-32" />
+                  <span className="text-gray-400 text-xs">—</span>
+                  <input type="date" value={toDate}
+                    onChange={e => { setToDate(e.target.value); setPage(1); }}
+                    className="text-sm text-gray-900 border-0 outline-none bg-transparent w-32" />
+                  {(fromDate || toDate) && (
+                    <button onClick={() => { setFromDate(""); setToDate(""); setPage(1); }} className="ml-1 text-gray-400 hover:text-red-500">
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center justify-between pt-2 border-t border-gray-100">
+              <div className="flex items-center gap-2">
+                <Filter className="h-4 w-4 text-gray-400" />
+                <span className="text-xs text-gray-700">
+                  {hasFilters ? `Filtered: ${total} items` : `Total: ${total} items`}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                {hasFilters && (
+                  <button onClick={clearFilters}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-red-600 border border-red-200 hover:bg-red-50">
+                    <X className="h-3.5 w-3.5" /> Reset all
+                  </button>
+                )}
+                <button onClick={() => setFiltersOpen(false)}
+                  className="px-3 py-1.5 rounded-lg text-xs font-medium text-gray-700 border border-gray-200 hover:bg-gray-50">
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Summary Cards (reflect active filters) */}
         {summary && (
           <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-4">
             {[
@@ -434,44 +590,6 @@ export default function InventoryStockList() {
             ))}
           </div>
         )}
-
-        {/* Filters */}
-        <div className={`${card} p-4`}>
-          <div className="flex flex-wrap gap-3 items-center">
-            <div className="relative flex-1 min-w-[200px] max-w-xs">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <input
-                value={search}
-                onChange={e => { setSearch(e.target.value); setPage(1); }}
-                placeholder="Search item name or code…"
-                className="w-full pl-9 pr-3 py-2 text-sm text-gray-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30"
-              />
-            </div>
-
-            {[
-              { value: sourceType, onChange: (v: string) => { setSourceType(v); setPage(1); }, opts: [["all","All Sources"],["fabric","Fabric"],["material","Material"],["packaging","Item Master"]] },
-              { value: category,   onChange: (v: string) => { setCategory(v); setPage(1); },   opts: [["all","All Categories"], ...filters.categories.map(c => [c,c])] },
-              { value: department, onChange: (v: string) => { setDepartment(v); setPage(1); }, opts: [["all","All Departments"], ...filters.departments.map(d => [d,d])] },
-              { value: location,   onChange: (v: string) => { setLocation(v); setPage(1); },   opts: [["all","All Locations"], ...filters.locations.map(l => [l,l])] },
-              { value: stockLevel, onChange: (v: string) => { setStockLevel(v); setPage(1); }, opts: [["all","All Stock Levels"],["in-stock","Normal"],["low","Low Stock"],["out","Out of Stock"]] },
-            ].map((sel, i) => (
-              <select key={i} value={sel.value} onChange={e => sel.onChange(e.target.value)}
-                className="px-3 py-2 text-sm text-gray-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30">
-                {sel.opts.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-              </select>
-            ))}
-
-            {hasFilters && (
-              <button onClick={clearFilters} className="flex items-center gap-1 text-sm text-red-500 hover:text-red-700">
-                <X className="h-3.5 w-3.5" /> Clear
-              </button>
-            )}
-            <div className="ml-auto flex items-center gap-2">
-              <Filter className="h-4 w-4 text-gray-400" />
-              <span className="text-xs text-gray-700">{total} items</span>
-            </div>
-          </div>
-        </div>
 
         {/* Table */}
         <div className={`${card} overflow-hidden`}>
@@ -525,7 +643,7 @@ export default function InventoryStockList() {
                       <Boxes className="h-12 w-12 mx-auto text-gray-200 mb-3" />
                       <p className="text-gray-700 font-medium">No inventory items found</p>
                       <p className="text-xs text-gray-500 mt-1">
-                        {hasFilters ? "Try clearing your filters" : isAdmin ? 'Click "Sync from Masters" to import all existing items' : "No items have been synced yet"}
+                        {hasFilters ? "Try clearing your filters" : "Items appear here automatically when added in Masters (Fabrics, Materials, Item Master)"}
                       </p>
                     </td>
                   </tr>
