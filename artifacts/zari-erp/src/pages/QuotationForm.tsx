@@ -92,12 +92,27 @@ export default function QuotationForm() {
   const [loadingData, setLoadingData] = useState(isEdit);
   const savedSnapshotRef = useRef<string | null>(null);
   const saveInProgressRef = useRef(false);
+  // Prevent client-state auto-GST from clobbering values loaded from an existing quotation.
+  const gstLoadedFromQuotationRef = useRef(false);
 
-  // Auto-set GST type from client state (only when client changes and user hasn't overridden)
+  // Auto-set GST type from client state — but only after initial load is settled
+  // and only when client genuinely changes (not on first hydration in edit mode).
   useEffect(() => {
     if (!clientState) return;
+    if (gstLoadedFromQuotationRef.current) {
+      // Consume the one-time skip flag (set during edit-load); subsequent client changes still auto-update.
+      gstLoadedFromQuotationRef.current = false;
+      return;
+    }
     setGstTaxType(clientState.toLowerCase() === "maharashtra" ? "CGST+SGST" : "IGST");
   }, [clientState]);
+
+  // Numeric input helper — strips leading "-" and "e", clamps NaN/negative to ""
+  const numChange = (set: (v: string) => void) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    let v = e.target.value;
+    if (v && parseFloat(v) < 0) v = "0";
+    set(v);
+  };
 
   // ── Computed Totals ────────────────────────────────────────────────────────
   const estimatedShippingCharges = (parseFloat(estimatedWeight) || 0) * (parseFloat(shippingRatePerKg) || 0);
@@ -118,10 +133,16 @@ export default function QuotationForm() {
         if (d.client_id) setSelectedClientId(String(d.client_id));
         setRequirementSummary(d.requirement_summary || "");
         setEstimatedWeight(d.estimated_weight || "");
-        const weight = parseFloat(d.estimated_weight) || 0;
-        const savedShipping = parseFloat(d.estimated_shipping_charges) || 0;
-        setShippingRatePerKg(weight > 0 ? String((savedShipping / weight).toFixed(2)) : "0");
-        if (d.gst_type) setGstTaxType(d.gst_type);
+        // Prefer the stored rate column; fall back to derived rate for legacy rows.
+        const storedRate = parseFloat(d.shipping_rate_per_kg);
+        if (!Number.isNaN(storedRate) && storedRate > 0) {
+          setShippingRatePerKg(String(storedRate));
+        } else {
+          const weight = parseFloat(d.estimated_weight) || 0;
+          const savedShipping = parseFloat(d.estimated_shipping_charges) || 0;
+          setShippingRatePerKg(weight > 0 ? String((savedShipping / weight).toFixed(2)) : "0");
+        }
+        if (d.gst_type) { setGstTaxType(d.gst_type); gstLoadedFromQuotationRef.current = true; }
         if (d.gst_rate != null) setGstRate(String(d.gst_rate));
         if (d.cover_page) setCoverPage(d.cover_page);
         if (d.cover_page_image) setCoverPageImage(d.cover_page_image);
@@ -198,6 +219,7 @@ export default function QuotationForm() {
             requirementSummary: requirementSummary.trim(),
             estimatedWeight: parseFloat(estimatedWeight) || 0,
             estimatedShippingCharges: estimatedShippingCharges,
+            shippingRatePerKg: parseFloat(shippingRatePerKg) || 0,
             gstType: gstTaxType,
             gstRate: parseFloat(gstRate) || 18,
             coverPage,
@@ -211,6 +233,8 @@ export default function QuotationForm() {
       );
       toast({ title: "Saved", description: j.message || "Quotation saved successfully" });
       savedSnapshotRef.current = qSnapshot;
+      // Clear dirty BEFORE navigate so the unsaved-changes guard does not fire.
+      clearDirty();
       navigate(isEdit ? `/quotation/${id}` : `/quotation/${j.data?.id}`);
     } catch (err: any) {
       toast({ title: "Error", description: err.message, variant: "destructive" });
@@ -221,7 +245,7 @@ export default function QuotationForm() {
   }
 
   const handleSaveForGuard = useCallback(async () => { await handleSave(); }, [selectedClientId, requirementSummary, estimatedWeight, shippingRatePerKg, internalNotes, clientNotes, gstTaxType, gstRate, coverPage, coverPageImage, designs, charges, isEdit, id]);
-  useUnsavedChanges(isDirty, handleSaveForGuard);
+  const { clearDirty } = useUnsavedChanges(isDirty, handleSaveForGuard);
 
   function handleLogout() {
     logoutMutation.mutate(undefined, {
@@ -380,7 +404,8 @@ export default function QuotationForm() {
             <div>
               <label className={labelCls}>Estimated Weight (kg)</label>
               <input type="number" min="0" step="0.01" className={inputCls}
-                value={estimatedWeight} onChange={(e) => setEstimatedWeight(e.target.value)} />
+                onKeyDown={(e) => { if (e.key === "-" || e.key === "e") e.preventDefault(); }}
+                value={estimatedWeight} onChange={numChange(setEstimatedWeight)} />
             </div>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -518,11 +543,21 @@ export default function QuotationForm() {
                       </td>
                       <td className="pr-2 py-1.5">
                         <input type="number" min="0" step="0.01" className={inputCls} value={c.quantity}
-                          onChange={(e) => setCharges((p) => p.map((x, j) => j === i ? { ...x, quantity: e.target.value } : x))} />
+                          onKeyDown={(e) => { if (e.key === "-" || e.key === "e") e.preventDefault(); }}
+                          onChange={(e) => {
+                            let v = e.target.value;
+                            if (v && parseFloat(v) < 0) v = "0";
+                            setCharges((p) => p.map((x, j) => j === i ? { ...x, quantity: v } : x));
+                          }} />
                       </td>
                       <td className="pr-2 py-1.5">
                         <input type="number" min="0" step="0.01" className={inputCls} value={c.price}
-                          onChange={(e) => setCharges((p) => p.map((x, j) => j === i ? { ...x, price: e.target.value } : x))} />
+                          onKeyDown={(e) => { if (e.key === "-" || e.key === "e") e.preventDefault(); }}
+                          onChange={(e) => {
+                            let v = e.target.value;
+                            if (v && parseFloat(v) < 0) v = "0";
+                            setCharges((p) => p.map((x, j) => j === i ? { ...x, price: v } : x));
+                          }} />
                       </td>
                       <td className="text-right py-1.5 font-semibold text-gray-800">{fmt(amt)}</td>
                       <td className="py-1.5 pl-2">
@@ -545,12 +580,14 @@ export default function QuotationForm() {
               <div className="w-36">
                 <label className={labelCls}>Weight (kg)</label>
                 <input type="number" min="0" step="0.01" className={inputCls}
-                  value={estimatedWeight} onChange={(e) => setEstimatedWeight(e.target.value)} />
+                  onKeyDown={(e) => { if (e.key === "-" || e.key === "e") e.preventDefault(); }}
+                  value={estimatedWeight} onChange={numChange(setEstimatedWeight)} />
               </div>
               <div className="w-36">
                 <label className={labelCls}>Rate / kg (₹)</label>
                 <input type="number" min="0" step="0.01" className={inputCls}
-                  value={shippingRatePerKg} onChange={(e) => setShippingRatePerKg(e.target.value)} />
+                  onKeyDown={(e) => { if (e.key === "-" || e.key === "e") e.preventDefault(); }}
+                  value={shippingRatePerKg} onChange={numChange(setShippingRatePerKg)} />
               </div>
               <div className="w-36">
                 <label className={labelCls}>Shipping Total</label>
@@ -565,13 +602,13 @@ export default function QuotationForm() {
           <div className="mt-4 border-t border-gray-100 pt-4">
             <div className="flex flex-col items-end gap-2 text-sm">
               <div className="flex justify-between w-72">
-                <span className="text-gray-500">Subtotal</span>
-                <span className="font-semibold">{fmt(subtotal)}</span>
+                <span className="text-gray-700 font-medium">Subtotal</span>
+                <span className="font-semibold text-gray-900">{fmt(subtotal)}</span>
               </div>
               <div className="flex items-center justify-between w-72 gap-2">
                 <div className="flex items-center gap-2 flex-1">
                   <select
-                    className="text-xs rounded-lg border border-gray-200 px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30 bg-white text-gray-900"
+                    className="text-xs rounded-lg border border-gray-200 px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30 bg-white text-gray-900 font-medium"
                     value={gstTaxType} onChange={(e) => setGstTaxType(e.target.value)}>
                     <option value="GST">GST</option>
                     <option value="CGST+SGST">CGST+SGST</option>
@@ -580,15 +617,16 @@ export default function QuotationForm() {
                   <div className="flex items-center gap-1">
                     <input type="number" min="0" max="100" step="0.01"
                       className="w-16 text-xs rounded-lg border border-gray-200 px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30 bg-white text-gray-900"
-                      value={gstRate} onChange={(e) => setGstRate(e.target.value)} />
-                    <span className="text-gray-500 text-xs">%</span>
+                      onKeyDown={(e) => { if (e.key === "-" || e.key === "e") e.preventDefault(); }}
+                      value={gstRate} onChange={numChange(setGstRate)} />
+                    <span className="text-gray-700 text-xs">%</span>
                   </div>
                 </div>
-                <span className="font-semibold">{fmt(gstAmount)}</span>
+                <span className="font-semibold text-gray-900">{fmt(gstAmount)}</span>
               </div>
               <div className="flex justify-between w-72">
-                <span className="text-gray-500">Shipping</span>
-                <span className="font-semibold">{fmt(shipping)}</span>
+                <span className="text-gray-700 font-medium">Shipping</span>
+                <span className="font-semibold text-gray-900">{fmt(shipping)}</span>
               </div>
               <div className="flex justify-between w-72 pt-1 border-t border-gray-200 mt-1">
                 <span className="font-bold text-gray-900">Total</span>

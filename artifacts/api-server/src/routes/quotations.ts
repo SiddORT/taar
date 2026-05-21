@@ -141,34 +141,44 @@ router.post("/quotations", requireAuth, async (req: AuthRequest, res) => {
       designs = [], charges = [],
       gstType: gstTypeOverride, gstRate: gstRateOverride,
       coverPage = "classic", coverPageImage = "",
+      shippingRatePerKg = 0,
     } = req.body;
 
     await client.query("BEGIN");
 
     const qNum = await generateQuotationNumber(client);
 
-    const chargesTotal = charges.reduce((s: number, c: any) => s + (parseFloat(c.quantity) || 1) * (parseFloat(c.price) || 0), 0);
+    // Sanitize once — every downstream calculation uses the clamped values.
+    const safeWeight = Math.max(0, parseFloat(estimatedWeight) || 0);
+    const safeRate = Math.max(0, parseFloat(shippingRatePerKg) || 0);
+    const safeShipping = Math.max(0, parseFloat(estimatedShippingCharges) || 0);
+    const safeCharges = (charges as any[]).map((c) => ({
+      ...c,
+      qty: Math.max(0, parseFloat(c.quantity) || 1),
+      price: Math.max(0, parseFloat(c.price) || 0),
+    }));
+    const chargesTotal = safeCharges.reduce((s, c) => s + c.qty * c.price, 0);
     const subtotal = chargesTotal;
-    const autoGst = calcGst(clientState, subtotal, parseFloat(estimatedShippingCharges) || 0);
-    const gstRate = gstRateOverride != null ? parseFloat(gstRateOverride) : autoGst.rate;
+    const autoGst = calcGst(clientState, subtotal, safeShipping);
+    const gstRate = gstRateOverride != null ? Math.max(0, parseFloat(gstRateOverride) || 0) : autoGst.rate;
     const gst = {
       type: gstTypeOverride || autoGst.type,
       rate: gstRate,
       amount: parseFloat((subtotal * gstRate / 100).toFixed(2)),
     };
-    const total = subtotal + gst.amount + (parseFloat(estimatedShippingCharges) || 0);
+    const total = subtotal + gst.amount + safeShipping;
 
     const qRes = await client.query(
       `INSERT INTO quotations
          (quotation_number, client_id, client_name, client_state,
-          requirement_summary, estimated_weight, estimated_shipping_charges,
+          requirement_summary, estimated_weight, estimated_shipping_charges, shipping_rate_per_kg,
           subtotal_amount, gst_type, gst_rate, gst_amount, total_amount,
           internal_notes, client_notes, cover_page, cover_page_image, created_by)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)
        RETURNING id`,
       [qNum, clientId || null, clientName || null, clientState || null,
-       requirementSummary || null, estimatedWeight || 0,
-       estimatedShippingCharges || 0, subtotal, gst.type, gst.rate,
+       requirementSummary || null, safeWeight, safeShipping, safeRate,
+       subtotal, gst.type, gst.rate,
        gst.amount, total, internalNotes || null, clientNotes || null, coverPage, coverPageImage || null, actor]
     );
     const qId = qRes.rows[0].id;
@@ -179,12 +189,10 @@ router.post("/quotations", requireAuth, async (req: AuthRequest, res) => {
         [qId, d.designName, d.hsnCode || null, d.designImage || null, d.remarks || null]
       );
     }
-    for (const c of charges) {
-      const qty = parseFloat(c.quantity) || 1;
-      const price = parseFloat(c.price) || 0;
+    for (const c of safeCharges) {
       await client.query(
         `INSERT INTO quotation_custom_charges (quotation_id, charge_name, hsn_code, unit, quantity, price, amount) VALUES ($1,$2,$3,$4,$5,$6,$7)`,
-        [qId, c.chargeName, c.hsnCode || null, c.unit || null, qty, price, qty * price]
+        [qId, c.chargeName, c.hsnCode || null, c.unit || null, c.qty, c.price, c.qty * c.price]
       );
     }
 
@@ -210,6 +218,7 @@ router.put("/quotations/:id", requireAuth, async (req: AuthRequest, res) => {
       designs = [], charges = [],
       gstType: gstTypeOverride, gstRate: gstRateOverride,
       coverPage = "classic", coverPageImage = "",
+      shippingRatePerKg = 0,
     } = req.body;
 
     const existing = await client.query(`SELECT status FROM quotations WHERE id = $1`, [id]);
@@ -217,27 +226,36 @@ router.put("/quotations/:id", requireAuth, async (req: AuthRequest, res) => {
 
     await client.query("BEGIN");
 
-    const chargesTotal = charges.reduce((s: number, c: any) => s + (parseFloat(c.quantity) || 1) * (parseFloat(c.price) || 0), 0);
+    // Sanitize once — every downstream calculation uses the clamped values.
+    const safeWeight = Math.max(0, parseFloat(estimatedWeight) || 0);
+    const safeRate = Math.max(0, parseFloat(shippingRatePerKg) || 0);
+    const safeShipping = Math.max(0, parseFloat(estimatedShippingCharges) || 0);
+    const safeCharges = (charges as any[]).map((c) => ({
+      ...c,
+      qty: Math.max(0, parseFloat(c.quantity) || 1),
+      price: Math.max(0, parseFloat(c.price) || 0),
+    }));
+    const chargesTotal = safeCharges.reduce((s, c) => s + c.qty * c.price, 0);
     const subtotal = chargesTotal;
-    const autoGst = calcGst(clientState, subtotal, parseFloat(estimatedShippingCharges) || 0);
-    const gstRate = gstRateOverride != null ? parseFloat(gstRateOverride) : autoGst.rate;
+    const autoGst = calcGst(clientState, subtotal, safeShipping);
+    const gstRate = gstRateOverride != null ? Math.max(0, parseFloat(gstRateOverride) || 0) : autoGst.rate;
     const gst = {
       type: gstTypeOverride || autoGst.type,
       rate: gstRate,
       amount: parseFloat((subtotal * gstRate / 100).toFixed(2)),
     };
-    const total = subtotal + gst.amount + (parseFloat(estimatedShippingCharges) || 0);
+    const total = subtotal + gst.amount + safeShipping;
 
     await client.query(
       `UPDATE quotations SET
          client_id=$1, client_name=$2, client_state=$3,
-         requirement_summary=$4, estimated_weight=$5, estimated_shipping_charges=$6,
-         subtotal_amount=$7, gst_type=$8, gst_rate=$9, gst_amount=$10, total_amount=$11,
-         internal_notes=$12, client_notes=$13, cover_page=$14, cover_page_image=$15,
+         requirement_summary=$4, estimated_weight=$5, estimated_shipping_charges=$6, shipping_rate_per_kg=$7,
+         subtotal_amount=$8, gst_type=$9, gst_rate=$10, gst_amount=$11, total_amount=$12,
+         internal_notes=$13, client_notes=$14, cover_page=$15, cover_page_image=$16,
          updated_at=NOW()
-       WHERE id=$16`,
+       WHERE id=$17`,
       [clientId || null, clientName || null, clientState || null,
-       requirementSummary || null, estimatedWeight || 0, estimatedShippingCharges || 0,
+       requirementSummary || null, safeWeight, safeShipping, safeRate,
        subtotal, gst.type, gst.rate, gst.amount, total,
        internalNotes || null, clientNotes || null, coverPage, coverPageImage || null, id]
     );
@@ -251,12 +269,10 @@ router.put("/quotations/:id", requireAuth, async (req: AuthRequest, res) => {
     }
 
     await client.query(`DELETE FROM quotation_custom_charges WHERE quotation_id = $1`, [id]);
-    for (const c of charges) {
-      const qty = parseFloat(c.quantity) || 1;
-      const price = parseFloat(c.price) || 0;
+    for (const c of safeCharges) {
       await client.query(
         `INSERT INTO quotation_custom_charges (quotation_id, charge_name, hsn_code, unit, quantity, price, amount) VALUES ($1,$2,$3,$4,$5,$6,$7)`,
-        [id, c.chargeName, c.hsnCode || null, c.unit || null, qty, price, qty * price]
+        [id, c.chargeName, c.hsnCode || null, c.unit || null, c.qty, c.price, c.qty * c.price]
       );
     }
 

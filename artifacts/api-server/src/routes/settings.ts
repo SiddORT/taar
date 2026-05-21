@@ -32,6 +32,16 @@ export async function ensureSettingsTables() {
     ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_photo TEXT;
   `);
 
+  // Quotation: persist shipping rate-per-kg so it round-trips correctly on edit.
+  await pool.query(`
+    ALTER TABLE quotations ADD COLUMN IF NOT EXISTS shipping_rate_per_kg NUMERIC DEFAULT 0;
+    UPDATE quotations
+       SET shipping_rate_per_kg = ROUND(estimated_shipping_charges / NULLIF(estimated_weight,0), 2)
+     WHERE shipping_rate_per_kg = 0
+       AND estimated_weight > 0
+       AND estimated_shipping_charges > 0;
+  `);
+
   await pool.query(`
     CREATE TABLE IF NOT EXISTS currencies (
       code           TEXT PRIMARY KEY,

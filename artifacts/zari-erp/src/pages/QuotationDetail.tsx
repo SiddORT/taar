@@ -293,7 +293,9 @@ export default function QuotationDetail() {
           </div>
         </div>
 
-        {/* Conversion + Status Actions */}
+        {/* Conversion + Status Actions — hidden when there are no actions available
+            (e.g. Rejected / Converted) to avoid an empty white card. */}
+        {(nextStatuses.length > 0 || statusError || canRevise || q.status === "Approved") && (
         <div className={`${card} p-4 mb-5`}>
           <div className="flex flex-wrap items-center gap-3">
             {/* Status Transitions */}
@@ -380,6 +382,7 @@ export default function QuotationDetail() {
             )}
           </div>
         </div>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
           {/* Left — main info */}
