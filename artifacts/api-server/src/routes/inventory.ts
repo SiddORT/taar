@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { pool } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
-import { syncAllFromMasters } from "../services/inventoryService";
+import { syncAllFromMasters, appendImageToInventoryAndMaster } from "../services/inventoryService";
 import type { AuthRequest } from "../middlewares/requireAuth";
 
 const router = Router();
@@ -135,10 +135,22 @@ router.get("/inventory/items", requireAuth, async (req, res) => {
              WHEN 'packaging' THEN 'Item Master'
            END AS source_label,
            COALESCE(f.hsn_code, m.hsn_code) AS hsn_code,
-           COALESCE(f.gst_percent::numeric, m.gst_percent::numeric)::text AS gst_percent
+           COALESCE(f.gst_percent::numeric, m.gst_percent::numeric)::text AS gst_percent,
+           COALESCE(po_pending.on_order_qty, 0)::text AS on_order_qty,
+           COALESCE(po_pending.open_po_count, 0)::int AS open_po_count
          FROM inventory_items ii
          LEFT JOIN fabrics   f ON ii.source_type = 'fabric'   AND f.id = ii.source_id
          LEFT JOIN materials m ON ii.source_type = 'material'  AND m.id = ii.source_id
+         LEFT JOIN (
+           SELECT poi.inventory_item_id,
+                  SUM(GREATEST(poi.ordered_quantity::numeric - poi.received_quantity::numeric, 0)) AS on_order_qty,
+                  COUNT(DISTINCT po.id) AS open_po_count
+           FROM purchase_order_items poi
+           JOIN purchase_orders po ON po.id = poi.po_id
+           WHERE po.status NOT IN ('Cancelled','Closed','Completed')
+             AND poi.ordered_quantity::numeric > poi.received_quantity::numeric
+           GROUP BY poi.inventory_item_id
+         ) po_pending ON po_pending.inventory_item_id = ii.id
          ${where}
          ORDER BY ${sortCol} ${sortDir}
          LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
@@ -1413,24 +1425,68 @@ router.get("/inventory/dashboard", requireAuth, async (req, res) => {
 router.get("/inventory/low-stock-alerts", requireAuth, async (_req, res) => {
   try {
     const r = await pool.query(`
-      SELECT id, item_name, item_code, current_stock, available_stock,
-             reorder_level, minimum_level, maximum_level, unit_type, source_type,
-             average_price, images
-      FROM inventory_items
-      WHERE is_active = true
+      SELECT ii.id, ii.item_name, ii.item_code, ii.current_stock, ii.available_stock,
+             ii.reorder_level, ii.minimum_level, ii.maximum_level, ii.unit_type, ii.source_type,
+             ii.average_price, ii.images,
+             COALESCE(po_pending.on_order_qty, 0)::text AS on_order_qty,
+             COALESCE(po_pending.open_po_count, 0)::int AS open_po_count
+      FROM inventory_items ii
+      LEFT JOIN (
+        SELECT poi.inventory_item_id,
+               SUM(GREATEST(poi.ordered_quantity::numeric - poi.received_quantity::numeric, 0)) AS on_order_qty,
+               COUNT(DISTINCT po.id) AS open_po_count
+        FROM purchase_order_items poi
+        JOIN purchase_orders po ON po.id = poi.po_id
+        WHERE po.status NOT IN ('Cancelled','Closed','Completed')
+          AND poi.ordered_quantity::numeric > poi.received_quantity::numeric
+        GROUP BY poi.inventory_item_id
+      ) po_pending ON po_pending.inventory_item_id = ii.id
+      WHERE ii.is_active = true
         AND (
-          current_stock::numeric <= 0
-          OR (reorder_level::numeric > 0 AND current_stock::numeric <= reorder_level::numeric)
+          ii.available_stock::numeric <= 0
+          OR (ii.reorder_level::numeric > 0 AND ii.available_stock::numeric <= ii.reorder_level::numeric)
         )
       ORDER BY
-        CASE WHEN current_stock::numeric <= 0 THEN 0 ELSE 1 END ASC,
-        item_name ASC
-      LIMIT 20
+        CASE WHEN ii.available_stock::numeric <= 0 THEN 0 ELSE 1 END ASC,
+        ii.item_name ASC
+      LIMIT 50
     `);
     return res.json({ data: r.rows });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: "Failed to fetch low-stock alerts" });
+  }
+});
+
+router.post("/inventory/items/:id/add-image", requireAuth, async (req: AuthRequest, res) => {
+  try {
+    const id = parseInt(String(req.params.id));
+    if (isNaN(id)) return res.status(400).json({ error: "Invalid item id" });
+    const { name, data, size } = req.body as { name?: string; data?: string; size?: number };
+    if (!data || typeof data !== "string" || !data.startsWith("data:")) {
+      return res.status(400).json({ error: "Image data (data URL) is required" });
+    }
+    const mimeMatch = data.match(/^data:(image\/(?:png|jpeg|jpg|webp|gif));base64,/i);
+    if (!mimeMatch) {
+      return res.status(400).json({ error: "Only PNG, JPEG, WEBP, or GIF images are allowed" });
+    }
+    const MAX_BYTES = 5 * 1024 * 1024;
+    if (data.length > Math.ceil(MAX_BYTES * 4 / 3) + 100) {
+      return res.status(413).json({ error: "Image exceeds 5 MB limit" });
+    }
+    const safeName = (name || "uploaded-image").toString().slice(0, 200);
+    const image = {
+      id: `img-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      name: safeName,
+      data,
+      size: typeof size === "number" && size > 0 ? size : data.length,
+    };
+    const images = await appendImageToInventoryAndMaster(id, image);
+    return res.json({ image, images });
+  } catch (err) {
+    console.error("[inventory.add-image]", err);
+    const msg = err instanceof Error ? err.message : "Failed to add image";
+    return res.status(500).json({ error: msg });
   }
 });
 

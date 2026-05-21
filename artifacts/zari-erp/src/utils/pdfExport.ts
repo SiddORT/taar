@@ -129,7 +129,7 @@ export function downloadPoPdf(po: POPdfData) {
     footStyles: { fillColor: LGRAY, fontStyle: "bold", fontSize: 8 },
     alternateRowStyles: { fillColor: [250, 249, 246] },
     columnStyles: {
-      0: { cellWidth: 8 },
+      0: { cellWidth: 12, halign: "center" },
       4: { halign: "right" }, 5: { halign: "right" }, 6: { halign: "right" },
       7: { halign: "right" }, 8: { halign: "right" },
     },
@@ -276,7 +276,7 @@ export function downloadPrPdf(pr: PRPdfData) {
     footStyles: { fillColor: LGRAY, fontStyle: "bold", fontSize: 8 },
     alternateRowStyles: { fillColor: [250, 252, 248] },
     columnStyles: {
-      0: { cellWidth: 8 },
+      0: { cellWidth: 12, halign: "center" },
       4: { halign: "right" }, 5: { halign: "right" }, 6: { halign: "right" },
       7: { halign: "right" }, 8: { halign: "right" },
     },

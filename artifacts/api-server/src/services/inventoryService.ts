@@ -65,6 +65,59 @@ export async function updateInventoryImages(
   }
 }
 
+/**
+ * Appends a single image to an inventory item and propagates back to its source master
+ * (fabric/material). Packaging_materials has no images column so only inventory_items is
+ * updated. Returns the updated images array.
+ */
+export async function appendImageToInventoryAndMaster(
+  inventoryItemId: number,
+  image: { id: string; name: string; data: string; size: number }
+): Promise<{ id: string; name: string; data: string; size: number }[]> {
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const invRes = await client.query(
+      `SELECT source_type, source_id, images FROM inventory_items WHERE id = $1 FOR UPDATE`,
+      [inventoryItemId]
+    );
+    if (!invRes.rows.length) {
+      await client.query("ROLLBACK");
+      throw new Error("Inventory item not found");
+    }
+    const row = invRes.rows[0] as { source_type: InventorySourceType; source_id: number; images: unknown };
+    const current = Array.isArray(row.images)
+      ? (row.images as { id: string; name: string; data: string; size: number }[])
+      : [];
+    const next = [...current, image];
+    const nextJson = JSON.stringify(next);
+
+    await client.query(
+      `UPDATE inventory_items SET images = $1, last_updated_at = NOW() WHERE id = $2`,
+      [nextJson, inventoryItemId]
+    );
+
+    if (row.source_type === "fabric") {
+      await client.query(
+        `UPDATE fabrics SET images = $1, updated_at = NOW() WHERE id = $2`,
+        [nextJson, row.source_id]
+      );
+    } else if (row.source_type === "material") {
+      await client.query(
+        `UPDATE materials SET images = $1, updated_at = NOW() WHERE id = $2`,
+        [nextJson, row.source_id]
+      );
+    }
+    await client.query("COMMIT");
+    return next;
+  } catch (err) {
+    try { await client.query("ROLLBACK"); } catch { /* ignore */ }
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
 export async function updateInventoryStockLevels(
   sourceType: InventorySourceType,
   sourceId: number,

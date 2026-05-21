@@ -836,9 +836,17 @@ export default function PurchaseOrderForm() {
                           }}
                           className={`${inputCls} bg-white appearance-none`}>
                           <option value="">— Select item —</option>
-                          {itemsForCategory(line.itemCategory).map(item => (
-                            <option key={item.id} value={item.id}>{item.item_name}</option>
-                          ))}
+                          {itemsForCategory(line.itemCategory).map(item => {
+                            const srcLabel = item.source_type === "fabric"    ? "Fabric"
+                                           : item.source_type === "material"   ? "Material"
+                                           : item.source_type === "packaging"  ? "Item Master"
+                                           : item.source_type;
+                            return (
+                              <option key={item.id} value={item.id}>
+                                {item.item_name} · {srcLabel}{item.item_code ? ` (${item.item_code})` : ""}
+                              </option>
+                            );
+                          })}
                         </select>
                       </td>
                       <td className="px-3 py-2 text-xs text-gray-500">{line.unitType || "—"}</td>
@@ -936,8 +944,29 @@ export default function PurchaseOrderForm() {
                                   <input type="file" accept="image/*" className="hidden" onChange={e => {
                                     const file = e.target.files?.[0];
                                     if (!file) return;
+                                    const itemId = line.inventoryItemId;
                                     const reader = new FileReader();
-                                    reader.onload = ev => { updateLine(line.key, "itemImage", ev.target?.result as string); setImagePickerKey(null); };
+                                    reader.onload = async ev => {
+                                      const data = ev.target?.result as string;
+                                      updateLine(line.key, "itemImage", data);
+                                      setImagePickerKey(null);
+                                      if (!itemId) return;
+                                      try {
+                                        const res = await customFetch<{ images: { id: string; name: string; data: string; size: number }[] }>(
+                                          `/api/inventory/items/${itemId}/add-image`,
+                                          {
+                                            method: "POST",
+                                            headers: { "content-type": "application/json" },
+                                            body: JSON.stringify({ name: file.name, data, size: file.size }),
+                                          }
+                                        );
+                                        setInventoryItems(prev => prev.map(i =>
+                                          i.id === itemId ? { ...i, images: res.images } : i
+                                        ));
+                                      } catch (err) {
+                                        console.warn("Failed to save image to master", err);
+                                      }
+                                    };
                                     reader.readAsDataURL(file);
                                   }} />
                                 </label>

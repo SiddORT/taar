@@ -45,6 +45,8 @@ interface InventoryItem {
   preferred_vendor: string | null;
   last_updated_at: string;
   images: Array<{ id: string; name: string; data: string; size: number }> | null;
+  on_order_qty?: string;
+  open_po_count?: number;
 }
 
 interface SummaryData {
@@ -435,7 +437,7 @@ export default function InventoryStockList() {
     );
   }
 
-  const colSpan = isAdmin ? 18 : 17;
+  const colSpan = isAdmin ? 19 : 18;
 
   return (
     <div className="min-h-screen" style={{ background: "linear-gradient(135deg, #FAFAF7 0%, #F5F2E8 100%)" }}>
@@ -469,6 +471,24 @@ export default function InventoryStockList() {
                 <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[#C9B45C]/20 text-[#C9B45C] font-bold">ON</span>
               )}
               <ChevronDown className={`h-3.5 w-3.5 transition-transform ${filtersOpen ? "rotate-180" : ""}`} />
+            </button>
+            {hasFilters && (
+              <button
+                onClick={clearFilters}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold text-red-600 border border-red-200 bg-red-50/40 hover:bg-red-50 transition-all"
+                title="Clear all active filters"
+              >
+                <X className="h-3.5 w-3.5" /> Reset
+              </button>
+            )}
+            <button
+              onClick={() => loadData(true)}
+              disabled={loading}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold bg-gray-900 text-[#C9B45C] border border-gray-900 hover:bg-gray-800 disabled:opacity-60 transition-all"
+              title="Reload latest stock from server"
+            >
+              <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+              Refresh
             </button>
           </div>
         </div>
@@ -618,6 +638,7 @@ export default function InventoryStockList() {
                   <th className={`${thCls} text-right`} onClick={() => toggleSort("available_stock")} style={{ cursor: "pointer" }}>
                     <span className="flex items-center justify-end gap-1">Available <SortIcon col="available_stock" sort={sort} order={order} /></span>
                   </th>
+                  <th className={`${thCls} text-right`}>On Order</th>
                   <th className={`${thCls} text-right`}>Avg Price</th>
                   <th className={`${thCls} text-right`}>Last Price</th>
                   <th className={thCls}>Status</th>
@@ -711,12 +732,33 @@ export default function InventoryStockList() {
                       </td>
                       <td className={`${tdCls} text-right font-mono font-semibold`} style={{ color: availColor }}>{fmtQty(item.available_stock)}</td>
                       <td className={`${tdCls} text-right`}>
+                        {parseFloat(item.on_order_qty ?? "0") > 0 ? (
+                          <span
+                            className="inline-flex items-center gap-1 font-mono font-semibold text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full whitespace-nowrap"
+                            title={`Pending across ${item.open_po_count ?? 0} open PO${(item.open_po_count ?? 0) === 1 ? "" : "s"}`}
+                          >
+                            <ShoppingCart className="h-3 w-3" /> {fmtQty(item.on_order_qty)}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-gray-300 font-mono">—</span>
+                        )}
+                      </td>
+                      <td className={`${tdCls} text-right`}>
                         <span className="text-sm text-gray-900">₹{fmt(item.average_price)}</span>
                       </td>
                       <td className={`${tdCls} text-right`}>
                         <span className="text-sm text-gray-900">₹{fmt(item.last_purchase_price)}</span>
                       </td>
-                      <td className={tdCls}><StockBadge item={item} /></td>
+                      <td className={tdCls}>
+                        <div className="flex flex-col items-start gap-1">
+                          <StockBadge item={item} />
+                          {parseFloat(item.on_order_qty ?? "0") > 0 && (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                              <ShoppingCart className="h-2.5 w-2.5" /> Ordered
+                            </span>
+                          )}
+                        </div>
+                      </td>
                       <td className={tdCls}>
                         <span className="text-xs text-gray-700">
                           {item.last_updated_at ? fmtDateShort(item.last_updated_at) : "—"}

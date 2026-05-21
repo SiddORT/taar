@@ -32,6 +32,8 @@ interface AlertItem {
   source_type: string;
   average_price: string | null;
   images: { id: string; name: string; data: string; size: number }[] | null;
+  on_order_qty?: string;
+  open_po_count?: number;
 }
 
 export default function LowStockAlerts() {
@@ -54,7 +56,7 @@ export default function LowStockAlerts() {
   function fetchAlerts() {
     if (!token) return;
     setLoading(true);
-    customFetch<{ data: AlertItem[] }>("/api/inventory/low-stock-alerts")
+    customFetch<{ data: AlertItem[] }>(`/api/inventory/low-stock-alerts?_t=${Date.now()}`)
       .then(d => { setItems(d.data ?? []); setLastFetched(new Date()); })
       .catch(() => toast({ title: "Failed to load alerts", variant: "destructive" }))
       .finally(() => setLoading(false));
@@ -77,11 +79,11 @@ export default function LowStockAlerts() {
     );
   }
 
-  const outOfStock = items.filter(i => parseFloat(i.current_stock ?? "0") <= 0);
+  const outOfStock = items.filter(i => parseFloat(i.available_stock ?? "0") <= 0);
   const lowStock   = items.filter(i => {
-    const cur   = parseFloat(i.current_stock ?? "0");
+    const avail = parseFloat(i.available_stock ?? "0");
     const reord = parseFloat(i.reorder_level ?? "0");
-    return cur > 0 && reord > 0 && cur <= reord;
+    return avail > 0 && reord > 0 && avail <= reord;
   });
 
   return (
@@ -234,18 +236,21 @@ function AlertTable({ title, subtitle, accentColor, items, onCreatePO }: AlertTa
         <table className="w-full">
           <thead>
             <tr>
-              {["#", "Item Name", "Code", "Type", "Current Stock", "Reorder Level", "Min Level", "Max Level", "Status", "Action"].map(h => (
+              {["#", "Item Name", "Code", "Type", "Current Stock", "On Order", "Reorder Level", "Min Level", "Max Level", "Status", "Action"].map(h => (
                 <th key={h} className={thCls}>{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {items.map((item, idx) => {
-              const cur   = parseFloat(item.current_stock ?? "0");
-              const reord = parseFloat(item.reorder_level ?? "0");
-              const min   = parseFloat(item.minimum_level ?? "0");
-              const max   = parseFloat(item.maximum_level ?? "0");
-              const isOut = cur <= 0;
+              const cur     = parseFloat(item.current_stock ?? "0");
+              const avail   = parseFloat(item.available_stock ?? "0");
+              const reord   = parseFloat(item.reorder_level ?? "0");
+              const min     = parseFloat(item.minimum_level ?? "0");
+              const max     = parseFloat(item.maximum_level ?? "0");
+              const onOrder = parseFloat(item.on_order_qty ?? "0");
+              const isOut   = avail <= 0;
+              const ordered = onOrder > 0;
               return (
                 <tr key={item.id}
                   className={`border-b border-gray-50 transition-colors ${idx % 2 === 0 ? "" : "bg-gray-50/40"}`}
@@ -276,6 +281,15 @@ function AlertTable({ title, subtitle, accentColor, items, onCreatePO }: AlertTa
                     </span>
                   </td>
                   <td className={tdCls}>
+                    {onOrder > 0 ? (
+                      <span className="inline-flex items-center gap-1 font-mono font-semibold text-sm text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
+                        {onOrder} <span className="text-[10px] font-normal text-emerald-600/80">{item.unit_type ?? ""}</span>
+                      </span>
+                    ) : (
+                      <span className="font-mono text-gray-300">—</span>
+                    )}
+                  </td>
+                  <td className={tdCls}>
                     <span className="font-mono text-gray-700">{reord > 0 ? reord : "—"}</span>
                   </td>
                   <td className={tdCls}>
@@ -285,15 +299,22 @@ function AlertTable({ title, subtitle, accentColor, items, onCreatePO }: AlertTa
                     <span className="font-mono text-gray-500">{max > 0 ? max : "—"}</span>
                   </td>
                   <td className={tdCls}>
-                    {isOut ? (
-                      <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-red-50 text-red-600">
-                        <XCircle className="h-3 w-3" /> Out of Stock
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-600">
-                        <AlertTriangle className="h-3 w-3" /> Low Stock
-                      </span>
-                    )}
+                    <div className="flex flex-col items-start gap-1">
+                      {isOut ? (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-red-50 text-red-600">
+                          <XCircle className="h-3 w-3" /> Out of Stock
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-600">
+                          <AlertTriangle className="h-3 w-3" /> Low Stock
+                        </span>
+                      )}
+                      {ordered && (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700">
+                          <ShoppingCart className="h-3 w-3" /> Ordered
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td className={tdCls}>
                     <button onClick={() => onCreatePO(item)}
