@@ -117,7 +117,12 @@ function InventoryDonut({ title, subtitle, data, loading }: {
                 >
                   {data.map((entry, i) => <Cell key={i} fill={entry.color} />)}
                 </Pie>
-                <ReTooltip content={<PieTooltip />} />
+                <ReTooltip
+                  content={<PieTooltip />}
+                  position={{ x: 0, y: -10 }}
+                  wrapperStyle={{ zIndex: 50, pointerEvents: "none" }}
+                  allowEscapeViewBox={{ x: true, y: true }}
+                />
               </PieChart>
               <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                 <span className="text-4xl font-black text-gray-900 leading-none">{total}</span>
@@ -323,14 +328,43 @@ export default function InventoryDashboard() {
           </div>
           <div className="flex flex-col gap-1">
             <label className="text-xs font-semibold text-gray-700 uppercase tracking-wide">From</label>
-            <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
+            <input type="date" value={dateFrom} max={dateTo || today}
+              onChange={e => {
+                const v = e.target.value;
+                if (v && dateTo && v > dateTo) {
+                  toast({ title: "From date cannot be after To date", variant: "destructive" });
+                  return;
+                }
+                setDateFrom(v);
+              }}
               className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/40" />
           </div>
           <div className="flex flex-col gap-1">
             <label className="text-xs font-semibold text-gray-700 uppercase tracking-wide">To</label>
-            <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
+            <input type="date" value={dateTo} min={dateFrom} max={today}
+              onChange={e => {
+                const v = e.target.value;
+                if (v && dateFrom && v < dateFrom) {
+                  toast({ title: "To date cannot be before From date", variant: "destructive" });
+                  return;
+                }
+                setDateTo(v);
+              }}
               className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/40" />
           </div>
+          <button
+            type="button"
+            onClick={() => {
+              setCategory("all");
+              setSubCategory("all");
+              setDateFrom(threeMonthsAgo);
+              setDateTo(today);
+            }}
+            className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-semibold border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+          >
+            <RefreshCw className="h-3.5 w-3.5" />
+            Reset
+          </button>
         </div>
 
         {/* ── Summary Cards ──────────────────────────────────── */}
@@ -557,9 +591,9 @@ function ReservationRow({ label, value, pct, barColor, bgColor, borderColor, tex
       </div>
       <div className="w-full h-1.5 rounded-full overflow-hidden" style={{ background: `${barColor}20` }}>
         <div className="h-full rounded-full transition-all duration-700"
-          style={{ width: `${Math.min(pct, 100)}%`, background: barColor }} />
+          style={{ width: `${Math.min(Math.max(pct, 0), 100)}%`, background: barColor }} />
       </div>
-      <p className="text-[10px] mt-1" style={{ color: barColor }}>{pct.toFixed(1)}% of total</p>
+      <p className="text-[10px] mt-1" style={{ color: barColor }}>{Math.min(Math.max(pct, 0), 100).toFixed(1)}% of total</p>
     </div>
   );
 }

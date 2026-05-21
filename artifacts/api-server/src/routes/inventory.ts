@@ -1205,11 +1205,11 @@ router.get("/inventory/dashboard", requireAuth, async (req, res) => {
       pool.query(`
         SELECT
           COUNT(*)                                                                                AS total_items,
-          COUNT(*) FILTER (WHERE current_stock::numeric <= 0)                                    AS out_of_stock,
-          COUNT(*) FILTER (WHERE current_stock::numeric > 0 AND reorder_level::numeric > 0
-            AND current_stock::numeric <= reorder_level::numeric)                                AS low_stock,
-          COUNT(*) FILTER (WHERE current_stock::numeric > 0
-            AND (reorder_level::numeric = 0 OR current_stock::numeric > reorder_level::numeric)) AS in_stock,
+          COUNT(*) FILTER (WHERE available_stock::numeric <= 0)                                  AS out_of_stock,
+          COUNT(*) FILTER (WHERE available_stock::numeric > 0 AND reorder_level::numeric > 0
+            AND available_stock::numeric <= reorder_level::numeric)                              AS low_stock,
+          COUNT(*) FILTER (WHERE available_stock::numeric > 0
+            AND (reorder_level::numeric = 0 OR available_stock::numeric > reorder_level::numeric)) AS in_stock,
           COALESCE(SUM(available_stock::numeric * average_price::numeric), 0)                    AS total_stock_value,
           COUNT(*) FILTER (WHERE source_type = 'fabric')                                         AS fabric_count,
           COUNT(*) FILTER (WHERE source_type = 'material')                                       AS material_count,
