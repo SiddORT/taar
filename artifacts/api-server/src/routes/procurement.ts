@@ -50,11 +50,16 @@ async function recalcPoStatus(client: { query: typeof pool.query }, poId: number
   let newStatus: string;
   if (totalReceived <= 0) {
     newStatus = "Approved";
+  } else if (totalReceived + 0.001 >= totalOrdered) {
+    // Fully received — auto-close
+    newStatus = "Closed";
   } else {
     newStatus = "Partially Received";
   }
+  // Do not overwrite a Cancelled / Draft PO, and do not downgrade an already-Closed
+  // PO (e.g. if a PR is later edited to reduce qty, leave it Closed unless user reopens).
   await client.query(
-    `UPDATE purchase_orders SET status = $1, updated_at = NOW() WHERE id = $2 AND status NOT IN ('Draft','Cancelled')`,
+    `UPDATE purchase_orders SET status = $1, updated_at = NOW() WHERE id = $2 AND status NOT IN ('Draft','Cancelled','Closed')`,
     [newStatus, poId]
   );
 }
@@ -222,8 +227,18 @@ router.patch("/procurement/purchase-orders/:id/status", requireAuth, async (req:
     const userName = (req.user as any)?.name || (req.user as any)?.email || "Admin";
     const { status, notes } = req.body as { status: string; notes?: string };
 
-    const allowed = ["Draft", "Approved", "Cancelled"];
+    const allowed = ["Draft", "Approved", "Cancelled", "Closed"];
     if (!allowed.includes(status)) { res.status(400).json({ error: "Invalid status" }); return; }
+
+    // Guard: Closed is only meaningful from Approved / Partially Received / Closed (idempotent).
+    if (status === "Closed") {
+      const cur = await pool.query(`SELECT status FROM purchase_orders WHERE id = $1`, [id]);
+      if (!cur.rows.length) { res.status(404).json({ error: "PO not found" }); return; }
+      const curStatus = cur.rows[0].status;
+      if (!["Approved", "Partially Received", "Closed"].includes(curStatus)) {
+        res.status(400).json({ error: `Cannot close a ${curStatus} PO` }); return;
+      }
+    }
 
     const updates: string[] = ["status = $1", "updated_at = NOW()", "updated_by = $2"];
     const params: (string | number)[] = [status, userName, id];

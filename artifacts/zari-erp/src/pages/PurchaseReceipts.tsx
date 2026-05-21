@@ -233,10 +233,26 @@ export default function PurchaseReceipts() {
 
             <div className="flex items-center gap-1 border border-gray-200 rounded-xl px-2 py-1 bg-white">
               <CalendarRange className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
-              <input type="date" value={fromDate} onChange={e => { setFromDate(e.target.value); setPage(1); }}
+              <input type="date" value={fromDate} max={toDate || undefined}
+                onChange={e => {
+                  const v = e.target.value;
+                  if (v && toDate && v > toDate) {
+                    toast({ title: "From date cannot be after To date", variant: "destructive" });
+                    return;
+                  }
+                  setFromDate(v); setPage(1);
+                }}
                 className="text-xs text-gray-900 border-0 outline-none bg-transparent w-[110px]" />
               <span className="text-gray-300 text-xs">—</span>
-              <input type="date" value={toDate} onChange={e => { setToDate(e.target.value); setPage(1); }}
+              <input type="date" value={toDate} min={fromDate || undefined}
+                onChange={e => {
+                  const v = e.target.value;
+                  if (v && fromDate && v < fromDate) {
+                    toast({ title: "To date cannot be before From date", variant: "destructive" });
+                    return;
+                  }
+                  setToDate(v); setPage(1);
+                }}
                 className="text-xs text-gray-900 border-0 outline-none bg-transparent w-[110px]" />
             </div>
 
