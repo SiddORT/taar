@@ -895,11 +895,14 @@ router.patch("/inventory/reservations/:id/convert", requireAuth, async (req, res
         [reserved, resv.inventory_id]
       );
 
-      // Wastage: physically gone — deduct from current_stock
-      if (wastageQty > 0) {
+      // Consumed: material used in production — physically out of stock.
+      // Wastage: damaged/discarded — also physically out of stock.
+      // Released: unused — stays in current_stock and returns to available.
+      const stockDeduction = consumedQty + wastageQty;
+      if (stockDeduction > 0) {
         await client.query(
           `UPDATE inventory_items SET current_stock = GREATEST(0, current_stock::numeric - $1) WHERE id = $2`,
-          [wastageQty, resv.inventory_id]
+          [stockDeduction, resv.inventory_id]
         );
       }
 

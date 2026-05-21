@@ -67,6 +67,21 @@ function fmtDate(s: string) {
   return new Date(s).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
 }
 
+// Trim trailing zeros: 1.000 → "1", 0.500 → "0.5", 1.250 → "1.25", 0.001 → "0.001"
+function fmtQty(v: string | number) {
+  const n = parseFloat(String(v));
+  if (isNaN(n)) return "0";
+  return n.toFixed(3).replace(/\.?0+$/, "");
+}
+
+// Extract a clean human-readable message from an ApiError or generic error.
+// customFetch's ApiError.message is "HTTP 400 Bad Request: detail" — strip the prefix.
+function errMsg(err: unknown, fallback: string): string {
+  const e = err as { data?: { error?: string; message?: string }; message?: string };
+  return e?.data?.error || e?.data?.message
+       || (e?.message ? e.message.replace(/^HTTP\s+\d+[^:]*:\s*/i, "") : fallback);
+}
+
 function StatusBadge({ s }: { s: string }) {
   const meta = STATUS_META[s] ?? { color: "bg-gray-100 text-gray-600", Icon: Bookmark };
   const { color, Icon } = meta;
@@ -168,17 +183,19 @@ export default function Reservations() {
 
   useEffect(() => { loadData(); }, [loadData]);
 
-  const loadInvItems = () => {
-    if (!token || invItems.length) return;
+  const loadInvItems = useCallback(() => {
+    if (!token) return;
     setLoadingItems(true);
     customFetch(`/api/inventory/items?limit=500&_t=${Date.now()}`)
       .then((r: unknown) => {
         const d = r as { data: InvItem[] };
-        setInvItems(d.data ?? []);
+        // Defensive dedupe by id in case the API ever returns duplicates
+        const unique = Array.from(new Map((d.data ?? []).map(i => [i.id, i])).values());
+        setInvItems(unique);
       })
       .catch(() => {})
       .finally(() => setLoadingItems(false));
-  };
+  }, [token]);
 
   const loadOrders = () => {
     if (!token || (styleOrders.length && swatchOrders.length)) return;
@@ -203,6 +220,10 @@ export default function Reservations() {
     if (!form.inventoryId || !form.referenceId || !form.reservedQuantity || !form.reservationDate) {
       toast({ title: "Please fill all required fields", variant: "destructive" }); return;
     }
+    const qty = parseFloat(form.reservedQuantity);
+    if (isNaN(qty) || qty <= 0) {
+      toast({ title: "Reserved quantity must be greater than 0", variant: "destructive" }); return;
+    }
     setSubmitting(true);
     try {
       await customFetch("/api/inventory/reservations", {
@@ -221,8 +242,9 @@ export default function Reservations() {
       setShowForm(false);
       setForm({ inventoryId: "", reservationType: "Style", referenceId: "", reservedQuantity: "", remarks: "", reservationDate: new Date().toISOString().slice(0, 10) });
       loadData();
-    } catch (err: any) {
-      toast({ title: err?.message || "Failed to create reservation", variant: "destructive" });
+      loadInvItems();
+    } catch (err: unknown) {
+      toast({ title: errMsg(err, "Failed to create reservation"), variant: "destructive" });
     } finally {
       setSubmitting(false);
     }
@@ -240,8 +262,9 @@ export default function Reservations() {
       toast({ title: `Reservation ${labels[action]}` });
       setConfirmAction(null);
       loadData();
-    } catch (err: any) {
-      toast({ title: err?.message || `Failed to ${action}`, variant: "destructive" });
+      loadInvItems();
+    } catch (err: unknown) {
+      toast({ title: errMsg(err, `Failed to ${action}`), variant: "destructive" });
     } finally {
       setActioning(null);
     }
@@ -272,8 +295,9 @@ export default function Reservations() {
       toast({ title: "Reservation converted successfully" });
       setConvertModal(null);
       loadData();
-    } catch (err: any) {
-      toast({ title: err?.message || "Failed to convert reservation", variant: "destructive" });
+      loadInvItems();
+    } catch (err: unknown) {
+      toast({ title: errMsg(err, "Failed to convert reservation"), variant: "destructive" });
       setConvertModal(m => m ? { ...m, submitting: false } : null);
     }
   };
@@ -343,10 +367,26 @@ export default function Reservations() {
 
             <div className="flex items-center gap-1 border border-gray-200 rounded-xl px-2 py-1 bg-white">
               <CalendarRange className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
-              <input type="date" value={fromDate} onChange={e => { setFromDate(e.target.value); setPage(1); }}
+              <input type="date" value={fromDate} max={toDate || undefined}
+                onChange={e => {
+                  const v = e.target.value;
+                  if (v && toDate && v > toDate) {
+                    toast({ title: "From date cannot be after To date", variant: "destructive" });
+                    return;
+                  }
+                  setFromDate(v); setPage(1);
+                }}
                 className="text-xs text-gray-900 border-0 outline-none bg-transparent w-[110px]" />
               <span className="text-gray-300 text-xs">—</span>
-              <input type="date" value={toDate} onChange={e => { setToDate(e.target.value); setPage(1); }}
+              <input type="date" value={toDate} min={fromDate || undefined}
+                onChange={e => {
+                  const v = e.target.value;
+                  if (v && fromDate && v < fromDate) {
+                    toast({ title: "To date cannot be before From date", variant: "destructive" });
+                    return;
+                  }
+                  setToDate(v); setPage(1);
+                }}
                 className="text-xs text-gray-900 border-0 outline-none bg-transparent w-[110px]" />
             </div>
 
@@ -414,12 +454,12 @@ export default function Reservations() {
                     </td>
                     <td className={tdCls}>
                       <span className="text-sm font-mono font-semibold" style={{ color: G }}>
-                        {parseFloat(r.reserved_quantity).toFixed(2)} {r.unit_type || ""}
+                        {fmtQty(r.reserved_quantity)} {r.unit_type || ""}
                       </span>
                     </td>
                     <td className={tdCls}>
                       <span className={`text-sm font-mono ${parseFloat(r.available_stock) <= 0 ? "text-red-600 font-bold" : "text-gray-700"}`}>
-                        {parseFloat(r.available_stock).toFixed(2)}
+                        {fmtQty(r.available_stock)}
                       </span>
                     </td>
                     <td className={tdCls}><span className="text-xs">{fmtDate(r.reservation_date)}</span></td>
@@ -438,7 +478,7 @@ export default function Reservations() {
 
                             {r.status === "Active" && (
                               <button
-                                onClick={() => { setOpenActionId(null); setConvertModal({ resv: r, consumed: parseFloat(r.reserved_quantity).toFixed(2), released: "0", wastage: "0", submitting: false }); }}
+                                onClick={() => { setOpenActionId(null); setConvertModal({ resv: r, consumed: fmtQty(r.reserved_quantity), released: "0", wastage: "0", submitting: false }); }}
                                 className="w-full text-left px-3 py-2 text-xs text-blue-700 hover:bg-blue-50 flex items-center gap-2.5">
                                 <ArrowRightLeft className="h-3.5 w-3.5" /> Convert
                               </button>
@@ -541,13 +581,13 @@ export default function Reservations() {
                   <option value="">{loadingItems ? "Loading items…" : "Select item…"}</option>
                   {invItems.map(i => (
                     <option key={i.id} value={i.id}>
-                      {i.item_name} ({i.item_code}) — {parseFloat(i.available_stock).toFixed(2)} avail.
+                      {i.item_name} ({i.item_code}) — {fmtQty(i.available_stock)} avail.
                     </option>
                   ))}
                 </select>
                 {selectedItem && (
                   <p className="text-xs mt-1 text-amber-600 font-medium">
-                    Available stock: {parseFloat(selectedItem.available_stock).toFixed(2)} {selectedItem.unit_type || ""}
+                    Available stock: {fmtQty(selectedItem.available_stock)} {selectedItem.unit_type || ""}
                   </p>
                 )}
               </div>
@@ -644,7 +684,7 @@ export default function Reservations() {
                    confirmAction.action === "release" ? "Release Reservation?" : "Cancel Reservation?"}
                 </h3>
                 <p className="text-xs text-gray-500 mt-1">
-                  {confirmAction.resv.item_name} — {parseFloat(confirmAction.resv.reserved_quantity).toFixed(2)} {confirmAction.resv.unit_type || "units"} for {confirmAction.resv.reservation_type} {confirmAction.resv.reference_code ?? `#${confirmAction.resv.reference_id}`}.
+                  {confirmAction.resv.item_name} — {fmtQty(confirmAction.resv.reserved_quantity)} {confirmAction.resv.unit_type || "units"} for {confirmAction.resv.reservation_type} {confirmAction.resv.reference_code ?? `#${confirmAction.resv.reference_id}`}.
                   {confirmAction.action === "release" && " Reserved qty will be returned to available stock."}
                   {confirmAction.action === "cancel" && " Reserved qty will be returned to available stock."}
                   {confirmAction.action === "delete" && " This will permanently remove this record."}
@@ -680,7 +720,7 @@ export default function Reservations() {
         const r = parseFloat(convertModal.released) || 0;
         const w = parseFloat(convertModal.wastage) || 0;
         const allocated = c + r + w;
-        const remaining = +(reserved - allocated).toFixed(2);
+        const remaining = +(reserved - allocated).toFixed(3);
         const cOver = c > reserved;
         const rOver = r > reserved;
         const wOver = w > reserved;
@@ -707,7 +747,7 @@ export default function Reservations() {
                   <p className="text-sm font-semibold text-gray-900">{convertModal.resv.item_name}</p>
                   <p className="text-xs text-gray-500 mt-0.5">
                     {convertModal.resv.reservation_type} {convertModal.resv.reference_code ?? `#${convertModal.resv.reference_id}`} &middot; Reserved:{" "}
-                    <span className="font-bold" style={{ color: G }}>{reserved.toFixed(2)}</span>{" "}
+                    <span className="font-bold" style={{ color: G }}>{fmtQty(reserved)}</span>{" "}
                     {convertModal.resv.unit_type || ""}
                   </p>
                 </div>
@@ -761,9 +801,9 @@ export default function Reservations() {
                 <div className={`flex items-center justify-between px-4 py-2.5 rounded-xl border ${valid ? "border-green-200 bg-green-50" : "border-red-200 bg-red-50"}`}>
                   <span className="text-xs font-medium text-gray-600">Total allocated</span>
                   <span className={`text-sm font-bold ${valid ? "text-green-700" : "text-red-600"}`}>
-                    {allocated.toFixed(2)} / {reserved.toFixed(2)} {convertModal.resv.unit_type || ""}
+                    {fmtQty(allocated)} / {fmtQty(reserved)} {convertModal.resv.unit_type || ""}
                     {!valid && remaining !== 0 && (
-                      <span className="ml-1 text-[11px] font-normal">({remaining > 0 ? `${remaining.toFixed(2)} unallocated` : `${Math.abs(remaining).toFixed(2)} over`})</span>
+                      <span className="ml-1 text-[11px] font-normal">({remaining > 0 ? `${fmtQty(remaining)} unallocated` : `${fmtQty(Math.abs(remaining))} over`})</span>
                     )}
                   </span>
                 </div>
