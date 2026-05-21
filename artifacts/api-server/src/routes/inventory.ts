@@ -998,9 +998,9 @@ router.get("/inventory/adjustments/summary", requireAuth, async (_req, res) => {
     const r = await pool.query(`
       SELECT
         COALESCE(SUM(CASE WHEN adjustment_type='Damage'           AND adjustment_direction='Decrease' AND adjustment_date >= date_trunc('month', CURRENT_DATE)::text THEN revenue_loss_amount::numeric ELSE 0 END),0)::text AS damage_loss_month,
-        COALESCE(SUM(CASE WHEN adjustment_type='Loss'             AND adjustment_direction='Decrease' AND adjustment_date >= date_trunc('month', CURRENT_DATE)::text THEN revenue_loss_amount::numeric ELSE 0 END),0)::text AS loss_amount_month,
+        COALESCE(SUM(CASE WHEN adjustment_type IN ('Damage','Loss','Audit Correction') AND adjustment_direction='Decrease' AND adjustment_date >= date_trunc('month', CURRENT_DATE)::text THEN revenue_loss_amount::numeric ELSE 0 END),0)::text AS loss_amount_month,
         COUNT(CASE WHEN adjustment_type='Damage'           AND adjustment_date >= date_trunc('month', CURRENT_DATE)::text THEN 1 END)::int AS damage_count_month,
-        COUNT(CASE WHEN adjustment_type='Loss'             AND adjustment_date >= date_trunc('month', CURRENT_DATE)::text THEN 1 END)::int AS loss_count_month,
+        COUNT(CASE WHEN adjustment_type IN ('Damage','Loss','Audit Correction') AND adjustment_direction='Decrease' AND adjustment_date >= date_trunc('month', CURRENT_DATE)::text THEN 1 END)::int AS loss_count_month,
         COUNT(CASE WHEN adjustment_type='Audit Correction' AND adjustment_date >= date_trunc('month', CURRENT_DATE)::text THEN 1 END)::int AS audit_count_month,
         COUNT(CASE WHEN adjustment_type='Manual Correction' THEN 1 END)::int AS manual_count_total,
         COUNT(CASE WHEN adjustment_type='Opening Correction' THEN 1 END)::int AS opening_count_total,

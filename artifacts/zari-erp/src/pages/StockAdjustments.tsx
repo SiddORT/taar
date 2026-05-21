@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useLocation } from "wouter";
 import {
   Search, Plus, ChevronDown, ChevronLeft, ChevronRight,
@@ -185,17 +185,30 @@ export default function StockAdjustments() {
     return () => { cancelled = true; };
   }, [search, adjustmentType, adjustmentDir, referenceType, fromDate, toDate, minLoss, maxLoss, page, refreshKey]);
 
-  useEffect(() => {
-    customFetch("/api/inventory/items?limit=500&page=1").then((r: unknown) => {
-      setInvItems(((r as { data: InvItem[] }).data ?? []));
+  const loadInvItems = useCallback(() => {
+    customFetch(`/api/inventory/items?limit=500&page=1&_t=${Date.now()}`).then((r: unknown) => {
+      const list = (r as { data: InvItem[] }).data ?? [];
+      // Defensive dedupe by id
+      const unique = Array.from(new Map(list.map(i => [i.id, i])).values());
+      setInvItems(unique);
     }).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    loadInvItems();
     customFetch("/api/style-orders?limit=100&page=1").then((r: unknown) => {
       setStyleOrders((r as { data: { id: number; orderCode: string; styleName: string }[] }).data ?? []);
     }).catch(() => {});
     customFetch("/api/swatch-orders?limit=100&page=1").then((r: unknown) => {
       setSwatchOrders((r as { data: { id: number; orderCode: string; swatchName: string }[] }).data ?? []);
     }).catch(() => {});
-  }, []);
+  }, [loadInvItems]);
+
+  // Refetch inventory items whenever an adjustment is created/updated/deleted
+  // so the dropdown reflects fresh current_stock / available_stock / average_price.
+  useEffect(() => {
+    if (refreshKey > 0) loadInvItems();
+  }, [refreshKey, loadInvItems]);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -292,7 +305,9 @@ export default function StockAdjustments() {
       setShowModal(false);
       refresh();
     } catch (e: unknown) {
-      toast({ title: (e as { message?: string })?.message ?? "Failed to save", variant: "destructive" });
+      const err = e as { data?: { error?: string }; message?: string };
+      const msg = err?.data?.error || (err?.message ? err.message.replace(/^HTTP\s+\d+[^:]*:\s*/i, "") : "Failed to save");
+      toast({ title: msg, variant: "destructive" });
     } finally {
       setSubmitting(false);
     }
@@ -307,7 +322,9 @@ export default function StockAdjustments() {
       setDeleteTarget(null);
       refresh();
     } catch (e: unknown) {
-      toast({ title: (e as { message?: string })?.message ?? "Delete failed", variant: "destructive" });
+      const err = e as { data?: { error?: string }; message?: string };
+      const msg = err?.data?.error || (err?.message ? err.message.replace(/^HTTP\s+\d+[^:]*:\s*/i, "") : "Delete failed");
+      toast({ title: msg, variant: "destructive" });
     } finally {
       setDeleting(false);
     }
@@ -415,19 +432,55 @@ export default function StockAdjustments() {
 
             <div className="flex items-center gap-1 border border-gray-200 rounded-xl px-2 py-1 bg-white">
               <CalendarRange className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
-              <input type="date" value={fromDate} onChange={e => { setFromDate(e.target.value); setPage(1); }}
+              <input type="date" value={fromDate} max={toDate || undefined}
+                onChange={e => {
+                  const v = e.target.value;
+                  if (v && toDate && v > toDate) {
+                    toast({ title: "From date cannot be after To date", variant: "destructive" });
+                    return;
+                  }
+                  setFromDate(v); setPage(1);
+                }}
                 className="text-xs border-0 outline-none bg-transparent w-[110px] text-gray-900" />
               <span className="text-gray-300 text-xs">—</span>
-              <input type="date" value={toDate} onChange={e => { setToDate(e.target.value); setPage(1); }}
+              <input type="date" value={toDate} min={fromDate || undefined}
+                onChange={e => {
+                  const v = e.target.value;
+                  if (v && fromDate && v < fromDate) {
+                    toast({ title: "To date cannot be before From date", variant: "destructive" });
+                    return;
+                  }
+                  setToDate(v); setPage(1);
+                }}
                 className="text-xs border-0 outline-none bg-transparent w-[110px] text-gray-900" />
             </div>
 
             <div className="flex items-center gap-1 border border-gray-200 rounded-xl px-2 py-1.5 bg-white">
               <span className="text-xs text-gray-400">Loss ₹</span>
-              <input type="number" placeholder="Min" value={minLoss} onChange={e => { setMinLoss(e.target.value); setPage(1); }}
+              <input type="number" min="0" placeholder="Min" value={minLoss}
+                onChange={e => {
+                  const v = e.target.value;
+                  if (v !== "" && parseFloat(v) < 0) {
+                    toast({ title: "Min loss cannot be negative", variant: "destructive" }); return;
+                  }
+                  if (v !== "" && maxLoss !== "" && parseFloat(v) > parseFloat(maxLoss)) {
+                    toast({ title: "Min loss cannot be greater than Max loss", variant: "destructive" }); return;
+                  }
+                  setMinLoss(v); setPage(1);
+                }}
                 className="w-[60px] text-xs border-0 outline-none bg-transparent text-gray-900" />
               <span className="text-gray-300">—</span>
-              <input type="number" placeholder="Max" value={maxLoss} onChange={e => { setMaxLoss(e.target.value); setPage(1); }}
+              <input type="number" min="0" placeholder="Max" value={maxLoss}
+                onChange={e => {
+                  const v = e.target.value;
+                  if (v !== "" && parseFloat(v) < 0) {
+                    toast({ title: "Max loss cannot be negative", variant: "destructive" }); return;
+                  }
+                  if (v !== "" && minLoss !== "" && parseFloat(v) < parseFloat(minLoss)) {
+                    toast({ title: "Max loss cannot be less than Min loss", variant: "destructive" }); return;
+                  }
+                  setMaxLoss(v); setPage(1);
+                }}
                 className="w-[60px] text-xs border-0 outline-none bg-transparent text-gray-900" />
             </div>
 
