@@ -73,7 +73,9 @@ function fmtTime(iso: string) {
 }
 function fmt3(v: string | number) {
   const n = parseFloat(String(v));
-  return isNaN(n) ? "0.000" : n.toFixed(3);
+  if (isNaN(n)) return "0";
+  // Trim trailing zeros: 1.000 → "1", 0.500 → "0.5", 1.250 → "1.25", 0.001 → "0.001"
+  return n.toFixed(3).replace(/\.?0+$/, "");
 }
 
 export default function InventoryLedger() {
@@ -140,12 +142,23 @@ export default function InventoryLedger() {
     return () => document.removeEventListener("mousedown", handle);
   }, []);
 
-  useEffect(() => {
+  const loadItems = useCallback(() => {
     if (!token) return;
     customFetch(`/api/inventory/items?limit=200&sort=item_name&order=asc&_t=${Date.now()}`)
-      .then((r: unknown) => setItems((r as { data: InventoryItemOption[] }).data))
+      .then((r: unknown) => {
+        const fresh = (r as { data: InventoryItemOption[] }).data;
+        setItems(fresh);
+        // Keep wastageItem in sync so the modal shows the latest available_stock
+        setWastageItem(prev => {
+          if (!prev) return prev;
+          const updated = fresh.find(i => i.id === prev.id);
+          return updated ?? prev;
+        });
+      })
       .catch(() => {});
   }, [token]);
+
+  useEffect(() => { loadItems(); }, [loadItems]);
 
   const buildQs = useCallback(() => {
     const p = new URLSearchParams({ sort: sortMode, page: String(page), limit: String(limit) });
@@ -189,6 +202,7 @@ export default function InventoryLedger() {
       setWastageItem(null);
       setWastageItemSearch("");
       loadData(true);
+      loadItems();
     } catch (e: unknown) {
       const msg = (e as { message?: string })?.message ?? "Failed to record wastage";
       toast({ title: msg, variant: "destructive" });
@@ -208,6 +222,7 @@ export default function InventoryLedger() {
       });
       setDeleteConfirm(null);
       loadData(true);
+      loadItems();
     } catch (e: unknown) {
       const msg = (e as { message?: string })?.message ?? "Failed to delete entry";
       toast({ title: "Delete failed", description: msg, variant: "destructive" });
@@ -564,9 +579,10 @@ export default function InventoryLedger() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-medium text-gray-900 mb-1">Wastage Qty <span className="text-red-500">*</span></label>
-                  <input type="number" placeholder="0.000" min="0" step="0.001"
+                  <input type="number" placeholder="e.g. 1 or 0.5" min="0" step="any"
                     value={wastageForm.quantity}
                     onChange={e => setWastageForm(f => ({ ...f, quantity: e.target.value }))}
+                    onWheel={e => (e.target as HTMLInputElement).blur()}
                     className="w-full px-3 py-2 text-sm text-gray-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30" />
                 </div>
                 <div>
