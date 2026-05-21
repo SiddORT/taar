@@ -3,13 +3,15 @@ import { useLocation } from "wouter";
 import {
   Search, Plus, ChevronDown, ChevronLeft, ChevronRight,
   ShoppingCart, CheckCircle2, XCircle, Clock, AlertTriangle,
-  Eye, Trash2, X, PackageCheck, RefreshCw, List, MoreHorizontal,
+  Eye, Trash2, X, PackageCheck, RefreshCw, List, MoreHorizontal, FileDown,
 } from "lucide-react";
 import { useGetMe, getGetMeQueryKey, useLogout } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { customFetch } from "@workspace/api-client-react";
 import TopNavbar from "@/components/layout/TopNavbar";
 import { useToast } from "@/hooks/use-toast";
+import { downloadPoPdf, type POItem as PdfPOItem, type PRReceipt } from "@/utils/pdfExport";
+import { logActivity } from "@/utils/logActivity";
 
 const G     = "#C6AF4B";
 const G_DIM = "#A8943E";
@@ -110,6 +112,65 @@ export default function PurchaseOrderList() {
   // Action menu
   const [openActionMenu, setOpenActionMenu] = useState<number | null>(null);
   const actionMenuRef = useRef<HTMLDivElement>(null);
+  const [pdfInFlight, setPdfInFlight] = useState<Set<number>>(new Set());
+
+  interface PurchaseOrderDetail {
+    po_number: string;
+    status: string;
+    vendor_name: string;
+    po_date: string;
+    reference_type: string;
+    notes?: string | null;
+    items: PdfPOItem[];
+    receipts?: PRReceipt[];
+  }
+
+  const handleDownloadPdf = async (po: PO) => {
+    setOpenActionMenu(null);
+    if (pdfInFlight.has(po.id)) return;
+    if (!["Draft", "Approved"].includes(po.status)) {
+      toast({ title: `PDF download not available for ${po.status} POs`, variant: "destructive" });
+      return;
+    }
+    setPdfInFlight(prev => {
+      const next = new Set(prev);
+      next.add(po.id);
+      return next;
+    });
+    try {
+      const detail = await customFetch<PurchaseOrderDetail>(`/api/procurement/purchase-orders/${po.id}`);
+      downloadPoPdf({
+        po_number: detail.po_number,
+        status: detail.status,
+        vendor_name: detail.vendor_name,
+        po_date: detail.po_date,
+        reference_type: detail.reference_type,
+        notes: detail.notes,
+        items: (detail.items ?? []).map(i => ({
+          item_name: i.item_name,
+          item_code: i.item_code,
+          unit_type: i.unit_type,
+          ordered_quantity: i.ordered_quantity,
+          received_quantity: i.received_quantity,
+          pending_quantity: i.pending_quantity,
+          unit_price: i.unit_price,
+        })),
+        receipts: detail.receipts,
+      });
+      logActivity(`Downloaded PDF for Purchase Order ${detail.po_number} — ${detail.vendor_name}`);
+    } catch (e: unknown) {
+      toast({
+        title: (e as { message?: string })?.message ?? "Failed to download PDF",
+        variant: "destructive",
+      });
+    } finally {
+      setPdfInFlight(prev => {
+        const next = new Set(prev);
+        next.delete(po.id);
+        return next;
+      });
+    }
+  };
 
   useEffect(() => { if (isError) navigate("/login"); }, [isError, navigate]);
 
@@ -436,6 +497,17 @@ export default function PurchaseOrderList() {
                                 className="w-full text-left px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 flex items-center gap-2.5">
                                 <Eye className="h-3.5 w-3.5 text-gray-400" /> View Details
                               </button>
+
+                              {/* Download PDF — only for Draft / Approved */}
+                              {["Draft", "Approved"].includes(po.status) && (
+                                <button
+                                  onClick={() => handleDownloadPdf(po)}
+                                  disabled={pdfInFlight.has(po.id)}
+                                  className="w-full text-left px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 flex items-center gap-2.5 disabled:opacity-60">
+                                  <FileDown className="h-3.5 w-3.5 text-gray-400" />
+                                  {pdfInFlight.has(po.id) ? "Preparing PDF…" : "Download PO PDF"}
+                                </button>
+                              )}
 
                               {/* Create PR */}
                               {canCreatePr && (
