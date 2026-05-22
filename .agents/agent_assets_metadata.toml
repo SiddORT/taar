@@ -12,3 +12,9 @@ id = "KAOvrZQSOTd8wc7p73Ze1"
 uri = "file://ZARI_ERP_Scope_Document_v2.docx"
 type = "word_document"
 title = "ZARI ERP — Detailed Scope Document v2.0"
+
+[[outputs]]
+id = "qnFO5IHCWRrh8btetxrdq"
+uri = "file://exports/ZARI_ERP_API.postman_collection.json"
+type = "unspecified"
+title = "ZARI ERP API – Postman Collection"
