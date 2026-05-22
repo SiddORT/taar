@@ -56,6 +56,47 @@ router.get("/unified-summary", requireAuth, async (req, res) => {
       `),
     ]);
 
+    /* Per-status counts — must mirror /unified-receivables date+status derivation exactly */
+    const counts = await pool.query(`
+      WITH all_receivables AS (
+        SELECT
+          COALESCE(inv.invoice_date, inv.created_at::date::text) AS date,
+          CASE
+            WHEN inv.pending_amount = 0 AND inv.total_amount > 0                      THEN 'Paid'
+            WHEN inv.received_amount > 0 AND inv.pending_amount > 0                   THEN 'Partially Received'
+            WHEN inv.due_date IS NOT NULL AND inv.due_date != ''
+                 AND inv.due_date < CURRENT_DATE::text AND inv.pending_amount > 0     THEN 'Overdue'
+            ELSE 'Pending'
+          END AS status
+        FROM invoices inv
+        WHERE inv.invoice_direction = 'Client'
+        UNION ALL
+        SELECT
+          COALESCE(cdn.note_date, cdn.created_at::date::text) AS date,
+          CASE cdn.status
+            WHEN 'Applied' THEN 'Paid'
+            WHEN 'Draft'   THEN 'Pending'
+            ELSE cdn.status
+          END AS status
+        FROM credit_debit_notes cdn
+        WHERE cdn.party_type = 'Client'
+      )
+      SELECT status, COUNT(*)::int AS count
+      FROM all_receivables
+      WHERE 1=1
+        ${from_date ? `AND date >= '${from_date}'` : ''}
+        ${to_date   ? `AND date <= '${to_date}'`   : ''}
+      GROUP BY status
+    `);
+
+    const status_counts: Record<string, number> = {
+      All: 0, Pending: 0, "Partially Received": 0, Paid: 0, Overdue: 0,
+    };
+    for (const r of counts.rows) {
+      if (r.status in status_counts) status_counts[r.status] = r.count;
+      status_counts.All += r.count;
+    }
+
     return res.json({
       total_invoice_amount: invoiceTotals.rows[0].total_invoice_amount,
       total_received:       invoiceTotals.rows[0].total_received,
@@ -63,6 +104,7 @@ router.get("/unified-summary", requireAuth, async (req, res) => {
       total_payments:       receivedTotals.rows[0].total_payments,
       overdue_amount:       overdueTotals.rows[0].overdue_amount,
       advance_total:        advanceTotals.rows[0].advance_total,
+      status_counts,
     });
   } catch (err: any) {
     console.error(err);
@@ -75,17 +117,46 @@ router.get("/unified-summary", requireAuth, async (req, res) => {
 ══════════════════════════════════════════════════════════ */
 router.get("/top-clients-pending", requireAuth, async (req, res) => {
   try {
+    const { from_date, to_date } = req.query as Record<string, string>;
+    const invDate = [
+      from_date ? `AND inv.invoice_date >= '${from_date}'` : "",
+      to_date   ? `AND inv.invoice_date <= '${to_date}'`   : "",
+    ].join(" ");
+    const cdnDate = [
+      from_date ? `AND cdn.note_date >= '${from_date}'` : "",
+      to_date   ? `AND cdn.note_date <= '${to_date}'`   : "",
+    ].join(" ");
+
     const { rows } = await pool.query(`
+      WITH pending_per_client AS (
+        SELECT
+          inv.client_id                                       AS client_id,
+          COALESCE(c.brand_name, inv.client_name, 'Unknown')  AS client_name,
+          inv.pending_amount                                  AS pending
+        FROM invoices inv
+        LEFT JOIN clients c ON c.id = inv.client_id
+        WHERE inv.invoice_direction = 'Client'
+          AND inv.pending_amount > 0
+          ${invDate}
+        UNION ALL
+        SELECT
+          cdn.party_id                                        AS client_id,
+          COALESCE(c.brand_name, cdn.party_name, 'Unknown')   AS client_name,
+          cdn.note_amount                                     AS pending
+        FROM credit_debit_notes cdn
+        LEFT JOIN clients c ON c.id = cdn.party_id
+        WHERE cdn.party_type = 'Client'
+          AND cdn.status = 'Draft'
+          AND cdn.note_amount > 0
+          ${cdnDate}
+      )
       SELECT
-        COALESCE(c.brand_name, inv.client_name, 'Unknown') AS client_name,
-        inv.client_id,
-        COUNT(inv.id)           AS invoice_count,
-        SUM(inv.pending_amount) AS total_pending
-      FROM invoices inv
-      LEFT JOIN clients c ON c.id = inv.client_id
-      WHERE inv.invoice_direction = 'Client'
-        AND inv.pending_amount > 0
-      GROUP BY inv.client_id, COALESCE(c.brand_name, inv.client_name, 'Unknown')
+        client_name,
+        client_id,
+        COUNT(*)::int  AS invoice_count,
+        SUM(pending)   AS total_pending
+      FROM pending_per_client
+      GROUP BY client_id, client_name
       ORDER BY total_pending DESC
       LIMIT 10
     `);
@@ -218,7 +289,15 @@ router.post("/record-payment", requireAuth, async (req, res) => {
     } = req.body;
 
     const amt = parseFloat(payment_amount);
-    if (!amt || amt <= 0) return res.status(400).json({ error: "Invalid payment amount" });
+    if (!Number.isFinite(amt) || amt <= 0) {
+      return res.status(400).json({ error: "Invalid payment amount" });
+    }
+
+    /* Reject future payment dates (YYYY-MM-DD lexical compare is safe) */
+    const today = new Date().toISOString().split("T")[0];
+    if (payment_date && payment_date > today) {
+      return res.status(400).json({ error: "Payment date cannot be in the future" });
+    }
 
     await client.query("BEGIN");
 
@@ -226,6 +305,22 @@ router.post("/record-payment", requireAuth, async (req, res) => {
     const invoiceId = isInvoice ? parseInt(source_id.replace("inv-", "")) : null;
 
     if (isInvoice && invoiceId) {
+      /* Server-side cap: amount must not exceed current pending */
+      const { rows: invRows } = await client.query(
+        `SELECT pending_amount FROM invoices WHERE id = $1 FOR UPDATE`,
+        [invoiceId],
+      );
+      if (invRows.length === 0) {
+        await client.query("ROLLBACK");
+        return res.status(404).json({ error: "Invoice not found" });
+      }
+      const pending = parseFloat(invRows[0].pending_amount ?? "0");
+      if (amt > pending + 0.001) {
+        await client.query("ROLLBACK");
+        return res.status(400).json({
+          error: `Payment amount (${amt.toFixed(2)}) exceeds pending balance (${pending.toFixed(2)})`,
+        });
+      }
       /* 1. Insert into invoice_payments */
       await client.query(`
         INSERT INTO invoice_payments

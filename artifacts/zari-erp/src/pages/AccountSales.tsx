@@ -35,13 +35,18 @@ const STATUS_TABS = ["All", "Pending", "Partially Received", "Paid", "Overdue"];
 const CURRENCIES  = ["INR", "USD", "EUR", "GBP", "AED"];
 
 /* ── helpers ───────────────────────────────────────── */
-const fmtAmt  = (v: any) =>
-  `₹${parseFloat(v ?? 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-const fmtCrLk = (v: any) => {
+const CURRENCY_SYMBOL: Record<string, string> = {
+  INR: "₹", USD: "$", EUR: "€", GBP: "£", AED: "د.إ ",
+};
+const sym = (c?: string) => CURRENCY_SYMBOL[(c ?? "INR").toUpperCase()] ?? `${(c ?? "INR").toUpperCase()} `;
+const fmtAmt = (v: any, currency?: string) =>
+  `${sym(currency)}${parseFloat(v ?? 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const fmtCrLk = (v: any, currency?: string) => {
   const n = parseFloat(v ?? 0);
-  if (n >= 1e7) return `₹${(n / 1e7).toFixed(2)} Cr`;
-  if (n >= 1e5) return `₹${(n / 1e5).toFixed(2)} L`;
-  return `₹${n.toLocaleString("en-IN", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+  const s = sym(currency);
+  if (n >= 1e7) return `${s}${(n / 1e7).toFixed(2)} Cr`;
+  if (n >= 1e5) return `${s}${(n / 1e5).toFixed(2)} L`;
+  return `${s}${n.toLocaleString("en-IN", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 };
 const fmtDate = (d: any) => {
   if (!d) return "—";
@@ -89,12 +94,13 @@ function refTypeBadge(t: string) {
 ══════════════════════════════════════════════════════ */
 function PaymentModal({ row, onClose, onSuccess }: { row: any; onClose: () => void; onSuccess: () => void }) {
   const today = new Date().toISOString().split("T")[0];
+  const rowCurrency = row.currency_code ?? "INR";
   const [form, setForm] = useState({
     payment_amount:        String(parseFloat(row.pending_amount ?? 0)),
     payment_type:          "Bank Transfer",
     transaction_id:        "",
     payment_date:          today,
-    currency_code:         row.currency_code ?? "INR",
+    currency_code:         rowCurrency,
     exchange_rate_snapshot:"1",
     remarks:               "",
   });
@@ -107,11 +113,14 @@ function PaymentModal({ row, onClose, onSuccess }: { row: any; onClose: () => vo
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     const amt = parseFloat(form.payment_amount);
-    if (!amt || amt <= 0) {
-      toast({ title: "Enter a valid payment amount", variant: "destructive" }); return;
+    if (!Number.isFinite(amt) || amt <= 0) {
+      toast({ title: "Enter a payment amount greater than 0", variant: "destructive" }); return;
     }
-    if (amt > pendingAmt + 0.01) {
-      toast({ title: `Amount exceeds pending balance of ${fmtAmt(pendingAmt)}`, variant: "destructive" }); return;
+    if (amt > pendingAmt + 0.001) {
+      toast({ title: `Amount exceeds pending balance of ${fmtAmt(pendingAmt, rowCurrency)}`, variant: "destructive" }); return;
+    }
+    if (form.payment_date && form.payment_date > today) {
+      toast({ title: "Payment date cannot be in the future", variant: "destructive" }); return;
     }
     setSaving(true);
     try {
@@ -128,7 +137,7 @@ function PaymentModal({ row, onClose, onSuccess }: { row: any; onClose: () => vo
       });
       toast({
         title: "Payment recorded successfully",
-        description: `${fmtAmt(amt)} received from ${row.client_name}`,
+        description: `${fmtAmt(amt, form.currency_code)} received from ${row.client_name}`,
       });
       onSuccess();
       onClose();
@@ -147,7 +156,7 @@ function PaymentModal({ row, onClose, onSuccess }: { row: any; onClose: () => vo
             <div>
               <p className="text-xs font-black uppercase tracking-[0.18em]" style={{ color: G }}>Client Payment Entry</p>
               <p className="text-base font-bold text-gray-800 mt-0.5">{row.client_name}</p>
-              <p className="text-xs text-gray-400">{row.ref_number} · Pending: <span className="font-semibold text-red-600">{fmtAmt(pendingAmt)}</span></p>
+              <p className="text-xs text-gray-400">{row.ref_number} · Pending: <span className="font-semibold text-red-600">{fmtAmt(pendingAmt, rowCurrency)}</span></p>
             </div>
             <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100 transition-colors">
               <X size={16}/>
@@ -157,10 +166,25 @@ function PaymentModal({ row, onClose, onSuccess }: { row: any; onClose: () => vo
           <form onSubmit={submit} className="space-y-3">
             <div className="grid grid-cols-2 gap-3">
               <div className="col-span-2">
-                <label className={LBL}>Payment Amount <span className="text-red-500">*</span></label>
-                <input type="number" step="0.01" min="0.01" max={pendingAmt + 0.01} required
+                <label className={LBL}>
+                  Payment Amount <span className="text-red-500">*</span>
+                  <span className="ml-2 text-gray-400 normal-case tracking-normal">
+                    max {fmtAmt(pendingAmt, rowCurrency)}
+                  </span>
+                </label>
+                <input type="number" step="0.01" min="0.01" max={pendingAmt || undefined} required
                   className={INP} value={form.payment_amount}
-                  onChange={e => set("payment_amount", e.target.value)} />
+                  onKeyDown={e => { if (["-", "+", "e", "E"].includes(e.key)) e.preventDefault(); }}
+                  onChange={e => {
+                    const v = e.target.value;
+                    if (v === "") { set("payment_amount", ""); return; }
+                    const n = parseFloat(v);
+                    if (!Number.isFinite(n) || n < 0) return;
+                    set("payment_amount", v);
+                  }} />
+                {form.payment_amount && parseFloat(form.payment_amount) > pendingAmt && (
+                  <p className="text-[10px] text-red-600 mt-1">Exceeds pending balance</p>
+                )}
               </div>
               <div>
                 <label className={LBL}>Payment Type</label>
@@ -176,7 +200,7 @@ function PaymentModal({ row, onClose, onSuccess }: { row: any; onClose: () => vo
               </div>
               <div>
                 <label className={LBL}>Payment Date</label>
-                <input type="date" className={INP} value={form.payment_date} onChange={e => set("payment_date", e.target.value)} />
+                <input type="date" max={today} className={INP} value={form.payment_date} onChange={e => set("payment_date", e.target.value)} />
               </div>
               <div>
                 <label className={LBL}>Exchange Rate</label>
@@ -252,6 +276,7 @@ export default function AccountSales() {
   const { data: me } = useGetMe();
   const role = (me as any)?.role ?? "";
   const hasAccess = role === "admin" || role === "accounts";
+  const { toast } = useToast();
 
   /* ── filter state ──────────────────────────────── */
   const [fromDate,  setFromDate]  = useState("");
@@ -267,6 +292,7 @@ export default function AccountSales() {
   const [totalRows,      setTotalRows]      = useState(0);
   const [topClients,     setTopClients]     = useState<any[]>([]);
   const [summary,        setSummary]        = useState<any>(null);
+  const [tabCounts,      setTabCounts]      = useState<Record<string, number>>({});
   const [loadingSummary, setLoadingSummary] = useState(true);
   const [loadingTable,   setLoadingTable]   = useState(true);
   const [paymentRow,     setPaymentRow]     = useState<any>(null);
@@ -310,21 +336,24 @@ export default function AccountSales() {
   }, [page, fromDate, toDate, refType, refNo, statusTab, search, refreshKey]);
 
   /* ── summary + top clients ─────────────────────── */
-  useEffect(() => {
+  function loadSummary() {
     const p = new URLSearchParams();
     if (fromDate) p.set("from_date", fromDate);
     if (toDate)   p.set("to_date", toDate);
-
     setLoadingSummary(true);
     Promise.all([
       customFetch<any>(`/api/account-sales/unified-summary?${p}`),
-      customFetch<any[]>("/api/account-sales/top-clients-pending"),
+      customFetch<any[]>(`/api/account-sales/top-clients-pending?${p}`),
     ])
-      .then(([s, tc]) => { setSummary(s); setTopClients(tc ?? []); })
+      .then(([s, tc]) => {
+        setSummary(s);
+        setTopClients(tc ?? []);
+        setTabCounts((s?.status_counts as Record<string, number>) ?? {});
+      })
       .catch(() => {})
       .finally(() => setLoadingSummary(false));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fromDate, toDate]);
+  }
+  useEffect(() => { loadSummary(); /* eslint-disable-next-line */ }, [fromDate, toDate, refreshKey]);
 
   function resetFilters() {
     setFromDate(""); setToDate(""); setRefType("");
@@ -335,20 +364,7 @@ export default function AccountSales() {
 
   function changeFilter(fn: () => void) { fn(); setPage(1); }
 
-  function refresh() {
-    setRefreshKey(k => k + 1);
-    const p = new URLSearchParams();
-    if (fromDate) p.set("from_date", fromDate);
-    if (toDate)   p.set("to_date", toDate);
-    setLoadingSummary(true);
-    Promise.all([
-      customFetch<any>(`/api/account-sales/unified-summary?${p}`),
-      customFetch<any[]>("/api/account-sales/top-clients-pending"),
-    ])
-      .then(([s, tc]) => { setSummary(s); setTopClients(tc ?? []); })
-      .catch(() => {})
-      .finally(() => setLoadingSummary(false));
-  }
+  function refresh() { setRefreshKey(k => k + 1); }
 
   const totalPages = Math.max(1, Math.ceil(totalRows / PAGE_SIZE));
   const hasFilters = !!(fromDate || toDate || refType || refNo || search);
@@ -457,12 +473,29 @@ export default function AccountSales() {
               <div>
                 <label className={LBL}>From Date</label>
                 <input type="date" className={INP} value={fromDate}
-                  onChange={e => changeFilter(() => setFromDate(e.target.value))} />
+                  max={toDate || new Date().toISOString().slice(0, 10)}
+                  onChange={e => {
+                    const v = e.target.value;
+                    if (toDate && v && v > toDate) {
+                      toast({ title: "From Date cannot be after To Date", variant: "destructive" });
+                      return;
+                    }
+                    changeFilter(() => setFromDate(v));
+                  }} />
               </div>
               <div>
                 <label className={LBL}>To Date</label>
                 <input type="date" className={INP} value={toDate}
-                  onChange={e => changeFilter(() => setToDate(e.target.value))} />
+                  min={fromDate || undefined}
+                  max={new Date().toISOString().slice(0, 10)}
+                  onChange={e => {
+                    const v = e.target.value;
+                    if (fromDate && v && v < fromDate) {
+                      toast({ title: "To Date cannot be before From Date", variant: "destructive" });
+                      return;
+                    }
+                    changeFilter(() => setToDate(v));
+                  }} />
               </div>
             </div>
             {hasFilters && (
@@ -494,17 +527,25 @@ export default function AccountSales() {
 
             {/* Tabs */}
             <div className="flex items-center gap-0.5 px-4 pt-3 border-b border-gray-100 overflow-x-auto">
-              {STATUS_TABS.map(tab => (
-                <button key={tab}
-                  onClick={() => changeFilter(() => setStatusTab(tab))}
-                  className={`px-4 py-2.5 text-sm font-semibold rounded-t-lg whitespace-nowrap transition-colors border-b-2 ${
-                    statusTab === tab
-                      ? "border-[#C6AF4B] text-[#C6AF4B]"
-                      : "border-transparent text-gray-500 hover:text-gray-800"
-                  }`}>
-                  {tab}
-                </button>
-              ))}
+              {STATUS_TABS.map(tab => {
+                const count = tabCounts[tab] ?? 0;
+                return (
+                  <button key={tab}
+                    onClick={() => changeFilter(() => setStatusTab(tab))}
+                    className={`px-4 py-2.5 text-sm font-semibold rounded-t-lg whitespace-nowrap transition-colors border-b-2 flex items-center gap-1.5 ${
+                      statusTab === tab
+                        ? "border-[#C6AF4B] text-[#C6AF4B]"
+                        : "border-transparent text-gray-500 hover:text-gray-800"
+                    }`}>
+                    {tab}
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
+                      statusTab === tab ? "bg-[#C6AF4B]/15 text-[#A8943E]" : "bg-gray-100 text-gray-500"
+                    }`}>
+                      {count.toLocaleString()}
+                    </span>
+                  </button>
+                );
+              })}
               <div className="ml-auto pb-2 pr-1 shrink-0">
                 <span className="text-xs text-gray-400 bg-gray-100 px-2.5 py-1 rounded-full">
                   {totalRows.toLocaleString()} records
@@ -620,15 +661,15 @@ export default function AccountSales() {
                           </td>
                           <td className={`${TD} text-xs text-gray-400`}>{row.order_ref || "—"}</td>
                           <td className={`${TD} text-right font-semibold`} style={{ color: SL }}>
-                            {fmtAmt(row.amount)}
+                            {fmtAmt(row.amount, row.currency_code)}
                           </td>
                           <td className={`${TD} text-right font-medium text-emerald-600`}>
-                            {fmtAmt(row.received_amount)}
+                            {fmtAmt(row.received_amount, row.currency_code)}
                           </td>
                           <td className={`${TD} text-right font-semibold ${
                             parseFloat(row.pending_amount) > 0 ? (isOverdue ? "text-red-600" : "text-amber-600") : "text-gray-400"
                           }`}>
-                            {fmtAmt(row.pending_amount)}
+                            {fmtAmt(row.pending_amount, row.currency_code)}
                           </td>
                           <td className={`${TD} text-xs font-medium text-gray-500`}>{row.currency_code || "INR"}</td>
                           <td className={TD}>{statusBadge(row.status)}</td>
@@ -749,7 +790,7 @@ export default function AccountSales() {
         <PaymentModal
           row={paymentRow}
           onClose={() => setPaymentRow(null)}
-          onSuccess={() => setRefreshKey(k => k + 1)}
+          onSuccess={refresh}
         />
       )}
     </div>
