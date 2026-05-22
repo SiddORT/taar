@@ -63,6 +63,16 @@ export async function ensureShippingTables() {
         CHECK (reference_type IN ('Swatch','Style','PackingList'));
     END $$;
   `);
+
+  // Seed a few common shipping vendors so the Packing-List shipment dropdown
+  // is never empty on a fresh install. Existing rows are preserved.
+  await pool.query(`
+    INSERT INTO shipping_vendors (vendor_name, weight_rate_per_kg, minimum_charge, is_active)
+    SELECT v, 0, 0, TRUE FROM (VALUES
+      ('DHL Express'), ('FedEx'), ('Blue Dart'), ('DTDC'), ('India Post')
+    ) AS t(v)
+    WHERE NOT EXISTS (SELECT 1 FROM shipping_vendors WHERE vendor_name = t.v);
+  `);
 }
 
 // ═══════════════════════════════════════════════════════════════

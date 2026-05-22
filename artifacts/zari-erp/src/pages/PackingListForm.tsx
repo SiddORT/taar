@@ -120,6 +120,44 @@ export default function PackingListForm() {
   const invSearchRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [newAddr, setNewAddr] = useState({ label: "", address_line1: "", address_line2: "", city: "", state: "", country: "", pincode: "", is_default: false });
   const [savingAddr, setSavingAddr] = useState(false);
+  const [addrErrors, setAddrErrors] = useState<Record<string, string>>({});
+  const [pinLookupLoading, setPinLookupLoading] = useState(false);
+  const rightPanelRef = useRef<HTMLDivElement | null>(null);
+
+  // Regex helpers — used for inline validation in the address modal.
+  const LETTERS_ONLY = /^[A-Za-z][A-Za-z\s.\-']{0,99}$/;
+  const PIN_6 = /^\d{6}$/;
+
+  // Block "-" and "e" keys for any numeric input across the form.
+  const blockNegKey = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "-" || e.key === "e" || e.key === "E" || e.key === "+") e.preventDefault();
+  };
+  const clampNonNeg = (v: string) => (v && parseFloat(v) < 0 ? "0" : v);
+
+  // Pincode → city/state/country auto-fill via India Post public API.
+  async function lookupPincode(pin: string) {
+    if (!PIN_6.test(pin)) return;
+    setPinLookupLoading(true);
+    try {
+      const r = await fetch(`https://api.postalpincode.in/pincode/${pin}`).then((x) => x.json());
+      const po = Array.isArray(r) && r[0]?.Status === "Success" ? r[0].PostOffice?.[0] : null;
+      if (po) {
+        setNewAddr((prev) => ({
+          ...prev,
+          city: po.District || po.Block || prev.city,
+          state: po.State || prev.state,
+          country: po.Country || prev.country || "India",
+        }));
+        setAddrErrors((e) => ({ ...e, city: "", state: "", country: "", pincode: "" }));
+      } else {
+        setAddrErrors((e) => ({ ...e, pincode: "Pincode not found" }));
+      }
+    } catch {
+      // Network failure is non-fatal — user can still type the fields manually.
+    } finally {
+      setPinLookupLoading(false);
+    }
+  }
 
   // Shipment creation modal
   const [showShipModal, setShowShipModal] = useState(false);
@@ -215,8 +253,28 @@ export default function PackingListForm() {
     }).catch(() => toast({ title: "Error", description: "Failed to load packing list", variant: "destructive" }));
   }, [isEdit, params.id]);
 
+  function validateAddr() {
+    const e: Record<string, string> = {};
+    if (!newAddr.label.trim()) e.label = "Label is required";
+    if (!newAddr.address_line1.trim()) e.address_line1 = "Address Line 1 is required";
+    if (!newAddr.city.trim()) e.city = "City is required";
+    else if (!LETTERS_ONLY.test(newAddr.city.trim())) e.city = "Letters only";
+    if (!newAddr.state.trim()) e.state = "State is required";
+    else if (!LETTERS_ONLY.test(newAddr.state.trim())) e.state = "Letters only";
+    if (!newAddr.country.trim()) e.country = "Country is required";
+    else if (!LETTERS_ONLY.test(newAddr.country.trim())) e.country = "Letters only";
+    if (!newAddr.pincode.trim()) e.pincode = "Pincode is required";
+    else if (!PIN_6.test(newAddr.pincode.trim())) e.pincode = "Pincode must be 6 digits";
+    setAddrErrors(e);
+    return Object.keys(e).length === 0;
+  }
+
   async function handleSaveAddr() {
     if (!clientId) return;
+    if (!validateAddr()) {
+      toast({ title: "Fix the errors", description: "Please correct the highlighted fields", variant: "destructive" });
+      return;
+    }
     setSavingAddr(true);
     try {
       const res = await customFetch<any>("/api/delivery-addresses", {
@@ -228,9 +286,10 @@ export default function PackingListForm() {
       setDeliveryAddressId(created.id);
       setShowAddrModal(false);
       setNewAddr({ label: "", address_line1: "", address_line2: "", city: "", state: "", country: "", pincode: "", is_default: false });
+      setAddrErrors({});
       toast({ title: "Address saved" });
-    } catch {
-      toast({ title: "Error", description: "Failed to save address", variant: "destructive" });
+    } catch (e: any) {
+      toast({ title: "Error", description: e?.data?.error ?? "Failed to save address", variant: "destructive" });
     } finally { setSavingAddr(false); }
   }
 
@@ -370,6 +429,26 @@ export default function PackingListForm() {
     if (!deliveryAddressId) { toast({ title: "Select a delivery address", variant: "destructive" }); return; }
     if (packages.length === 0) { toast({ title: "Add at least one package", variant: "destructive" }); return; }
 
+    // Every package must have at least one dimension/weight and at least one item.
+    for (let i = 0; i < packages.length; i++) {
+      const pk = packages[i];
+      if (pk.items.length === 0) {
+        toast({ title: `Package ${i + 1} is empty`, description: "Add at least one item or remove the package", variant: "destructive" });
+        return;
+      }
+      const dims = [pk.length, pk.width, pk.height, pk.net_weight, pk.gross_weight];
+      if (dims.every((v) => !v || parseFloat(v) === 0)) {
+        toast({ title: `Package ${i + 1}: dimensions required`, description: "Enter at least one dimension or weight", variant: "destructive" });
+        return;
+      }
+      const net = parseFloat(pk.net_weight);
+      const gross = parseFloat(pk.gross_weight);
+      if (!isNaN(net) && !isNaN(gross) && net > gross) {
+        toast({ title: `Package ${i + 1}: Net > Gross`, description: "Net weight cannot exceed Gross weight", variant: "destructive" });
+        return;
+      }
+    }
+
     setSaving(true);
     try {
       // If there's a staged new shipment, create it first then get its ID
@@ -460,7 +539,10 @@ export default function PackingListForm() {
             <h1 className="text-xl font-bold text-gray-900">{isEdit ? "Edit Packing List" : "New Packing List"}</h1>
           </div>
           <div className="ml-auto flex gap-2">
-            <button onClick={() => setLocation("/logistics/packing-lists")} className="px-4 py-2 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-100">
+            <button
+              onClick={() => setLocation("/logistics/packing-lists")}
+              className="px-4 py-2 rounded-xl text-sm font-medium text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 shadow-sm"
+            >
               Cancel
             </button>
             <button
@@ -699,7 +781,20 @@ export default function PackingListForm() {
                                   step="0.01"
                                   min="0"
                                   value={pkg[key]}
-                                  onChange={e => updatePackageField(pkg.tempId, key, e.target.value)}
+                                  onKeyDown={blockNegKey}
+                                  onChange={e => {
+                                    const v = clampNonNeg(e.target.value);
+                                    // Live-enforce: net cannot exceed gross.
+                                    if (key === "net_weight" && pkg.gross_weight && parseFloat(v) > parseFloat(pkg.gross_weight)) {
+                                      toast({ title: "Net cannot exceed Gross", variant: "destructive" });
+                                      return;
+                                    }
+                                    if (key === "gross_weight" && pkg.net_weight && parseFloat(v) > 0 && parseFloat(v) < parseFloat(pkg.net_weight)) {
+                                      toast({ title: "Gross cannot be less than Net", variant: "destructive" });
+                                      return;
+                                    }
+                                    updatePackageField(pkg.tempId, key, v);
+                                  }}
                                   placeholder="0"
                                   className="w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-1 focus:ring-yellow-200"
                                 />
@@ -746,8 +841,10 @@ export default function PackingListForm() {
                                       <td className="px-3 py-2">
                                         <input
                                           type="number"
+                                          min="0"
                                           value={item.quantity}
-                                          onChange={e => updateItemField(pkg.tempId, itemIdx, "quantity", e.target.value)}
+                                          onKeyDown={blockNegKey}
+                                          onChange={e => updateItemField(pkg.tempId, itemIdx, "quantity", clampNonNeg(e.target.value))}
                                           className="w-16 border border-gray-100 rounded px-1.5 py-0.5 text-xs text-gray-900 focus:outline-none focus:ring-1 focus:ring-yellow-200"
                                         />
                                       </td>
@@ -762,8 +859,10 @@ export default function PackingListForm() {
                                         <input
                                           type="number"
                                           step="0.001"
+                                          min="0"
                                           value={item.item_weight}
-                                          onChange={e => updateItemField(pkg.tempId, itemIdx, "item_weight", e.target.value)}
+                                          onKeyDown={blockNegKey}
+                                          onChange={e => updateItemField(pkg.tempId, itemIdx, "item_weight", clampNonNeg(e.target.value))}
                                           className="w-16 border border-gray-100 rounded px-1.5 py-0.5 text-xs text-gray-900 focus:outline-none focus:ring-1 focus:ring-yellow-200"
                                           placeholder="0.000"
                                         />
@@ -785,7 +884,17 @@ export default function PackingListForm() {
                                   ? "border-amber-300 text-amber-600 bg-amber-50/50"
                                   : "border-gray-200 text-gray-400"
                               }`}
-                              onClick={() => setActivePackageId(pkg.tempId)}
+                              onClick={() => {
+                                setActivePackageId(pkg.tempId);
+                                setRightTab("orders");
+                                // Scroll the right-side picker into view + flash it
+                                // so the user immediately sees where to act.
+                                setTimeout(() => {
+                                  rightPanelRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+                                  rightPanelRef.current?.classList.add("ring-2", "ring-amber-300");
+                                  setTimeout(() => rightPanelRef.current?.classList.remove("ring-2", "ring-amber-300"), 1200);
+                                }, 50);
+                              }}
                             >
                               {activePackageId === pkg.tempId
                                 ? "Select orders from the panel →"
@@ -802,7 +911,7 @@ export default function PackingListForm() {
           </div>
 
           {/* RIGHT */}
-          <div className="space-y-4">
+          <div ref={rightPanelRef} className="space-y-4 rounded-2xl transition-shadow">
             {/* Status */}
             <div className={`${card} p-5`}>
               <h2 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Status</h2>
@@ -993,7 +1102,9 @@ export default function PackingListForm() {
                     <div className="grid grid-cols-2 gap-2">
                       <div>
                         <label className="block text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Quantity <span className="text-red-500 ml-0.5">*</span></label>
-                        <input type="number" min="0" step="any" value={customQty} onChange={e => setCustomQty(e.target.value)} placeholder="0"
+                        <input type="number" min="0" step="any" value={customQty}
+                          onKeyDown={blockNegKey}
+                          onChange={e => setCustomQty(clampNonNeg(e.target.value))} placeholder="0"
                           className="w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs text-gray-900 focus:outline-none focus:ring-1 focus:ring-blue-300"
                         />
                       </div>
@@ -1005,7 +1116,9 @@ export default function PackingListForm() {
                       </div>
                       <div>
                         <label className="block text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Weight (kg)</label>
-                        <input type="number" min="0" step="0.001" value={customWeight} onChange={e => setCustomWeight(e.target.value)} placeholder="0.000"
+                        <input type="number" min="0" step="0.001" value={customWeight}
+                          onKeyDown={blockNegKey}
+                          onChange={e => setCustomWeight(clampNonNeg(e.target.value))} placeholder="0.000"
                           className="w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs text-gray-900 focus:outline-none focus:ring-1 focus:ring-blue-300"
                         />
                       </div>
@@ -1059,6 +1172,11 @@ export default function PackingListForm() {
                   <option value="">Select vendor…</option>
                   {vendors.map(v => <option key={v.id} value={v.id}>{v.vendor_name}</option>)}
                 </select>
+                {vendors.length === 0 && (
+                  <p className="mt-1 text-[11px] text-amber-600">
+                    No shipping vendors found. Add vendors under Settings → Shipping Vendors.
+                  </p>
+                )}
               </div>
               {/* Tracking */}
               <div className="grid grid-cols-2 gap-3">
@@ -1078,7 +1196,8 @@ export default function PackingListForm() {
                     step="0.001"
                     min="0"
                     value={newShip.shipment_weight}
-                    onChange={e => setNewShip(p => ({ ...p, shipment_weight: e.target.value }))}
+                    onKeyDown={blockNegKey}
+                    onChange={e => setNewShip(p => ({ ...p, shipment_weight: clampNonNeg(e.target.value) }))}
                     placeholder="0.000"
                     className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-yellow-200"
                   />
@@ -1167,23 +1286,49 @@ export default function PackingListForm() {
               </button>
             </div>
             <div className="space-y-3">
+              {/* Pincode first so the auto-fill happens before the user types city/state. */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">
+                  Pincode <span className="text-red-500">*</span>
+                  {pinLookupLoading && <span className="ml-2 text-[11px] text-gray-400">Looking up…</span>}
+                </label>
+                <input
+                  value={newAddr.pincode}
+                  inputMode="numeric"
+                  maxLength={6}
+                  onChange={(e) => {
+                    const v = e.target.value.replace(/\D/g, "").slice(0, 6);
+                    setNewAddr((prev) => ({ ...prev, pincode: v }));
+                    setAddrErrors((er) => ({ ...er, pincode: "" }));
+                    if (v.length === 6) lookupPincode(v);
+                  }}
+                  placeholder="6-digit postal code"
+                  className={`w-full border rounded-xl px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-yellow-200 ${addrErrors.pincode ? "border-red-300" : "border-gray-200"}`}
+                />
+                {addrErrors.pincode && <p className="text-[11px] text-red-500 mt-1">{addrErrors.pincode}</p>}
+              </div>
               {[
-                { label: "Label *", key: "label", placeholder: "e.g. Warehouse, Main Office" },
-                { label: "Address Line 1", key: "address_line1", placeholder: "Street address" },
-                { label: "Address Line 2", key: "address_line2", placeholder: "Apt, Suite…" },
-                { label: "City", key: "city", placeholder: "City" },
-                { label: "State", key: "state", placeholder: "State / Province" },
-                { label: "Country", key: "country", placeholder: "Country" },
-                { label: "Pincode", key: "pincode", placeholder: "Postal code" },
-              ].map(({ label, key, placeholder }) => (
+                { label: "Label", key: "label", placeholder: "e.g. Warehouse, Main Office", required: true },
+                { label: "Address Line 1", key: "address_line1", placeholder: "Street address", required: true },
+                { label: "Address Line 2", key: "address_line2", placeholder: "Apt, Suite…", required: false },
+                { label: "City", key: "city", placeholder: "City", required: true },
+                { label: "State", key: "state", placeholder: "State / Province", required: true },
+                { label: "Country", key: "country", placeholder: "Country", required: true },
+              ].map(({ label, key, placeholder, required }) => (
                 <div key={key}>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1">{label}</label>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">
+                    {label} {required && <span className="text-red-500">*</span>}
+                  </label>
                   <input
                     value={(newAddr as any)[key]}
-                    onChange={e => setNewAddr(prev => ({ ...prev, [key]: e.target.value }))}
+                    onChange={e => {
+                      setNewAddr(prev => ({ ...prev, [key]: e.target.value }));
+                      setAddrErrors(er => ({ ...er, [key]: "" }));
+                    }}
                     placeholder={placeholder}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-yellow-200"
+                    className={`w-full border rounded-xl px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-yellow-200 ${addrErrors[key] ? "border-red-300" : "border-gray-200"}`}
                   />
+                  {addrErrors[key] && <p className="text-[11px] text-red-500 mt-1">{addrErrors[key]}</p>}
                 </div>
               ))}
               <label className="flex items-center gap-2 cursor-pointer">

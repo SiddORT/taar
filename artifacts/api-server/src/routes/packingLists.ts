@@ -46,6 +46,17 @@ router.post("/delivery-addresses", requireAuth, async (req, res) => {
   try {
     const { client_id, label, address_line1, address_line2, city, state, country, pincode, is_default } = req.body;
     if (!client_id) return res.status(400).json({ error: "client_id is required" });
+    // Validation
+    if (!label || !String(label).trim()) return res.status(400).json({ error: "Label is required" });
+    if (!address_line1 || !String(address_line1).trim()) return res.status(400).json({ error: "Address Line 1 is required" });
+    if (!city || !String(city).trim()) return res.status(400).json({ error: "City is required" });
+    if (!state || !String(state).trim()) return res.status(400).json({ error: "State is required" });
+    if (!country || !String(country).trim()) return res.status(400).json({ error: "Country is required" });
+    if (!pincode || !/^\d{6}$/.test(String(pincode).trim())) return res.status(400).json({ error: "Pincode must be exactly 6 digits" });
+    const lettersOnly = /^[A-Za-z][A-Za-z\s.\-']{0,99}$/;
+    if (!lettersOnly.test(String(city).trim())) return res.status(400).json({ error: "City must contain only letters" });
+    if (!lettersOnly.test(String(state).trim())) return res.status(400).json({ error: "State must contain only letters" });
+    if (!lettersOnly.test(String(country).trim())) return res.status(400).json({ error: "Country must contain only letters" });
     if (is_default) {
       await pool.query(`UPDATE delivery_addresses SET is_default = FALSE WHERE client_id = $1`, [client_id]);
     }
@@ -64,6 +75,25 @@ router.put("/delivery-addresses/:id", requireAuth, async (req, res) => {
     const { label, address_line1, address_line2, city, state, country, pincode, is_default } = req.body;
     const existing = await pool.query(`SELECT * FROM delivery_addresses WHERE id = $1`, [req.params.id]);
     if (!existing.rows.length) return res.status(404).json({ error: "Not found" });
+    // Mirror POST validation for any field actually being changed.
+    const lettersOnly = /^[A-Za-z][A-Za-z\s.\-']{0,99}$/;
+    if (label !== undefined && !String(label).trim()) return res.status(400).json({ error: "Label is required" });
+    if (address_line1 !== undefined && !String(address_line1).trim()) return res.status(400).json({ error: "Address Line 1 is required" });
+    if (city !== undefined) {
+      if (!String(city).trim()) return res.status(400).json({ error: "City is required" });
+      if (!lettersOnly.test(String(city).trim())) return res.status(400).json({ error: "City must contain only letters" });
+    }
+    if (state !== undefined) {
+      if (!String(state).trim()) return res.status(400).json({ error: "State is required" });
+      if (!lettersOnly.test(String(state).trim())) return res.status(400).json({ error: "State must contain only letters" });
+    }
+    if (country !== undefined) {
+      if (!String(country).trim()) return res.status(400).json({ error: "Country is required" });
+      if (!lettersOnly.test(String(country).trim())) return res.status(400).json({ error: "Country must contain only letters" });
+    }
+    if (pincode !== undefined && !/^\d{6}$/.test(String(pincode).trim())) {
+      return res.status(400).json({ error: "Pincode must be exactly 6 digits" });
+    }
     if (is_default) {
       await pool.query(`UPDATE delivery_addresses SET is_default = FALSE WHERE client_id = $1`, [existing.rows[0].client_id]);
     }
@@ -313,6 +343,22 @@ router.post("/packing-lists", requireAuth, async (req: AuthRequest, res) => {
 
     if (!client_id) return res.status(400).json({ error: "client_id is required" });
     if (!delivery_address_id) return res.status(400).json({ error: "delivery_address_id is required" });
+    if (!Array.isArray(packages) || packages.length === 0)
+      return res.status(400).json({ error: "At least one package is required" });
+
+    // Validate every package: weights/dims must be ≥ 0, and net ≤ gross.
+    for (let i = 0; i < packages.length; i++) {
+      const pk = packages[i];
+      const net = parseFloat(pk.net_weight);
+      const gross = parseFloat(pk.gross_weight);
+      if (!isNaN(net) && !isNaN(gross) && net > gross) {
+        return res.status(400).json({ error: `Package ${i + 1}: Net weight (${net}) cannot exceed Gross weight (${gross})` });
+      }
+      for (const k of ["length", "width", "height", "net_weight", "gross_weight"] as const) {
+        const v = parseFloat(pk[k]);
+        if (!isNaN(v) && v < 0) return res.status(400).json({ error: `Package ${i + 1}: ${k} cannot be negative` });
+      }
+    }
 
     const addrCheck = await pool.query(
       `SELECT id FROM delivery_addresses WHERE id = $1 AND client_id = $2`,
@@ -400,6 +446,19 @@ router.put("/packing-lists/:id", requireAuth, async (req, res) => {
 
     // If packages array provided, do a clean replace
     if (Array.isArray(packages)) {
+      // Validate every package the same way as POST.
+      for (let i = 0; i < packages.length; i++) {
+        const pk = packages[i];
+        const net = parseFloat(pk.net_weight);
+        const gross = parseFloat(pk.gross_weight);
+        if (!isNaN(net) && !isNaN(gross) && net > gross) {
+          return res.status(400).json({ error: `Package ${i + 1}: Net weight (${net}) cannot exceed Gross weight (${gross})` });
+        }
+        for (const k of ["length", "width", "height", "net_weight", "gross_weight"] as const) {
+          const v = parseFloat(pk[k]);
+          if (!isNaN(v) && v < 0) return res.status(400).json({ error: `Package ${i + 1}: ${k} cannot be negative` });
+        }
+      }
       // Before deleting, restore stock for any inventory items being replaced
       const oldItems = await pool.query(
         `SELECT ppi.* FROM packing_package_items ppi
