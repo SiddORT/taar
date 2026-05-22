@@ -233,7 +233,10 @@ router.get("/reports/order-profitability", requireAuth, async (req, res) => {
       FROM swatch_orders so
       LEFT JOIN LATERAL (
         SELECT SUM(total_amount::numeric) AS total_amount
-        FROM invoices WHERE swatch_order_id = so.id
+        FROM invoices
+        WHERE swatch_order_id = so.id
+          AND COALESCE(invoice_direction, 'outgoing') = 'outgoing'
+          AND COALESCE(invoice_status, status, 'Draft') NOT IN ('Draft','Cancelled')
       ) inv ON true
       LEFT JOIN LATERAL (
         SELECT SUM(final_shipping_amount::numeric) AS final_shipping_amount
@@ -252,7 +255,10 @@ router.get("/reports/order-profitability", requireAuth, async (req, res) => {
       FROM style_orders sto
       LEFT JOIN LATERAL (
         SELECT SUM(total_amount::numeric) AS total_amount
-        FROM invoices WHERE style_order_id = sto.id
+        FROM invoices
+        WHERE style_order_id = sto.id
+          AND COALESCE(invoice_direction, 'outgoing') = 'outgoing'
+          AND COALESCE(invoice_status, status, 'Draft') NOT IN ('Draft','Cancelled')
       ) inv ON true
       LEFT JOIN LATERAL (
         SELECT SUM(final_shipping_amount::numeric) AS final_shipping_amount
@@ -278,6 +284,8 @@ router.get("/reports/purchase-vs-sales", requireAuth, async (req, res) => {
         SELECT ROUND(COALESCE(SUM(total_amount::numeric),0),2) AS total_sales
         FROM invoices
         WHERE (invoice_date BETWEEN $1 AND $2 OR created_at::date BETWEEN $1::date AND $2::date)
+          AND COALESCE(invoice_direction, 'outgoing') = 'outgoing'
+          AND COALESCE(invoice_status, status, 'Draft') NOT IN ('Draft','Cancelled')
       `, [dfrom, dto]),
       pool.query(`
         SELECT ROUND(COALESCE(SUM(poi.unit_price::numeric * poi.ordered_quantity::numeric),0),2) AS total_purchases
@@ -329,7 +337,7 @@ router.get("/reports/gst-summary", requireAuth, async (req, res) => {
         ROUND(COALESCE(subtotal_amount,0) * COALESCE(NULLIF(sgst_rate,'')::numeric,0) / 100, 2) AS sgst,
         0::numeric                                                                        AS igst,
         ROUND(COALESCE(subtotal_amount,0) * (COALESCE(NULLIF(cgst_rate,'')::numeric,0) + COALESCE(NULLIF(sgst_rate,'')::numeric,0)) / 100, 2) AS total_gst,
-        COALESCE(invoice_date, TO_CHAR(created_at, 'YYYY-MM-DD'))                       AS transaction_date
+        COALESCE(invoice_date, TO_CHAR(created_at, 'YYYY-MM-DD'))                       AS date
       FROM invoices
       WHERE LEFT(COALESCE(invoice_date, TO_CHAR(created_at,'YYYY-MM-DD')), 4) = $1::text
         AND ($2::int IS NULL OR SUBSTRING(COALESCE(invoice_date, TO_CHAR(created_at,'YYYY-MM-DD')), 6, 2)::int = $2::int)
@@ -348,13 +356,13 @@ router.get("/reports/gst-summary", requireAuth, async (req, res) => {
         ROUND(vendor_invoice_amount * 9.0 / 118, 2)                                     AS sgst,
         0::numeric                                                                        AS igst,
         ROUND(vendor_invoice_amount * 18.0 / 118, 2)                                    AS total_gst,
-        vendor_invoice_date::text                                                         AS transaction_date
+        TO_CHAR(vendor_invoice_date, 'YYYY-MM-DD')                                       AS date
       FROM vendor_invoice_ledger
       WHERE EXTRACT(YEAR FROM vendor_invoice_date) = $1::int
         AND ($2::int IS NULL OR EXTRACT(MONTH FROM vendor_invoice_date) = $2::int)
         AND ($4::text IS NULL OR vendor_name ILIKE '%' || $4::text || '%')
 
-      ORDER BY transaction_date DESC
+      ORDER BY date DESC
     `, params);
 
     const collected = rows.rows.filter(r => r.transaction_type === 'Sales Invoice');

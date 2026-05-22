@@ -4,8 +4,9 @@ import {
   Package, BarChart2, ShoppingCart, FileText,
   Users, User, TrendingUp, Scale, Receipt,
   Download, RefreshCw, ChevronRight, CheckCircle2,
-  Search, ChevronLeft, AlertCircle, CheckCircle,
+  Search, ChevronLeft, AlertCircle, CheckCircle, X,
 } from "lucide-react";
+import * as XLSX from "xlsx";
 import { useGetMe, useLogout, getGetMeQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { customFetch } from "@workspace/api-client-react";
@@ -106,7 +107,7 @@ function rowVal(id: ReportId, row: Record<string, unknown>, col: string): string
     "qty_in":          "qty_in",
     "qty_out":         "qty_out",
     "invoice_no":      "invoice_no",
-    "client":          "client",
+    "client":          "client_name",
     "invoice_date":    "invoice_date",
     "invoice_amount":  "invoice_amount",
     "received_amount": "received_amount",
@@ -205,6 +206,7 @@ export default function Reports() {
 
   const [search, setSearch] = useState("");
   const [page,   setPage]   = useState(1);
+  const [resetTick, setResetTick] = useState(0);
 
   useEffect(() => {
     if (!token) return;
@@ -278,30 +280,82 @@ export default function Reports() {
 
   useEffect(() => { setPage(1); }, [search]);
 
-  function exportCSV() {
+  function exportExcel() {
     if (!selected || filteredRows.length === 0) return;
     const cols = REPORT_COLS[selected];
-    const header = ["Sr No", ...cols].join(",");
-    const body = filteredRows.map((row, i) =>
-      [`"${i + 1}"`, ...cols.map(col => {
-        const v = rowVal(selected, row, col).replace(/₹/g, "").replace(/,/g, "");
-        return `"${v}"`;
-      })].join(",")
-    ).join("\n");
-    let filename = `${selected}_${today.replace(/-/g, "")}.csv`;
+    /* Build AoA so cell types stay correct: numeric for currency/numeric cols
+       (Excel will display ₹ via the cell format), strings for labels/status. */
+    const numericCols = new Set([
+      "PO Amount","PR Value","Vendor Bills","Pending Payables","Invoice Amount","Received Amount",
+      "Pending Amount","Amount","Paid","Balance","Net Profit","Shipping Cost","Total Sales","Total Purchases",
+      "Other Expenses","Net Revenue","Taxable Amount","CGST","SGST","IGST","Total GST",
+      "Current Stock","Reserved","Available","Reorder Level","Qty In","Qty Out",
+    ]);
+    /* Quantity-style cols use plain numeric format; in stock-movement the
+       "Balance" column is also a quantity (running stock), not currency. */
+    const quantityCols = new Set(["Current Stock","Reserved","Available","Reorder Level","Qty In","Qty Out"]);
+    const balanceIsQuantity = selected === "stock-movement";
+    const header = ["Sr No", ...cols];
+    const body = filteredRows.map((row, i) => {
+      return [i + 1, ...cols.map(col => {
+        const aliasedKey = col.toLowerCase().replace(/ /g, "_").replace(/\./g, "");
+        const raw = (row as Record<string, unknown>)[aliasedKey];
+        if (numericCols.has(col)) {
+          const num = parseFloat(String(raw ?? 0));
+          return Number.isFinite(num) ? num : 0;
+        }
+        // For text cells, use rowVal so client/date aliases & "—" fallback work
+        return rowVal(selected, row, col);
+      })];
+    });
+    const ws = XLSX.utils.aoa_to_sheet([header, ...body]);
+    /* Apply Indian Rupee number format to currency columns. */
+    const inrFmt = '[$₹-en-IN]#,##0.00;[Red]-[$₹-en-IN]#,##0.00';
+    cols.forEach((col, ci) => {
+      if (!numericCols.has(col)) return;
+      const isQuantity = quantityCols.has(col) || (col === "Balance" && balanceIsQuantity);
+      const isCurrency = !isQuantity;
+      for (let r = 1; r <= body.length; r++) {
+        const addr = XLSX.utils.encode_cell({ r, c: ci + 1 });
+        const cell = ws[addr];
+        if (cell && typeof cell.v === "number") {
+          cell.t = "n";
+          cell.z = isCurrency ? inrFmt : '0.###';
+        }
+      }
+    });
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Report");
+    let filename = `${selected}_${today.replace(/-/g, "")}.xlsx`;
     if (selected === "gst-summary") {
       filename = gstMonth !== "all"
-        ? `gst_summary_${gstYear}${gstMonth.padStart(2, "0")}.csv`
-        : `gst_summary_${gstYear}.csv`;
+        ? `gst_summary_${gstYear}${gstMonth.padStart(2, "0")}.xlsx`
+        : `gst_summary_${gstYear}.xlsx`;
     }
-    const blob = new Blob([header + "\n" + body], { type: "text/csv" });
-    const url  = URL.createObjectURL(blob);
-    const a    = document.createElement("a");
-    a.href     = url;
-    a.download = filename;
-    a.click();
-    URL.revokeObjectURL(url);
+    XLSX.writeFile(wb, filename);
   }
+
+  function resetFilters() {
+    setDateFrom(fyStart);
+    setDateTo(today);
+    setFilterClient("all");
+    setFilterVendor("all");
+    setFilterItem("all");
+    setGstYear(String(CURRENT_YEAR));
+    setGstMonth("all");
+    setSearch("");
+    setPage(1);
+    /* Bump the reset tick — an effect below will refire fetchReport once the
+       filter state has committed (and fetchReport's useCallback has rebuilt
+       with the new closure). Avoids the stale-closure bug of setTimeout. */
+    setResetTick(t => t + 1);
+  }
+
+  useEffect(() => {
+    if (resetTick === 0 || !selected) return;
+    fetchReport(selected);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resetTick, fetchReport]);
 
   const isGst      = selected === "gst-summary";
   const showDate   = !!selected && selected !== "stock-summary" && !isGst;
@@ -443,11 +497,32 @@ export default function Reports() {
                     <>
                       <div className="flex flex-col gap-1">
                         <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide">From</label>
-                        <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className={inp} />
+                        <input type="date" value={dateFrom}
+                          max={dateTo || today}
+                          onChange={e => {
+                            const v = e.target.value;
+                            if (dateTo && v && v > dateTo) {
+                              toast({ title: "From Date cannot be after To Date", variant: "destructive" });
+                              return;
+                            }
+                            setDateFrom(v);
+                          }}
+                          className={inp} />
                       </div>
                       <div className="flex flex-col gap-1">
                         <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide">To</label>
-                        <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className={inp} />
+                        <input type="date" value={dateTo}
+                          min={dateFrom || undefined}
+                          max={today}
+                          onChange={e => {
+                            const v = e.target.value;
+                            if (dateFrom && v && v < dateFrom) {
+                              toast({ title: "To Date cannot be before From Date", variant: "destructive" });
+                              return;
+                            }
+                            setDateTo(v);
+                          }}
+                          className={inp} />
                       </div>
                     </>
                   )}
@@ -482,6 +557,11 @@ export default function Reports() {
                     className="px-4 py-1.5 rounded-lg text-sm font-semibold text-white transition-all disabled:opacity-60 self-end"
                     style={{ background: `linear-gradient(135deg, ${G}, ${G_DIM})` }}>
                     {loading ? "Loading…" : "Apply"}
+                  </button>
+                  <button onClick={resetFilters} disabled={loading}
+                    className="px-3 py-1.5 rounded-lg text-sm font-semibold border transition-all disabled:opacity-60 self-end flex items-center gap-1.5 text-gray-600 hover:bg-gray-50"
+                    style={{ borderColor: "#e5e7eb" }}>
+                    <X className="h-3.5 w-3.5" /> Reset
                   </button>
                 </div>
 
@@ -574,11 +654,11 @@ export default function Reports() {
                       <span className="text-xs text-gray-400">{filteredRows.length} of {rows.length} matching</span>
                     )}
                     <div className="ml-auto">
-                      <button onClick={exportCSV}
+                      <button onClick={exportExcel}
                         className="flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-semibold border transition-all hover:bg-gray-50"
                         style={{ borderColor: `${G}40`, color: G }}>
                         <Download className="h-3.5 w-3.5" />
-                        Export CSV
+                        Export Excel
                       </button>
                     </div>
                   </div>
