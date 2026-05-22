@@ -33,17 +33,23 @@ const INP = [
 const token = () => localStorage.getItem("zarierp_token") || "";
 
 /* ── formatters ─────────────────────────────────────────── */
-function fmtCrLk(n: number): string {
+function toNum(n: any): number {
+  const v = typeof n === "number" ? n : parseFloat(String(n ?? 0));
+  return Number.isFinite(v) ? v : 0;
+}
+function fmtCrLk(raw: any): string {
+  const n = toNum(raw);
   if (n >= 1_00_00_000) return `₹${(n / 1_00_00_000).toFixed(2)} Cr`;
   if (n >= 1_00_000)    return `₹${(n / 1_00_000).toFixed(2)} L`;
   if (n >= 1_000)       return `₹${(n / 1_000).toFixed(1)} K`;
   return new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(n);
 }
-function fmtFull(n: number): string {
-  return new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(n);
+function fmtFull(raw: any): string {
+  return new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(toNum(raw));
 }
-function pct(a: number, b: number): string {
-  return b === 0 ? "—" : `${((a / b) * 100).toFixed(1)}%`;
+function pct(a: any, b: any): string {
+  const na = toNum(a), nb = toNum(b);
+  return nb === 0 ? "—" : `${((na / nb) * 100).toFixed(1)}%`;
 }
 function yAxis(v: number): string {
   if (v >= 1_00_000) return `₹${(v / 1_00_000).toFixed(1)}L`;
@@ -138,15 +144,20 @@ export default function AccountsDashboard() {
   }, []);
 
   const fetchDashboard = useCallback(async () => {
+    // Guard: To-Date must be on/after From-Date
+    if (fromDate && toDate && toDate < fromDate) return;
     setLoading(true);
     const params = new URLSearchParams();
     if (fromDate) params.set("from_date", fromDate);
     if (toDate)   params.set("to_date",   toDate);
     if (vendorId) params.set("vendor_id", vendorId);
     if (clientId) params.set("client_id", clientId);
+    // bust browser/proxy cache so Refresh always re-fetches
+    params.set("_ts", String(Date.now()));
     try {
       const r = await fetch(`/api/accounts/dashboard?${params}`, {
         headers: { Authorization: `Bearer ${token()}` },
+        cache: "no-store",
       });
       if (!r.ok) throw new Error(await r.text());
       setData(await r.json());
@@ -246,11 +257,34 @@ export default function AccountsDashboard() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <div>
                 <label className="block text-[9px] font-black uppercase tracking-widest text-gray-400 mb-1">From Date</label>
-                <input type="date" value={fromDate} onChange={e => setFromDate(e.target.value)} className={`${INP} w-full`} />
+                <input
+                  type="date"
+                  value={fromDate}
+                  max={toDate || undefined}
+                  onChange={e => {
+                    const v = e.target.value;
+                    setFromDate(v);
+                    if (toDate && v && toDate < v) setToDate(v);
+                  }}
+                  className={`${INP} w-full`}
+                />
               </div>
               <div>
                 <label className="block text-[9px] font-black uppercase tracking-widest text-gray-400 mb-1">To Date</label>
-                <input type="date" value={toDate} onChange={e => setToDate(e.target.value)} className={`${INP} w-full`} />
+                <input
+                  type="date"
+                  value={toDate}
+                  min={fromDate || undefined}
+                  onChange={e => {
+                    const v = e.target.value;
+                    if (fromDate && v && v < fromDate) {
+                      setToDate(fromDate);
+                    } else {
+                      setToDate(v);
+                    }
+                  }}
+                  className={`${INP} w-full`}
+                />
               </div>
               <div>
                 <label className="block text-[9px] font-black uppercase tracking-widest text-gray-400 mb-1">Vendor</label>

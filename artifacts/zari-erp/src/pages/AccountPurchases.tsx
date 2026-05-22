@@ -422,13 +422,36 @@ export default function AccountPurchases() {
               <div className="grid grid-cols-2 md:grid-cols-2 gap-3 items-end">
                 <div>
                   <label className={LBL}>From Date</label>
-                  <input type="date" className={INP} value={fromDate}
-                    onChange={e => changeFilter(() => setFromDate(e.target.value))} />
+                  <input
+                    type="date"
+                    className={INP}
+                    value={fromDate}
+                    max={toDate || undefined}
+                    onChange={e => {
+                      const v = e.target.value;
+                      changeFilter(() => {
+                        setFromDate(v);
+                        if (toDate && v && toDate < v) setToDate(v);
+                      });
+                    }}
+                  />
                 </div>
                 <div>
                   <label className={LBL}>To Date</label>
-                  <input type="date" className={INP} value={toDate}
-                    onChange={e => changeFilter(() => setToDate(e.target.value))} />
+                  <input
+                    type="date"
+                    className={INP}
+                    value={toDate}
+                    min={fromDate || undefined}
+                    onChange={e => {
+                      const v = e.target.value;
+                      if (fromDate && v && v < fromDate) {
+                        changeFilter(() => setToDate(fromDate));
+                      } else {
+                        changeFilter(() => setToDate(v));
+                      }
+                    }}
+                  />
                 </div>
               </div>
 

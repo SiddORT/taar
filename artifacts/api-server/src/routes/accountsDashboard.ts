@@ -6,15 +6,24 @@ const router = Router();
 
 router.get("/accounts/dashboard", requireAuth, async (req, res) => {
   try {
-    const { from_date, to_date, vendor_id, client_id } = req.query as Record<string, string>;
+    const raw = req.query as Record<string, string>;
+
+    // Strict input validation — only accept YYYY-MM-DD dates and positive integer IDs.
+    // Defends against SQL injection given queries are string-interpolated.
+    const isoDate = /^\d{4}-\d{2}-\d{2}$/;
+    const from_date = raw.from_date && isoDate.test(raw.from_date) ? raw.from_date : undefined;
+    const to_date   = raw.to_date   && isoDate.test(raw.to_date)   ? raw.to_date   : undefined;
+    const idRe = /^[1-9]\d*$/;
+    const vendor_id = raw.vendor_id && idRe.test(raw.vendor_id) ? raw.vendor_id : undefined;
+    const client_id = raw.client_id && idRe.test(raw.client_id) ? raw.client_id : undefined;
 
     /* helpers */
     const dateGte = (col: string, val: string | undefined) => val ? `AND ${col} >= '${val}'` : "";
     const dateLte = (col: string, val: string | undefined) => val ? `AND ${col} <= '${val}'` : "";
     const dateRange = (col: string) => `${dateGte(col, from_date)} ${dateLte(col, to_date)}`;
 
-    const clientCond  = client_id ? `AND client_id = ${parseInt(client_id)}` : "";
-    const vendorCond  = vendor_id ? `AND vendor_id = ${parseInt(vendor_id)}` : "";
+    const clientCond  = client_id ? `AND client_id = ${client_id}` : "";
+    const vendorCond  = vendor_id ? `AND vendor_id = ${vendor_id}` : "";
 
     const [
       salesRes,
@@ -43,14 +52,16 @@ router.get("/accounts/dashboard", requireAuth, async (req, res) => {
           ${clientCond}
       `),
 
-      /* ── SALES: total received ───────────────────────── */
+      /* ── SALES: total received (respects client filter via invoice join) ── */
       pool.query(`
         SELECT
-          COALESCE(SUM(base_currency_amount), 0)::numeric(18,2) AS total_received,
+          COALESCE(SUM(ip.base_currency_amount), 0)::numeric(18,2) AS total_received,
           COUNT(*)::int AS payment_count
-        FROM invoice_payments
+        FROM invoice_payments ip
+        ${client_id ? "JOIN invoices i ON i.id = ip.invoice_id" : ""}
         WHERE 1=1
-          ${dateRange("payment_date")}
+          ${dateGte("ip.payment_date", from_date)} ${dateLte("ip.payment_date", to_date)}
+          ${client_id ? `AND i.client_id = ${parseInt(client_id)}` : ""}
       `),
 
       /* ── PURCHASES: vendor bills ─────────────────────── */
@@ -97,6 +108,7 @@ router.get("/accounts/dashboard", requireAuth, async (req, res) => {
         WHERE 1=1
           ${from_date ? `AND received_date::date >= '${from_date}'::date` : ""}
           ${to_date   ? `AND received_date::date <= '${to_date}'::date`   : ""}
+          ${vendorCond}
       `),
 
       /* ── OTHER EXPENSES ──────────────────────────────── */
@@ -202,6 +214,8 @@ router.get("/accounts/dashboard", requireAuth, async (req, res) => {
           COALESCE(SUM(pending_amount), 0)::numeric(18,2) AS pending_amount
         FROM vendor_invoice_ledger
         WHERE status != 'Paid'
+          ${from_date ? `AND vendor_invoice_date >= '${from_date}'::date` : ""}
+          ${to_date   ? `AND vendor_invoice_date <= '${to_date}'::date`   : ""}
           ${vendorCond}
         GROUP BY vendor_name, vendor_id
         ORDER BY pending_amount DESC

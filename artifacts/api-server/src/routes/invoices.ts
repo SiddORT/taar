@@ -116,10 +116,50 @@ router.get("/invoices/style/:styleOrderId", requireAuth, async (req, res) => {
   return res.json({ data: rows });
 });
 
+function validateInvoiceBody(b: any): string | null {
+  if (!b || typeof b !== "object") return "Invalid invoice payload";
+  if (!b.invoiceDate) return "Invoice date is required";
+  const dir = b.invoiceDirection ?? "Client";
+  if (dir === "Client" && !((b.clientName ?? "").toString().trim()) && !b.clientId) {
+    return "Client is required for client invoices";
+  }
+  if (dir === "Vendor" && !((b.clientName ?? "").toString().trim()) && !b.vendorId) {
+    return "Vendor is required for vendor invoices";
+  }
+  const items = Array.isArray(b.items) ? b.items : [];
+  if (items.length === 0) return "At least one line item is required";
+  let subtotal = 0;
+  for (const it of items) {
+    if (!it || !(it.description ?? "").toString().trim()) return "Each line item must have a description";
+    const qty = parseFloat(String(it.quantity ?? 0));
+    const rate = parseFloat(String(it.unitPrice ?? 0));
+    if (!Number.isFinite(qty) || qty <= 0) return `Quantity must be greater than 0 (item: ${it.description})`;
+    if (!Number.isFinite(rate) || rate < 0) return `Rate cannot be negative (item: ${it.description})`;
+    const pct = parseFloat(String(it.hsnGstPct ?? 0));
+    if (Number.isFinite(pct) && (pct < 0 || pct > 100)) return "GST % must be between 0 and 100";
+    subtotal += qty * rate;
+  }
+  const dv = parseFloat(String(b.discountValue ?? 0));
+  if (!Number.isFinite(dv) || dv < 0) return "Discount must be a non-negative number";
+  const dt = b.discountType ?? "flat";
+  if (dt === "percent" && dv > 100) return "Discount % cannot exceed 100";
+  if (dt === "flat" && dv > subtotal) return "Flat discount cannot exceed the subtotal";
+  const ship = parseFloat(String(b.shippingAmount ?? 0));
+  if (!Number.isFinite(ship) || ship < 0) return "Shipping amount must be a non-negative number";
+  const adjRaw = b.adjustmentAmount;
+  if (adjRaw !== undefined && adjRaw !== null && String(adjRaw).trim() !== "") {
+    const adj = parseFloat(String(adjRaw));
+    if (!Number.isFinite(adj)) return "Adjustment amount must be a number";
+  }
+  return null;
+}
+
 // POST /invoices — create
 router.post("/invoices", requireAuth, async (req, res) => {
   try {
     const b = req.body;
+    const err = validateInvoiceBody(b);
+    if (err) return res.status(400).json({ error: err });
     const invoiceNo = b.invoiceNo ?? (await getNextInvoiceNo());
 
     const invoiceCurrencyAmt = parseFloat(b.invoiceCurrencyAmount ?? b.totalAmount ?? "0");
@@ -143,7 +183,7 @@ router.post("/invoices", requireAuth, async (req, res) => {
       exchangeRateSnapshot: String(rate),
       subtotalAmount: String(parseFloat(b.subtotalAmount ?? "0")),
       shippingAmount: String(parseFloat(b.shippingAmount ?? "0")),
-      adjustmentAmount: String(parseFloat(b.adjustmentAmount ?? "0")),
+      adjustmentAmount: String(String(b.adjustmentAmount ?? "").trim() === "" ? 0 : parseFloat(String(b.adjustmentAmount))),
       totalAmount: String(totalAmt),
       invoiceCurrencyAmount: String(invoiceCurrencyAmt),
       baseCurrencyAmount: String(baseCurrencyAmt),
@@ -193,6 +233,8 @@ router.put("/invoices/:id", requireAuth, async (req, res) => {
   if (isNaN(id)) return res.status(400).json({ error: "Invalid id" });
   try {
     const b = req.body;
+    const err = validateInvoiceBody(b);
+    if (err) return res.status(400).json({ error: err });
 
     const invoiceCurrencyAmt = parseFloat(b.invoiceCurrencyAmount ?? b.totalAmount ?? "0");
     const rate = parseFloat(b.exchangeRateSnapshot ?? "1");
@@ -214,7 +256,7 @@ router.put("/invoices/:id", requireAuth, async (req, res) => {
       exchangeRateSnapshot: String(rate),
       subtotalAmount: String(parseFloat(b.subtotalAmount ?? "0")),
       shippingAmount: String(parseFloat(b.shippingAmount ?? "0")),
-      adjustmentAmount: String(parseFloat(b.adjustmentAmount ?? "0")),
+      adjustmentAmount: String(String(b.adjustmentAmount ?? "").trim() === "" ? 0 : parseFloat(String(b.adjustmentAmount))),
       totalAmount: String(totalAmt),
       invoiceCurrencyAmount: String(invoiceCurrencyAmt),
       baseCurrencyAmount: String(baseCurrencyAmt),

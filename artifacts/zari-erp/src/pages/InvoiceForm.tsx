@@ -73,14 +73,26 @@ interface BankAccount {
 
 const blank = (): LineItem => ({ id: crypto.randomUUID(), description: "", category: "Item", quantity: 1, unitPrice: 0, total: 0, hsnCode: "", hsnGstPct: "", showHsn: true });
 
-function calcTotals(items: LineItem[], shipping: number, adjustment: number, discountType: string, discountValue: number, cgst: number, sgst: number) {
+function calcTotals(items: LineItem[], shipping: number, adjustment: number, discountType: string, discountValue: number) {
   const subtotal = items.reduce((s, i) => s + i.total, 0);
-  const discount = discountType === "percent" ? (subtotal * discountValue) / 100 : discountValue;
+  const safeShipping = Math.max(0, shipping || 0);
+  const rawDiscount = discountType === "percent"
+    ? (subtotal * Math.min(100, Math.max(0, discountValue))) / 100
+    : Math.max(0, discountValue);
+  // Cap flat discount at subtotal so taxable never goes negative
+  const discount = Math.min(rawDiscount, subtotal);
   const taxable = subtotal - discount;
-  const cgstAmt = (taxable * cgst) / 100;
-  const sgstAmt = (taxable * sgst) / 100;
-  const total = taxable + cgstAmt + sgstAmt + shipping + adjustment;
-  return { subtotal, discount, taxable, cgstAmt, sgstAmt, total };
+  // GST is per-item HSN rate, scaled proportionally by the discount
+  const scale = subtotal > 0 ? taxable / subtotal : 0;
+  const itemGstTotal = items.reduce((s, i) => {
+    const pct = parseFloat(i.hsnGstPct || "0");
+    if (!(pct > 0)) return s;
+    return s + (i.total * pct / 100) * scale;
+  }, 0);
+  const cgstAmt = itemGstTotal / 2;
+  const sgstAmt = itemGstTotal / 2;
+  const total = taxable + itemGstTotal + safeShipping + adjustment;
+  return { subtotal, discount, taxable, cgstAmt, sgstAmt, itemGstTotal, total };
 }
 
 /* ─── Invoice Payments Panel (shown on saved invoices) ────────────────────── */
@@ -462,9 +474,21 @@ export default function InvoiceForm() {
     parseFloat(form.adjustmentAmount || "0"),
     form.discountType,
     parseFloat(form.discountValue || "0"),
-    parseFloat(form.cgstRate || "0"),
-    parseFloat(form.sgstRate || "0"),
   );
+
+  // Keep form.cgstRate/sgstRate in sync with derived per-item GST so that
+  // the invoice preview (which reads form.cgstRate/sgstRate) matches the
+  // sidebar/footer/persisted totals.
+  useEffect(() => {
+    const derivedHalfRate = totals.taxable > 0
+      ? ((totals.itemGstTotal / totals.taxable) * 100) / 2
+      : 0;
+    const next = derivedHalfRate.toFixed(2);
+    if (form.cgstRate !== next || form.sgstRate !== next) {
+      setForm(f => ({ ...f, cgstRate: next, sgstRate: next }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [totals.itemGstTotal, totals.taxable]);
 
   const rate = parseFloat(form.exchangeRateSnapshot || "1");
   const baseCurrencyAmount = totals.total * rate;
@@ -497,18 +521,7 @@ export default function InvoiceForm() {
     }).catch(() => {});
     // Fetch saved bank accounts, auto-fill the default one for new invoices
     if (!isEdit) {
-      // Auto-apply GST settings (CGST + SGST)
-      customFetch<any>("/api/settings/gst").then(j => {
-        const g = j.data;
-        if (!g) return;
-        const totalGst = parseFloat(g.default_service_gst_rate ?? "0");
-        const half = (totalGst / 2).toFixed(2);
-        setForm(f => ({
-          ...f,
-          cgstRate: half,
-          sgstRate: half,
-        }));
-      }).catch(() => {});
+      // GST is derived per-item from HSN — no global auto-fill
 
       customFetch<any>("/api/settings/bank-accounts").then(j => {
         const accounts: BankAccount[] = j.data ?? [];
@@ -640,16 +653,56 @@ export default function InvoiceForm() {
 
   async function handleSave(overrideStatus?: string) {
     if (!form.invoiceDate) { toast({ title: "Invoice date is required", variant: "destructive" }); return; }
-    if (form.invoiceDirection === "Client" && !form.clientName && !form.clientId) {
+    if (form.invoiceDirection === "Client" && !form.clientName.trim() && !form.clientId) {
       toast({ title: "Client is required for client invoices", variant: "destructive" }); return;
+    }
+    if (form.invoiceDirection === "Vendor" && !form.clientName.trim() && !form.vendorId) {
+      toast({ title: "Vendor is required for vendor invoices", variant: "destructive" }); return;
+    }
+    if (items.length === 0) {
+      toast({ title: "Add at least one line item", variant: "destructive" }); return;
+    }
+    for (const it of items) {
+      if (!it.description || !it.description.trim()) {
+        toast({ title: "Each line item must have a description", variant: "destructive" }); return;
+      }
+      if (!(it.quantity > 0)) {
+        toast({ title: `Quantity must be greater than 0 (item: ${it.description})`, variant: "destructive" }); return;
+      }
+      if (it.unitPrice < 0) {
+        toast({ title: `Rate cannot be negative (item: ${it.description})`, variant: "destructive" }); return;
+      }
+      if (HSN_CATEGORIES.has(it.category) && !it.hsnCode) {
+        toast({ title: `HSN code is required for ${it.category} items (${it.description})`, variant: "destructive" }); return;
+      }
+    }
+    const dv = parseFloat(form.discountValue || "0");
+    if (dv < 0) { toast({ title: "Discount cannot be negative", variant: "destructive" }); return; }
+    if (form.discountType === "percent" && dv > 100) {
+      toast({ title: "Discount % cannot exceed 100", variant: "destructive" }); return;
+    }
+    if (form.discountType === "flat" && dv > totals.subtotal) {
+      toast({ title: "Flat discount cannot exceed the subtotal", variant: "destructive" }); return;
+    }
+    if (parseFloat(form.shippingAmount || "0") < 0) {
+      toast({ title: "Shipping amount cannot be negative", variant: "destructive" }); return;
     }
 
     setSaving(true);
     try {
+      // Derive CGST/SGST rate as a % of TAXABLE (post-discount) base, since
+      // any consumer computing tax as `taxable * rate` must reproduce itemGstTotal.
+      const derivedHalfRate = totals.taxable > 0
+        ? ((totals.itemGstTotal / totals.taxable) * 100) / 2
+        : 0;
       const payload = {
         ...form,
         ...(overrideStatus ? { invoiceStatus: overrideStatus } : {}),
         items,
+        cgstRate: derivedHalfRate.toFixed(2),
+        sgstRate: derivedHalfRate.toFixed(2),
+        discountValue: String(Math.max(0, parseFloat(form.discountValue || "0")).toFixed(2)),
+        shippingAmount: String(Math.max(0, parseFloat(form.shippingAmount || "0")).toFixed(2)),
         totalAmount: String(totals.total.toFixed(2)),
         subtotalAmount: String(totals.subtotal.toFixed(2)),
         invoiceCurrencyAmount: String(totals.total.toFixed(2)),
@@ -1024,15 +1077,25 @@ export default function InvoiceForm() {
                     onClick={() => {
                       customFetch<any>(`/api/clients/${form.clientId}`).then(j => {
                         const c = j.data ?? j;
-                        if (!c) return;
+                        if (!c) {
+                          toast({ title: "Could not load client", variant: "destructive" });
+                          return;
+                        }
                         const deliveryAddr = Array.isArray(c.addresses)
-                          ? c.addresses.find((a: any) => a.type === "Delivery Address")
+                          ? c.addresses.find((a: any) => a.type === "Delivery Address" || a.type === "Delivery" || a.addressType === "Delivery Address")
                           : null;
                         const addr = deliveryAddr
                           ? [deliveryAddr.name, deliveryAddr.address1, deliveryAddr.address2, deliveryAddr.city, deliveryAddr.state, deliveryAddr.pincode, deliveryAddr.country].filter(Boolean).join(", ")
-                          : [c.address1, c.address2, c.city, c.state, c.pincode].filter(Boolean).join(", ");
-                        if (addr) setF("shippingAddress", addr);
-                      }).catch(() => {});
+                          : [c.address1, c.address2, c.city, c.state, c.pincode, c.country].filter(Boolean).join(", ");
+                        if (addr) {
+                          setF("shippingAddress", addr);
+                          toast({ title: deliveryAddr ? "Delivery address applied" : "Billing address applied (no delivery address on file)" });
+                        } else {
+                          toast({ title: "No address on file for this client", variant: "destructive" });
+                        }
+                      }).catch(() => {
+                        toast({ title: "Could not load client address", variant: "destructive" });
+                      });
                     }}
                     className="text-xs font-semibold text-[#C6AF4B] hover:text-[#a89135] border border-[#C6AF4B]/40 hover:border-[#C6AF4B] rounded-lg px-3 py-1.5 transition"
                   >
@@ -1151,58 +1214,67 @@ export default function InvoiceForm() {
                     <option value="flat">Flat Discount</option>
                     <option value="percent">% Discount</option>
                   </select>
-                  <input type="number" min="0" value={form.discountValue} onChange={e => setF("discountValue", e.target.value)} className="flex-1 rounded-lg border border-gray-200 px-2.5 py-1.5 text-sm text-gray-900 bg-white focus:outline-none focus:border-[#C6AF4B] text-right" />
+                  <input
+                    type="number"
+                    min="0"
+                    max={form.discountType === "percent" ? 100 : totals.subtotal || undefined}
+                    step="0.01"
+                    value={form.discountValue}
+                    onChange={e => {
+                      const raw = parseFloat(e.target.value);
+                      if (Number.isNaN(raw)) { setF("discountValue", ""); return; }
+                      const max = form.discountType === "percent" ? 100 : totals.subtotal;
+                      const clamped = Math.min(Math.max(0, raw), max > 0 ? max : raw);
+                      setF("discountValue", String(clamped));
+                    }}
+                    onKeyDown={e => { if (e.key === "-" || e.key === "e" || e.key === "E") e.preventDefault(); }}
+                    className="flex-1 rounded-lg border border-gray-200 px-2.5 py-1.5 text-sm text-gray-900 bg-white focus:outline-none focus:border-[#C6AF4B] text-right"
+                  />
                 </div>
                 {totals.discount > 0 && (
                   <div className="flex justify-between text-sm text-red-500">
                     <span>Discount</span><span>− {totals.discount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</span>
                   </div>
                 )}
+                {/* GST — auto-derived from per-item HSN rates */}
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className="text-xs text-gray-600">CGST %</label>
-                    <input type="number" min="0" value={form.cgstRate} onChange={e => setF("cgstRate", e.target.value)} className="w-full rounded-lg border border-gray-200 px-2.5 py-1.5 text-sm text-gray-900 bg-white focus:outline-none focus:border-[#C6AF4B] text-right mt-1" />
+                    <label className="text-xs text-gray-600">CGST <span className="text-[10px] text-gray-400">(auto)</span></label>
+                    <div className="w-full rounded-lg border border-gray-100 bg-gray-50 px-2.5 py-1.5 text-sm text-gray-900 text-right mt-1">
+                      {totals.cgstAmt.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                    </div>
                   </div>
                   <div>
-                    <label className="text-xs text-gray-600">SGST %</label>
-                    <input type="number" min="0" value={form.sgstRate} onChange={e => setF("sgstRate", e.target.value)} className="w-full rounded-lg border border-gray-200 px-2.5 py-1.5 text-sm text-gray-900 bg-white focus:outline-none focus:border-[#C6AF4B] text-right mt-1" />
+                    <label className="text-xs text-gray-600">SGST <span className="text-[10px] text-gray-400">(auto)</span></label>
+                    <div className="w-full rounded-lg border border-gray-100 bg-gray-50 px-2.5 py-1.5 text-sm text-gray-900 text-right mt-1">
+                      {totals.sgstAmt.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                    </div>
                   </div>
                 </div>
-                {(totals.cgstAmt > 0 || totals.sgstAmt > 0) && (
-                  <>
-                    <div className="flex justify-between text-sm text-gray-600">
-                      <span>CGST</span><span>{totals.cgstAmt.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</span>
-                    </div>
-                    <div className="flex justify-between text-sm text-gray-600">
-                      <span>SGST</span><span>{totals.sgstAmt.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</span>
-                    </div>
-                  </>
+                {totals.itemGstTotal > 0 && (
+                  <div className="flex justify-between text-xs text-gray-500 border-t border-dashed border-gray-100 pt-2">
+                    <span>Total GST (from HSN)</span>
+                    <span className="font-medium">{totals.itemGstTotal.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</span>
+                  </div>
                 )}
                 <div>
                   <label className="text-xs text-gray-600">Shipping Amount</label>
-                  <input type="number" min="0" step="0.01" value={form.shippingAmount} onChange={e => setF("shippingAmount", e.target.value)} className="w-full rounded-lg border border-gray-200 px-2.5 py-1.5 text-sm text-gray-900 bg-white focus:outline-none focus:border-[#C6AF4B] text-right mt-1" />
+                  <input
+                    type="number" min="0" step="0.01"
+                    value={form.shippingAmount}
+                    onChange={e => {
+                      const raw = parseFloat(e.target.value);
+                      if (Number.isNaN(raw)) { setF("shippingAmount", ""); return; }
+                      setF("shippingAmount", String(Math.max(0, raw)));
+                    }}
+                    onKeyDown={e => { if (e.key === "-" || e.key === "e" || e.key === "E") e.preventDefault(); }}
+                    className="w-full rounded-lg border border-gray-200 px-2.5 py-1.5 text-sm text-gray-900 bg-white focus:outline-none focus:border-[#C6AF4B] text-right mt-1"
+                  />
                 </div>
                 <div>
                   <label className="text-xs text-gray-600">Adjustment (+ / −)</label>
                   <input type="number" step="0.01" value={form.adjustmentAmount} onChange={e => setF("adjustmentAmount", e.target.value)} className="w-full rounded-lg border border-gray-200 px-2.5 py-1.5 text-sm text-gray-900 bg-white focus:outline-none focus:border-[#C6AF4B] text-right mt-1" />
                 </div>
-                {(() => {
-                  const hsnGstTotal = items.reduce((s, it) => {
-                    if (HSN_CATEGORIES.has(it.category) && it.hsnGstPct) {
-                      return s + (it.total * parseFloat(it.hsnGstPct)) / 100;
-                    }
-                    return s;
-                  }, 0);
-                  if (hsnGstTotal <= 0) return null;
-                  return (
-                    <div className="flex justify-between text-sm text-gray-600 border-t border-dashed border-gray-100 pt-2">
-                      <span className="flex items-center gap-1">
-                        Item GST <span className="text-xs text-gray-400">(from HSN)</span>
-                      </span>
-                      <span className="font-medium">{hsnGstTotal.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</span>
-                    </div>
-                  );
-                })()}
                 <div className="border-t border-gray-100 pt-3 flex justify-between items-center">
                   <span className="font-bold text-gray-900">Total ({form.currencyCode})</span>
                   <span className="text-lg font-bold" style={{ color: G }}>
@@ -1399,47 +1471,53 @@ export default function InvoiceForm() {
                         </td>
                         {/* Qty */}
                         <td className="px-3 py-2">
-                          <input type="number" min="0" step="0.01" value={it.quantity} onChange={e => updateItem(it.id, "quantity", parseFloat(e.target.value) || 0)} className="w-full rounded-lg border border-gray-200 px-2 py-1.5 text-xs text-gray-900 bg-white focus:outline-none focus:border-[#C6AF4B] text-right" />
+                          <input
+                            type="number" min="0" step="0.01"
+                            value={it.quantity}
+                            onChange={e => updateItem(it.id, "quantity", Math.max(0, parseFloat(e.target.value) || 0))}
+                            onKeyDown={e => { if (e.key === "-" || e.key === "e" || e.key === "E") e.preventDefault(); }}
+                            className="w-full rounded-lg border border-gray-200 px-2 py-1.5 text-xs text-gray-900 bg-white focus:outline-none focus:border-[#C6AF4B] text-right"
+                          />
                         </td>
                         {/* Rate */}
                         <td className="px-3 py-2">
                           <input
                             type="number" min="0" step="0.01"
                             value={parseFloat(toInvCcy(it.unitPrice).toFixed(2))}
-                            onChange={e => updateItem(it.id, "unitPrice", (parseFloat(e.target.value) || 0) * rate)}
+                            onChange={e => updateItem(it.id, "unitPrice", Math.max(0, parseFloat(e.target.value) || 0) * rate)}
+                            onKeyDown={e => { if (e.key === "-" || e.key === "e" || e.key === "E") e.preventDefault(); }}
                             className="w-full rounded-lg border border-gray-200 px-2 py-1.5 text-xs text-gray-900 bg-white focus:outline-none focus:border-[#C6AF4B] text-right"
                           />
                         </td>
-                        {/* HSN Code */}
+                        {/* HSN Code — pick from HSN master only */}
                         <td className="px-3 py-2">
-                          <input
+                          <select
                             value={it.hsnCode}
                             onChange={e => {
                               const code = e.target.value;
                               const hsn = hsnList.find(h => h.hsnCode === code);
                               setItems(prev => prev.map(x => x.id !== it.id ? x : {
                                 ...x, hsnCode: code,
-                                hsnGstPct: hsn ? hsn.gstPercentage : x.hsnGstPct,
+                                hsnGstPct: hsn ? hsn.gstPercentage : "",
                               }));
                             }}
-                            list={`hsn-list-${it.id}`}
-                            className="w-full rounded-lg border border-gray-200 px-2 py-1.5 text-xs text-gray-900 bg-white focus:outline-none focus:border-[#C6AF4B]"
-                            placeholder="e.g. 63019090"
-                          />
-                          <datalist id={`hsn-list-${it.id}`}>
+                            className="w-full rounded-lg border border-gray-200 px-2 py-1.5 text-xs text-gray-900 bg-white focus:outline-none focus:border-[#C6AF4B] cursor-pointer"
+                          >
+                            <option value="">— Select HSN —</option>
                             {hsnList.map(h => (
-                              <option key={h.id} value={h.hsnCode}>{h.govtDescription} — {h.gstPercentage}%</option>
+                              <option key={h.id} value={h.hsnCode}>{h.hsnCode} — {h.gstPercentage}%</option>
                             ))}
-                          </datalist>
+                          </select>
                         </td>
-                        {/* GST % */}
+                        {/* GST % — derived from HSN, read-only */}
                         <td className="px-3 py-2">
                           <input
-                            type="number" min="0" max="100" step="0.01"
+                            type="number"
                             value={it.hsnGstPct}
-                            onChange={e => updateItem(it.id, "hsnGstPct", e.target.value)}
-                            className="w-full rounded-lg border border-gray-200 px-2 py-1.5 text-xs text-gray-900 bg-white focus:outline-none focus:border-[#C6AF4B] text-right"
-                            placeholder="0"
+                            readOnly
+                            tabIndex={-1}
+                            className="w-full rounded-lg border border-gray-100 bg-gray-50 px-2 py-1.5 text-xs text-gray-500 cursor-not-allowed text-right"
+                            placeholder="—"
                           />
                         </td>
                         {/* GST Amount */}
@@ -1469,12 +1547,10 @@ export default function InvoiceForm() {
                 })}
               </tbody>
               {items.length > 0 && (() => {
-                const totalAmt = items.reduce((s, i) => s + i.total, 0);
-                const totalGst = items.reduce((s, i) => {
-                  const pct = parseFloat(i.hsnGstPct || "0");
-                  return s + (pct > 0 ? (i.total * pct) / 100 : 0);
-                }, 0);
-                const grandTotal = totalAmt + totalGst;
+                // Footer matches sidebar/persisted totals (includes shipping + adjustment)
+                const totalAmt = totals.subtotal;
+                const totalGst = totals.itemGstTotal;
+                const grandTotal = totals.total;
                 const fmt = (n: number) => toInvCcy(n).toLocaleString("en-IN", { minimumFractionDigits: 2 });
                 return (
                   <tfoot>
