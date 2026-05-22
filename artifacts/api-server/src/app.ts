@@ -26,6 +26,12 @@ app.use(cors());
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 
+// Block search-engine indexing of the entire API + admin app.
+app.use((_req: Request, res: Response, next: NextFunction) => {
+  res.setHeader("X-Robots-Tag", "noindex, nofollow, noarchive, nosnippet, noimageindex");
+  next();
+});
+
 // ── Rich activity description builder ───────────────────────────
 async function buildRichAction(
   method: string, path: string, reqBody: any, resBody: any, statusCode: number
@@ -421,5 +427,83 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 app.use("/api", router);
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 app.use("/api/uploads", express.static(path.join(process.cwd(), "uploads")));
+
+// ── API documentation (Redoc HTML, OpenAPI spec, Postman collection) ──
+// Admin-only. Access flow:
+//   1) SPA calls POST /api/docs/access (Bearer header, admin) → receives short-lived nonce.
+//   2) SPA uses nonce in ?n=... query for iframe + download links.
+//   3) Nonce is single-issued, scoped to docs, expires in 5 minutes. JWT never appears in URLs.
+const docsDir = path.resolve(process.cwd(), "../../exports");
+
+const DOCS_NONCE_TTL_MS = 5 * 60 * 1000;
+const docsNonces = new Map<string, number>(); // nonce → expiresAt
+
+function pruneDocsNonces() {
+  const now = Date.now();
+  for (const [k, exp] of docsNonces) if (exp <= now) docsNonces.delete(k);
+}
+
+function issueDocsNonce(): string {
+  pruneDocsNonces();
+  const n = `${Date.now().toString(36)}_${Math.random().toString(36).slice(2)}${Math.random().toString(36).slice(2)}`;
+  docsNonces.set(n, Date.now() + DOCS_NONCE_TTL_MS);
+  return n;
+}
+
+function consumeDocsNonce(n: string | undefined): boolean {
+  if (!n) return false;
+  pruneDocsNonces();
+  const exp = docsNonces.get(n);
+  if (!exp || exp <= Date.now()) return false;
+  return true; // re-usable within TTL window so the SPA can open iframe + click downloads
+}
+
+app.post("/api/docs/access", (req: Request, res: Response) => {
+  const hdr = req.headers.authorization;
+  const token = hdr?.startsWith("Bearer ") ? hdr.slice(7) : undefined;
+  if (!token) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+  try {
+    const payload = verifyToken(token);
+    if (payload?.role !== "admin") {
+      res.status(403).json({ error: "Admin role required" });
+      return;
+    }
+    const nonce = issueDocsNonce();
+    res.json({ nonce, expiresIn: DOCS_NONCE_TTL_MS / 1000 });
+  } catch {
+    res.status(401).json({ error: "Invalid or expired token" });
+  }
+});
+
+function requireDocsNonce(req: Request, res: Response, next: NextFunction) {
+  const n = typeof req.query.n === "string" ? req.query.n : undefined;
+  if (!consumeDocsNonce(n)) {
+    res.status(401).type("text/plain").send("Unauthorized — open the API Documentation tab in Settings to view these docs.");
+    return;
+  }
+  next();
+}
+
+app.get("/api/docs", requireDocsNonce, (_req, res) => {
+  res.sendFile(path.join(docsDir, "ZARI_ERP_API_docs.html"));
+});
+app.get("/api/docs/openapi.json", requireDocsNonce, (_req, res) => {
+  res.type("application/json").sendFile(path.join(docsDir, "ZARI_ERP_API.openapi.json"));
+});
+app.get("/api/docs/openapi.yaml", requireDocsNonce, (_req, res) => {
+  res.type("application/yaml").sendFile(path.join(docsDir, "ZARI_ERP_API.openapi.yaml"));
+});
+app.get("/api/docs/postman.json", requireDocsNonce, (_req, res) => {
+  res.type("application/json").sendFile(path.join(docsDir, "ZARI_ERP_API.postman_collection.json"));
+});
+app.get("/api/docs/markdown", requireDocsNonce, (_req, res) => {
+  res.type("text/markdown").sendFile(path.join(docsDir, "ZARI_ERP_API.md"));
+});
+app.get("/api/docs/bundle.zip", requireDocsNonce, (_req, res) => {
+  res.sendFile(path.join(docsDir, "ZARI_ERP_API_docs.zip"));
+});
 
 export default app;

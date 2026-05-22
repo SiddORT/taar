@@ -10,7 +10,7 @@
   POST /api/auth/login
   Content-Type: application/json
 
-  { "email": "admin@zarierp.com", "password": "Admin@123" }
+  { "email": "admin@example.com", "password": "YourPasswordHere" }
   ```
 
   The response contains a `token` field — pass it on every subsequent request:

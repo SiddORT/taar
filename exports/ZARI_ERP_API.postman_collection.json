@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "76272723-6736-42e1-9868-ad778923b66f",
     "name": "ZARI ERP API",
-    "description": "Complete API collection for the ZARI ERP backend (Express + PostgreSQL + Drizzle).\n\n  **Setup**\n  1. Set the `baseUrl` variable (default: http://localhost) to your server origin.\n  2. Run the **Auth › POST /auth/login** request with admin credentials — its test script auto-captures the JWT into the `token` variable, which all protected requests use via `Authorization: Bearer {{token}}`.\n\n  **Defaults**\n  - Admin user: `admin@zarierp.com` / `Admin@123`\n  - All endpoints are mounted under `/api`.\n\n  Generated from `artifacts/api-server/src/routes/` — 433 endpoints across 45 modules.",
+    "description": "Complete API collection for the ZARI ERP backend (Express + PostgreSQL + Drizzle).\n\n  **Setup**\n  1. Set the `baseUrl` variable (default: http://localhost) to your server origin.\n  2. Run the **Auth › POST /auth/login** request with admin credentials — its test script auto-captures the JWT into the `token` variable, which all protected requests use via `Authorization: Bearer {{token}}`.\n\n  **Defaults**\n  - Admin user: `admin@example.com` / `YourPasswordHere`\n  - All endpoints are mounted under `/api`.\n\n  Generated from `artifacts/api-server/src/routes/` — 433 endpoints across 45 modules.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -120,7 +120,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"admin@zarierp.com\",\n  \"password\": \"Admin@123\"\n}",
+              "raw": "{\n  \"email\": \"admin@example.com\",\n  \"password\": \"YourPasswordHere\"\n}",
               "options": {
                 "raw": {
                   "language": "json"

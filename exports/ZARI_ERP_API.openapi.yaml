@@ -2,10 +2,10 @@ openapi: 3.0.3
 info:
   title: ZARI ERP API
   version: 1.0.0
-  description: "Complete API reference for the ZARI ERP backend (Express 5 + PostgreSQL + Drizzle ORM).\n\n  **Authentication.** Most endpoints require a Bearer JWT obtained from `POST /api/auth/login` with seeded admin credentials `admin@zarierp.com` / `Admin@123`. Send the token in the `Authorization: Bearer <token>` header.\n\n  **Base path.** All endpoints are served under `/api`. The platform reverse proxy listens on port 80 in development and `$REPLIT_DOMAINS` in production.\n\n  Auto-generated from `artifacts/api-server/src/routes/` — 433 endpoints across 45 modules."
+  description: "Complete API reference for the ZARI ERP backend (Express 5 + PostgreSQL + Drizzle ORM).\n\n  **Authentication.** Most endpoints require a Bearer JWT obtained from `POST /api/auth/login` with seeded admin credentials `admin@example.com` / `YourPasswordHere`. Send the token in the `Authorization: Bearer <token>` header.\n\n  **Base path.** All endpoints are served under `/api`. The platform reverse proxy listens on port 80 in development and `$REPLIT_DOMAINS` in production.\n\n  Auto-generated from `artifacts/api-server/src/routes/` — 433 endpoints across 45 modules."
   contact:
     name: Zari Embroideries
-    email: "admin@zarierp.com"
+    email: "admin@example.com"
 servers:
   -
     url: "http://localhost"

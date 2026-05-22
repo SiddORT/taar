@@ -5,7 +5,7 @@ import {
   Eye, EyeOff, Camera, CheckCircle2, AlertCircle, Edit2, X,
   Building2, Activity, Trash2, Star, Plus, Filter, Search,
   CreditCard, Landmark, Download, Warehouse, MapPin, Phone, FileText, Receipt, ToggleLeft, ToggleRight, Info,
-  Layers, Check, ChevronRight
+  Layers, Check, ChevronRight, Code2, ExternalLink
 } from "lucide-react";
 import { useGetMe, useLogout, getGetMeQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -16,7 +16,7 @@ import { logDownload } from "@/utils/logDownload";
 
 const G = "#C6AF4B";
 
-type Tab = "profile" | "currency" | "banks" | "gst" | "logs" | "warehouses" | "templates" | "reports" | "download_logs";
+type Tab = "profile" | "currency" | "banks" | "gst" | "logs" | "warehouses" | "templates" | "reports" | "download_logs" | "api_docs";
 
 const STATUS_COLORS: Record<string, string> = {
   Active:   "bg-emerald-50 text-emerald-700 border-emerald-200",
@@ -47,7 +47,7 @@ export default function Settings() {
   const logoutMutation = useLogout();
 
   const [tab, setTab] = useState<Tab>(() => {
-    const valid: Tab[] = ["profile", "currency", "banks", "gst", "logs", "warehouses", "templates", "download_logs"];
+    const valid: Tab[] = ["profile", "currency", "banks", "gst", "logs", "warehouses", "templates", "download_logs", "api_docs"];
     const p = new URLSearchParams(window.location.search).get("tab") as Tab | null;
     return p && valid.includes(p) ? p : "profile";
   });
@@ -113,6 +113,9 @@ export default function Settings() {
               {can("settings:download_logs:view") && (
                 <NavItem icon={<Download size={16} />} label="Download Logs" active={tab === "download_logs"} onClick={() => setTab("download_logs")} />
               )}
+              {isAdmin && (
+                <NavItem icon={<Code2 size={16} />} label="API Documentation" active={tab === "api_docs"} onClick={() => setTab("api_docs")} />
+              )}
             </div>
           </aside>
 
@@ -126,6 +129,7 @@ export default function Settings() {
             {tab === "warehouses" && can("settings:warehouses:view") && <WarehouseTab card={card} inp={inp} label={label} toast={toast} canEdit={can("settings:warehouses:add_edit")} />}
             {tab === "templates" && can("settings:templates:view") && <InvoiceTemplatesTab card={card} toast={toast} />}
             {tab === "download_logs" && can("settings:download_logs:view") && <DownloadLogsTab card={card} isAdmin={isAdmin} currentUserEmail={user?.email ?? ""} canDownload={can("settings:download_logs:download")} />}
+            {tab === "api_docs" && isAdmin && <ApiDocsTab card={card} />}
           </div>
         </div>
       </div>
@@ -2814,6 +2818,152 @@ function DownloadLogsTab({ card, isAdmin, currentUserEmail, canDownload }: any) 
             </div>
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────
+// API DOCUMENTATION TAB (admin only)
+// ─────────────────────────────────────────────────────────
+
+function ApiDocsTab({ card }: { card: string }) {
+  const [nonce, setNonce] = useState<string>("");
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string>("");
+
+  const fetchNonce = useCallback(async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const token = localStorage.getItem("zarierp_token") ?? "";
+      const r = await fetch("/api/docs/access", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const j = await r.json();
+      setNonce(j.nonce as string);
+      // Refresh nonce ~30s before expiry so the page stays usable.
+      const ttlMs = Math.max(60, (j.expiresIn ?? 300) - 30) * 1000;
+      window.setTimeout(() => { void fetchNonce(); }, ttlMs);
+    } catch (e: any) {
+      setError(e?.message ?? "Failed to load documentation access");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { void fetchNonce(); }, [fetchNonce]);
+
+  const q = nonce ? `?n=${encodeURIComponent(nonce)}` : "";
+  const docsUrl = `/api/docs${q}`;
+  const downloads = [
+    { label: "OpenAPI Spec (YAML)",       href: `/api/docs/openapi.yaml${q}`,   file: "ZARI_ERP_API.openapi.yaml",          desc: "Source of truth for every endpoint — import into any OpenAPI-aware tool." },
+    { label: "OpenAPI Spec (JSON)",       href: `/api/docs/openapi.json${q}`,   file: "ZARI_ERP_API.openapi.json",          desc: "Same spec in JSON — useful for Swagger UI, code generators, and Stoplight." },
+    { label: "Postman Collection",        href: `/api/docs/postman.json${q}`,   file: "ZARI_ERP_API.postman_collection.json", desc: "Pre-organised into folders. Import directly into Postman to start testing." },
+    { label: "API Reference (Markdown)",  href: `/api/docs/markdown${q}`,       file: "ZARI_ERP_API.md",                    desc: "Human-readable reference for offline review or printing." },
+    { label: "Full Docs Bundle (.zip)",   href: `/api/docs/bundle.zip${q}`,     file: "ZARI_ERP_API_docs.zip",              desc: "Everything above plus the Redoc HTML in one zip — share with developers." },
+  ];
+
+  return (
+    <div className="space-y-4">
+      {/* Header card */}
+      <div className={`${card} p-5`}>
+        <div className="flex items-start gap-4">
+          <div className="h-11 w-11 rounded-xl bg-gray-900 text-[#C6AF4B] flex items-center justify-center shrink-0">
+            <Code2 size={20} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h2 className="text-lg font-bold text-gray-900">API Documentation</h2>
+            <p className="text-sm text-gray-500 mt-0.5">
+              Interactive reference for every ZARI ERP backend endpoint — Swagger / OpenAPI spec, Redoc viewer, and Postman collection.
+            </p>
+          </div>
+          <a
+            href={nonce ? docsUrl : undefined}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-disabled={!nonce}
+            onClick={e => { if (!nonce) e.preventDefault(); }}
+            className={`shrink-0 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold transition ${
+              nonce ? "bg-gray-900 text-[#C6AF4B] hover:bg-black cursor-pointer" : "bg-gray-200 text-gray-400 cursor-not-allowed"
+            }`}
+          >
+            <ExternalLink size={14} />
+            Open in new tab
+          </a>
+        </div>
+      </div>
+
+      {/* Embedded Redoc viewer */}
+      <div className={`${card} overflow-hidden`}>
+        <div className="flex items-center justify-between px-4 py-2.5 border-b border-gray-100 bg-gray-50">
+          <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Live API Reference</span>
+          <span className="text-[10px] text-gray-400">Powered by Redoc · OpenAPI 3.0</span>
+        </div>
+        {loading && !nonce && (
+          <div className="flex items-center justify-center gap-2 py-20 text-sm text-gray-500">
+            <RefreshCw size={14} className="animate-spin" /> Preparing secure access…
+          </div>
+        )}
+        {error && !nonce && (
+          <div className="flex flex-col items-center justify-center gap-3 py-16 text-sm">
+            <span className="text-rose-600">Could not load documentation access: {error}</span>
+            <button onClick={() => void fetchNonce()} className="px-3 py-1.5 rounded-lg bg-gray-900 text-[#C6AF4B] text-xs font-semibold hover:bg-black">Retry</button>
+          </div>
+        )}
+        {nonce && (
+          <iframe
+            key={nonce}
+            src={docsUrl}
+            title="ZARI ERP API Documentation"
+            className="w-full bg-white"
+            style={{ height: "70vh", border: 0 }}
+          />
+        )}
+      </div>
+
+      {/* Downloads */}
+      <div className={`${card} p-5`}>
+        <div className="flex items-center gap-2 mb-3">
+          <Download size={16} className="text-gray-500" />
+          <h3 className="text-sm font-semibold text-gray-900">Download specs &amp; collections</h3>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+          {downloads.map(d => (
+            <a
+              key={d.label}
+              href={nonce ? d.href : undefined}
+              download={d.file}
+              aria-disabled={!nonce}
+              onClick={e => { if (!nonce) e.preventDefault(); }}
+              className={`group flex items-start gap-3 p-3 rounded-xl border transition ${
+                nonce ? "border-gray-200 hover:border-[#C6AF4B] hover:bg-[#fdf8e7]/40 cursor-pointer" : "border-gray-100 opacity-50 cursor-not-allowed"
+              }`}
+            >
+              <div className="h-9 w-9 rounded-lg bg-gray-100 group-hover:bg-white flex items-center justify-center shrink-0 transition">
+                <FileText size={15} className="text-gray-500 group-hover:text-[#C6AF4B] transition" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold text-gray-800 truncate">{d.label}</p>
+                <p className="text-xs text-gray-500 leading-snug mt-0.5">{d.desc}</p>
+              </div>
+              <Download size={14} className="text-gray-300 group-hover:text-[#C6AF4B] mt-1 shrink-0 transition" />
+            </a>
+          ))}
+        </div>
+      </div>
+
+      {/* Helper card */}
+      <div className="rounded-xl p-4 border border-[#C6AF4B]/25" style={{ background: "#fdf8e7" }}>
+        <p className="text-xs font-bold uppercase tracking-widest mb-1 text-[#9c8635]">How to use</p>
+        <ol className="text-sm text-gray-700 space-y-1 list-decimal list-inside leading-relaxed">
+          <li>Browse the live reference above to explore endpoints, request/response shapes, and authentication.</li>
+          <li>For testing, download the <strong>Postman Collection</strong> and import it into Postman — all 45 folders come pre-organised.</li>
+          <li>For code generation or external integrations, use the <strong>OpenAPI Spec (YAML/JSON)</strong>.</li>
+          <li>All API requests require a Bearer token from <code className="px-1.5 py-0.5 rounded bg-white border border-gray-200 text-[11px]">POST /api/auth/login</code>.</li>
+        </ol>
       </div>
     </div>
   );
