@@ -188,15 +188,28 @@ export default function PackingListForm() {
     customFetch<any>("/api/shipping/vendors").then(j => setVendors(j.data ?? [])).catch(() => {});
   }, []);
 
-  // Load addresses when client changes
+  // Load addresses when client changes. Auto-select the default (or the only)
+  // address so the user does not have to re-pick it manually. A sequence guard
+  // protects against rapid client switching — older responses cannot overwrite
+  // newer state.
   useEffect(() => {
     if (!clientId) { setAddresses([]); setDeliveryAddressId(""); return; }
+    let cancelled = false;
     setLoadingAddresses(true);
     customFetch<any>(`/api/delivery-addresses?client_id=${clientId}`)
-      .then(j => setAddresses(j.data ?? []))
+      .then(j => {
+        if (cancelled) return;
+        const list: DeliveryAddress[] = j.data ?? [];
+        setAddresses(list);
+        if (!isEdit && list.length > 0) {
+          // Only auto-select when nothing is picked yet for this client.
+          setDeliveryAddressId(prev => prev || (list.find(a => a.is_default) ?? list[0]).id);
+        }
+      })
       .catch(() => {})
-      .finally(() => setLoadingAddresses(false));
-  }, [clientId]);
+      .finally(() => { if (!cancelled) setLoadingAddresses(false); });
+    return () => { cancelled = true; };
+  }, [clientId, isEdit]);
 
   // Load eligible orders when client + address set
   useEffect(() => {
@@ -526,7 +539,7 @@ export default function PackingListForm() {
       onLogout={handleLogout}
       isLoggingOut={logoutMutation.isPending}
     >
-      <div className="max-w-screen-xl mx-auto px-4 sm:px-6 py-8">
+      <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-10 py-8">
         {/* Header */}
         <div className="flex items-center gap-4 mb-6">
           <button onClick={() => setLocation("/logistics/packing-lists")} className="p-2 rounded-xl hover:bg-gray-100 text-gray-500">
@@ -1278,14 +1291,16 @@ export default function PackingListForm() {
       {/* New Address Modal */}
       {showAddrModal && (
         <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
-            <div className="flex items-center justify-between mb-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl flex flex-col max-h-[90vh]">
+            {/* Sticky header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 shrink-0">
               <h3 className="font-bold text-gray-900">Add Delivery Address</h3>
               <button onClick={() => setShowAddrModal(false)} className="text-gray-400 hover:text-gray-600">
                 <X className="h-5 w-5" />
               </button>
             </div>
-            <div className="space-y-3">
+            {/* Scrollable body */}
+            <div className="px-6 py-5 space-y-3 overflow-y-auto flex-1">
               {/* Pincode first so the auto-fill happens before the user types city/state. */}
               <div>
                 <label className="block text-xs font-semibold text-gray-600 mb-1">
@@ -1336,12 +1351,18 @@ export default function PackingListForm() {
                 <span className="text-sm text-gray-700">Set as default address</span>
               </label>
             </div>
-            <div className="flex justify-end gap-2 mt-5">
-              <button onClick={() => setShowAddrModal(false)} className="px-4 py-2 rounded-xl text-sm text-gray-600 hover:bg-gray-100">Cancel</button>
+            {/* Sticky footer — always visible regardless of scroll position */}
+            <div className="flex justify-end gap-2 px-6 py-4 border-t border-gray-100 bg-white rounded-b-2xl shrink-0">
+              <button
+                onClick={() => setShowAddrModal(false)}
+                className="px-4 py-2 rounded-xl text-sm font-medium text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 shadow-sm"
+              >
+                Cancel
+              </button>
               <button
                 onClick={handleSaveAddr}
                 disabled={savingAddr || !newAddr.label}
-                className="px-5 py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-60"
+                className="px-5 py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-60 shadow-sm"
                 style={{ backgroundColor: G }}
               >
                 {savingAddr ? "Saving…" : "Save Address"}
