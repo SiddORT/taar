@@ -42,7 +42,9 @@ interface LedgerEntry {
 
 function fmt(n: string | number) {
   const val = typeof n === "string" ? parseFloat(n) : Number(n);
-  return "₹" + Math.abs(val).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  if (!Number.isFinite(val)) return "₹0.00";
+  const sign = val < 0 ? "−" : "";
+  return sign + "₹" + Math.abs(val).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 function fmtDate(d: string) {
@@ -192,9 +194,19 @@ export default function VendorLedgerDetail() {
 
   function openPayFromSelection() {
     setPayFromSelection(true);
+    // Derive order type — only "style" | "swatch" | "general" are valid on the backend enum
+    const types = Array.from(new Set(selectedEntries.map(e => e.order_type).filter(Boolean)));
+    const only = types.length === 1 ? types[0] : null;
+    const derivedType: "style" | "swatch" | "general" =
+      only === "style" || only === "swatch" ? only : "general";
+    const styleCode  = selectedEntries.find(e => e.order_type === "style"  && e.order_code)?.order_code ?? "";
+    const swatchCode = selectedEntries.find(e => e.order_type === "swatch" && e.order_code)?.order_code ?? "";
     setPayForm(f => ({
       ...f,
       amount: selectedTotal.toFixed(2),
+      orderType: derivedType,
+      styleOrderCode:  derivedType === "style"  ? styleCode  : "",
+      swatchOrderCode: derivedType === "swatch" ? swatchCode : "",
       notes: `Payment against ${selectedEntries.length} item(s): ` +
         selectedEntries.map(e => e.description).join(", "),
     }));
@@ -208,8 +220,21 @@ export default function VendorLedgerDetail() {
   }
 
   const handlePay = async () => {
-    if (!payForm.amount || !payForm.paymentMode) {
-      toast({ title: "Amount and payment mode are required", variant: "destructive" }); return;
+    const amt = parseFloat(payForm.amount);
+    if (!Number.isFinite(amt) || amt <= 0) {
+      toast({ title: "Enter a payment amount greater than 0", variant: "destructive" }); return;
+    }
+    if (!payForm.paymentMode) {
+      toast({ title: "Payment mode is required", variant: "destructive" }); return;
+    }
+    const maxAllowed = payFromSelection ? selectedTotal : Math.max(0, balance);
+    if (maxAllowed > 0 && amt > maxAllowed + 0.001) {
+      toast({
+        title: `Amount cannot exceed ₹${maxAllowed.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`,
+        description: payFromSelection ? "Limited to the total of selected items" : "Limited to the current outstanding balance",
+        variant: "destructive",
+      });
+      return;
     }
     setSubmitting(true);
     try {
@@ -229,8 +254,12 @@ export default function VendorLedgerDetail() {
   };
 
   const handleCharge = async () => {
-    if (!chargeForm.description || !chargeForm.amount) {
-      toast({ title: "Description and amount are required", variant: "destructive" }); return;
+    if (!chargeForm.description.trim()) {
+      toast({ title: "Description is required", variant: "destructive" }); return;
+    }
+    const amt = parseFloat(chargeForm.amount);
+    if (!Number.isFinite(amt) || amt <= 0) {
+      toast({ title: "Enter a charge amount greater than 0", variant: "destructive" }); return;
     }
     setSubmitting(true);
     try {
@@ -251,6 +280,9 @@ export default function VendorLedgerDetail() {
     if (!["payment", "ledger_charge"].includes(entry.entry_type)) {
       toast({ title: "Cannot delete order-linked entries", variant: "destructive" }); return;
     }
+    const label = entry.entry_type === "payment" ? "payment" : "manual charge";
+    const amount = parseFloat(entry.debit || entry.credit || "0").toLocaleString("en-IN", { minimumFractionDigits: 2 });
+    if (!confirm(`Delete this ${label} of ₹${amount} dated ${fmtDate(entry.entry_date)}?\n\nThis will adjust the vendor balance and cannot be undone.`)) return;
     const path = entry.entry_type === "payment"
       ? `/api/vendor-ledger/payments/${entry.entry_id}`
       : `/api/vendor-ledger/charges/${entry.entry_id}`;
@@ -349,10 +381,29 @@ export default function VendorLedgerDetail() {
           <div className="flex items-center gap-2 text-xs font-medium text-gray-500">
             <Filter className="h-3.5 w-3.5" /> Filters:
           </div>
-          <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)}
+          <input type="date" value={startDate}
+            max={endDate || new Date().toISOString().slice(0, 10)}
+            onChange={e => {
+              const v = e.target.value;
+              if (endDate && v && v > endDate) {
+                toast({ title: "From date cannot be after To date", variant: "destructive" });
+                return;
+              }
+              setStartDate(v);
+            }}
             className="px-3 py-2 rounded-xl border border-gray-200 text-xs text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30" />
           <span className="text-gray-400 text-xs">to</span>
-          <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)}
+          <input type="date" value={endDate}
+            min={startDate || undefined}
+            max={new Date().toISOString().slice(0, 10)}
+            onChange={e => {
+              const v = e.target.value;
+              if (startDate && v && v < startDate) {
+                toast({ title: "To date cannot be before From date", variant: "destructive" });
+                return;
+              }
+              setEndDate(v);
+            }}
             className="px-3 py-2 rounded-xl border border-gray-200 text-xs text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30" />
           <select value={orderTypeFilter} onChange={e => setOrderTypeFilter(e.target.value)}
             className="px-3 py-2 rounded-xl border border-gray-200 text-xs text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30">
@@ -630,16 +681,36 @@ export default function VendorLedgerDetail() {
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1.5">Amount <span className="text-red-500 ml-0.5">*</span></label>
+                    <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1.5">
+                      Amount <span className="text-red-500 ml-0.5">*</span>
+                      <span className="ml-2 normal-case tracking-normal text-gray-400">
+                        max {fmt(payFromSelection ? selectedTotal : Math.max(0, balance))}
+                      </span>
+                    </label>
                     <div className="relative">
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">₹</span>
-                      <input type="number" value={payForm.amount} onChange={e => setPayForm(f => ({ ...f, amount: e.target.value }))}
+                      <input
+                        type="number" min="0.01" step="0.01"
+                        max={(payFromSelection ? selectedTotal : Math.max(0, balance)) || undefined}
+                        value={payForm.amount}
+                        onKeyDown={e => { if (["-", "+", "e", "E"].includes(e.key)) e.preventDefault(); }}
+                        onChange={e => {
+                          const v = e.target.value;
+                          if (v === "") { setPayForm(f => ({ ...f, amount: "" })); return; }
+                          const n = parseFloat(v);
+                          if (!Number.isFinite(n) || n < 0) return;
+                          setPayForm(f => ({ ...f, amount: v }));
+                        }}
                         placeholder="0.00" className="w-full pl-7 pr-3 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30" />
                     </div>
+                    {payForm.amount && parseFloat(payForm.amount) > (payFromSelection ? selectedTotal : Math.max(0, balance)) && (
+                      <p className="text-[10px] text-red-600 mt-1">Exceeds {payFromSelection ? "selected total" : "outstanding balance"}</p>
+                    )}
                   </div>
                   <div>
                     <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1.5">Payment Date</label>
-                    <input type="date" value={payForm.paymentDate} onChange={e => setPayForm(f => ({ ...f, paymentDate: e.target.value }))}
+                    <input type="date" max={new Date().toISOString().slice(0, 10)}
+                      value={payForm.paymentDate} onChange={e => setPayForm(f => ({ ...f, paymentDate: e.target.value }))}
                       className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30" />
                   </div>
                 </div>
@@ -728,13 +799,24 @@ export default function VendorLedgerDetail() {
                     <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1.5">Amount <span className="text-red-500 ml-0.5">*</span></label>
                     <div className="relative">
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">₹</span>
-                      <input type="number" value={chargeForm.amount} onChange={e => setChargeForm(f => ({ ...f, amount: e.target.value }))}
+                      <input
+                        type="number" min="0.01" step="0.01"
+                        value={chargeForm.amount}
+                        onKeyDown={e => { if (["-", "+", "e", "E"].includes(e.key)) e.preventDefault(); }}
+                        onChange={e => {
+                          const v = e.target.value;
+                          if (v === "") { setChargeForm(f => ({ ...f, amount: "" })); return; }
+                          const n = parseFloat(v);
+                          if (!Number.isFinite(n) || n < 0) return;
+                          setChargeForm(f => ({ ...f, amount: v }));
+                        }}
                         placeholder="0.00" className="w-full pl-7 pr-3 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30" />
                     </div>
                   </div>
                   <div>
                     <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1.5">Charge Date</label>
-                    <input type="date" value={chargeForm.chargeDate} onChange={e => setChargeForm(f => ({ ...f, chargeDate: e.target.value }))}
+                    <input type="date" max={new Date().toISOString().slice(0, 10)}
+                      value={chargeForm.chargeDate} onChange={e => setChargeForm(f => ({ ...f, chargeDate: e.target.value }))}
                       className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30" />
                   </div>
                 </div>

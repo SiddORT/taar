@@ -152,6 +152,29 @@ router.post("/", requireAuth, async (req, res) => {
     if (reference_type === "Vendor Bill" && !vendor_bill_id)
       throw new Error("vendor_bill_id is required for Vendor Bill");
 
+    // Server-side cap: note_amount must not exceed source document outstanding/total
+    const amtNum = parseFloat(note_amount);
+    if (note_type === "Credit Note" && reference_type === "Client Invoice" && invoice_id) {
+      const { rows: invRows } = await client.query(
+        `SELECT COALESCE(pending_amount, total_amount, 0) AS cap FROM invoices WHERE id = $1`,
+        [invoice_id]
+      );
+      if (!invRows.length) throw new Error("Linked invoice not found");
+      const cap = parseFloat(invRows[0].cap);
+      if (amtNum > cap + 0.001)
+        throw new Error(`Credit Note amount (₹${amtNum.toFixed(2)}) cannot exceed invoice pending amount (₹${cap.toFixed(2)})`);
+    }
+    if (note_type === "Debit Note" && reference_type === "Vendor Bill" && vendor_bill_id) {
+      const { rows: vbRows } = await client.query(
+        `SELECT COALESCE(pending_amount, vendor_invoice_amount, 0) AS cap FROM vendor_invoice_ledger WHERE id = $1`,
+        [vendor_bill_id]
+      );
+      if (!vbRows.length) throw new Error("Linked vendor bill not found");
+      const cap = parseFloat(vbRows[0].cap);
+      if (amtNum > cap + 0.001)
+        throw new Error(`Debit Note amount (₹${amtNum.toFixed(2)}) cannot exceed vendor bill amount (₹${cap.toFixed(2)})`);
+    }
+
     const note_number = await nextNoteNumber(client, note_type);
     const base = parseFloat(note_amount) * parseFloat(exchange_rate_snapshot);
     const createdBy = (req as any).user?.username ?? (req as any).user?.name ?? "";

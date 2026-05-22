@@ -203,8 +203,41 @@ export default function CreditDebitNotes() {
     }));
   }, [form.vendor_bill_id, form.reference_type, vendorBills]);
 
+  // Derive maximum allowed note amount based on the linked invoice / vendor bill
+  const noteMax = (() => {
+    if (form.reference_type === "Client Invoice" && form.invoice_id) {
+      const inv = invoices.find(i => String(i.id) === String(form.invoice_id));
+      if (!inv) return null;
+      // Credit Note reduces pending; cap by pending. Debit Note increases; cap by total invoice.
+      const pending = parseFloat(String(inv.pendingAmount ?? inv.pending_amount ?? 0));
+      const total   = parseFloat(String(inv.totalAmount   ?? inv.total_amount   ?? 0));
+      return form.note_type === "Credit Note" ? pending : total;
+    }
+    if (form.reference_type === "Vendor Bill" && form.vendor_bill_id) {
+      const bill = vendorBills.find(v => String(v.id) === String(form.vendor_bill_id));
+      if (!bill) return null;
+      return parseFloat(String(bill.vendor_invoice_amount ?? bill.amount ?? 0));
+    }
+    return null;
+  })();
+
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
+    const amt = parseFloat(form.note_amount);
+    if (!Number.isFinite(amt) || amt <= 0) {
+      toast({ title: "Enter a valid amount greater than 0", variant: "destructive" });
+      return;
+    }
+    if (noteMax !== null && amt > noteMax) {
+      toast({
+        title: `Amount cannot exceed ₹${fmt(noteMax)}`,
+        description: form.note_type === "Credit Note"
+          ? "Credit note is limited to the invoice pending amount"
+          : "Debit note is limited to the linked document total",
+        variant: "destructive",
+      });
+      return;
+    }
     setSaving(true);
     try {
       const payload = {
@@ -212,7 +245,7 @@ export default function CreditDebitNotes() {
         invoice_id: form.invoice_id || null,
         vendor_bill_id: form.vendor_bill_id || null,
         party_id: form.party_id || null,
-        note_amount: parseFloat(form.note_amount),
+        note_amount: amt,
         exchange_rate_snapshot: parseFloat(form.exchange_rate_snapshot),
       };
       const res = await customFetch<any>("/api/credit-debit-notes", {
@@ -574,10 +607,29 @@ export default function CreditDebitNotes() {
               {/* Amount + currency */}
               <div className="grid grid-cols-3 gap-4">
                 <div className="col-span-2">
-                  <label className={lbl}>Note Amount <span className="text-red-500 ml-0.5">*</span></label>
-                  <input type="number" min="0.01" step="0.01" required
-                    value={form.note_amount} onChange={e => setF("note_amount", e.target.value)} className={inp}
-                    placeholder="0.00" />
+                  <label className={lbl}>
+                    Note Amount <span className="text-red-500 ml-0.5">*</span>
+                    {noteMax !== null && (
+                      <span className="ml-2 text-[10px] font-normal text-gray-400 normal-case tracking-normal">
+                        max ₹{fmt(noteMax)}
+                      </span>
+                    )}
+                  </label>
+                  <input
+                    type="number" min="0.01" step="0.01" required
+                    max={noteMax !== null && noteMax > 0 ? noteMax : undefined}
+                    value={form.note_amount}
+                    onKeyDown={e => { if (["-", "+", "e", "E"].includes(e.key)) e.preventDefault(); }}
+                    onChange={e => {
+                      const v = e.target.value;
+                      const n = parseFloat(v);
+                      if (v === "" || !Number.isFinite(n) || n < 0) { setF("note_amount", v === "" ? "" : Math.max(0, n || 0).toString()); return; }
+                      setF("note_amount", v);
+                    }}
+                    className={inp} placeholder="0.00" />
+                  {form.note_amount && noteMax !== null && parseFloat(form.note_amount) > noteMax && (
+                    <p className="text-xs text-red-600 mt-1">Amount cannot exceed ₹{fmt(noteMax)}</p>
+                  )}
                 </div>
                 <div>
                   <label className={lbl}>Currency</label>

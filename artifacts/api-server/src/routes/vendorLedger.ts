@@ -403,6 +403,59 @@ router.post("/vendor-ledger/:vendorId/pay", requireAuth, async (req, res) => {
       return res.status(400).json({ error: "Invalid data", issues: parsed.error.issues });
 
     const data = parsed.data;
+    const amt = parseFloat(String(data.amount));
+    if (!Number.isFinite(amt) || amt <= 0)
+      return res.status(400).json({ error: "Payment amount must be greater than 0" });
+
+    // No future-dated payments — compare YYYY-MM-DD strings to avoid timezone drift
+    if (data.paymentDate) {
+      const dateStr = String(data.paymentDate).slice(0, 10);
+      const todayStr = new Date().toISOString().slice(0, 10);
+      if (dateStr > todayStr)
+        return res.status(400).json({ error: "Payment date cannot be in the future" });
+    }
+
+    // Server-side cap: payment cannot exceed current outstanding balance.
+    // Mirrors the canonical ledger union used in /vendor-ledger/summary so the
+    // cap matches what the user sees on screen.
+    const balRes = await pool.query(
+      `SELECT
+        COALESCE((SELECT SUM(total_cost::numeric)              FROM outsource_jobs           WHERE vendor_id = $1), 0)
+      + COALESCE((SELECT SUM(total_amount::numeric)            FROM custom_charges           WHERE vendor_id = $1), 0)
+      + COALESCE((SELECT SUM(amount::numeric)                  FROM vendor_ledger_charges    WHERE vendor_id = $1), 0)
+      + COALESCE((SELECT SUM(outsource_payment_amount::numeric)
+                    FROM artworks
+                    WHERE outsource_vendor_id IS NOT NULL AND outsource_vendor_id <> ''
+                      AND outsource_payment_amount IS NOT NULL AND outsource_payment_amount <> ''
+                      AND outsource_vendor_id::integer = $1), 0)
+      + COALESCE((SELECT SUM(outsource_payment_amount::numeric)
+                    FROM style_order_artworks
+                    WHERE outsource_vendor_id IS NOT NULL AND outsource_vendor_id <> ''
+                      AND outsource_payment_amount IS NOT NULL AND outsource_payment_amount <> ''
+                      AND outsource_vendor_id::integer = $1), 0)
+      + COALESCE((SELECT SUM(COALESCE(NULLIF(toile_making_cost,''), NULLIF(toile_cost,''))::numeric)
+                    FROM style_order_artworks
+                    WHERE toile_vendor_id IS NOT NULL AND toile_vendor_id <> ''
+                      AND ((toile_making_cost IS NOT NULL AND toile_making_cost <> '')
+                           OR (toile_cost IS NOT NULL AND toile_cost <> ''))
+                      AND toile_vendor_id::integer = $1), 0)
+      + COALESCE((SELECT SUM(pattern_payment_amount::numeric)
+                    FROM style_order_artworks
+                    WHERE pattern_vendor_id IS NOT NULL AND pattern_vendor_id <> ''
+                      AND pattern_payment_amount IS NOT NULL AND pattern_payment_amount <> ''
+                      AND pattern_vendor_id::integer = $1), 0)
+      + COALESCE((SELECT SUM(vendor_invoice_amount::numeric)   FROM vendor_invoice_ledger    WHERE vendor_id = $1), 0)
+      - COALESCE((SELECT SUM(amount::numeric)                  FROM vendor_payments          WHERE vendor_id = $1), 0)
+      - COALESCE((SELECT SUM(payment_amount::numeric)          FROM costing_payments         WHERE vendor_id = $1), 0)
+        AS outstanding`,
+      [vendorId]
+    );
+    const outstanding = Math.max(0, parseFloat(balRes.rows[0]?.outstanding ?? "0"));
+    if (amt > outstanding + 0.01)
+      return res.status(400).json({
+        error: `Payment amount (₹${amt.toFixed(2)}) cannot exceed outstanding balance (₹${outstanding.toFixed(2)})`,
+      });
+
     const rows = await db
       .insert(vendorPaymentsTable)
       .values({
@@ -438,6 +491,17 @@ router.post("/vendor-ledger/:vendorId/charge", requireAuth, async (req, res) => 
       return res.status(400).json({ error: "Invalid data", issues: parsed.error.issues });
 
     const data = parsed.data;
+    const chargeAmt = parseFloat(String(data.amount));
+    if (!Number.isFinite(chargeAmt) || chargeAmt <= 0)
+      return res.status(400).json({ error: "Charge amount must be greater than 0" });
+    if (!data.description || !String(data.description).trim())
+      return res.status(400).json({ error: "Charge description is required" });
+    if (data.chargeDate) {
+      const dateStr = String(data.chargeDate).slice(0, 10);
+      const todayStr = new Date().toISOString().slice(0, 10);
+      if (dateStr > todayStr)
+        return res.status(400).json({ error: "Charge date cannot be in the future" });
+    }
     const rows = await db
       .insert(vendorLedgerChargesTable)
       .values({
