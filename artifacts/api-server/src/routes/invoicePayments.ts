@@ -23,7 +23,9 @@ router.get("/invoice-payments/accounts", requireAuth, async (req, res) => {
     const { direction, status, search, page = "1", limit = "30" } = req.query as Record<string, string>;
     const off = (parseInt(page) - 1) * parseInt(limit);
 
-    let where = "WHERE i.invoice_status NOT IN ('Draft','Cancelled')";
+    /* Show all invoices by default; let the status dropdown drive visibility
+       (previously Draft/Cancelled were hard-excluded which hid most rows). */
+    let where = "WHERE 1=1";
     const params: (string | number)[] = [];
     let idx = 1;
 

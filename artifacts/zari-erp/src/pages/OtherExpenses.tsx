@@ -83,8 +83,14 @@ function ExpenseModal({
     const cat = form.expense_category === "__custom__" ? form.custom_category.trim() : form.expense_category;
     if (!cat)                         { setError("Please select or enter an expense category."); return; }
     if (!form.expense_date)           { setError("Expense date is required."); return; }
+    const today = new Date().toISOString().slice(0, 10);
+    if (form.expense_date > today)    { setError("Expense date cannot be in the future."); return; }
     if (!form.amount || parseFloat(form.amount) <= 0) { setError("Amount must be greater than 0."); return; }
     if (!form.currency_code)          { setError("Currency is required."); return; }
+    if ((form.payment_status === "Paid" || form.payment_status === "Partially Paid") && !form.payment_type) {
+      setError("Payment Type is required when payment status is Paid or Partially Paid.");
+      return;
+    }
 
     const fd = new FormData();
     fd.append("expense_category", cat);
@@ -179,7 +185,12 @@ function ExpenseModal({
               </select>
             </div>
             <div>
-              <label className={LBL}>Payment Type</label>
+              <label className={LBL}>
+                Payment Type
+                {(form.payment_status === "Paid" || form.payment_status === "Partially Paid") && (
+                  <span className="text-red-500 ml-0.5">*</span>
+                )}
+              </label>
               <select className={INP} value={form.payment_type} onChange={e => set("payment_type", e.target.value)}>
                 <option value="">Select…</option>
                 {PAYMENT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
@@ -235,7 +246,8 @@ function ExpenseModal({
                   onChange={e => setFile(e.target.files?.[0] ?? null)} />
               </label>
               {initial?.attachment && !file && (
-                <a href={initial.attachment} target="_blank" rel="noopener noreferrer"
+                <a href={initial.attachment.startsWith("/uploads/") ? `/api${initial.attachment}` : initial.attachment}
+                  target="_blank" rel="noopener noreferrer"
                   className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50">
                   <Download size={13} /> Current file
                 </a>
@@ -294,7 +306,8 @@ function ViewModal({ row, onClose }: { row: any; onClose: () => void }) {
           {row.attachment && (
             <div className="flex items-start">
               <span className="w-36 text-xs font-semibold text-gray-400 uppercase tracking-wide shrink-0 pt-0.5">Attachment</span>
-              <a href={row.attachment} target="_blank" rel="noopener noreferrer"
+              <a href={row.attachment.startsWith("/uploads/") ? `/api${row.attachment}` : row.attachment}
+                target="_blank" rel="noopener noreferrer"
                 className="flex items-center gap-1.5 text-sm text-[#C6AF4B] hover:underline">
                 <Download size={13} /> Download file
               </a>
@@ -312,8 +325,17 @@ function ViewModal({ row, onClose }: { row: any; onClose: () => void }) {
 /* ══════════════════════════════════════════════════════
    MAIN PAGE
 ══════════════════════════════════════════════════════ */
+/* Attachment paths are stored as "/uploads/..." which the platform proxy routes
+   to the SPA (causing 404). Files are actually served by the api-server at
+   "/api/uploads/...", so rewrite the prefix at render time. */
+function fileUrl(p?: string | null) {
+  if (!p) return "";
+  if (p.startsWith("/uploads/")) return `/api${p}`;
+  return p;
+}
+
 export default function OtherExpenses() {
-  const { data: me, isError } = useGetMe();
+  const { data: me, isError, isLoading: meLoading } = useGetMe();
   const { toast } = useToast();
   const isAdmin = (me as any)?.role === "admin";
 
@@ -400,6 +422,9 @@ export default function OtherExpenses() {
     }
   }
 
+  if (meLoading) {
+    return <div className="flex items-center justify-center h-screen text-gray-400">Loading…</div>;
+  }
   if (isError || !(me as any)?.id) {
     return <div className="flex items-center justify-center h-screen text-gray-400">Please log in.</div>;
   }
@@ -452,11 +477,30 @@ export default function OtherExpenses() {
             </div>
             <div className="w-36">
               <label className={LBL}>From Date</label>
-              <input type="date" className={INP} value={fromDate} onChange={e => setFromDate(e.target.value)} />
+              <input type="date" className={INP} value={fromDate}
+                max={toDate || new Date().toISOString().slice(0, 10)}
+                onChange={e => {
+                  const v = e.target.value;
+                  if (toDate && v && v > toDate) {
+                    toast({ title: "From Date cannot be after To Date", variant: "destructive" });
+                    return;
+                  }
+                  setFromDate(v);
+                }} />
             </div>
             <div className="w-36">
               <label className={LBL}>To Date</label>
-              <input type="date" className={INP} value={toDate} onChange={e => setToDate(e.target.value)} />
+              <input type="date" className={INP} value={toDate}
+                min={fromDate || undefined}
+                max={new Date().toISOString().slice(0, 10)}
+                onChange={e => {
+                  const v = e.target.value;
+                  if (fromDate && v && v < fromDate) {
+                    toast({ title: "To Date cannot be before From Date", variant: "destructive" });
+                    return;
+                  }
+                  setToDate(v);
+                }} />
             </div>
             <div className="w-40">
               <label className={LBL}>Vendor</label>
@@ -481,7 +525,7 @@ export default function OtherExpenses() {
             </div>
             <button onClick={() => { setSearch(""); setStatusF(""); setCatF(""); setVendorF(""); setFromDate(""); setToDate(""); }}
               className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-gray-200 text-xs font-semibold text-gray-600 hover:bg-gray-50">
-              <Filter size={13} /> Clear
+              <X size={13} /> Clear
             </button>
             <button onClick={load}
               className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-gray-200 text-xs font-semibold text-gray-600 hover:bg-gray-50">
@@ -528,7 +572,7 @@ export default function OtherExpenses() {
                     <td className={`${TD} whitespace-nowrap`}>{fmtDate(row.expense_date)}</td>
                     <td className={TD}>
                       {row.attachment ? (
-                        <a href={row.attachment} target="_blank" rel="noopener noreferrer"
+                        <a href={fileUrl(row.attachment)} target="_blank" rel="noopener noreferrer"
                           className="flex items-center gap-1 text-xs text-[#C6AF4B] hover:underline">
                           <Download size={12} /> File
                         </a>
