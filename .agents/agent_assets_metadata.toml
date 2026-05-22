@@ -18,3 +18,27 @@ id = "qnFO5IHCWRrh8btetxrdq"
 uri = "file://exports/ZARI_ERP_API.postman_collection.json"
 type = "unspecified"
 title = "ZARI ERP API – Postman Collection"
+
+[[outputs]]
+id = "WjGtEub_cWZdoPh2puxhr"
+uri = "file://exports/ZARI_ERP_API_docs.zip"
+type = "unspecified"
+title = "ZARI ERP API – Interactive HTML Reference (unzip & open in browser)"
+
+[[outputs]]
+id = "Woyfhgw8UWje1vnC64tS9"
+uri = "file://exports/ZARI_ERP_API.openapi.yaml"
+type = "unspecified"
+title = "ZARI ERP API – OpenAPI 3 Spec (YAML)"
+
+[[outputs]]
+id = "PJlc6V3SdfaBPKiQ_tIon"
+uri = "file://exports/ZARI_ERP_API.openapi.json"
+type = "unspecified"
+title = "ZARI ERP API – OpenAPI 3 Spec (JSON)"
+
+[[outputs]]
+id = "cd51taxN1_PGLg5JYYeap"
+uri = "file://exports/ZARI_ERP_API.md"
+type = "text"
+title = "ZARI ERP API – Markdown Reference"
