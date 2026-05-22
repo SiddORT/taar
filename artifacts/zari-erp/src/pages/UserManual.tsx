@@ -77,19 +77,23 @@ const SECTIONS: Section[] = [
     { id: "materials",         label: "Materials & Fabrics" },
     { id: "hsn",               label: "HSN Codes" },
     { id: "categories",        label: "Categories & Item Types" },
-    { id: "packaging-masters", label: "Packaging Materials" },
+    { id: "packaging-masters", label: "Item Master (Packaging)" },
+    { id: "departments",       label: "Departments" },
+    { id: "unit-types",        label: "Unit Types" },
     { id: "shipping-vendors",  label: "Shipping Vendors" },
   ]},
   { id: "swatch-orders", icon: Zap,           label: "Swatch Orders" },
   { id: "style-orders",  icon: Star,          label: "Style Orders" },
   { id: "quotations",    icon: FileText,      label: "Quotations" },
   { id: "accounts",      icon: DollarSign,    label: "Accounts & Finance", subsections: [
-    { id: "invoices",     label: "Invoices" },
-    { id: "payments",     label: "Payments" },
-    { id: "cdn",          label: "Credit / Debit Notes" },
-    { id: "vendor-ledger",label: "Vendor Ledgers" },
-    { id: "purchases-accounts", label: "Purchases & Sales" },
-    { id: "expenses",     label: "Other Expenses" },
+    { id: "accounts-dashboard", label: "Accounts Dashboard" },
+    { id: "invoices",           label: "Invoices" },
+    { id: "payments",           label: "Payments" },
+    { id: "cdn",                label: "Credit / Debit Notes" },
+    { id: "vendor-ledger",      label: "Ledgers (Vendor & Client)" },
+    { id: "purchases-accounts", label: "Purchases" },
+    { id: "sales-accounts",     label: "Sales" },
+    { id: "expenses",           label: "Other Expenses" },
   ]},
   { id: "inventory",     icon: Warehouse,     label: "Inventory", subsections: [
     { id: "inv-dashboard", label: "Inventory Dashboard" },
@@ -100,6 +104,7 @@ const SECTIONS: Section[] = [
     { id: "adjustments",   label: "Stock Adjustments" },
   ]},
   { id: "procurement",   icon: ShoppingCart,  label: "Procurement", subsections: [
+    { id: "vendor-challans",   label: "Vendor Challans" },
     { id: "purchase-orders",   label: "Purchase Orders" },
     { id: "purchase-receipts", label: "Purchase Receipts" },
   ]},
@@ -107,10 +112,20 @@ const SECTIONS: Section[] = [
     { id: "packing-lists", label: "Packing Lists" },
     { id: "shipping",      label: "Shipping" },
   ]},
+  { id: "reports",       icon: BarChart2,     label: "Reports", subsections: [
+    { id: "report-stock-summary",       label: "Stock Summary" },
+    { id: "report-stock-movement",      label: "Stock Movement" },
+    { id: "report-purchase-summary",    label: "Purchase Summary" },
+    { id: "report-invoice-summary",     label: "Invoice Summary" },
+    { id: "report-vendor-ledger",       label: "Vendor Ledger" },
+    { id: "report-client-ledger",       label: "Client Ledger" },
+    { id: "report-order-profitability", label: "Order Profitability" },
+    { id: "report-purchase-vs-sales",   label: "Purchase vs Sales" },
+    { id: "report-gst-summary",         label: "GST Summary" },
+  ]},
   { id: "settings-admin",icon: Settings,      label: "Settings & Admin", subsections: [
     { id: "profile",         label: "Profile Settings" },
-    { id: "user-management", label: "User Management" },
-    { id: "reports",         label: "Reports" },
+    { id: "user-management", label: "User Management & Roles" },
   ]},
 ];
 
@@ -219,7 +234,8 @@ function OverviewContent() {
         <ModuleCard icon={Warehouse}       title="Inventory"         desc="Stock tracking, alerts, ledger, adjustments"      href="#inventory" />
         <ModuleCard icon={ShoppingCart}    title="Procurement"       desc="Purchase orders and goods receipt"                href="#procurement" />
         <ModuleCard icon={Truck}           title="Logistics"         desc="Packing lists and shipment tracking"              href="#logistics" />
-        <ModuleCard icon={Settings}        title="Settings & Admin"  desc="Profile, users, reports and system config"        href="#settings-admin" />
+        <ModuleCard icon={BarChart2}       title="Reports"           desc="Sales, GST, stock movement, ledgers, profitability" href="#reports" />
+        <ModuleCard icon={Settings}        title="Settings & Admin"  desc="Profile, users, roles and system config"          href="#settings-admin" />
       </div>
 
       <div className="mt-6 p-4 rounded-xl" style={{ background: "#fdf8e7", border: `1px solid ${G}30` }}>
@@ -394,10 +410,28 @@ function MastersContent() {
       </div>
 
       <div id="packaging-masters" className="mb-7">
-        <h3 className="font-bold text-gray-800 mb-1 flex items-center gap-2"><Box className="h-4 w-4" style={{ color: G }} /> Packaging Materials</h3>
+        <h3 className="font-bold text-gray-800 mb-1 flex items-center gap-2"><Box className="h-4 w-4" style={{ color: G }} /> Item Master (Packaging)</h3>
         <p className="text-sm text-gray-600 mb-3">Define the types of boxes and packing materials used in packing lists.</p>
         <Step n={1}>Go to <Badge>Masters → Item Master</Badge>.</Step>
         <Step n={2}>Add packaging items such as cartons, poly bags, bubble wrap with unit costs.</Step>
+      </div>
+
+      <div id="departments" className="mb-7">
+        <h3 className="font-bold text-gray-800 mb-1 flex items-center gap-2"><Users className="h-4 w-4" style={{ color: G }} /> Departments</h3>
+        <p className="text-sm text-gray-600 mb-3">Maintain the list of internal departments (e.g. Production, Sampling, Accounts, Logistics) used across the system for routing and reporting.</p>
+        <Step n={1}>Go to <Badge>Masters → Department</Badge>.</Step>
+        <Step n={2}>Click <strong>Add Department</strong> and enter the department name.</Step>
+        <Step n={3}>Use the <strong>Status</strong> toggle to activate or deactivate a department without deleting it.</Step>
+        <Tip>You can bulk import departments from Excel using the <strong>Download Sample</strong> / <strong>Upload Excel</strong> buttons. Export the full list at any time.</Tip>
+      </div>
+
+      <div id="unit-types" className="mb-7">
+        <h3 className="font-bold text-gray-800 mb-1 flex items-center gap-2"><Tag className="h-4 w-4" style={{ color: G }} /> Unit Types</h3>
+        <p className="text-sm text-gray-600 mb-3">Units of measure (Meter, Kg, Piece, Yard, Roll, etc.) used in materials, fabrics, packaging, and inventory.</p>
+        <Step n={1}>Go to <Badge>Masters → Unit Type</Badge>.</Step>
+        <Step n={2}>Click <strong>Add Unit Type</strong> and enter the unit name and short code.</Step>
+        <Step n={3}>Activate, deactivate, edit, or delete units from the list.</Step>
+        <Warn>Avoid deleting a unit that is currently used by materials or stock — deactivate it instead to preserve historical accuracy.</Warn>
       </div>
 
       <div id="shipping-vendors" className="mb-7">
@@ -546,15 +580,20 @@ function AccountsContent() {
     <div>
       <SectionHeader icon={DollarSign} title="Accounts & Finance" subtitle="Invoices, payments, ledgers, credit notes, and financial reports" />
 
-      <ScreenshotCallout
-        src={`${base}/manual-screenshots/accounts.jpg`}
-        alt="Accounts Dashboard"
-        callouts={[
-          { n: 1, label: "Date & Vendor/Client filters — narrow all dashboard figures to a specific time range, vendor, or client", top: 16, left: 1, width: 96, height: 17 },
-          { n: 2, label: "Sales Summary — Total Invoiced, Amount Received, and Pending Receivables at a glance", top: 35, left: 1, width: 96, height: 22 },
-          { n: 3, label: "Vendor Bills & Payments — Total vendor bills, paid amount, and pending payables", top: 59, left: 1, width: 96, height: 30 },
-        ]}
-      />
+      <div id="accounts-dashboard" className="mb-7">
+        <h3 className="font-bold text-gray-800 mb-1 flex items-center gap-2"><LayoutDashboard className="h-4 w-4" style={{ color: G }} /> Accounts Dashboard</h3>
+        <p className="text-sm text-gray-600 mb-3">A single screen with sales receivables, vendor payables, and pending balances. Use the date and party filters at the top to narrow the figures.</p>
+        <ScreenshotCallout
+          src={`${base}/manual-screenshots/accounts.jpg`}
+          alt="Accounts Dashboard"
+          callouts={[
+            { n: 1, label: "Date & Vendor/Client filters — narrow all dashboard figures to a specific time range, vendor, or client", top: 16, left: 1, width: 96, height: 17 },
+            { n: 2, label: "Sales Summary — Total Invoiced, Amount Received, and Pending Receivables at a glance", top: 35, left: 1, width: 96, height: 22 },
+            { n: 3, label: "Vendor Bills & Payments — Total vendor bills, paid amount, and pending payables", top: 59, left: 1, width: 96, height: 30 },
+          ]}
+        />
+        <p className="text-sm text-gray-600 mt-1">Navigate via <Badge>Accounts → Dashboard</Badge>.</p>
+      </div>
 
       <div id="invoices" className="mb-7">
         <h3 className="font-bold text-gray-800 mb-1 flex items-center gap-2"><Receipt className="h-4 w-4" style={{ color: G }} /> Invoices</h3>
@@ -592,17 +631,27 @@ function AccountsContent() {
       </div>
 
       <div id="vendor-ledger" className="mb-7">
-        <h3 className="font-bold text-gray-800 mb-1 flex items-center gap-2"><Database className="h-4 w-4" style={{ color: G }} /> Vendor Ledgers</h3>
-        <p className="text-sm text-gray-600 mb-3">View a complete transaction history with each vendor — purchases, payments, and outstanding amounts.</p>
+        <h3 className="font-bold text-gray-800 mb-1 flex items-center gap-2"><Database className="h-4 w-4" style={{ color: G }} /> Ledgers (Vendor & Client)</h3>
+        <p className="text-sm text-gray-600 mb-3">View a complete transaction history with each vendor or client — bills, invoices, payments, and outstanding balances.</p>
         <Step n={1}>Go to <Badge>Accounts → Ledgers</Badge>.</Step>
-        <Step n={2}>Select a vendor to view their full ledger statement.</Step>
-        <Tip>Vendor ledgers are updated automatically whenever a purchase order or payment is recorded.</Tip>
+        <Step n={2}>Switch between <strong>Vendor</strong> and <strong>Client</strong> tabs, then select a party to view their full ledger statement.</Step>
+        <Tip>Ledgers are updated automatically whenever a purchase, sale, or payment is recorded — no manual posting required.</Tip>
       </div>
 
       <div id="purchases-accounts" className="mb-7">
-        <h3 className="font-bold text-gray-800 mb-1 flex items-center gap-2"><ShoppingCart className="h-4 w-4" style={{ color: G }} /> Purchases & Sales</h3>
-        <FeatureRow icon={ShoppingCart} label="Purchases" desc="Go to Accounts → Purchases to view all vendor purchase transactions." />
-        <FeatureRow icon={BarChart2}    label="Sales"     desc="Go to Accounts → Sales to view all client sales transactions and totals." />
+        <h3 className="font-bold text-gray-800 mb-1 flex items-center gap-2"><ShoppingCart className="h-4 w-4" style={{ color: G }} /> Purchases</h3>
+        <p className="text-sm text-gray-600 mb-3">A consolidated view of all vendor purchase transactions across the business — filterable by vendor, date range, and status.</p>
+        <Step n={1}>Go to <Badge>Accounts → Purchases</Badge>.</Step>
+        <Step n={2}>Use the filters at the top to narrow by vendor or date range.</Step>
+        <Step n={3}>Click <strong>Export</strong> to download the filtered list to Excel.</Step>
+      </div>
+
+      <div id="sales-accounts" className="mb-7">
+        <h3 className="font-bold text-gray-800 mb-1 flex items-center gap-2"><BarChart2 className="h-4 w-4" style={{ color: G }} /> Sales</h3>
+        <p className="text-sm text-gray-600 mb-3">A consolidated view of all client sales transactions — invoices, receipts, and outstanding amounts in one place.</p>
+        <Step n={1}>Go to <Badge>Accounts → Sales</Badge>.</Step>
+        <Step n={2}>Filter by client, date range, or invoice status.</Step>
+        <Step n={3}>Export the filtered list to Excel for sharing or further analysis.</Step>
       </div>
 
       <div id="expenses" className="mb-7">
@@ -676,6 +725,15 @@ function ProcurementContent() {
   return (
     <div>
       <SectionHeader icon={ShoppingCart} title="Procurement" subtitle="Manage purchase orders and goods receipt from vendors" />
+
+      <div id="vendor-challans" className="mb-7">
+        <h3 className="font-bold text-gray-800 mb-1 flex items-center gap-2"><ClipboardList className="h-4 w-4" style={{ color: G }} /> Vendor Challans</h3>
+        <p className="text-sm text-gray-600 mb-3">Vendor Challans are delivery challans received from vendors along with materials. They form the basis for matching what was ordered (PO), what arrived (Challan), and what was actually accepted into stock (Purchase Receipt).</p>
+        <Step n={1}>Go to <Badge>Procurement → Vendor Challans</Badge>.</Step>
+        <Step n={2}>Click <strong>New Challan</strong>, select the vendor and the linked Purchase Order, then enter the challan number, date, and items received.</Step>
+        <Step n={3}>Save the challan. You can then convert it to a Purchase Receipt to update stock.</Step>
+        <Tip>Vendor Challans are useful when goods arrive in multiple batches against a single PO — each batch can be tracked separately before being received into inventory.</Tip>
+      </div>
 
       <div id="purchase-orders" className="mb-7">
         <h3 className="font-bold text-gray-800 mb-1 flex items-center gap-2"><FileText className="h-4 w-4" style={{ color: G }} /> Purchase Orders</h3>
@@ -793,22 +851,89 @@ function SettingsContent() {
       </div>
 
       <div id="user-management" className="mb-7">
-        <h3 className="font-bold text-gray-800 mb-1 flex items-center gap-2"><Users className="h-4 w-4" style={{ color: G }} /> User Management</h3>
-        <p className="text-sm text-gray-600 mb-3">Admins can add, edit, or deactivate users from this section.</p>
+        <h3 className="font-bold text-gray-800 mb-1 flex items-center gap-2"><Users className="h-4 w-4" style={{ color: G }} /> User Management &amp; Roles</h3>
+        <p className="text-sm text-gray-600 mb-3">Admins can add, edit, or deactivate users from this section and assign granular permissions through Roles.</p>
         <Step n={1}>Click your avatar → <strong>User Management</strong>, or go directly via the URL.</Step>
-        <Step n={2}>Click <strong>Invite User</strong> to add a new team member. Enter their email and role.</Step>
+        <Step n={2}>Click <strong>Invite User</strong> to add a new team member. Enter their email and assign a role.</Step>
         <Step n={3}>The new user receives an email invitation to set up their password.</Step>
-        <Step n={4}>To deactivate a user, click the toggle next to their name in the user list.</Step>
-        <Warn>Only Admin-role users can access User Management. Regular users cannot add or remove team members.</Warn>
+        <Step n={4}>Open the <strong>Roles</strong> tab to define roles (e.g. Admin, Accountant, Production) and tick the exact permissions each role grants — view, add/edit, delete, and download — across Masters, Orders, Accounts, Inventory, Procurement, Logistics, and Reports.</Step>
+        <Step n={5}>To deactivate a user, click the toggle next to their name in the user list.</Step>
+        <Warn>Only Admin-role users can access User Management. Regular users cannot add or remove team members or change role permissions.</Warn>
+      </div>
+    </div>
+  );
+}
+
+function ReportsContent() {
+  return (
+    <div>
+      <SectionHeader icon={BarChart2} title="Reports" subtitle="Business intelligence across stock, sales, purchases, ledgers, and tax" />
+      <p className="text-sm text-gray-700 mb-5">
+        The Reports module is your single window into every figure in the business. Each report supports date-range filters and one-click Excel export. Open <Badge>Reports</Badge> from the top navigation, then pick the report you need from the report grid.
+      </p>
+
+      <div id="report-stock-summary" className="mb-7">
+        <h3 className="font-bold text-gray-800 mb-1 flex items-center gap-2"><Warehouse className="h-4 w-4" style={{ color: G }} /> Stock Summary</h3>
+        <p className="text-sm text-gray-600 mb-2">Item-wise current stock on hand, with category and warehouse filters. Quickly see what's in stock and its total valuation.</p>
+        <Step n={1}>Reports → <strong>Stock Summary</strong>.</Step>
+        <Step n={2}>Filter by category, warehouse, or stock status and click <strong>Export</strong> for an Excel snapshot.</Step>
       </div>
 
-      <div id="reports" className="mb-7">
-        <h3 className="font-bold text-gray-800 mb-1 flex items-center gap-2"><BarChart2 className="h-4 w-4" style={{ color: G }} /> Reports</h3>
-        <p className="text-sm text-gray-600 mb-3">Generate and export business reports for orders, sales, inventory, and accounts.</p>
-        <Step n={1}>Go to <Badge>Reports</Badge> from the top navigation.</Step>
-        <Step n={2}>Select the report type and date range, then click <strong>Generate Report</strong>.</Step>
-        <Step n={3}>Use the <strong>Export</strong> option to download data as a spreadsheet.</Step>
-        <Tip>Reports can be filtered by client, date range, or status to get exactly the data you need.</Tip>
+      <div id="report-stock-movement" className="mb-7">
+        <h3 className="font-bold text-gray-800 mb-1 flex items-center gap-2"><RotateCcw className="h-4 w-4" style={{ color: G }} /> Stock Movement</h3>
+        <p className="text-sm text-gray-600 mb-2">Inward, outward, and adjustment movements for each item over a selected date range — useful for stock audits.</p>
+        <Step n={1}>Reports → <strong>Stock Movement</strong>.</Step>
+        <Step n={2}>Choose a date range and (optional) item or category filter, then export.</Step>
+      </div>
+
+      <div id="report-purchase-summary" className="mb-7">
+        <h3 className="font-bold text-gray-800 mb-1 flex items-center gap-2"><ShoppingCart className="h-4 w-4" style={{ color: G }} /> Purchase Summary</h3>
+        <p className="text-sm text-gray-600 mb-2">Vendor-wise and item-wise purchase totals across POs and receipts, with quantity and value breakdowns.</p>
+        <Step n={1}>Reports → <strong>Purchase Summary</strong>.</Step>
+        <Step n={2}>Filter by vendor, item, or date range and export to Excel.</Step>
+      </div>
+
+      <div id="report-invoice-summary" className="mb-7">
+        <h3 className="font-bold text-gray-800 mb-1 flex items-center gap-2"><Receipt className="h-4 w-4" style={{ color: G }} /> Invoice Summary</h3>
+        <p className="text-sm text-gray-600 mb-2">Client-wise invoiced amounts, received, and outstanding — with status (paid / partial / pending) breakdown.</p>
+        <Step n={1}>Reports → <strong>Invoice Summary</strong>.</Step>
+        <Step n={2}>Filter by client or date range, then export.</Step>
+      </div>
+
+      <div id="report-vendor-ledger" className="mb-7">
+        <h3 className="font-bold text-gray-800 mb-1 flex items-center gap-2"><Database className="h-4 w-4" style={{ color: G }} /> Vendor Ledger</h3>
+        <p className="text-sm text-gray-600 mb-2">Full statement of account for a vendor — bills, payments, and running balance for the selected period.</p>
+        <Step n={1}>Reports → <strong>Vendor Ledger</strong>.</Step>
+        <Step n={2}>Pick the vendor and date range, then export the statement.</Step>
+      </div>
+
+      <div id="report-client-ledger" className="mb-7">
+        <h3 className="font-bold text-gray-800 mb-1 flex items-center gap-2"><Users className="h-4 w-4" style={{ color: G }} /> Client Ledger</h3>
+        <p className="text-sm text-gray-600 mb-2">Full statement of account for a client — invoices, receipts, credit/debit notes, and running balance.</p>
+        <Step n={1}>Reports → <strong>Client Ledger</strong>.</Step>
+        <Step n={2}>Pick the client and date range, then export.</Step>
+      </div>
+
+      <div id="report-order-profitability" className="mb-7">
+        <h3 className="font-bold text-gray-800 mb-1 flex items-center gap-2"><Star className="h-4 w-4" style={{ color: G }} /> Order Profitability</h3>
+        <p className="text-sm text-gray-600 mb-2">Per-order revenue versus actual costs (materials, fabric, labour, overheads) — see which orders are most profitable.</p>
+        <Step n={1}>Reports → <strong>Order Profitability</strong>.</Step>
+        <Step n={2}>Filter by order type (Swatch / Style), client, or date and export the comparison.</Step>
+      </div>
+
+      <div id="report-purchase-vs-sales" className="mb-7">
+        <h3 className="font-bold text-gray-800 mb-1 flex items-center gap-2"><BarChart2 className="h-4 w-4" style={{ color: G }} /> Purchase vs Sales</h3>
+        <p className="text-sm text-gray-600 mb-2">Side-by-side view of total purchases versus total sales over a period — a quick read on business cashflow direction.</p>
+        <Step n={1}>Reports → <strong>Purchase vs Sales</strong>.</Step>
+        <Step n={2}>Choose your date range to see monthly or daily comparisons, and export.</Step>
+      </div>
+
+      <div id="report-gst-summary" className="mb-7">
+        <h3 className="font-bold text-gray-800 mb-1 flex items-center gap-2"><Hash className="h-4 w-4" style={{ color: G }} /> GST Summary</h3>
+        <p className="text-sm text-gray-600 mb-2">CGST/SGST/IGST collected on sales and paid on purchases for the selected period — ready for filing reference.</p>
+        <Step n={1}>Reports → <strong>GST Summary</strong>.</Step>
+        <Step n={2}>Pick the tax period and export the GST workings to Excel for your accountant.</Step>
+        <Warn>This report is for reference. Always reconcile against your filed GSTR returns before submitting.</Warn>
       </div>
     </div>
   );
@@ -826,6 +951,7 @@ const CONTENT_MAP: Record<string, React.ComponentType> = {
   inventory:      InventoryContent,
   procurement:    ProcurementContent,
   logistics:      LogisticsContent,
+  reports:        ReportsContent,
   "settings-admin":SettingsContent,
 };
 
@@ -841,6 +967,7 @@ const SECTION_LABELS: Record<string, string> = {
   inventory:       "Inventory",
   procurement:     "Procurement",
   logistics:       "Logistics",
+  reports:         "Reports",
   "settings-admin":"Settings & Administration",
 };
 

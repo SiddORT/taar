@@ -71,6 +71,16 @@ export const ALL_PERMISSIONS = [
   { key: "masters:item_types:add_edit",         label: "Item Types",          resource: "masters:item_types",          action: "add_edit", menu: "Masters", subgroup: null },
   { key: "masters:item_types:delete",           label: "Item Types",          resource: "masters:item_types",          action: "delete",   menu: "Masters", subgroup: null },
 
+  { key: "masters:departments:view",            label: "Department",          resource: "masters:departments",         action: "view",     menu: "Masters", subgroup: null },
+  { key: "masters:departments:add_edit",        label: "Department",          resource: "masters:departments",         action: "add_edit", menu: "Masters", subgroup: null },
+  { key: "masters:departments:delete",          label: "Department",          resource: "masters:departments",         action: "delete",   menu: "Masters", subgroup: null },
+  { key: "masters:departments:download",        label: "Department",          resource: "masters:departments",         action: "download", menu: "Masters", subgroup: null },
+
+  { key: "masters:unit_types:view",             label: "Unit Type",           resource: "masters:unit_types",          action: "view",     menu: "Masters", subgroup: null },
+  { key: "masters:unit_types:add_edit",         label: "Unit Type",           resource: "masters:unit_types",          action: "add_edit", menu: "Masters", subgroup: null },
+  { key: "masters:unit_types:delete",           label: "Unit Type",           resource: "masters:unit_types",          action: "delete",   menu: "Masters", subgroup: null },
+  { key: "masters:unit_types:download",         label: "Unit Type",           resource: "masters:unit_types",          action: "download", menu: "Masters", subgroup: null },
+
   { key: "masters:packaging_materials:view",    label: "Item Master",         resource: "masters:packaging_materials", action: "view",     menu: "Masters", subgroup: null },
   { key: "masters:packaging_materials:add_edit",label: "Item Master",         resource: "masters:packaging_materials", action: "add_edit", menu: "Masters", subgroup: null },
   { key: "masters:packaging_materials:delete",  label: "Item Master",         resource: "masters:packaging_materials", action: "delete",   menu: "Masters", subgroup: null },
@@ -142,11 +152,14 @@ export const ALL_PERMISSIONS = [
   /* ── Accounts ───────────────────────────────────────────── */
   { key: "accounts:dashboard:view",           label: "Dashboard",           resource: "accounts:dashboard",          action: "view",     menu: "Accounts", subgroup: null },
 
-  { key: "accounts:vendor_ledgers:view",      label: "Vendor Ledgers",      resource: "accounts:vendor_ledgers",     action: "view",     menu: "Accounts", subgroup: null },
-  { key: "accounts:vendor_ledgers:download",  label: "Vendor Ledgers",      resource: "accounts:vendor_ledgers",     action: "download", menu: "Accounts", subgroup: null },
+  { key: "accounts:vendor_ledgers:view",      label: "Ledgers",             resource: "accounts:vendor_ledgers",     action: "view",     menu: "Accounts", subgroup: null },
+  { key: "accounts:vendor_ledgers:download",  label: "Ledgers",             resource: "accounts:vendor_ledgers",     action: "download", menu: "Accounts", subgroup: null },
 
   { key: "accounts:purchases:view",           label: "Purchases",           resource: "accounts:purchases",          action: "view",     menu: "Accounts", subgroup: null },
   { key: "accounts:purchases:download",       label: "Purchases",           resource: "accounts:purchases",          action: "download", menu: "Accounts", subgroup: null },
+
+  { key: "accounts:sales:view",               label: "Sales",               resource: "accounts:sales",              action: "view",     menu: "Accounts", subgroup: null },
+  { key: "accounts:sales:download",           label: "Sales",               resource: "accounts:sales",              action: "download", menu: "Accounts", subgroup: null },
 
   { key: "accounts:invoices:view",            label: "Invoices",            resource: "accounts:invoices",           action: "view",     menu: "Accounts", subgroup: null },
   { key: "accounts:invoices:add_edit",        label: "Invoices",            resource: "accounts:invoices",           action: "add_edit", menu: "Accounts", subgroup: null },
@@ -166,6 +179,34 @@ export const ALL_PERMISSIONS = [
   { key: "accounts:other_expenses:view",      label: "Other Expenses",      resource: "accounts:other_expenses",     action: "view",     menu: "Accounts", subgroup: null },
   { key: "accounts:other_expenses:add_edit",  label: "Other Expenses",      resource: "accounts:other_expenses",     action: "add_edit", menu: "Accounts", subgroup: null },
   { key: "accounts:other_expenses:delete",    label: "Other Expenses",      resource: "accounts:other_expenses",     action: "delete",   menu: "Accounts", subgroup: null },
+
+  /* ── Reports ───────────────────────────────────────────── */
+  { key: "reports:stock_summary:view",          label: "Stock Summary",        resource: "reports:stock_summary",        action: "view",     menu: "Reports", subgroup: null },
+  { key: "reports:stock_summary:download",      label: "Stock Summary",        resource: "reports:stock_summary",        action: "download", menu: "Reports", subgroup: null },
+
+  { key: "reports:stock_movement:view",         label: "Stock Movement",       resource: "reports:stock_movement",       action: "view",     menu: "Reports", subgroup: null },
+  { key: "reports:stock_movement:download",     label: "Stock Movement",       resource: "reports:stock_movement",       action: "download", menu: "Reports", subgroup: null },
+
+  { key: "reports:purchase_summary:view",       label: "Purchase Summary",     resource: "reports:purchase_summary",     action: "view",     menu: "Reports", subgroup: null },
+  { key: "reports:purchase_summary:download",   label: "Purchase Summary",     resource: "reports:purchase_summary",     action: "download", menu: "Reports", subgroup: null },
+
+  { key: "reports:invoice_summary:view",        label: "Invoice Summary",      resource: "reports:invoice_summary",      action: "view",     menu: "Reports", subgroup: null },
+  { key: "reports:invoice_summary:download",    label: "Invoice Summary",      resource: "reports:invoice_summary",      action: "download", menu: "Reports", subgroup: null },
+
+  { key: "reports:vendor_ledger:view",          label: "Vendor Ledger",        resource: "reports:vendor_ledger",        action: "view",     menu: "Reports", subgroup: null },
+  { key: "reports:vendor_ledger:download",      label: "Vendor Ledger",        resource: "reports:vendor_ledger",        action: "download", menu: "Reports", subgroup: null },
+
+  { key: "reports:client_ledger:view",          label: "Client Ledger",        resource: "reports:client_ledger",        action: "view",     menu: "Reports", subgroup: null },
+  { key: "reports:client_ledger:download",      label: "Client Ledger",        resource: "reports:client_ledger",        action: "download", menu: "Reports", subgroup: null },
+
+  { key: "reports:order_profitability:view",    label: "Order Profitability",  resource: "reports:order_profitability",  action: "view",     menu: "Reports", subgroup: null },
+  { key: "reports:order_profitability:download",label: "Order Profitability",  resource: "reports:order_profitability",  action: "download", menu: "Reports", subgroup: null },
+
+  { key: "reports:purchase_vs_sales:view",      label: "Purchase vs Sales",    resource: "reports:purchase_vs_sales",    action: "view",     menu: "Reports", subgroup: null },
+  { key: "reports:purchase_vs_sales:download",  label: "Purchase vs Sales",    resource: "reports:purchase_vs_sales",    action: "download", menu: "Reports", subgroup: null },
+
+  { key: "reports:gst_summary:view",            label: "GST Summary",          resource: "reports:gst_summary",          action: "view",     menu: "Reports", subgroup: null },
+  { key: "reports:gst_summary:download",        label: "GST Summary",          resource: "reports:gst_summary",          action: "download", menu: "Reports", subgroup: null },
 
   /* ── Procurement › Vendor Challans ─────────────────────── */
   { key: "procurement:vendor_challans:view",     label: "Vendor Challans", resource: "procurement:vendor_challans", action: "view",     menu: "Stock", subgroup: "Procurement" },
