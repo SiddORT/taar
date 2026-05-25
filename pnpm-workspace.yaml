@@ -1,4 +1,41 @@
 # ============================================================================
+# ZARI ERP — pnpm workspace configuration
+# ============================================================================
+#
+# This file is intentionally NOT "minimal" — every non-default section below
+# exists for a real, documented reason. Do not strip them in pursuit of a
+# shorter file; doing so will degrade security, install performance, or
+# monorepo resolution. Each section is annotated inline with the rationale.
+#
+# Section index:
+#   1. minimumReleaseAge / minimumReleaseAgeExclude
+#        Supply-chain attack defense — delays installs of brand-new package
+#        versions so malicious releases have time to be detected and pulled.
+#   2. packages
+#        Discovery globs for every workspace package (apps + libs + scripts).
+#   3. catalog
+#        Pinned shared versions of dependencies used across multiple packages
+#        (React, Vite, Tailwind, Drizzle, Zod, etc.) so versions never drift.
+#   4. autoInstallPeers
+#        Disabled — peer deps must be declared explicitly to catch missing
+#        contracts at install time rather than at runtime.
+#   5. onlyBuiltDependencies
+#        Allowlist of packages that may run install scripts (security).
+#   6. overrides
+#        Two purposes:
+#         (a) Exclude native binaries this deployment will never use
+#             (every platform except linux-x64). This trims hundreds of MB
+#             of unused esbuild/lightningcss/tailwindcss-oxide/rollup/ngrok
+#             binaries from Linux / Replit / Docker / CI installs. If you
+#             need to develop on Windows or macOS, selectively remove the
+#             entries for your target arch — do NOT delete the whole block.
+#         (b) Pin transitive dependencies to patched versions for known
+#             CVEs (path-to-regexp, lodash, picomatch, postcss, yaml,
+#             fast-uri, brace-expansion, xlsx). Each line is annotated
+#             with its CVE/GHSA reference.
+# ============================================================================
+
+# ============================================================================
 # SECURITY: Minimum release age for npm packages (supply-chain attack defense)
 # ============================================================================
 #
