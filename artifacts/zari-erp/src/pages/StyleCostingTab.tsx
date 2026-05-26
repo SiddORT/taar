@@ -356,6 +356,7 @@ function StyleBomSection({ styleOrderId, orderCode, styleName, clientName }: {
   const [editRow, setEditRow] = useState<BomRecord | null>(null);
   const [editQty, setEditQty] = useState("");
   const [editNotes, setEditNotes] = useState("");
+  const [editMode, setEditMode] = useState<"add" | "subtract">("add");
   const [logRowId, setLogRowId] = useState<number | null>(null);
   const { data: bomChangeLog = [] } = useBomChangeLog(logRowId);
   const [form, setForm] = useState({
@@ -678,7 +679,7 @@ function StyleBomSection({ styleOrderId, orderCode, styleName, clientName }: {
                   <td className="px-3 py-2.5 font-semibold text-green-700">{m.consumedTotal > 0 ? `₹${m.consumedTotal.toFixed(2)}` : <span className="text-gray-300">—</span>}</td>
                   <td className="px-3 py-2.5">
                     <div className="flex items-center gap-1">
-                      <button onClick={() => { setEditRow(r); setEditQty(""); setEditNotes(""); }}
+                      <button onClick={() => { setEditRow(r); setEditQty(""); setEditNotes(""); setEditMode("add"); }}
                         className="p-1.5 rounded-lg text-gray-500 hover:text-violet-600 hover:bg-violet-50 transition-colors" title="Add to Req / Reserved Qty">
                         <Pencil className="h-3.5 w-3.5" />
                       </button>
@@ -725,16 +726,34 @@ function StyleBomSection({ styleOrderId, orderCode, styleName, clientName }: {
               <div className="font-semibold text-gray-800">[{editRow.materialCode}] {editRow.materialName}</div>
               <div className="text-xs text-violet-700 mt-1">Current Req / Reserved: <span className="font-semibold">{editRow.requiredQty} {editRow.unitType}</span></div>
             </div>
-            <label className="block text-xs font-semibold text-gray-700 mb-1">Add to Req / Reserved Qty <span className="text-red-500 ml-0.5">*</span></label>
+            <label className="block text-xs font-semibold text-gray-700 mb-1">Adjust Req / Reserved Qty <span className="text-red-500 ml-0.5">*</span></label>
+            <div className="flex gap-2 mb-2">
+              <button type="button" onClick={() => setEditMode("add")}
+                className={`flex-1 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${editMode === "add" ? "bg-emerald-600 text-white border-emerald-600" : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"}`}>
+                + Add
+              </button>
+              <button type="button" onClick={() => setEditMode("subtract")}
+                className={`flex-1 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${editMode === "subtract" ? "bg-red-600 text-white border-red-600" : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"}`}>
+                − Subtract
+              </button>
+            </div>
             <input type="number" min="0.001" step="any" value={editQty}
               onChange={e => setEditQty(e.target.value)}
+              placeholder={`Quantity to ${editMode === "add" ? "add" : "subtract"}`}
               className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400 mb-1" />
-            {editQty && parseFloat(editQty) > 0 && (
-              <p className="text-xs text-violet-700 mb-3">
-                New total: <span className="font-bold">{(parseFloat(editRow.requiredQty) + parseFloat(editQty)).toFixed(2)} {editRow.unitType}</span>
-                <span className="text-gray-400 ml-1">(current {editRow.requiredQty} + {parseFloat(editQty).toFixed(2)})</span>
-              </p>
-            )}
+            {editQty && parseFloat(editQty) > 0 && (() => {
+              const delta = editMode === "add" ? parseFloat(editQty) : -parseFloat(editQty);
+              const newTotal = parseFloat(editRow.requiredQty) + delta;
+              const sign = delta >= 0 ? "+" : "−";
+              const isInvalid = newTotal < 0;
+              return (
+                <p className={`text-xs mb-3 ${isInvalid ? "text-red-600" : "text-violet-700"}`}>
+                  New total: <span className="font-bold">{newTotal.toFixed(2)} {editRow.unitType}</span>
+                  <span className="text-gray-400 ml-1">(current {editRow.requiredQty} {sign} {parseFloat(editQty).toFixed(2)})</span>
+                  {isInvalid && <span className="block text-red-600 mt-0.5">Resulting qty cannot be negative.</span>}
+                </p>
+              );
+            })()}
             {(!editQty || parseFloat(editQty) <= 0) && <div className="mb-3" />}
             <label className="block text-xs font-semibold text-gray-700 mb-1">Reason / Notes</label>
             <textarea value={editNotes} onChange={e => setEditNotes(e.target.value)}
@@ -742,24 +761,31 @@ function StyleBomSection({ styleOrderId, orderCode, styleName, clientName }: {
               className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400 resize-none h-20 mb-4" />
             <div className="flex gap-2 justify-end">
               <button onClick={() => setEditRow(null)} className="px-4 py-2 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50">Cancel</button>
-              <button disabled={updateBomQty.isPending || !editQty || parseFloat(editQty) <= 0}
-                onClick={() => {
-                  const newTotal = String(parseFloat(editRow!.requiredQty) + parseFloat(editQty));
-                  updateBomQty.mutate(
-                    { id: editRow!.id, requiredQty: newTotal, notes: editNotes || undefined },
-                    {
-                      onSuccess: (res) => {
-                        toast({ title: res.changed ? "Req / Reserved qty updated" : "No change made" });
-                        setEditRow(null);
-                      },
-                      onError: (err: any) => toast({ title: err?.message ?? "Failed to update qty", variant: "destructive" }),
-                    }
-                  );
-                }}
-                className="px-4 py-2 rounded-xl bg-violet-700 text-white text-sm font-semibold hover:bg-violet-800 disabled:opacity-50 flex items-center gap-1.5">
-                {updateBomQty.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-                Add Qty
-              </button>
+              {(() => {
+                const qtyNum = parseFloat(editQty);
+                const delta = editMode === "add" ? qtyNum : -qtyNum;
+                const newTotal = parseFloat(editRow!.requiredQty) + delta;
+                const disabled = updateBomQty.isPending || !editQty || qtyNum <= 0 || newTotal < 0;
+                return (
+                  <button disabled={disabled}
+                    onClick={() => {
+                      updateBomQty.mutate(
+                        { id: editRow!.id, requiredQty: String(newTotal), notes: editNotes || undefined },
+                        {
+                          onSuccess: (res) => {
+                            toast({ title: res.changed ? "Req / Reserved qty updated" : "No change made" });
+                            setEditRow(null);
+                          },
+                          onError: (err: any) => toast({ title: err?.message ?? "Failed to update qty", variant: "destructive" }),
+                        }
+                      );
+                    }}
+                    className="px-4 py-2 rounded-xl bg-violet-700 text-white text-sm font-semibold hover:bg-violet-800 disabled:opacity-50 flex items-center gap-1.5">
+                    {updateBomQty.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                    Update Qty
+                  </button>
+                );
+              })()}
             </div>
           </div>
         </div>

@@ -56,6 +56,60 @@ const OPERATIONS_SECTIONS = [
 
 const ALL_OPERATIONS_HREFS = OPERATIONS_SECTIONS.flatMap(s => s.items.map(i => i.href));
 
+type ProfileSnapshot = { name: string; email: string; role: string; photo: string | null };
+let cachedProfile: ProfileSnapshot | null = null;
+let cachedProfileToken: string | null = null;
+const profileSubscribers = new Set<(p: ProfileSnapshot | null) => void>();
+let profileFetchInFlight: Promise<void> | null = null;
+let profileFetchToken: string | null = null;
+
+function currentToken(): string | null {
+  try { return localStorage.getItem("zarierp_token"); } catch { return null; }
+}
+
+function fetchProfileOnce(fallbackName: string, fallbackRole: string): Promise<void> {
+  const token = currentToken();
+  if (profileFetchInFlight && profileFetchToken === token) return profileFetchInFlight;
+  profileFetchToken = token;
+  const base = (import.meta.env.BASE_URL ?? "/").replace(/\/$/, "");
+  profileFetchInFlight = fetch(`${base}/api/settings/profile`, {
+    headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+  })
+    .then(r => r.ok ? r.json() : null)
+    .then(j => {
+      if (currentToken() !== token) return;
+      if (j?.data) {
+        const snap: ProfileSnapshot = {
+          name:  j.data.username     ?? fallbackName,
+          email: j.data.email        ?? "",
+          role:  j.data.role         ?? fallbackRole,
+          photo: j.data.profile_photo ?? null,
+        };
+        cachedProfile = snap;
+        cachedProfileToken = token;
+        profileSubscribers.forEach(fn => fn(snap));
+      }
+    })
+    .catch(() => {})
+    .finally(() => { profileFetchInFlight = null; profileFetchToken = null; });
+  return profileFetchInFlight;
+}
+
+export function invalidateTopNavbarProfile(): void {
+  cachedProfile = null;
+  cachedProfileToken = null;
+  profileSubscribers.forEach(fn => fn(null));
+}
+
+function readFreshCache(): ProfileSnapshot | null {
+  if (cachedProfile && cachedProfileToken === currentToken()) return cachedProfile;
+  if (cachedProfile) {
+    cachedProfile = null;
+    cachedProfileToken = null;
+  }
+  return null;
+}
+
 export default function TopNavbar({ username = "", role = "", onLogout = () => {}, isLoggingOut = false }: TopNavbarProps) {
   const [location, navigate] = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -71,25 +125,17 @@ export default function TopNavbar({ username = "", role = "", onLogout = () => {
   const [mobileAccountsOpen, setMobileAccountsOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
 
-  const [profileData, setProfileData] = useState<{ name: string; email: string; role: string; photo: string | null } | null>(null);
+  const [profileData, setProfileData] = useState<ProfileSnapshot | null>(readFreshCache());
 
   useEffect(() => {
-    const token = localStorage.getItem("zarierp_token");
-    const base = (import.meta.env.BASE_URL ?? "/").replace(/\/$/, "");
-    fetch(`${base}/api/settings/profile`, {
-      headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-    })
-      .then(r => r.ok ? r.json() : null)
-      .then(j => {
-        if (j?.data) setProfileData({
-          name:  j.data.username     ?? username,
-          email: j.data.email        ?? "",
-          role:  j.data.role         ?? role,
-          photo: j.data.profile_photo ?? null,
-        });
-      })
-      .catch(() => {});
-  }, []);
+    const sub = (p: ProfileSnapshot | null) => setProfileData(p);
+    profileSubscribers.add(sub);
+    if (!readFreshCache()) {
+      setProfileData(null);
+      fetchProfileOnce(username, role);
+    }
+    return () => { profileSubscribers.delete(sub); };
+  }, [username, role]);
 
   const displayName  = profileData?.name  ?? username;
   const displayEmail = profileData?.email ?? "";
