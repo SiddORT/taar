@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { Menu, X, LogOut, Loader2, ChevronDown, Users, Settings, BarChart2, BookOpen } from "lucide-react";
-import zariLogo from "@assets/zarilogo_1779781911897.png";
+import zariLogo from "@assets/zari-symbol_1779781911897.png";
 
 interface TopNavbarProps {
   username?: string;

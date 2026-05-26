@@ -8,7 +8,7 @@ import { useLogin } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import ZariButton from "@/components/ui/ZariButton";
-import ZariLogo from "@assets/image_1776152751088.png";
+import ZariLogo from "@assets/zari-symbol_1779781911897.png";
 
 const loginSchema = z.object({
   email: z.string().min(1, { message: "Username or email is required." }),
