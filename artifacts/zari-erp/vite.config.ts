@@ -1,3 +1,10 @@
+import * as dotenv from "dotenv";
+import { resolve } from "path";
+
+dotenv.config({
+  path: resolve(process.cwd(), "../../.env"),
+});
+
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
