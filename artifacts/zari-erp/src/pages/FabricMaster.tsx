@@ -321,7 +321,9 @@ export default function FabricMaster() {
       quality: form.quality.trim(),
       colorName: form.colorName.trim(),
       width: form.width.trim(),
+      widthUnitType: form.widthUnitType.trim(),
       pricePerMeter: form.pricePerMeter.trim(),
+      unitType: (form.unitType ?? form.widthUnitType ?? "").trim(),
       currentStock: computedStock || "0",
       location: computedLocation,
     };
