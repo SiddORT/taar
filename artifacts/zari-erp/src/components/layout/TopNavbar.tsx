@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { Menu, X, LogOut, Loader2, ChevronDown, Users, Settings, BarChart2, BookOpen } from "lucide-react";
+import zariLogo from "@assets/zarilogo_1779781911897.png";
 
 interface TopNavbarProps {
   username?: string;
@@ -164,12 +165,19 @@ export default function TopNavbar({ username = "", role = "", onLogout = () => {
         <div className="flex items-center justify-between h-16 px-6 max-w-screen-2xl mx-auto">
 
           {/* LEFT — Brand */}
-          <Link href="/dashboard" className="flex flex-col leading-none select-none shrink-0 mr-4">
-            <span className="text-base font-bold tracking-widest uppercase" style={{ color: "#C9B45C", letterSpacing: "0.18em" }}>
-              ZARI
-            </span>
-            <span className="text-[9px] font-medium tracking-[0.25em] text-gray-400 uppercase">
-              EMBROIDERIES
+          <Link href="/dashboard" className="flex items-center gap-2.5 leading-none select-none shrink-0 mr-4">
+            <img
+              src={zariLogo}
+              alt="Zari Embroideries"
+              className="h-9 w-auto object-contain"
+            />
+            <span className="flex flex-col leading-none">
+              <span className="text-base font-bold tracking-widest uppercase" style={{ color: "#C9B45C", letterSpacing: "0.18em" }}>
+                ZARI
+              </span>
+              <span className="text-[9px] font-medium tracking-[0.25em] text-gray-400 uppercase">
+                EMBROIDERIES
+              </span>
             </span>
           </Link>
 
