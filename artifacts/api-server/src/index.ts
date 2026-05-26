@@ -1,7 +1,7 @@
 import "dotenv/config";
 import app from "./app";
 import { logger } from "./lib/logger";
-import { seedAdminUser, seedDummyData } from "./lib/seed";
+import { seedAdminUser } from "./lib/seed";
 import { seedIfEmpty } from "./seed";
 import { ensureShippingTables } from "./routes/shipping";
 import { ensureSettingsTables } from "./routes/settings";
@@ -50,11 +50,5 @@ app.listen(port, async (err) => {
     await seedAdminUser();
   } catch (seedErr) {
     logger.error({ err: seedErr }, "Failed to seed admin user");
-  }
-
-  try {
-    await seedDummyData();
-  } catch (seedErr) {
-    logger.error({ err: seedErr }, "Failed to seed dummy data");
   }
 });
