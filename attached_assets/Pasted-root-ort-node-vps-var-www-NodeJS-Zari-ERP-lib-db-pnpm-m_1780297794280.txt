@@ -1,0 +1,70 @@
+root@ort-node-vps:/var/www/NodeJS/Zari-ERP/lib/db# pnpm migrate
+
+
+> @workspace/db@0.0.0 migrate /var/www/NodeJS/Zari-ERP/lib/db
+> drizzle-kit migrate --config ./drizzle.config.ts
+
+Reading config file '/var/www/NodeJS/Zari-ERP/lib/db/drizzle.config.ts'
+◇ injected env (2) from ../../.env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+Using 'pg' driver for database querying
+[⣷] applying migrations...DrizzleQueryError: Failed query: CREATE TABLE "users" (
+        "id" serial PRIMARY KEY NOT NULL,
+        "username" text NOT NULL,
+        "email" text NOT NULL,
+        "hashed_password" text NOT NULL,
+        "role" text DEFAULT 'user' NOT NULL,
+        "is_active" boolean DEFAULT true NOT NULL,
+        "invite_token" text,
+        "invite_token_expiry" timestamp with time zone,
+        "created_at" timestamp with time zone DEFAULT now() NOT NULL,
+        CONSTRAINT "users_email_unique" UNIQUE("email")
+);
+
+params: 
+    at NodePgPreparedQuery.queryWithCache (/var/www/NodeJS/Zari-ERP/node_modules/.pnpm/drizzle-orm@0.45.2_@types+pg@8.18.0_pg@8.20.0/node_modules/src/pg-core/session.ts:73:11)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async <anonymous> (/var/www/NodeJS/Zari-ERP/node_modules/.pnpm/drizzle-orm@0.45.2_@types+pg@8.18.0_pg@8.20.0/node_modules/src/pg-core/dialect.ts:102:7)
+    ... 2 lines matching cause stack trace ...
+    at async migrate (/var/www/NodeJS/Zari-ERP/node_modules/.pnpm/drizzle-orm@0.45.2_@types+pg@8.18.0_pg@8.20.0/node_modules/src/node-postgres/migrator.ts:10:2) {
+  query: 'CREATE TABLE "users" (\n' +
+    '\t"id" serial PRIMARY KEY NOT NULL,\n' +
+    '\t"username" text NOT NULL,\n' +
+    '\t"email" text NOT NULL,\n' +
+    '\t"hashed_password" text NOT NULL,\n' +
+    `\t"role" text DEFAULT 'user' NOT NULL,\n` +
+    '\t"is_active" boolean DEFAULT true NOT NULL,\n' +
+    '\t"invite_token" text,\n' +
+    '\t"invite_token_expiry" timestamp with time zone,\n' +
+    '\t"created_at" timestamp with time zone DEFAULT now() NOT NULL,\n' +
+    '\tCONSTRAINT "users_email_unique" UNIQUE("email")\n' +
+    ');\n',
+  params: [],
+  cause: error: relation "users" already exists
+      at /var/www/NodeJS/Zari-ERP/node_modules/.pnpm/pg@8.20.0/node_modules/pg/lib/client.js:631:17
+      at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+      at async <anonymous> (/var/www/NodeJS/Zari-ERP/node_modules/.pnpm/drizzle-orm@0.45.2_@types+pg@8.18.0_pg@8.20.0/node_modules/src/node-postgres/session.ts:149:14)
+      at async NodePgPreparedQuery.queryWithCache (/var/www/NodeJS/Zari-ERP/node_modules/.pnpm/drizzle-orm@0.45.2_@types+pg@8.18.0_pg@8.20.0/node_modules/src/pg-core/session.ts:71:12)
+      at async <anonymous> (/var/www/NodeJS/Zari-ERP/node_modules/.pnpm/drizzle-orm@0.45.2_@types+pg@8.18.0_pg@8.20.0/node_modules/src/pg-core/dialect.ts:102:7)
+      at async NodePgSession.transaction (/var/www/NodeJS/Zari-ERP/node_modules/.pnpm/drizzle-orm@0.45.2_@types+pg@8.18.0_pg@8.20.0/node_modules/src/node-postgres/session.ts:259:19)
+      at async PgDialect.migrate (/var/www/NodeJS/Zari-ERP/node_modules/.pnpm/drizzle-orm@0.45.2_@types+pg@8.18.0_pg@8.20.0/node_modules/src/pg-core/dialect.ts:95:3)
+      at async migrate (/var/www/NodeJS/Zari-ERP/node_modules/.pnpm/drizzle-orm@0.45.2_@types+pg@8.18.0_pg@8.20.0/node_modules/src/node-postgres/migrator.ts:10:2) {
+    length: 99,
+    severity: 'ERROR',
+    code: '42P07',
+    detail: undefined,
+    hint: undefined,
+    position: undefined,
+    internalPosition: undefined,
+    internalQuery: undefined,
+    where: undefined,
+    schema: undefined,
+    table: undefined,
+    column: undefined,
+    dataType: undefined,
+    constraint: undefined,
+    file: 'heap.c',
+    line: '1150',
+    routine: 'heap_create_with_catalog'
+  }
+}
+ ELIFECYCLE  Command failed with exit code 1.
