@@ -5,7 +5,6 @@ export const materialsTable = pgTable("materials", {
   id: serial("id").primaryKey(),
   materialCode: text("material_code").notNull().unique(),
   materialName: text("material_name"),
-  itemType: text("item_type").notNull().default(""),
   quality: text("quality").notNull(),
   type: text("type"),
   color: text("color"),
@@ -51,7 +50,6 @@ const NUMERIC_REGEX = /^[0-9]+(\.[0-9]{1,2})?$/;
 
 export const insertMaterialSchema = z.object({
   materialName: z.string().optional(),
-  itemType: z.string().trim().refine((v) => !v || NAME_REGEX.test(v), { message: "Item Type must contain only letters and spaces (max 100 characters)." }).optional().default(""),
   quality: z.string().trim().refine((v) => !v || NAME_REGEX.test(v), { message: "Quality must contain only letters and spaces." }).optional().default(""),
   type: z.string().trim().refine((v) => !v || NAME_REGEX.test(v), { message: "Type must contain only letters and spaces." }).optional(),
   color: z.string().optional(),
