@@ -152,140 +152,147 @@ function OrderSearchInput({ value, onChange, disabled }: {
   );
 }
 
-// ── Attachment section (works before & after save) ────────────────────────────
-function AttachmentSection({ challanId, attachment, pendingFile, onPendingFile, onUploaded, disabled }: {
+// ── Attachment section (multiple files, works before & after save) ────────────
+function AttachmentSection({ challanId, attachments, pendingFiles, onPendingFiles, onUploaded, disabled }: {
   challanId: number | null;
-  attachment: Attachment | null;
-  pendingFile: File | null;
-  onPendingFile: (f: File | null) => void;
+  attachments: Attachment[];
+  pendingFiles: File[];
+  onPendingFiles: (f: File[]) => void;
   onUploaded: () => void;
   disabled: boolean;
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
-  const [removing,  setRemoving]  = useState(false);
-  const [previewOpen, setPreviewOpen] = useState(false);
+  const [removingUrl, setRemovingUrl] = useState<string | null>(null);
+  const [preview, setPreview] = useState<{ url: string; name: string; isImage: boolean; isPdf: boolean } | null>(null);
   const { toast } = useToast();
 
-  async function handleFileChosen(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  async function handleFilesChosen(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? []);
     if (fileRef.current) fileRef.current.value = "";
+    if (!files.length) return;
 
+    // Before the challan is saved, stage the files; otherwise upload immediately.
     if (!challanId) {
-      onPendingFile(file);
+      onPendingFiles([...pendingFiles, ...files]);
       return;
     }
     setUploading(true);
     const fd = new FormData();
-    fd.append("file", file);
+    for (const f of files) fd.append("files", f);
     const r = await fetch(`${BASE}/api/vendor-challans/${challanId}/document`, { method: "POST", headers: authToken(), body: fd });
-    if (r.ok) { toast({ title: "Document uploaded" }); onUploaded(); }
+    if (r.ok) { toast({ title: files.length > 1 ? `${files.length} documents uploaded` : "Document uploaded" }); onUploaded(); }
     else { const d = await r.json(); toast({ title: d.error ?? "Upload failed", variant: "destructive" }); }
     setUploading(false);
   }
 
-  async function handleRemoveSaved() {
+  async function handleRemoveSaved(url: string) {
     if (!challanId || !confirm("Remove this document?")) return;
-    setRemoving(true);
-    const r = await fetch(`${BASE}/api/vendor-challans/${challanId}/document`, { method: "DELETE", headers: authToken() });
+    setRemovingUrl(url);
+    const r = await fetch(`${BASE}/api/vendor-challans/${challanId}/document?url=${encodeURIComponent(url)}`, { method: "DELETE", headers: authToken() });
     if (r.ok) { toast({ title: "Document removed" }); onUploaded(); }
     else toast({ title: "Failed to remove", variant: "destructive" });
-    setRemoving(false);
+    setRemovingUrl(null);
   }
 
-  if (disabled && !attachment) return <p className="text-xs text-gray-400">No document attached.</p>;
+  const meta = (name: string, mimeType?: string) => ({
+    isImage: /\.(jpe?g|png|webp|gif|bmp|svg)$/i.test(name) || (mimeType ?? "").startsWith("image/"),
+    isPdf: /\.pdf$/i.test(name) || (mimeType ?? "") === "application/pdf",
+  });
 
-  if (attachment) {
-    const size = attachment.size ? ` (${(attachment.size / 1024).toFixed(1)} KB)` : "";
-    const fileUrl = `${BASE}${attachment.url}`;
-    const name = attachment.originalName ?? "";
-    const isImage = /\.(jpe?g|png|webp|gif|bmp|svg)$/i.test(name) || (attachment.mimeType ?? "").startsWith("image/");
-    const isPdf = /\.pdf$/i.test(name) || (attachment.mimeType ?? "") === "application/pdf";
-    return (
-      <>
-        <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
-          {isImage ? (
-            <button type="button" onClick={() => setPreviewOpen(true)} className="shrink-0">
-              <img src={fileUrl} alt={name}
-                className="h-12 w-12 rounded-lg object-cover border border-gray-200 hover:ring-2 hover:ring-[#C9B45C] transition-all" />
-            </button>
-          ) : (
-            <Paperclip className="h-4 w-4 text-gray-400 shrink-0" />
-          )}
-          <div className="min-w-0 flex-1">
-            <button type="button" onClick={() => (isImage || isPdf) ? setPreviewOpen(true) : window.open(fileUrl, "_blank")}
-              className="text-sm font-medium text-blue-600 hover:underline truncate block text-left">{name}</button>
-            <p className="text-xs text-gray-400">{size}</p>
-          </div>
-          <div className="flex gap-2 shrink-0">
-            {(isImage || isPdf) && (
-              <button type="button" onClick={() => setPreviewOpen(true)}
-                className="text-xs px-2.5 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-100 transition-colors">Preview</button>
-            )}
-            {!disabled && (
-              <>
-                <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading}
-                  className="text-xs px-2.5 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-100 transition-colors">Replace</button>
-                <button type="button" onClick={handleRemoveSaved} disabled={removing}
-                  className="text-xs px-2.5 py-1.5 rounded-lg border border-red-200 text-red-500 hover:bg-red-50 transition-colors">
-                  {removing ? <Loader2 className="h-3 w-3 animate-spin" /> : "Remove"}
-                </button>
-              </>
-            )}
-          </div>
-          <input ref={fileRef} type="file" className="hidden" onChange={handleFileChosen} />
-        </div>
-
-        {previewOpen && (isImage || isPdf) && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={() => setPreviewOpen(false)}>
-            <div className="bg-white rounded-2xl shadow-xl max-w-3xl w-full max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
-              <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-gray-900 truncate">{name}</h3>
-                <div className="flex items-center gap-2">
-                  <a href={fileUrl} target="_blank" rel="noreferrer"
-                    className="text-xs px-2.5 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-100 transition-colors">Open in new tab</a>
-                  <button type="button" onClick={() => setPreviewOpen(false)}
-                    className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 transition-colors"><X className="h-4 w-4" /></button>
-                </div>
-              </div>
-              <div className="p-4 overflow-auto flex-1 flex items-center justify-center bg-gray-50">
-                {isImage ? (
-                  <img src={fileUrl} alt={name} className="max-w-full max-h-[75vh] object-contain rounded-lg" />
-                ) : (
-                  <iframe src={fileUrl} title={name} className="w-full h-[75vh] rounded-lg border border-gray-200" />
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-      </>
-    );
-  }
-
-  if (pendingFile) {
-    return (
-      <div className="flex items-center gap-3 p-3 bg-amber-50 rounded-xl border border-amber-200">
-        <Paperclip className="h-4 w-4 text-amber-500 shrink-0" />
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-medium text-gray-800 truncate">{pendingFile.name}</p>
-          <p className="text-xs text-amber-600">Will be uploaded when challan is saved</p>
-        </div>
-        <button type="button" onClick={() => onPendingFile(null)}
-          className="text-xs px-2.5 py-1.5 rounded-lg border border-amber-200 text-amber-600 hover:bg-amber-100 transition-colors shrink-0">Remove</button>
-      </div>
-    );
-  }
+  const hasFiles = attachments.length > 0 || pendingFiles.length > 0;
+  if (disabled && !hasFiles) return <p className="text-xs text-gray-400">No documents attached.</p>;
 
   return (
-    <div>
-      <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading}
-        className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-dashed border-gray-300 text-sm text-gray-500 hover:border-gray-400 hover:text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50">
-        {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-        {uploading ? "Uploading…" : "Attach Document"}
-      </button>
-      <p className="text-xs text-gray-400 mt-1.5">PDF, JPG, PNG or WebP · max 20 MB</p>
-      <input ref={fileRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.webp" className="hidden" onChange={handleFileChosen} />
+    <div className="space-y-2">
+      {/* Saved attachments */}
+      {attachments.map((att) => {
+        const fileUrl = `${BASE}${att.url}`;
+        const name = att.originalName ?? "";
+        const size = att.size ? ` (${(att.size / 1024).toFixed(1)} KB)` : "";
+        const { isImage, isPdf } = meta(name, att.mimeType);
+        return (
+          <div key={att.url} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
+            {isImage ? (
+              <button type="button" onClick={() => setPreview({ url: fileUrl, name, isImage, isPdf })} className="shrink-0">
+                <img src={fileUrl} alt={name}
+                  className="h-12 w-12 rounded-lg object-cover border border-gray-200 hover:ring-2 hover:ring-[#C9B45C] transition-all" />
+              </button>
+            ) : (
+              <Paperclip className="h-4 w-4 text-gray-400 shrink-0" />
+            )}
+            <div className="min-w-0 flex-1">
+              <button type="button" onClick={() => (isImage || isPdf) ? setPreview({ url: fileUrl, name, isImage, isPdf }) : window.open(fileUrl, "_blank")}
+                className="text-sm font-medium text-blue-600 hover:underline truncate block text-left">{name}</button>
+              <p className="text-xs text-gray-400">{size}</p>
+            </div>
+            <div className="flex gap-2 shrink-0">
+              {(isImage || isPdf) && (
+                <button type="button" onClick={() => setPreview({ url: fileUrl, name, isImage, isPdf })}
+                  className="text-xs px-2.5 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-100 transition-colors">Preview</button>
+              )}
+              {!disabled && (
+                <button type="button" onClick={() => handleRemoveSaved(att.url)} disabled={removingUrl === att.url}
+                  className="text-xs px-2.5 py-1.5 rounded-lg border border-red-200 text-red-500 hover:bg-red-50 transition-colors">
+                  {removingUrl === att.url ? <Loader2 className="h-3 w-3 animate-spin" /> : "Remove"}
+                </button>
+              )}
+            </div>
+          </div>
+        );
+      })}
+
+      {/* Pending (not yet saved) files */}
+      {pendingFiles.map((file, i) => (
+        <div key={`${file.name}-${i}`} className="flex items-center gap-3 p-3 bg-amber-50 rounded-xl border border-amber-200">
+          <Paperclip className="h-4 w-4 text-amber-500 shrink-0" />
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-medium text-gray-800 truncate">{file.name}</p>
+            <p className="text-xs text-amber-600">Will be uploaded when challan is saved</p>
+          </div>
+          {!disabled && (
+            <button type="button" onClick={() => onPendingFiles(pendingFiles.filter((_, idx) => idx !== i))}
+              className="text-xs px-2.5 py-1.5 rounded-lg border border-amber-200 text-amber-600 hover:bg-amber-100 transition-colors shrink-0">Remove</button>
+          )}
+        </div>
+      ))}
+
+      {/* Add files */}
+      {!disabled && (
+        <div>
+          <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-dashed border-gray-300 text-sm text-gray-500 hover:border-gray-400 hover:text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50">
+            {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+            {uploading ? "Uploading…" : hasFiles ? "Add More Documents" : "Attach Documents"}
+          </button>
+          <p className="text-xs text-gray-400 mt-1.5">PDF, JPG, PNG or WebP · max 20 MB each · multiple allowed</p>
+          <input ref={fileRef} type="file" multiple accept=".pdf,.jpg,.jpeg,.png,.webp" className="hidden" onChange={handleFilesChosen} />
+        </div>
+      )}
+
+      {/* Shared preview modal */}
+      {preview && (preview.isImage || preview.isPdf) && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={() => setPreview(null)}>
+          <div className="bg-white rounded-2xl shadow-xl max-w-3xl w-full max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-gray-900 truncate">{preview.name}</h3>
+              <div className="flex items-center gap-2">
+                <a href={preview.url} target="_blank" rel="noreferrer"
+                  className="text-xs px-2.5 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-100 transition-colors">Open in new tab</a>
+                <button type="button" onClick={() => setPreview(null)}
+                  className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 transition-colors"><X className="h-4 w-4" /></button>
+              </div>
+            </div>
+            <div className="p-4 overflow-auto flex-1 flex items-center justify-center bg-gray-50">
+              {preview.isImage ? (
+                <img src={preview.url} alt={preview.name} className="max-w-full max-h-[75vh] object-contain rounded-lg" />
+              ) : (
+                <iframe src={preview.url} title={preview.name} className="w-full h-[75vh] rounded-lg border border-gray-200" />
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -440,8 +447,8 @@ export default function VendorChallanDetail() {
   const [challanNumber, setChallanNumber]   = useState<string | null>(null);
   const [linkedPoNumber, setLinkedPoNumber] = useState<string | null>(null);
   const [linkedPrNumber, setLinkedPrNumber] = useState<string | null>(null);
-  const [attachment, setAttachment]         = useState<Attachment | null>(null);
-  const [pendingFile, setPendingFile]       = useState<File | null>(null);
+  const [attachments, setAttachments]       = useState<Attachment[]>([]);
+  const [pendingFiles, setPendingFiles]     = useState<File[]>([]);
   const [vendors, setVendors]               = useState<Vendor[]>([]);
   const [loading, setLoading]               = useState(!isNew);
   const [saving,  setSaving]                = useState(false);
@@ -481,7 +488,12 @@ export default function VendorChallanDetail() {
       setChallanNumber(c.challan_number ?? null);
       setLinkedPoNumber(c.linked_po_number ?? null);
       setLinkedPrNumber(c.linked_pr_number ?? null);
-      setAttachment(c.attachment ?? null);
+      const list: Attachment[] = Array.isArray(c.attachments) ? c.attachments : [];
+      if (c.attachment?.url && !list.some((a: Attachment) => a.url === c.attachment.url)) {
+        setAttachments([c.attachment, ...list]);
+      } else {
+        setAttachments(list);
+      }
     }
     setLoading(false);
   }, [numId]);
@@ -491,11 +503,17 @@ export default function VendorChallanDetail() {
 
   const canEdit = isNew || status === "Draft";
 
-  async function uploadPendingFile(id: number, file: File) {
+  async function uploadPendingFiles(id: number, files: File[]) {
+    if (!files.length) return;
     const fd = new FormData();
-    fd.append("file", file);
-    await fetch(`${BASE}/api/vendor-challans/${id}/document`, { method: "POST", headers: authToken(), body: fd });
-    setPendingFile(null);
+    for (const f of files) fd.append("files", f);
+    const r = await fetch(`${BASE}/api/vendor-challans/${id}/document`, { method: "POST", headers: authToken(), body: fd });
+    if (r.ok) {
+      setPendingFiles([]);
+    } else {
+      const d = await r.json().catch(() => ({}));
+      toast({ title: d.error ?? "Failed to upload attachments", variant: "destructive" });
+    }
   }
 
   async function handleSave() {
@@ -552,7 +570,7 @@ export default function VendorChallanDetail() {
     const d = await r.json();
     if (r.ok) {
       const newId: number = d.data.id;
-      if (pendingFile) await uploadPendingFile(newId, pendingFile);
+      if (pendingFiles.length) await uploadPendingFiles(newId, pendingFiles);
       toast({ title: isNew ? "Vendor challan created" : "Vendor challan saved" });
       if (isNew) setLocation(`/procurement/vendor-challans/${newId}`);
       else void fetchChallan();
@@ -716,12 +734,12 @@ export default function VendorChallanDetail() {
 
         {/* ── Attachment ───────────────────────────────────────────────────── */}
         <div className={`${card} p-5`}>
-          <p className={sectionLbl}>Attachment</p>
+          <p className={sectionLbl}>Attachments</p>
           <AttachmentSection
             challanId={numId}
-            attachment={attachment}
-            pendingFile={pendingFile}
-            onPendingFile={setPendingFile}
+            attachments={attachments}
+            pendingFiles={pendingFiles}
+            onPendingFiles={setPendingFiles}
             onUploaded={fetchChallan}
             disabled={!canEdit}
           />

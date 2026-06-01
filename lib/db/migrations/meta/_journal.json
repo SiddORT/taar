@@ -15,6 +15,13 @@
       "when": 1780294703423,
       "tag": "0001_safe_gamora",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1780296511381,
+      "tag": "0002_romantic_hammerhead",
+      "breakpoints": true
     }
   ]
 }

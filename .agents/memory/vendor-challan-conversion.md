@@ -25,3 +25,16 @@ This breaks Purchase Receipt creation, which needs an inventory item per line.
 The CREATE/UPDATE routes recompute `amount = sum(qty*rate)` from validated `line_items`
 server-side; the client must not be trusted to send totals. A valid line = description with a
 letter/digit, qty>0, rate>0. Both routes reject challans with zero valid line items.
+
+## Challan attachments: array column, managed ONLY by document endpoints
+Challans support multiple files via a jsonb `attachments[]` column. A legacy single `attachment`
+column still exists; `normalizeAttachments()` merges legacy→array on read, and the document
+upload/delete endpoints write the array and null the legacy column.
+
+**Why:** the PUT (edit) route used to write `attachment`, so editing an old challan would silently
+clobber its file once the client stopped sending that field. Attachment state must be decoupled
+from the entity's CREATE/PUT routes.
+**How to apply:** never touch `attachment`/`attachments` in CREATE/PUT — only the dedicated
+`POST/DELETE /:id/document` endpoints mutate them. Those endpoints lock the row (`SELECT … FOR
+UPDATE` in a txn) so concurrent upload/remove can't clobber the array, and enforce Draft-only
+status server-side (FE `canEdit` alone is not a security boundary).

@@ -1,6 +1,8 @@
 import { pgTable, serial, text, numeric, integer, boolean, timestamp, jsonb } from "drizzle-orm/pg-core";
 import { z } from "zod/v4";
 
+export type ChallanAttachment = { url: string; originalName: string; mimeType?: string; size?: number };
+
 export const vendorChallansTable = pgTable("vendor_challans", {
   id: serial("id").primaryKey(),
   challanNumber: text("challan_number").notNull().unique(),
@@ -15,6 +17,7 @@ export const vendorChallansTable = pgTable("vendor_challans", {
   rate: numeric("rate", { precision: 14, scale: 2 }),
   amount: numeric("amount", { precision: 14, scale: 2 }),
   attachment: jsonb("attachment"),
+  attachments: jsonb("attachments").$type<ChallanAttachment[]>().default([]),
   lineItems: jsonb("line_items"),
   status: text("status").notNull().default("Draft"),
   linkedPoId: integer("linked_po_id"),
@@ -52,6 +55,7 @@ export const insertVendorChallanSchema = z.object({
   rate: z.union([z.string(), z.number()]).optional(),
   amount: z.union([z.string(), z.number()]).optional(),
   attachment: z.any().optional(),
+  attachments: z.array(z.record(z.string(), z.unknown())).optional().default([]),
   lineItems: z.any().optional(),
   remarks: z.string().optional(),
 });
