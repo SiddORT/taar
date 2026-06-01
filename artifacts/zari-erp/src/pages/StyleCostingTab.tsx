@@ -19,7 +19,7 @@ import { useAllVendors } from "@/hooks/useVendors";
 import { useWarehouseLocations } from "@/hooks/useWarehouseLocations";
 import { useAllMaterials, useCreateMaterial, type MaterialFormData } from "@/hooks/useMaterials";
 import { useAllFabrics, useCreateFabric, type FabricFormData } from "@/hooks/useFabrics";
-import { useItemTypes, useUnitTypes, useFabricTypes, useWidthUnitTypes } from "@/hooks/useLookups";
+import { useItemTypes, useUnitTypes, useFabricTypes } from "@/hooks/useLookups";
 import { useHSNList } from "@/hooks/useHSN";
 import { useStyleOrderProducts } from "@/hooks/useStyleOrderProducts";
 import {
@@ -216,13 +216,12 @@ function QuickAddFabricModal({ onClose, onCreated }: {
   const { toast } = useToast();
   const { data: fabricTypes = [] } = useFabricTypes();
   const { data: unitTypes = [] } = useUnitTypes();
-  const { data: widthUnitTypes = [] } = useWidthUnitTypes();
   const { data: hsnData } = useHSNList({ search: "", status: "active", page: 1, limit: 200 });
   const hsnOptions = hsnData?.data ?? [];
   const createFab = useCreateFabric();
 
   const [f, setF] = useState<FabricFormData>({
-    fabricType: "", quality: "", colorName: "", width: "", widthUnitType: "",
+    fabricType: "", quality: "", colorName: "", width: "",
     pricePerMeter: "", unitType: "", currentStock: "0", hsnCode: "", gstPercent: "0",
     vendor: "", location: "", locationStocks: [], isActive: true, images: [],
   });
@@ -232,7 +231,6 @@ function QuickAddFabricModal({ onClose, onCreated }: {
     if (!f.quality.trim()) { toast({ title: "Quality is required", variant: "destructive" }); return; }
     if (!f.colorName.trim()) { toast({ title: "Color name is required", variant: "destructive" }); return; }
     if (!f.width.trim()) { toast({ title: "Width is required", variant: "destructive" }); return; }
-    if (!f.widthUnitType) { toast({ title: "Width unit is required", variant: "destructive" }); return; }
     if (!f.pricePerMeter || parseFloat(f.pricePerMeter) < 0) { toast({ title: "Price/meter is required", variant: "destructive" }); return; }
     if (!f.unitType) { toast({ title: "Unit type is required", variant: "destructive" }); return; }
     if (!f.hsnCode) { toast({ title: "HSN code is required", variant: "destructive" }); return; }
@@ -275,13 +273,6 @@ function QuickAddFabricModal({ onClose, onCreated }: {
             { label: "Width *", node: (
               <input type="number" min="0" step="any" value={f.width} onChange={e => setF(p => ({ ...p, width: e.target.value }))}
                 placeholder="e.g. 44" className="w-full text-xs text-gray-900 border border-gray-200 rounded-xl px-3 py-2 focus:outline-none" />
-            )},
-            { label: "Width Unit *", node: (
-              <select value={f.widthUnitType} onChange={e => setF(p => ({ ...p, widthUnitType: e.target.value }))}
-                className="w-full text-xs text-gray-900 border border-gray-200 rounded-xl px-3 py-2 bg-white focus:outline-none">
-                <option value="">— Select —</option>
-                {widthUnitTypes.map((t: any) => <option key={t.id} value={t.name}>{t.name}</option>)}
-              </select>
             )},
             { label: "Unit Type *", node: (
               <select value={f.unitType} onChange={e => setF(p => ({ ...p, unitType: e.target.value }))}

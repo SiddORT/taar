@@ -112,7 +112,7 @@ router.post("/fabrics/import", requireAuth, async (req: AuthRequest, res): Promi
     const quality = String(row.quality ?? "").trim();
     const colorName = String(row.colorName ?? "").trim();
     const width = String(row.width ?? "").trim();
-    const widthUnitType = String(row.widthUnitType ?? "").trim();
+    const unitType = String(row.unitType ?? "").trim();
     const pricePerMeter = String(row.pricePerMeter ?? "").trim();
     const hsnCode = String(row.hsnCode ?? "").trim();
     const displayName = fabricType || `Row ${rowNum}`;
@@ -124,14 +124,13 @@ router.post("/fabrics/import", requireAuth, async (req: AuthRequest, res): Promi
     if (!colorName) { errors.push({ row: rowNum, name: displayName, error: "Color Name is required." }); skipped++; continue; }
     if (!NAME_REGEX.test(colorName) || colorName.length > 100) { errors.push({ row: rowNum, name: displayName, error: "Color Name must contain only letters and spaces (max 100 characters)." }); skipped++; continue; }
     if (!width || !NUMERIC_REGEX.test(width) || parseFloat(width) <= 0) { errors.push({ row: rowNum, name: displayName, error: "Width must be a positive numeric value." }); skipped++; continue; }
-    if (!widthUnitType) { errors.push({ row: rowNum, name: displayName, error: "Width Unit Type is required." }); skipped++; continue; }
-    if (widthUnitType.length > 50) { errors.push({ row: rowNum, name: displayName, error: "Width Unit Type must be at most 50 characters." }); skipped++; continue; }
+    if (!unitType) { errors.push({ row: rowNum, name: displayName, error: "Unit Type is required." }); skipped++; continue; }
+    if (unitType.length > 50) { errors.push({ row: rowNum, name: displayName, error: "Unit Type must be at most 50 characters." }); skipped++; continue; }
     if (!pricePerMeter || !NUMERIC_REGEX.test(pricePerMeter) || parseFloat(pricePerMeter) <= 0) { errors.push({ row: rowNum, name: displayName, error: "Price Per Meter must be a positive numeric value." }); skipped++; continue; }
     if (!hsnCode) { errors.push({ row: rowNum, name: displayName, error: "HSN Code is required." }); skipped++; continue; }
 
     const hexCode = String(row.hexCode ?? "").trim() || "#c9b45c";
     const height = String(row.height ?? "").trim() || undefined;
-    const unitType = String(row.unitType ?? "").trim() || undefined;
     const gstPercent = String(row.gstPercent ?? "").trim() || undefined;
     const vendor = String(row.vendor ?? "").trim() || undefined;
 
@@ -149,7 +148,7 @@ router.post("/fabrics/import", requireAuth, async (req: AuthRequest, res): Promi
         fabricCode, fabricType, quality, colorName,
         hexCode, color: hexCode,
         width, height: height ?? null,
-        widthUnitType, unitType: unitType ?? "",
+        unitType,
         pricePerMeter, hsnCode,
         gstPercent: gstPercent ?? "",
         vendor: vendor ?? null,

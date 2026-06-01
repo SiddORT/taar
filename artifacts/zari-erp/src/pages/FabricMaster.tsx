@@ -32,7 +32,7 @@ import {
   type MasterImage,
   type StatusFilter,
 } from "@/hooks/useFabrics";
-import { useUnitTypes, useCreateWidthUnitType, useFabricTypes, useCreateFabricType } from "@/hooks/useLookups";
+import { useUnitTypes, useCreateUnitType, useFabricTypes, useCreateFabricType } from "@/hooks/useLookups";
 import { useHSNList, useCreateHSN, type HsnFormData } from "@/hooks/useHSN";
 import { useAllVendors } from "@/hooks/useVendors";
 import { useWarehouseLocations } from "@/hooks/useWarehouseLocations";
@@ -80,7 +80,7 @@ function hexToColorName(hex: string): string {
 
 const EMPTY_FORM: FabricFormData = {
   fabricType: "", quality: "", color: "#c9b45c", hexCode: "#c9b45c",
-  colorName: "", width: "", height: "", widthUnitType: "", unitType: "", pricePerMeter: "",
+  colorName: "", width: "", height: "", unitType: "", pricePerMeter: "",
   currentStock: "", hsnCode: "", gstPercent: "",
   vendor: "", location: "", locationStocks: [], isActive: true, images: [],
   reorderLevel: "", minimumLevel: "", maximumLevel: "",
@@ -154,7 +154,7 @@ export default function FabricMaster() {
   const distinctFabricTypeFilters = [...new Set(allFabricRecords.map((f) => f.fabricType).filter(Boolean))].sort();
   const { data: unitTypes = [] } = useUnitTypes();
   const createFabricType = useCreateFabricType();
-  const createWidthUnitType = useCreateWidthUnitType();
+  const createUnitType = useCreateUnitType();
   const createHSN = useCreateHSN();
 
   const { data: hsnData } = useHSNList({ search: "", status: "active", page: 1, limit: 200 });
@@ -203,8 +203,8 @@ export default function FabricMaster() {
 
   const [addFabricTypeOpen, setAddFabricTypeOpen] = useState(false);
   const [newFabricTypeName, setNewFabricTypeName] = useState("");
-  const [addWidthUnitTypeOpen, setAddWidthUnitTypeOpen] = useState(false);
-  const [newWidthUnitTypeName, setNewWidthUnitTypeName] = useState("");
+  const [addUnitTypeOpen, setAddUnitTypeOpen] = useState(false);
+  const [newUnitTypeName, setNewUnitTypeName] = useState("");
   const [addHSNOpen, setAddHSNOpen] = useState(false);
   const [hsnForm, setHsnForm] = useState<HsnFormData>(EMPTY_HSN_FORM);
   const [hsnErrors, setHsnErrors] = useState<HsnErrors>({});
@@ -217,7 +217,7 @@ export default function FabricMaster() {
       : r.currentStock ? [{ location: r.location ?? "Out-house", stock: r.currentStock }] : [];
     setForm({ fabricType: r.fabricType, quality: r.quality, color: r.color ?? "#c9b45c",
       hexCode: r.hexCode ?? "#c9b45c", colorName: r.colorName, width: r.width, height: r.height ?? "",
-      widthUnitType: r.widthUnitType ?? "", unitType: r.unitType, pricePerMeter: r.pricePerMeter,
+      unitType: r.unitType, pricePerMeter: r.pricePerMeter,
       currentStock: r.currentStock, hsnCode: r.hsnCode, gstPercent: r.gstPercent,
       vendor: r.vendor ?? "", location: r.location ?? "", locationStocks: existingStocks,
       isActive: r.isActive, images: r.images ?? [],
@@ -321,9 +321,8 @@ export default function FabricMaster() {
       quality: form.quality.trim(),
       colorName: form.colorName.trim(),
       width: form.width.trim(),
-      widthUnitType: (form.widthUnitType || form.unitType || "").trim(),
       pricePerMeter: form.pricePerMeter.trim(),
-      unitType: (form.unitType ?? form.widthUnitType ?? "").trim(),
+      unitType: (form.unitType ?? "").trim(),
       currentStock: computedStock || "0",
       location: computedLocation,
     };
@@ -371,21 +370,21 @@ export default function FabricMaster() {
     } catch { toast({ title: "Error", description: "Failed to add fabric type.", variant: "destructive" }); }
   };
 
-  const handleAddWidthUnitType = async () => {
-    const val = newWidthUnitTypeName.trim();
+  const handleAddUnitType = async () => {
+    const val = newUnitTypeName.trim();
     if (!val) { toast({ title: "Validation Error", description: "Unit Type cannot be empty.", variant: "destructive" }); return; }
     if (!NAME_REGEX.test(val) || val.length > 50) { toast({ title: "Validation Error", description: "Unit Type must contain only letters and spaces (max 50 characters).", variant: "destructive" }); return; }
     try {
-      await createWidthUnitType.mutateAsync({ name: val, isActive: true });
+      await createUnitType.mutateAsync({ name: val, isActive: true });
       setForm((f) => ({ ...f, unitType: val }));
-      setNewWidthUnitTypeName(""); setAddWidthUnitTypeOpen(false);
-    } catch { toast({ title: "Error", description: "Failed to add width unit type.", variant: "destructive" }); }
+      setNewUnitTypeName(""); setAddUnitTypeOpen(false);
+    } catch { toast({ title: "Error", description: "Failed to add unit type.", variant: "destructive" }); }
   };
 
   const downloadSample = () => {
     const sampleRows = [
-      { "Fabric Type": "Cotton", "Quality": "Super Fine", "Color Name": "Ivory White", "Color Hex": "#FFFFF0", "Width": "44", "Height": "", "Width Unit Type": "Inch", "Price Per Meter": "180.00", "HSN Code": "52081100", "GST %": "5", "Vendor": "" },
-      { "Fabric Type": "Silk", "Quality": "Premium", "Color Name": "Royal Blue", "Color Hex": "#4169E1", "Width": "36", "Height": "", "Width Unit Type": "Inch", "Price Per Meter": "650.00", "HSN Code": "50072000", "GST %": "5", "Vendor": "" },
+      { "Fabric Type": "Cotton", "Quality": "Super Fine", "Color Name": "Ivory White", "Color Hex": "#FFFFF0", "Width": "44", "Height": "", "Unit Type": "Inch", "Price Per Meter": "180.00", "HSN Code": "52081100", "GST %": "5", "Vendor": "" },
+      { "Fabric Type": "Silk", "Quality": "Premium", "Color Name": "Royal Blue", "Color Hex": "#4169E1", "Width": "36", "Height": "", "Unit Type": "Inch", "Price Per Meter": "650.00", "HSN Code": "50072000", "GST %": "5", "Vendor": "" },
     ];
     const ws = XLSX.utils.json_to_sheet(sampleRows);
     const wb = XLSX.utils.book_new();
@@ -410,8 +409,7 @@ export default function FabricMaster() {
         hexCode: String(r["Color Hex"] ?? "").trim() || undefined,
         width: String(r["Width"] ?? "").trim(),
         height: String(r["Height"] ?? "").trim() || undefined,
-        widthUnitType: String(r["Width Unit Type"] ?? "").trim(),
-        unitType: String(r["Width Unit Type"] ?? "").trim(),
+        unitType: String(r["Unit Type"] ?? r["Width Unit Type"] ?? "").trim(),
         pricePerMeter: String(r["Price Per Meter"] ?? "").trim(),
         hsnCode: String(r["HSN Code"] ?? "").trim(),
         gstPercent: String(r["GST %"] ?? "").trim() || undefined,
@@ -440,7 +438,7 @@ export default function FabricMaster() {
       const exRows = result.data.map((r) => ({
         Code: r.fabricCode, "Fabric Type": r.fabricType, Quality: r.quality,
         "Color Name": r.colorName, "Color Hex": r.hexCode ?? "",
-        Width: r.width, Height: r.height ?? "", "Width Unit Type": r.unitType,
+        Width: r.width, Height: r.height ?? "", "Unit Type": r.unitType,
         "Price Per Meter": r.pricePerMeter,
         "Current Stock": r.currentStock, "HSN Code": r.hsnCode,
         "GST %": r.gstPercent, Vendor: r.vendor ?? "", Location: r.location ?? "",
@@ -745,7 +743,7 @@ export default function FabricMaster() {
                   <AddableSelect
                     label="Unit Type" required value={form.unitType ?? ""}
                     onChange={(v) => setForm((f) => ({ ...f, unitType: v }))}
-                    onAdd={() => { setNewWidthUnitTypeName(""); setAddWidthUnitTypeOpen(true); }}
+                    onAdd={() => { setNewUnitTypeName(""); setAddUnitTypeOpen(true); }}
                     addLabel="+ Add Unit"
                     options={unitTypeOptions} placeholder="Select Unit" error={errors.unitType}
                   />
@@ -1119,15 +1117,15 @@ export default function FabricMaster() {
         </div>
       </MasterFormModal>
 
-      {/* ══ Add Width Unit Type mini-modal ══ */}
-      <MasterFormModal open={addWidthUnitTypeOpen} title="Add Width Unit Type" onClose={() => setAddWidthUnitTypeOpen(false)}
-        onSubmit={handleAddWidthUnitType} submitting={createWidthUnitType.isPending} submitLabel="Add">
+      {/* ══ Add Unit Type mini-modal ══ */}
+      <MasterFormModal open={addUnitTypeOpen} title="Add Unit Type" onClose={() => setAddUnitTypeOpen(false)}
+        onSubmit={handleAddUnitType} submitting={createUnitType.isPending} submitLabel="Add">
         <div className="flex flex-col gap-1">
-          <InputField label="Unit Type Name" required placeholder="e.g. cm, inches" value={newWidthUnitTypeName}
+          <InputField label="Unit Type Name" required placeholder="e.g. cm, inches" value={newUnitTypeName}
             maxLength={50}
-            onChange={(e) => setNewWidthUnitTypeName(e.target.value.replace(/[^A-Za-z ]/g, ""))} />
-          <p className={`text-xs text-right ${newWidthUnitTypeName.length >= 50 ? "text-red-500" : "text-gray-400"}`}>
-            {newWidthUnitTypeName.length} / 50 characters used
+            onChange={(e) => setNewUnitTypeName(e.target.value.replace(/[^A-Za-z ]/g, ""))} />
+          <p className={`text-xs text-right ${newUnitTypeName.length >= 50 ? "text-red-500" : "text-gray-400"}`}>
+            {newUnitTypeName.length} / 50 characters used
           </p>
         </div>
       </MasterFormModal>

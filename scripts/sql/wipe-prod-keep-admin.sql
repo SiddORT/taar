@@ -10,7 +10,7 @@
 --   3. Keeps `users` (filtered to admin@zarierp.com only), `roles`, and
 --      `role_permissions` so authentication still works after the wipe.
 --   4. Keeps system reference tables: currencies, unit_types, item_types,
---      fabric_types, width_unit_types, departments, company_gst_settings,
+--      fabric_types, departments, company_gst_settings,
 --      invoice_templates. Removing these would break FK constraints and
 --      prevent the app from creating any new records.
 --      ➜ If you want to wipe these too, uncomment them in the list below.
@@ -111,7 +111,7 @@ DELETE FROM users WHERE email <> 'admin@zarierp.com';
 -- many forms (items, invoices, etc.) FK into them.
 -- ----------------------------------------------------------------------------
 -- TRUNCATE TABLE
---   currencies, unit_types, item_types, fabric_types, width_unit_types,
+--   currencies, unit_types, item_types, fabric_types,
 --   departments, company_gst_settings, invoice_templates
 -- RESTART IDENTITY CASCADE;
 
