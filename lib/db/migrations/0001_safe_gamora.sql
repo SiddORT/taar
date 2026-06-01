@@ -1,0 +1,1 @@
+ALTER TABLE "vendor_challans" ADD COLUMN IF NOT EXISTS "line_items" jsonb;

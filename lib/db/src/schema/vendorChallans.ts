@@ -15,6 +15,7 @@ export const vendorChallansTable = pgTable("vendor_challans", {
   rate: numeric("rate", { precision: 14, scale: 2 }),
   amount: numeric("amount", { precision: 14, scale: 2 }),
   attachment: jsonb("attachment"),
+  lineItems: jsonb("line_items"),
   status: text("status").notNull().default("Draft"),
   linkedPoId: integer("linked_po_id"),
   linkedPoNumber: text("linked_po_number"),
@@ -51,6 +52,7 @@ export const insertVendorChallanSchema = z.object({
   rate: z.union([z.string(), z.number()]).optional(),
   amount: z.union([z.string(), z.number()]).optional(),
   attachment: z.any().optional(),
+  lineItems: z.any().optional(),
   remarks: z.string().optional(),
 });
 
