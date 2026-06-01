@@ -1,1 +1,2 @@
 - [Drizzle migration policy](drizzle-migrations.md) — use versioned generate+migrate not push; how to baseline a pre-existing/pushed DB.
+- [Vendor Challan → PO → PR flow](vendor-challan-conversion.md) — PO items have no unit_type col (unit→remarks); challan-converted PO items have null inventory_item_id; challan totals are server-computed.

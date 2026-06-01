@@ -164,6 +164,7 @@ function AttachmentSection({ challanId, attachment, pendingFile, onPendingFile, 
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [removing,  setRemoving]  = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
   const { toast } = useToast();
 
   async function handleFileChosen(e: React.ChangeEvent<HTMLInputElement>) {
@@ -197,26 +198,68 @@ function AttachmentSection({ challanId, attachment, pendingFile, onPendingFile, 
 
   if (attachment) {
     const size = attachment.size ? ` (${(attachment.size / 1024).toFixed(1)} KB)` : "";
+    const fileUrl = `${BASE}${attachment.url}`;
+    const name = attachment.originalName ?? "";
+    const isImage = /\.(jpe?g|png|webp|gif|bmp|svg)$/i.test(name) || (attachment.mimeType ?? "").startsWith("image/");
+    const isPdf = /\.pdf$/i.test(name) || (attachment.mimeType ?? "") === "application/pdf";
     return (
-      <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
-        <Paperclip className="h-4 w-4 text-gray-400 shrink-0" />
-        <div className="min-w-0 flex-1">
-          <a href={`${BASE}${attachment.url}`} target="_blank" rel="noreferrer"
-            className="text-sm font-medium text-blue-600 hover:underline truncate block">{attachment.originalName}</a>
-          <p className="text-xs text-gray-400">{size}</p>
-        </div>
-        {!disabled && (
-          <div className="flex gap-2 shrink-0">
-            <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading}
-              className="text-xs px-2.5 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-100 transition-colors">Replace</button>
-            <button type="button" onClick={handleRemoveSaved} disabled={removing}
-              className="text-xs px-2.5 py-1.5 rounded-lg border border-red-200 text-red-500 hover:bg-red-50 transition-colors">
-              {removing ? <Loader2 className="h-3 w-3 animate-spin" /> : "Remove"}
+      <>
+        <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
+          {isImage ? (
+            <button type="button" onClick={() => setPreviewOpen(true)} className="shrink-0">
+              <img src={fileUrl} alt={name}
+                className="h-12 w-12 rounded-lg object-cover border border-gray-200 hover:ring-2 hover:ring-[#C9B45C] transition-all" />
             </button>
+          ) : (
+            <Paperclip className="h-4 w-4 text-gray-400 shrink-0" />
+          )}
+          <div className="min-w-0 flex-1">
+            <button type="button" onClick={() => (isImage || isPdf) ? setPreviewOpen(true) : window.open(fileUrl, "_blank")}
+              className="text-sm font-medium text-blue-600 hover:underline truncate block text-left">{name}</button>
+            <p className="text-xs text-gray-400">{size}</p>
+          </div>
+          <div className="flex gap-2 shrink-0">
+            {(isImage || isPdf) && (
+              <button type="button" onClick={() => setPreviewOpen(true)}
+                className="text-xs px-2.5 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-100 transition-colors">Preview</button>
+            )}
+            {!disabled && (
+              <>
+                <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading}
+                  className="text-xs px-2.5 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-100 transition-colors">Replace</button>
+                <button type="button" onClick={handleRemoveSaved} disabled={removing}
+                  className="text-xs px-2.5 py-1.5 rounded-lg border border-red-200 text-red-500 hover:bg-red-50 transition-colors">
+                  {removing ? <Loader2 className="h-3 w-3 animate-spin" /> : "Remove"}
+                </button>
+              </>
+            )}
+          </div>
+          <input ref={fileRef} type="file" className="hidden" onChange={handleFileChosen} />
+        </div>
+
+        {previewOpen && (isImage || isPdf) && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={() => setPreviewOpen(false)}>
+            <div className="bg-white rounded-2xl shadow-xl max-w-3xl w-full max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+              <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-gray-900 truncate">{name}</h3>
+                <div className="flex items-center gap-2">
+                  <a href={fileUrl} target="_blank" rel="noreferrer"
+                    className="text-xs px-2.5 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-100 transition-colors">Open in new tab</a>
+                  <button type="button" onClick={() => setPreviewOpen(false)}
+                    className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 transition-colors"><X className="h-4 w-4" /></button>
+                </div>
+              </div>
+              <div className="p-4 overflow-auto flex-1 flex items-center justify-center bg-gray-50">
+                {isImage ? (
+                  <img src={fileUrl} alt={name} className="max-w-full max-h-[75vh] object-contain rounded-lg" />
+                ) : (
+                  <iframe src={fileUrl} title={name} className="w-full h-[75vh] rounded-lg border border-gray-200" />
+                )}
+              </div>
+            </div>
           </div>
         )}
-        <input ref={fileRef} type="file" className="hidden" onChange={handleFileChosen} />
-      </div>
+      </>
     );
   }
 
@@ -254,6 +297,10 @@ function LineItemsTable({ items, onChange, disabled }: {
   disabled: boolean;
 }) {
   function updateItem(id: string, field: keyof LineItem, value: string) {
+    // Block negative quantities/rates outright.
+    if ((field === "quantity" || field === "rate") && value !== "" && parseFloat(value) < 0) {
+      value = "";
+    }
     onChange(items.map(item => {
       if (item._id !== id) return item;
       const updated = { ...item, [field]: value };
@@ -400,6 +447,7 @@ export default function VendorChallanDetail() {
   const [saving,  setSaving]                = useState(false);
   const [error,   setError]                 = useState("");
   const [actionLoading, setActionLoading]   = useState<"verify" | "cancel" | null>(null);
+  const [cancelOpen, setCancelOpen]         = useState(false);
 
   function set(k: keyof ReturnType<typeof emptyForm>, v: string) { setForm(f => ({ ...f, [k]: v })); }
 
@@ -456,9 +504,30 @@ export default function VendorChallanDetail() {
     if (!form.challanDate) { setError("Challan date is required"); return; }
     if (!form.challanType) { setError("Challan type is required"); return; }
 
+    // Items & Pricing validation — at least one valid line item is required.
+    const cleanItems = lineItems.filter(i => i.description.trim() || i.quantity || i.rate);
+    if (cleanItems.length === 0) {
+      setError("Add at least one line item with a description, quantity and rate");
+      return;
+    }
+    for (const i of cleanItems) {
+      const desc = i.description.trim();
+      const qty  = parseFloat(i.quantity);
+      const rate = parseFloat(i.rate);
+      if (!desc) { setError("Each line item must have a description"); return; }
+      if (!/[A-Za-z0-9]/.test(desc)) {
+        setError(`Line item description "${desc}" must contain letters or numbers`); return;
+      }
+      if (isNaN(qty) || qty <= 0) {
+        setError(`Quantity must be greater than zero for "${desc}"`); return;
+      }
+      if (isNaN(rate) || rate <= 0) {
+        setError(`Rate must be greater than zero for "${desc}"`); return;
+      }
+    }
+
     setSaving(true);
     const vendorObj = vendors.find(v => String(v.id) === form.vendorId);
-    const cleanItems = lineItems.filter(i => i.description || i.quantity || i.rate);
     const body = {
       challanDate:      form.challanDate,
       vendorId:         parseInt(form.vendorId, 10),
@@ -467,9 +536,13 @@ export default function VendorChallanDetail() {
       referenceOrderId: form.referenceOrderId || undefined,
       description:      form.description      || undefined,
       remarks:          form.remarks          || undefined,
-      quantity:         totalAmount > 0 ? String(cleanItems.length) : undefined,
-      amount:           totalAmount > 0 ? String(totalAmount.toFixed(2)) : undefined,
-      lineItems:        cleanItems.length > 0 ? cleanItems : undefined,
+      lineItems:        cleanItems.map(i => ({
+        description: i.description.trim(),
+        quantity:    i.quantity,
+        unit:        i.unit,
+        rate:        i.rate,
+        amount:      i.amount,
+      })),
     };
 
     const r = isNew
@@ -498,14 +571,14 @@ export default function VendorChallanDetail() {
     setActionLoading(null);
   }
 
-  async function handleCancel() {
-    if (!confirm("Cancel this challan?")) return;
+  async function confirmCancel() {
     setActionLoading("cancel");
     const r = await apiFetch(`/api/vendor-challans/${numId}/cancel`, { method: "PATCH" });
     const d = await r.json();
     if (r.ok) { toast({ title: "Challan cancelled" }); void fetchChallan(); }
     else setError(d.error ?? "Failed to cancel");
     setActionLoading(null);
+    setCancelOpen(false);
   }
 
   if (!user) return null;
@@ -555,7 +628,7 @@ export default function VendorChallanDetail() {
               </button>
             )}
             {!isNew && !["Converted to PO","Converted to PR","Billed","Paid","Cancelled"].includes(status) && (
-              <button onClick={handleCancel} disabled={!!actionLoading}
+              <button onClick={() => setCancelOpen(true)} disabled={!!actionLoading}
                 className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium text-orange-600 bg-orange-50 hover:bg-orange-100 border border-orange-200 transition-colors disabled:opacity-40">
                 {actionLoading === "cancel" ? <Loader2 className="h-4 w-4 animate-spin" /> : <XCircle className="h-4 w-4" />}
                 Cancel Challan
@@ -679,6 +752,31 @@ export default function VendorChallanDetail() {
         )}
 
       </div>
+
+      {/* Cancel challan confirmation */}
+      {cancelOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm">
+            <div className="px-6 py-4 border-b border-gray-100">
+              <h3 className="text-base font-semibold text-gray-900">Cancel Challan</h3>
+            </div>
+            <div className="px-6 py-5 text-sm text-gray-600">
+              Are you sure you want to cancel this challan? This action cannot be undone.
+            </div>
+            <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-3">
+              <button onClick={() => setCancelOpen(false)} disabled={actionLoading === "cancel"}
+                className="px-5 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-100 transition-colors disabled:opacity-40">
+                Keep Challan
+              </button>
+              <button onClick={() => void confirmCancel()} disabled={actionLoading === "cancel"}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 transition-colors disabled:opacity-40">
+                {actionLoading === "cancel" ? <Loader2 className="h-4 w-4 animate-spin" /> : <XCircle className="h-4 w-4" />}
+                {actionLoading === "cancel" ? "Cancelling…" : "Cancel Challan"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

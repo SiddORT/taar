@@ -16,7 +16,8 @@ const CHALLAN_TYPES = [
   "Toile Artisan", "Pattern Artisan", "Custom Artisan",
   "Packing", "Shipping", "Other Expense",
 ];
-const CHALLAN_STATUSES = ["Draft", "Verified", "Converted to PO", "Converted to PR", "Billed", "Paid", "Cancelled"];
+// Only statuses the system actually assigns are offered as filters.
+const STATUS_FILTER_OPTIONS = ["Draft", "Verified", "Converted to PO", "Cancelled"];
 const DURATION_OPTIONS = [
   { label: "1 Month",  value: 1 },
   { label: "3 Months", value: 3 },
@@ -90,6 +91,9 @@ export default function VendorChallans() {
   // Row selection
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
 
+  // Cancel confirmation modal
+  const [cancelTarget, setCancelTarget] = useState<number | null>(null);
+
   // Bulk convert modal state
   const [bulkConvertOpen, setBulkConvertOpen] = useState(false);
   const [bulkConverting, setBulkConverting]   = useState(false);
@@ -114,7 +118,10 @@ export default function VendorChallans() {
     if (r.ok) { const d = await r.json(); setVendors(d); }
   }, []);
 
+  const dateRangeInvalid = !!(dateFrom && dateTo && dateFrom > dateTo);
+
   const fetchChallans = useCallback(async () => {
+    if (dateFrom && dateTo && dateFrom > dateTo) { setChallans([]); setTotal(0); return; }
     setLoading(true);
     const params = new URLSearchParams({
       search, vendor: vendorFilter, challanType: typeFilter, status: statusFilter,
@@ -137,13 +144,15 @@ export default function VendorChallans() {
     setActionId(null);
   }
 
-  async function handleCancel(id: number) {
-    if (!confirm("Cancel this challan?")) return;
+  async function confirmCancel() {
+    if (cancelTarget == null) return;
+    const id = cancelTarget;
     setActionId(id);
     const r = await apiFetch(`/api/vendor-challans/${id}/cancel`, { method: "PATCH" });
     if (r.ok) void fetchChallans();
     else { const e = await r.json(); alert(e.error ?? "Failed to cancel"); }
     setActionId(null);
+    setCancelTarget(null);
   }
 
   async function handleDelete(id: number) {
@@ -164,15 +173,16 @@ export default function VendorChallans() {
     });
   }
 
-  const pageIds = challans.map(c => c.id);
-  const allPageSelected = pageIds.length > 0 && pageIds.every(id => selectedIds.has(id));
-  const somePageSelected = pageIds.some(id => selectedIds.has(id));
+  // Only Verified challans can be selected for conversion to a PO.
+  const selectableIds = challans.filter(c => c.status === "Verified").map(c => c.id);
+  const allPageSelected = selectableIds.length > 0 && selectableIds.every(id => selectedIds.has(id));
+  const somePageSelected = selectableIds.some(id => selectedIds.has(id));
 
   function toggleSelectAll() {
     if (allPageSelected) {
-      setSelectedIds(prev => { const next = new Set(prev); pageIds.forEach(id => next.delete(id)); return next; });
+      setSelectedIds(prev => { const next = new Set(prev); selectableIds.forEach(id => next.delete(id)); return next; });
     } else {
-      setSelectedIds(prev => { const next = new Set(prev); pageIds.forEach(id => next.add(id)); return next; });
+      setSelectedIds(prev => { const next = new Set(prev); selectableIds.forEach(id => next.add(id)); return next; });
     }
   }
 
@@ -291,14 +301,19 @@ export default function VendorChallans() {
           <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
             className="px-3 py-2 text-sm text-gray-900 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-300 min-w-36">
             <option value="">All Statuses</option>
-            {CHALLAN_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
+            {STATUS_FILTER_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
           </select>
-          <div className="flex items-center gap-2">
-            <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
-              className="px-3 py-2 text-sm text-gray-900 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-300" />
-            <span className="text-gray-400 text-xs">to</span>
-            <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
-              className="px-3 py-2 text-sm text-gray-900 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-300" />
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-2">
+              <input type="date" value={dateFrom} max={dateTo || undefined} onChange={e => setDateFrom(e.target.value)}
+                className={`px-3 py-2 text-sm text-gray-900 border rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-300 ${dateRangeInvalid ? "border-red-400" : "border-gray-200"}`} />
+              <span className="text-gray-400 text-xs">to</span>
+              <input type="date" value={dateTo} min={dateFrom || undefined} onChange={e => setDateTo(e.target.value)}
+                className={`px-3 py-2 text-sm text-gray-900 border rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-300 ${dateRangeInvalid ? "border-red-400" : "border-gray-200"}`} />
+            </div>
+            {dateRangeInvalid && (
+              <span className="text-xs text-red-600">"From" date must be on or before "To" date</span>
+            )}
           </div>
           {hasFilters && (
             <button onClick={() => { setSearch(""); setVendorFilter(""); setTypeFilter(""); setStatusFilter(""); setDateFrom(""); setDateTo(""); }}
@@ -351,13 +366,15 @@ export default function VendorChallans() {
                     return (
                       <tr key={ch.id}
                         className={`transition-colors group ${isSelected ? "bg-blue-50/60" : "hover:bg-gray-50"}`}>
-                        {/* Checkbox */}
+                        {/* Checkbox — only Verified challans can be converted to a PO */}
                         <td className="pl-4 pr-2 py-3">
                           <input
                             type="checkbox"
                             checked={isSelected}
+                            disabled={ch.status !== "Verified"}
                             onChange={() => toggleRow(ch.id)}
-                            className="h-4 w-4 rounded border-gray-300 accent-gray-800 cursor-pointer"
+                            title={ch.status !== "Verified" ? "Only Verified challans can be selected for conversion" : "Select challan"}
+                            className="h-4 w-4 rounded border-gray-300 accent-gray-800 cursor-pointer disabled:cursor-not-allowed disabled:opacity-40"
                           />
                         </td>
                         {/* Sr. No. */}
@@ -387,7 +404,7 @@ export default function VendorChallans() {
                         <td className="px-4 py-3 text-xs font-mono text-violet-600">{ch.linked_po_number ?? "—"}</td>
                         <td className="px-4 py-3 text-xs font-mono text-indigo-600">{ch.linked_pr_number ?? "—"}</td>
                         <td className="px-4 py-3">
-                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="flex items-center gap-1">
                             {ch.status === "Draft" && can("procurement:vendor_challans:verify") && (
                               <button onClick={() => handleVerify(ch.id)} disabled={actionId === ch.id}
                                 title="Verify"
@@ -396,7 +413,7 @@ export default function VendorChallans() {
                               </button>
                             )}
                             {!["Converted to PO", "Converted to PR", "Billed", "Paid", "Cancelled"].includes(ch.status) && (
-                              <button onClick={() => handleCancel(ch.id)} disabled={actionId === ch.id}
+                              <button onClick={() => setCancelTarget(ch.id)} disabled={actionId === ch.id}
                                 title="Cancel"
                                 className="p-1.5 rounded-lg text-orange-500 hover:bg-orange-50 transition-colors disabled:opacity-40">
                                 <XCircle className="h-3.5 w-3.5" />
@@ -648,6 +665,31 @@ export default function VendorChallans() {
                 style={{ background: "linear-gradient(135deg, #C6AF4B, #a8922e)" }}>
                 {cvConverting ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
                 {cvConverting ? "Creating PO…" : "Confirm & Create PO"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Cancel challan confirmation */}
+      {cancelTarget != null && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm">
+            <div className="px-6 py-4 border-b border-gray-100">
+              <h3 className="text-base font-semibold text-gray-900">Cancel Challan</h3>
+            </div>
+            <div className="px-6 py-5 text-sm text-gray-600">
+              Are you sure you want to cancel this challan? This action cannot be undone.
+            </div>
+            <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-3">
+              <button onClick={() => setCancelTarget(null)} disabled={actionId === cancelTarget}
+                className="px-5 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-100 transition-colors disabled:opacity-40">
+                Keep Challan
+              </button>
+              <button onClick={confirmCancel} disabled={actionId === cancelTarget}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 transition-colors disabled:opacity-40">
+                {actionId === cancelTarget ? <Loader2 className="h-4 w-4 animate-spin" /> : <XCircle className="h-4 w-4" />}
+                {actionId === cancelTarget ? "Cancelling…" : "Cancel Challan"}
               </button>
             </div>
           </div>

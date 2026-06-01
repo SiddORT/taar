@@ -12,6 +12,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { customFetch } from "@workspace/api-client-react";
 import TopNavbar from "@/components/layout/TopNavbar";
 import { useToast } from "@/hooks/use-toast";
+import { SmallSearchSelect } from "@/components/ui/SearchableSelect";
 
 const G     = "#C6AF4B";
 const G_DIM = "#A8943E";
@@ -34,7 +35,7 @@ interface ApprovedPO {
 
 interface POItem {
   id: number;
-  inventory_item_id: number;
+  inventory_item_id: number | null;
   item_name: string;
   item_code: string;
   ordered_quantity: string;
@@ -55,7 +56,7 @@ interface PODetail {
 
 interface ReceiptLine {
   poItemId: number;
-  inventoryItemId: number;
+  inventoryItemId: number | null;
   itemName: string;
   itemCode: string;
   unitType: string;
@@ -138,6 +139,12 @@ export default function PurchaseReceiptForm() {
   const [submitting, setSubmitting] = useState(false);
   const [actioning, setActioning] = useState(false);
 
+  // Inventory items for mapping unlinked challan-PO lines to a stock item.
+  const [inventoryOptions, setInventoryOptions] = useState<{ label: string; value: string }[]>([]);
+  // poItemIds that arrived without an inventory link (challan-origin) — keep the
+  // mapping picker visible for these even after a selection so users can correct it.
+  const [mappableItemIds, setMappableItemIds] = useState<Set<number>>(new Set());
+
   // Edit mode for existing Open PR
   const [editMode, setEditMode] = useState(false);
   const [editLines, setEditLines] = useState<ReceiptLine[]>([]);
@@ -188,10 +195,24 @@ export default function PurchaseReceiptForm() {
             itemImage: "",
           }));
         setLines(ls);
+        setMappableItemIds(new Set(ls.filter(l => l.inventoryItemId == null).map(l => l.poItemId)));
       })
       .catch(() => toast({ title: "Failed to load PO details", variant: "destructive" }))
       .finally(() => setLoadingPo(false));
   }, [selectedPoId, token, toast]);
+
+  // Load inventory items only when some PO line is missing an inventory link
+  // (e.g. a PO converted from a vendor challan) so the user can map it.
+  const hasUnmappedLines = lines.some(l => mappableItemIds.has(l.poItemId));
+  useEffect(() => {
+    if (!token || !hasUnmappedLines || inventoryOptions.length > 0) return;
+    customFetch(`/api/inventory/items?limit=1000&_t=${Date.now()}`)
+      .then((r: unknown) => {
+        const data = (r as { data?: Array<{ id: number; item_name: string; item_code: string }> }).data ?? [];
+        setInventoryOptions(data.map(it => ({ label: `${it.item_name} (${it.item_code})`, value: String(it.id) })));
+      })
+      .catch(() => {});
+  }, [token, hasUnmappedLines, inventoryOptions.length]);
 
   const loadPr = useCallback(() => {
     if (!prId || !token) return;
@@ -217,6 +238,9 @@ export default function PurchaseReceiptForm() {
     for (const l of validLines) {
       if (parseFloat(l.quantity) > parseFloat(l.pendingQty) + 0.001) {
         toast({ title: `Quantity for "${l.itemName}" exceeds pending (${parseFloat(l.pendingQty).toFixed(2)})`, variant: "destructive" }); return;
+      }
+      if (l.inventoryItemId == null) {
+        toast({ title: `Map "${l.itemName}" to an inventory item before receiving`, variant: "destructive" }); return;
       }
     }
     setSubmitting(true);
@@ -923,6 +947,22 @@ export default function PurchaseReceiptForm() {
                           <td className="px-3 py-3">
                             <div className="text-sm font-medium text-gray-900">{line.itemName}</div>
                             <div className="text-xs text-gray-400">{line.itemCode}</div>
+                            {mappableItemIds.has(line.poItemId) && (
+                              <div className="mt-1.5 min-w-[180px]">
+                                <div className="flex items-center gap-1 text-[10px] text-amber-600 mb-1">
+                                  <span>Map to inventory item</span>
+                                  <span className="text-red-500">*</span>
+                                </div>
+                                <SmallSearchSelect
+                                  options={inventoryOptions}
+                                  value={line.inventoryItemId == null ? "" : String(line.inventoryItemId)}
+                                  onChange={(v) => setLines(ls => ls.map((l, i) =>
+                                    i === idx ? { ...l, inventoryItemId: v ? parseInt(v, 10) : null } : l))}
+                                  placeholder="Select item…"
+                                  clearable={false}
+                                />
+                              </div>
+                            )}
                           </td>
                           <td className="px-3 py-3 text-xs text-gray-500">{line.unitType || "—"}</td>
                           <td className="px-3 py-3 text-xs font-mono text-gray-600">{parseFloat(line.orderedQty).toFixed(2)}</td>

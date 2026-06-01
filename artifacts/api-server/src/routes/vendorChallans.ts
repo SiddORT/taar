@@ -30,6 +30,83 @@ function durationMonthsToStart(months: number): string {
   return d.toISOString().slice(0, 10);
 }
 
+type CleanLineItem = { description: string; quantity: string; unit: string; rate: string; amount: string };
+
+// Validate & normalise challan line items. A challan must carry at least one
+// valid line item (non-blank description with letters/digits, positive qty & rate).
+function validateChallanLineItems(
+  raw: unknown
+): { ok: true; items: CleanLineItem[]; totalQty: number; totalAmount: number } | { ok: false; error: string } {
+  if (!Array.isArray(raw) || raw.length === 0) {
+    return { ok: false, error: "At least one line item with quantity and rate is required" };
+  }
+  const items: CleanLineItem[] = [];
+  let totalQty = 0;
+  let totalAmount = 0;
+  for (const li of raw as Array<Record<string, unknown>>) {
+    const description = String(li?.description ?? "").trim();
+    const unit = String(li?.unit ?? "").trim();
+    const quantity = parseFloat(String(li?.quantity ?? ""));
+    const rate = parseFloat(String(li?.rate ?? ""));
+    if (!description) return { ok: false, error: "Each line item must have a description" };
+    if (!/[A-Za-z0-9]/.test(description)) {
+      return { ok: false, error: `Line item description "${description}" must contain letters or numbers` };
+    }
+    if (isNaN(quantity) || quantity <= 0) {
+      return { ok: false, error: `Quantity must be greater than zero for "${description}"` };
+    }
+    if (isNaN(rate) || rate <= 0) {
+      return { ok: false, error: `Rate must be greater than zero for "${description}"` };
+    }
+    const amount = quantity * rate;
+    totalQty += quantity;
+    totalAmount += amount;
+    items.push({
+      description,
+      unit,
+      quantity: String(quantity),
+      rate: rate.toFixed(2),
+      amount: amount.toFixed(2),
+    });
+  }
+  return { ok: true, items, totalQty, totalAmount };
+}
+
+// Expand a challan's line items into individual purchase_order_items rows so the
+// converted PO carries the full item/quantity breakdown. Falls back to a single
+// summary row for legacy challans without line items.
+async function insertPoItemsForChallan(
+  client: { query: (text: string, params: unknown[]) => Promise<unknown> },
+  poId: number,
+  ch: Record<string, any>
+): Promise<void> {
+  const lineItems: Array<Record<string, any>> = Array.isArray(ch.line_items) ? ch.line_items : [];
+  if (lineItems.length > 0) {
+    let idx = 0;
+    for (const li of lineItems) {
+      idx += 1;
+      const qty = parseFloat(String(li?.quantity ?? "")) || 0;
+      const rate = parseFloat(String(li?.rate ?? "")) || 0;
+      const unit = String(li?.unit ?? "").trim();
+      const remarks = `${unit ? `Unit: ${unit} | ` : ""}Challan: ${ch.challan_number} | Date: ${ch.challan_date}`;
+      await client.query(
+        `INSERT INTO purchase_order_items
+           (po_id, item_name, item_code, ordered_quantity, received_quantity, unit_price, remarks)
+         VALUES ($1,$2,$3,$4,0,$5,$6)`,
+        [poId, String(li?.description ?? "").trim() || ch.challan_type, `${ch.challan_number}-${idx}`, qty, rate, remarks]
+      );
+    }
+    return;
+  }
+  await client.query(
+    `INSERT INTO purchase_order_items
+       (po_id, item_name, item_code, ordered_quantity, received_quantity, unit_price, remarks)
+     VALUES ($1,$2,$3,$4,0,$5,$6)`,
+    [poId, ch.description ?? ch.challan_type, ch.challan_number, ch.quantity ?? 1, ch.rate ?? 0,
+     `Challan: ${ch.challan_number} | Date: ${ch.challan_date}`]
+  );
+}
+
 // ── LIST ──────────────────────────────────────────────────────────────────────
 router.get("/vendor-challans", requireAuth, async (req: AuthRequest, res) => {
   try {
@@ -77,10 +154,16 @@ router.get("/vendor-challans/:id", requireAuth, async (req, res) => {
 router.post("/vendor-challans", requireAuth, async (req: AuthRequest, res) => {
   try {
     const userName = req.user?.email ?? "system";
-    const { challanDate, vendorId, vendorName, challanType, referenceOrderId, description, quantity, unit, rate, amount, attachment, remarks, lineItems } = req.body;
+    const { challanDate, vendorId, vendorName, challanType, referenceOrderId, description, unit, attachment, remarks, lineItems } = req.body;
     if (!vendorId) { res.status(400).json({ error: "Vendor is required" }); return; }
     if (!challanDate) { res.status(400).json({ error: "Challan date is required" }); return; }
     if (!challanType) { res.status(400).json({ error: "Challan type is required" }); return; }
+
+    const validated = validateChallanLineItems(lineItems);
+    if (!validated.ok) { res.status(400).json({ error: validated.error }); return; }
+    const quantity = String(validated.totalQty);
+    const rate = null;
+    const amount = validated.totalAmount.toFixed(2);
 
     const challanNumber = await nextChallanNumber();
     // Admin-created challans are auto-verified
@@ -94,9 +177,9 @@ router.post("/vendor-challans", requireAuth, async (req: AuthRequest, res) => {
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,NOW(),NOW())
        RETURNING *`,
       [challanNumber, challanDate, vendorId, vendorName ?? null, challanType,
-       referenceOrderId ?? null, description ?? null, quantity ?? null, unit ?? null,
-       rate ?? null, amount ?? null, attachment ? JSON.stringify(attachment) : null,
-       lineItems ? JSON.stringify(lineItems) : null,
+       referenceOrderId ?? null, description ?? null, quantity, unit ?? null,
+       rate, amount, attachment ? JSON.stringify(attachment) : null,
+       JSON.stringify(validated.items),
        initialStatus, remarks ?? null, userName]
     );
     res.status(201).json({ data: r.rows[0] });
@@ -116,7 +199,16 @@ router.put("/vendor-challans/:id", requireAuth, async (req: AuthRequest, res) =>
     if (!["Draft"].includes(existing.rows[0].status)) {
       res.status(400).json({ error: "Only Draft challans can be edited" }); return;
     }
-    const { challanDate, vendorId, vendorName, challanType, referenceOrderId, description, quantity, unit, rate, amount, attachment, remarks, lineItems } = req.body;
+    const { challanDate, vendorId, vendorName, challanType, referenceOrderId, description, unit, attachment, remarks, lineItems } = req.body;
+    if (!vendorId) { res.status(400).json({ error: "Vendor is required" }); return; }
+    if (!challanDate) { res.status(400).json({ error: "Challan date is required" }); return; }
+    if (!challanType) { res.status(400).json({ error: "Challan type is required" }); return; }
+
+    const validated = validateChallanLineItems(lineItems);
+    if (!validated.ok) { res.status(400).json({ error: validated.error }); return; }
+    const quantity = String(validated.totalQty);
+    const amount = validated.totalAmount.toFixed(2);
+
     const r = await pool.query(
       `UPDATE vendor_challans SET
          challan_date=$1, vendor_id=$2, vendor_name=$3, challan_type=$4,
@@ -124,9 +216,9 @@ router.put("/vendor-challans/:id", requireAuth, async (req: AuthRequest, res) =>
          rate=$9, amount=$10, attachment=$11, line_items=$12, remarks=$13, updated_at=NOW()
        WHERE id=$14 RETURNING *`,
       [challanDate, vendorId, vendorName ?? null, challanType, referenceOrderId ?? null,
-       description ?? null, quantity ?? null, unit ?? null, rate ?? null, amount ?? null,
+       description ?? null, quantity, unit ?? null, null, amount,
        attachment ? JSON.stringify(attachment) : null,
-       lineItems ? JSON.stringify(lineItems) : null,
+       JSON.stringify(validated.items),
        remarks ?? null, id]
     );
     res.json({ data: r.rows[0] });
@@ -210,15 +302,15 @@ router.post("/vendor-challans/preview-po", requireAuth, async (req, res) => {
 
 // ── CONVERT TO PO ─────────────────────────────────────────────────────────────
 router.post("/vendor-challans/convert-to-po", requireAuth, async (req: AuthRequest, res) => {
+  const { vendorId, vendorName, challanType, durationMonths } = req.body as {
+    vendorId: number; vendorName: string; challanType: string; durationMonths: number;
+  };
+  if (!vendorId) { res.status(400).json({ error: "Vendor is required" }); return; }
+  if (!challanType) { res.status(400).json({ error: "Challan Type is required" }); return; }
+
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
-    const { vendorId, vendorName, challanType, durationMonths } = req.body as {
-      vendorId: number; vendorName: string; challanType: string; durationMonths: number;
-    };
-    if (!vendorId) { res.status(400).json({ error: "Vendor is required" }); return; }
-    if (!challanType) { res.status(400).json({ error: "Challan Type is required" }); return; }
-
     const dateFrom = durationMonthsToStart(durationMonths ?? 1);
     const challans = await client.query(
       `SELECT * FROM vendor_challans
@@ -251,19 +343,7 @@ router.post("/vendor-challans/convert-to-po", requireAuth, async (req: AuthReque
     const po = poRes.rows[0];
 
     for (const ch of challans.rows) {
-      await client.query(
-        `INSERT INTO purchase_order_items
-           (po_id, item_name, item_code, ordered_quantity, received_quantity, unit_price, remarks)
-         VALUES ($1,$2,$3,$4,0,$5,$6)`,
-        [
-          po.id,
-          ch.description ?? ch.challan_type,
-          ch.challan_number,
-          ch.quantity ?? 1,
-          ch.rate ?? 0,
-          `Challan: ${ch.challan_number} | Date: ${ch.challan_date}`,
-        ]
-      );
+      await insertPoItemsForChallan(client, po.id, ch);
       await client.query(
         `UPDATE vendor_challans SET status='Converted to PO', linked_po_id=$1, linked_po_number=$2, updated_at=NOW() WHERE id=$3`,
         [po.id, poNumber, ch.id]
@@ -288,14 +368,14 @@ router.post("/vendor-challans/convert-to-po", requireAuth, async (req: AuthReque
 
 // ── CONVERT SELECTED IDs TO PO ────────────────────────────────────────────────
 router.post("/vendor-challans/convert-selected-to-po", requireAuth, async (req: AuthRequest, res) => {
+  const { challanIds } = req.body as { challanIds: number[] };
+  if (!Array.isArray(challanIds) || !challanIds.length) {
+    res.status(400).json({ error: "No challans selected" }); return;
+  }
+
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
-    const { challanIds } = req.body as { challanIds: number[] };
-    if (!Array.isArray(challanIds) || !challanIds.length) {
-      res.status(400).json({ error: "No challans selected" }); return;
-    }
-
     const placeholders = challanIds.map((_, i) => `$${i + 1}`).join(",");
     const challans = await client.query(
       `SELECT * FROM vendor_challans WHERE id IN (${placeholders}) AND is_deleted=false ORDER BY challan_date ASC`,
@@ -310,7 +390,11 @@ router.post("/vendor-challans/convert-selected-to-po", requireAuth, async (req: 
     const nonVerified = challans.rows.filter((c: any) => c.status !== "Verified");
     if (nonVerified.length) {
       await client.query("ROLLBACK");
-      res.status(400).json({ error: `Only Verified challans can be converted. Non-verified: ${nonVerified.map((c: any) => c.challan_number).join(", ")}` }); return;
+      const details = nonVerified.map((c: any) => `${c.challan_number} (${c.status})`).join(", ");
+      res.status(400).json({
+        error: `Only Verified challans can be converted to a PO. These cannot be converted: ${details}. Please deselect them and try again.`,
+      });
+      return;
     }
 
     const vendorIds: Set<number> = new Set(challans.rows.map((c: any) => c.vendor_id));
@@ -342,19 +426,7 @@ router.post("/vendor-challans/convert-selected-to-po", requireAuth, async (req: 
     const po = poRes.rows[0];
 
     for (const ch of challans.rows) {
-      await client.query(
-        `INSERT INTO purchase_order_items
-           (po_id, item_name, item_code, ordered_quantity, received_quantity, unit_price, remarks)
-         VALUES ($1,$2,$3,$4,0,$5,$6)`,
-        [
-          po.id,
-          ch.description ?? ch.challan_type,
-          ch.challan_number,
-          ch.quantity ?? 1,
-          ch.rate ?? 0,
-          `Challan: ${ch.challan_number} | Date: ${ch.challan_date}`,
-        ]
-      );
+      await insertPoItemsForChallan(client, po.id, ch);
       await client.query(
         `UPDATE vendor_challans SET status='Converted to PO', linked_po_id=$1, linked_po_number=$2, updated_at=NOW() WHERE id=$3`,
         [po.id, poNumber, ch.id]
