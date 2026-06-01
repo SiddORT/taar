@@ -119,7 +119,7 @@ router.delete("/orders/:id", requireAuth, async (req: AuthRequest, res): Promise
   const updatedBy = req.user?.email ?? "system";
   const [record] = await db
     .update(ordersTable)
-    .set({ isDeleted: true, updatedBy, updatedAt: new Date() })
+    .set({ isDeleted: true, updatedBy, updatedAt: new Date(), deletedBy: updatedBy, deletedAt: new Date() })
     .where(and(eq(ordersTable.id, id), eq(ordersTable.isDeleted, false)))
     .returning();
 

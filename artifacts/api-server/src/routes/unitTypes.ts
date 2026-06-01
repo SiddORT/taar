@@ -124,8 +124,9 @@ router.patch("/unit-types-master/:id/status", requireAuth, async (req: AuthReque
 router.delete("/unit-types-master/:id", requireAuth, async (req: AuthRequest, res): Promise<void> => {
   const id = parseInt(String(req.params.id), 10);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid ID" }); return; }
+  const deletedByUser = (req.user as any)?.email ?? "system";
   const [record] = await db.update(unitTypesTable)
-    .set({ isDeleted: true })
+    .set({ isDeleted: true, deletedBy: deletedByUser, deletedAt: new Date() })
     .where(and(eq(unitTypesTable.id, id), eq(unitTypesTable.isDeleted, false)))
     .returning();
   if (!record) { res.status(404).json({ error: "Unit Type not found" }); return; }

@@ -265,11 +265,12 @@ router.delete("/procurement/purchase-orders/:id", requireAuth, async (req, res) 
   try {
     await client.query("BEGIN");
     const id = parseInt(String(req.params.id));
+    const deletedByUser = (req.user as any)?.email ?? "system";
     const po = await client.query(`SELECT status FROM purchase_orders WHERE id = $1 AND is_deleted = false`, [id]);
     if (!po.rows.length) { await client.query("ROLLBACK"); res.status(404).json({ error: "PO not found" }); return; }
     if (po.rows[0].status !== "Draft") { await client.query("ROLLBACK"); res.status(400).json({ error: "Only Draft POs can be deleted" }); return; }
-    await client.query(`UPDATE purchase_order_items SET is_deleted = true, updated_at = NOW() WHERE po_id = $1 AND is_deleted = false`, [id]);
-    await client.query(`UPDATE purchase_orders SET is_deleted = true, updated_at = NOW() WHERE id = $1 AND is_deleted = false`, [id]);
+    await client.query(`UPDATE purchase_order_items SET is_deleted = true, updated_at = NOW(), deleted_by = $2, deleted_at = now() WHERE po_id = $1 AND is_deleted = false`, [id, deletedByUser]);
+    await client.query(`UPDATE purchase_orders SET is_deleted = true, updated_at = NOW(), deleted_by = $2, deleted_at = now() WHERE id = $1 AND is_deleted = false`, [id, deletedByUser]);
     await client.query("COMMIT");
     res.json({ message: "Purchase Order deleted" });
   } catch (err) {
@@ -546,6 +547,7 @@ router.put("/procurement/purchase-receipts/:id", requireAuth, async (req: AuthRe
   try {
     await client.query("BEGIN");
     const id = parseInt(String(req.params.id));
+    const deletedByUser = (req.user as any)?.email ?? "system";
     const { receivedDate, items = [] } = req.body as {
       receivedDate?: string;
       items: { poItemId: number; inventoryItemId: number; itemName: string; itemCode: string; quantity: number; unitPrice: number; warehouseLocation?: string; remarks?: string }[];
@@ -594,7 +596,7 @@ router.put("/procurement/purchase-receipts/:id", requireAuth, async (req: AuthRe
     }
 
     // Replace items: soft-delete all existing, insert new
-    await client.query(`UPDATE purchase_receipt_items SET is_deleted = true WHERE pr_id = $1 AND is_deleted = false`, [id]);
+    await client.query(`UPDATE purchase_receipt_items SET is_deleted = true, deleted_by = $2, deleted_at = now() WHERE pr_id = $1 AND is_deleted = false`, [id, deletedByUser]);
     for (const item of items) {
       await client.query(
         `INSERT INTO purchase_receipt_items
@@ -667,8 +669,8 @@ router.post("/procurement/purchase-receipts/:id/cancel", requireAuth, async (req
         }
         // Delete ledger entry for this PR
         await client.query(
-          `UPDATE stock_ledger SET is_deleted = true WHERE reference_number = $1 AND item_id = $2 AND transaction_type = 'purchase_receipt' AND is_deleted = false`,
-          [pr.pr_number, item.inventory_item_id]
+          `UPDATE stock_ledger SET is_deleted = true, deleted_by = $3, deleted_at = now() WHERE reference_number = $1 AND item_id = $2 AND transaction_type = 'purchase_receipt' AND is_deleted = false`,
+          [pr.pr_number, item.inventory_item_id, userName]
         );
         // Reverse PO item received quantity
         if (item.po_item_id) {
@@ -702,6 +704,7 @@ router.delete("/procurement/purchase-receipts/:id", requireAuth, async (req, res
   try {
     await client.query("BEGIN");
     const id = parseInt(String(req.params.id));
+    const deletedByUser = (req.user as any)?.email ?? "system";
     const prRes = await client.query(`SELECT * FROM purchase_receipts WHERE id = $1 AND is_deleted = false`, [id]);
     if (!prRes.rows.length) { res.status(404).json({ error: "PR not found" }); return; }
     const pr = prRes.rows[0];
@@ -736,8 +739,8 @@ router.delete("/procurement/purchase-receipts/:id", requireAuth, async (req, res
           );
         }
         await client.query(
-          `UPDATE stock_ledger SET is_deleted = true WHERE reference_number = $1 AND item_id = $2 AND transaction_type = 'purchase_receipt' AND is_deleted = false`,
-          [pr.pr_number, item.inventory_item_id]
+          `UPDATE stock_ledger SET is_deleted = true, deleted_by = $3, deleted_at = now() WHERE reference_number = $1 AND item_id = $2 AND transaction_type = 'purchase_receipt' AND is_deleted = false`,
+          [pr.pr_number, item.inventory_item_id, deletedByUser]
         );
         if (item.po_item_id) {
           await client.query(
@@ -749,8 +752,8 @@ router.delete("/procurement/purchase-receipts/:id", requireAuth, async (req, res
       await recalcPoStatus(client, pr.po_id);
     }
 
-    await client.query(`UPDATE purchase_receipt_items SET is_deleted = true WHERE pr_id = $1 AND is_deleted = false`, [id]);
-    await client.query(`UPDATE purchase_receipts SET is_deleted = true, updated_at = NOW() WHERE id = $1 AND is_deleted = false`, [id]);
+    await client.query(`UPDATE purchase_receipt_items SET is_deleted = true, deleted_by = $2, deleted_at = now() WHERE pr_id = $1 AND is_deleted = false`, [id, deletedByUser]);
+    await client.query(`UPDATE purchase_receipts SET is_deleted = true, updated_at = NOW(), deleted_by = $2, deleted_at = now() WHERE id = $1 AND is_deleted = false`, [id, deletedByUser]);
     await client.query("COMMIT");
     res.json({ message: "Purchase receipt deleted" });
   } catch (err) {
@@ -925,8 +928,8 @@ router.post(
           await deleteUpload(pr.vendor_invoice_file);
         }
         await client.query(
-          `UPDATE vendor_invoice_ledger SET is_deleted = true, updated_at = NOW() WHERE purchase_receipt_id = $1 AND is_deleted = false`,
-          [prId]
+          `UPDATE vendor_invoice_ledger SET is_deleted = true, updated_at = NOW(), deleted_by = $2, deleted_at = now() WHERE purchase_receipt_id = $1 AND is_deleted = false`,
+          [prId, userName]
         );
       }
 
@@ -982,6 +985,7 @@ router.delete(
     const client = await (pool as any).connect();
     try {
       await client.query("BEGIN");
+      const deletedByUser = (req.user as any)?.email ?? "system";
       const prRes = await client.query(
         `SELECT vendor_invoice_file FROM purchase_receipts WHERE id = $1 AND is_deleted = false`,
         [prId]
@@ -1001,7 +1005,7 @@ router.delete(
          WHERE id = $1`,
         [prId]
       );
-      await client.query(`UPDATE vendor_invoice_ledger SET is_deleted = true, updated_at = NOW() WHERE purchase_receipt_id = $1 AND is_deleted = false`, [prId]);
+      await client.query(`UPDATE vendor_invoice_ledger SET is_deleted = true, updated_at = NOW(), deleted_by = $2, deleted_at = now() WHERE purchase_receipt_id = $1 AND is_deleted = false`, [prId, deletedByUser]);
       await client.query("COMMIT");
       res.json({ success: true });
     } catch (err) {

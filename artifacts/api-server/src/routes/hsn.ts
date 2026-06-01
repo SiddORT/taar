@@ -218,7 +218,7 @@ router.delete("/hsn/:id", requireAuth, async (req: AuthRequest, res): Promise<vo
   const updatedBy = req.user?.email ?? "system";
   const [record] = await db
     .update(hsnTable)
-    .set({ isDeleted: true, updatedBy, updatedAt: new Date() })
+    .set({ isDeleted: true, updatedBy, updatedAt: new Date(), deletedBy: updatedBy, deletedAt: new Date() })
     .where(and(eq(hsnTable.id, id), eq(hsnTable.isDeleted, false)))
     .returning();
 

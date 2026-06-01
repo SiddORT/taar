@@ -19,6 +19,8 @@ export const itemsTable = pgTable("items", {
   maximumLevel: numeric("maximum_level", { precision: 14, scale: 3 }),
   isActive: boolean("is_active").notNull().default(true),
   isDeleted: boolean("is_deleted").notNull().default(false),
+  deletedBy: text("deleted_by"),
+  deletedAt: timestamp("deleted_at", { withTimezone: true }),
   createdBy: text("created_by").notNull().default("system"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedBy: text("updated_by"),

@@ -538,7 +538,7 @@ router.delete("/vendor-ledger/payments/:id", requireAuth, async (req, res) => {
   try {
     const id = parseInt(String(req.params.id));
     const [row] = await db.update(vendorPaymentsTable)
-      .set({ isDeleted: true })
+      .set({ isDeleted: true, deletedBy: (req.user as any)?.email ?? "system", deletedAt: new Date() })
       .where(and(eq(vendorPaymentsTable.id, id), eq(vendorPaymentsTable.isDeleted, false)))
       .returning();
     if (!row) return res.status(404).json({ error: "Not found" });
@@ -552,7 +552,7 @@ router.delete("/vendor-ledger/charges/:id", requireAuth, async (req, res) => {
   try {
     const id = parseInt(String(req.params.id));
     const [row] = await db.update(vendorLedgerChargesTable)
-      .set({ isDeleted: true })
+      .set({ isDeleted: true, deletedBy: (req.user as any)?.email ?? "system", deletedAt: new Date() })
       .where(and(eq(vendorLedgerChargesTable.id, id), eq(vendorLedgerChargesTable.isDeleted, false)))
       .returning();
     if (!row) return res.status(404).json({ error: "Not found" });

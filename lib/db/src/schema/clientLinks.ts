@@ -13,6 +13,8 @@ export const clientLinksTable = pgTable("client_links", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }),
   isDeleted: boolean("is_deleted").notNull().default(false),
+  deletedBy: text("deleted_by"),
+  deletedAt: timestamp("deleted_at", { withTimezone: true }),
 });
 
 export const clientFeedbackTable = pgTable("client_feedback", {
@@ -27,6 +29,8 @@ export const clientFeedbackTable = pgTable("client_feedback", {
   resolvedAt: timestamp("resolved_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   isDeleted: boolean("is_deleted").notNull().default(false),
+  deletedBy: text("deleted_by"),
+  deletedAt: timestamp("deleted_at", { withTimezone: true }),
 });
 
 export const clientMessagesTable = pgTable("client_messages", {
@@ -39,6 +43,8 @@ export const clientMessagesTable = pgTable("client_messages", {
   attachment: jsonb("attachment"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   isDeleted: boolean("is_deleted").notNull().default(false),
+  deletedBy: text("deleted_by"),
+  deletedAt: timestamp("deleted_at", { withTimezone: true }),
 });
 
 export const insertClientLinkSchema = z.object({

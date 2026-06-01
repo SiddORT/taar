@@ -55,7 +55,7 @@ async function applyNoteEffects(client: any, note: any) {
   }
 }
 
-async function reverseNoteEffects(client: any, note: any) {
+async function reverseNoteEffects(client: any, note: any, deletedBy: string) {
   if (note.status !== "Applied") return;
 
   if (note.note_type === "Credit Note" && note.reference_type === "Client Invoice" && note.invoice_id) {
@@ -68,9 +68,9 @@ async function reverseNoteEffects(client: any, note: any) {
       [note.note_amount, note.invoice_id]
     );
     await client.query(
-      `UPDATE client_invoice_ledger SET is_deleted = true
+      `UPDATE client_invoice_ledger SET is_deleted = true, deleted_by = $3, deleted_at = now()
        WHERE invoice_id = $1 AND entry_type = 'Credit Note' AND transaction_reference = $2 AND is_deleted = false`,
-      [note.invoice_id, note.note_number]
+      [note.invoice_id, note.note_number, deletedBy]
     );
   }
 }
@@ -247,7 +247,8 @@ router.put("/:id/cancel", requireAuth, async (req, res) => {
     const note = rows[0];
     if (note.status === "Cancelled") throw new Error("Already cancelled");
 
-    await reverseNoteEffects(client, note);
+    const deletedByUser = (req as any).user?.username ?? (req as any).user?.name ?? "system";
+    await reverseNoteEffects(client, note, deletedByUser);
     await client.query(
       "UPDATE credit_debit_notes SET status='Cancelled', updated_at=NOW() WHERE note_id=$1",
       [note.note_id]
@@ -270,7 +271,8 @@ router.delete("/:id", requireAuth, async (req, res) => {
     );
     if (!rows.length) return res.status(404).json({ error: "Not found" });
     if (rows[0].status !== "Draft") return res.status(400).json({ error: "Only Draft notes can be deleted" });
-    await pool.query("UPDATE credit_debit_notes SET is_deleted = true, updated_at = NOW() WHERE note_id=$1 AND is_deleted = false", [req.params.id]);
+    const deletedByUser = (req as any).user?.username ?? (req as any).user?.name ?? "system";
+    await pool.query("UPDATE credit_debit_notes SET is_deleted = true, updated_at = NOW(), deleted_by = $2, deleted_at = now() WHERE note_id=$1 AND is_deleted = false", [req.params.id, deletedByUser]);
     return res.json({ message: "Deleted" });
   } catch (err: any) {
     return res.status(500).json({ error: err.message });

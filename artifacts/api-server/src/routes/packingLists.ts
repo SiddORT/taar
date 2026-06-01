@@ -114,9 +114,10 @@ router.put("/delivery-addresses/:id", requireAuth, async (req, res) => {
 
 router.delete("/delivery-addresses/:id", requireAuth, async (req, res) => {
   try {
+    const deletedByUser = (req.user as any)?.email ?? "system";
     const inUse = await pool.query(`SELECT id FROM packing_lists WHERE delivery_address_id = $1 AND is_deleted = false LIMIT 1`, [req.params.id]);
     if (inUse.rows.length) return res.status(400).json({ error: "Address is used by a packing list and cannot be deleted" });
-    const { rowCount } = await pool.query(`UPDATE delivery_addresses SET is_deleted = true, updated_at = NOW() WHERE id = $1 AND is_deleted = false`, [req.params.id]);
+    const { rowCount } = await pool.query(`UPDATE delivery_addresses SET is_deleted = true, updated_at = NOW(), deleted_by = $2, deleted_at = now() WHERE id = $1 AND is_deleted = false`, [req.params.id, deletedByUser]);
     if (rowCount === 0) return res.status(404).json({ error: "Not found" });
     return res.json({ success: true });
   } catch (e) { return err(res, e, "Failed to delete delivery address"); }
@@ -415,6 +416,7 @@ router.post("/packing-lists", requireAuth, async (req: AuthRequest, res) => {
 // PUT /api/packing-lists/:id  (header + packages full replace)
 router.put("/packing-lists/:id", requireAuth, async (req, res) => {
   try {
+    const deletedByUser = (req.user as any)?.email ?? "system";
     const existing = await pool.query(`SELECT * FROM packing_lists WHERE id = $1 AND is_deleted = false`, [req.params.id]);
     if (!existing.rows.length) return res.status(404).json({ error: "Not found" });
     const ex = existing.rows[0];
@@ -490,11 +492,11 @@ router.put("/packing-lists/:id", requireAuth, async (req, res) => {
 
       // Soft-delete all existing packages and their items (clean replace)
       await pool.query(
-        `UPDATE packing_package_items SET is_deleted = true
+        `UPDATE packing_package_items SET is_deleted = true, deleted_by = $2, deleted_at = now()
          WHERE package_id IN (SELECT id FROM packing_packages WHERE packing_list_id = $1 AND is_deleted = false)`,
-        [req.params.id]
+        [req.params.id, deletedByUser]
       );
-      await pool.query(`UPDATE packing_packages SET is_deleted = true WHERE packing_list_id = $1`, [req.params.id]);
+      await pool.query(`UPDATE packing_packages SET is_deleted = true, deleted_by = $2, deleted_at = now() WHERE packing_list_id = $1`, [req.params.id, deletedByUser]);
 
       for (let i = 0; i < packages.length; i++) {
         const pkg = packages[i];
@@ -518,19 +520,20 @@ router.put("/packing-lists/:id", requireAuth, async (req, res) => {
 // DELETE /api/packing-lists/:id
 router.delete("/packing-lists/:id", requireAuth, async (req, res) => {
   try {
+    const deletedByUser = (req.user as any)?.email ?? "system";
     const { rowCount } = await pool.query(
-      `UPDATE packing_lists SET is_deleted = true, updated_at = NOW() WHERE id = $1 AND is_deleted = false`,
-      [req.params.id]
+      `UPDATE packing_lists SET is_deleted = true, updated_at = NOW(), deleted_by = $2, deleted_at = now() WHERE id = $1 AND is_deleted = false`,
+      [req.params.id, deletedByUser]
     );
     if (rowCount === 0) return res.status(404).json({ error: "Not found" });
     // Soft-delete children (legacy list items, packages, and package items)
-    await pool.query(`UPDATE packing_list_items SET is_deleted = true WHERE packing_list_id = $1`, [req.params.id]);
+    await pool.query(`UPDATE packing_list_items SET is_deleted = true, deleted_by = $2, deleted_at = now() WHERE packing_list_id = $1`, [req.params.id, deletedByUser]);
     await pool.query(
-      `UPDATE packing_package_items SET is_deleted = true
+      `UPDATE packing_package_items SET is_deleted = true, deleted_by = $2, deleted_at = now()
        WHERE package_id IN (SELECT id FROM packing_packages WHERE packing_list_id = $1)`,
-      [req.params.id]
+      [req.params.id, deletedByUser]
     );
-    await pool.query(`UPDATE packing_packages SET is_deleted = true WHERE packing_list_id = $1`, [req.params.id]);
+    await pool.query(`UPDATE packing_packages SET is_deleted = true, deleted_by = $2, deleted_at = now() WHERE packing_list_id = $1`, [req.params.id, deletedByUser]);
     return res.json({ success: true });
   } catch (e) { return err(res, e, "Failed to delete packing list"); }
 });
@@ -587,12 +590,13 @@ router.put("/packing-lists/:id/packages/:pkgId", requireAuth, async (req, res) =
 // DELETE /api/packing-lists/:id/packages/:pkgId
 router.delete("/packing-lists/:id/packages/:pkgId", requireAuth, async (req, res) => {
   try {
+    const deletedByUser = (req.user as any)?.email ?? "system";
     const { rowCount } = await pool.query(
-      `UPDATE packing_packages SET is_deleted = true WHERE id = $1 AND packing_list_id = $2 AND is_deleted = false`,
-      [req.params.pkgId, req.params.id]
+      `UPDATE packing_packages SET is_deleted = true, deleted_by = $3, deleted_at = now() WHERE id = $1 AND packing_list_id = $2 AND is_deleted = false`,
+      [req.params.pkgId, req.params.id, deletedByUser]
     );
     if (rowCount === 0) return res.status(404).json({ error: "Package not found" });
-    await pool.query(`UPDATE packing_package_items SET is_deleted = true WHERE package_id = $1`, [req.params.pkgId]);
+    await pool.query(`UPDATE packing_package_items SET is_deleted = true, deleted_by = $2, deleted_at = now() WHERE package_id = $1`, [req.params.pkgId, deletedByUser]);
     return res.json({ success: true });
   } catch (e) { return err(res, e, "Failed to delete package"); }
 });
@@ -787,6 +791,7 @@ router.patch("/packing-lists/:id/packages/:pkgId/items/:itemId", requireAuth, as
 // DELETE /api/packing-lists/:id/packages/:pkgId/items/:itemId
 router.delete("/packing-lists/:id/packages/:pkgId/items/:itemId", requireAuth, async (req, res) => {
   try {
+    const deletedByUser = (req.user as any)?.email ?? "system";
     const itemRes = await pool.query(
       `SELECT * FROM packing_package_items WHERE id = $1 AND package_id = $2 AND is_deleted = false`,
       [req.params.itemId, req.params.pkgId]
@@ -820,7 +825,7 @@ router.delete("/packing-lists/:id/packages/:pkgId/items/:itemId", requireAuth, a
       }
     }
 
-    await pool.query(`UPDATE packing_package_items SET is_deleted = true WHERE id = $1 AND package_id = $2`, [req.params.itemId, req.params.pkgId]);
+    await pool.query(`UPDATE packing_package_items SET is_deleted = true, deleted_by = $3, deleted_at = now() WHERE id = $1 AND package_id = $2`, [req.params.itemId, req.params.pkgId, deletedByUser]);
     return res.json({ success: true });
   } catch (e) { return err(res, e, "Failed to remove item from package"); }
 });

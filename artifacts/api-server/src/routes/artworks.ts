@@ -186,7 +186,9 @@ router.delete("/artworks/:id", requireAuth, async (req, res): Promise<void> => {
   await db.update(artworksTable).set({
     isDeleted: true,
     updatedBy: user?.email ?? "system",
-    updatedAt: new Date()
+    updatedAt: new Date(),
+    deletedBy: user?.email ?? "system",
+    deletedAt: new Date()
   }).where(eq(artworksTable.id, id));
   res.json({ message: "Deleted" });
 });

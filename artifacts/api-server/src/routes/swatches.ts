@@ -192,7 +192,7 @@ router.delete("/swatches/:id", requireAuth, async (req: AuthRequest, res): Promi
   const id = parseInt(String(req.params.id), 10);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid ID" }); return; }
   const updatedBy = req.user?.email ?? "system";
-  const [record] = await db.update(swatchesTable).set({ isDeleted: true, updatedBy, updatedAt: new Date() })
+  const [record] = await db.update(swatchesTable).set({ isDeleted: true, updatedBy, updatedAt: new Date(), deletedBy: updatedBy, deletedAt: new Date() })
     .where(and(eq(swatchesTable.id, id), eq(swatchesTable.isDeleted, false))).returning();
   if (!record) { res.status(404).json({ error: "Swatch not found" }); return; }
   res.json({ message: "Swatch deleted" });

@@ -430,7 +430,8 @@ router.delete("/user-management/users/:id", requireAdmin, async (req, res): Prom
   if (target?.email === SUPERUSER_EMAIL) {
     res.status(403).json({ error: "The superuser account cannot be deleted" }); return;
   }
-  await db.update(usersTable).set({ isDeleted: true }).where(and(eq(usersTable.id, id), eq(usersTable.isDeleted, false)));
+  const deletedByUser = (req as any).user?.email ?? "system";
+  await db.update(usersTable).set({ isDeleted: true, deletedBy: deletedByUser, deletedAt: new Date() }).where(and(eq(usersTable.id, id), eq(usersTable.isDeleted, false)));
   res.json({ message: "User deleted" });
 });
 
@@ -533,8 +534,9 @@ router.delete("/user-management/roles/:id", requireAdmin, async (req, res): Prom
   const [role] = await db.select().from(rolesTable).where(and(eq(rolesTable.id, id), eq(rolesTable.isDeleted, false)));
   if (!role) { res.status(404).json({ error: "Role not found" }); return; }
   if (role.isSystem) { res.status(400).json({ error: "Cannot delete a system role" }); return; }
-  await db.update(rolesTable).set({ isDeleted: true }).where(and(eq(rolesTable.id, id), eq(rolesTable.isDeleted, false)));
-  await db.update(rolePermissionsTable).set({ isDeleted: true }).where(eq(rolePermissionsTable.roleId, id));
+  const deletedByUser = (req as any).user?.email ?? "system";
+  await db.update(rolesTable).set({ isDeleted: true, deletedBy: deletedByUser, deletedAt: new Date() }).where(and(eq(rolesTable.id, id), eq(rolesTable.isDeleted, false)));
+  await db.update(rolePermissionsTable).set({ isDeleted: true, deletedBy: deletedByUser, deletedAt: new Date() }).where(eq(rolePermissionsTable.roleId, id));
   res.json({ message: "Role deleted" });
 });
 
@@ -546,7 +548,8 @@ router.put("/user-management/roles/:id/permissions", requireAdmin, async (req, r
   const validKeys = new Set(ALL_PERMISSIONS.map(p => p.key));
   const filtered = permissions.filter(p => validKeys.has(p));
 
-  await db.update(rolePermissionsTable).set({ isDeleted: true }).where(eq(rolePermissionsTable.roleId, id));
+  const deletedByUser = (req as any).user?.email ?? "system";
+  await db.update(rolePermissionsTable).set({ isDeleted: true, deletedBy: deletedByUser, deletedAt: new Date() }).where(eq(rolePermissionsTable.roleId, id));
   if (filtered.length > 0) {
     await db.insert(rolePermissionsTable).values(filtered.map(p => ({ roleId: id, permission: p })));
   }

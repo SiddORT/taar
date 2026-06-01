@@ -497,8 +497,8 @@ async function reverseConsumptionFromInventory(opts: {
 
     // Remove ledger entry for this consumption log
     await client.query(
-      `UPDATE stock_ledger SET is_deleted = true WHERE transaction_type = 'Consumption' AND reference_number = $1 AND is_deleted = false`,
-      [String(entry.id)]
+      `UPDATE stock_ledger SET is_deleted = true, deleted_by = $2, deleted_at = now() WHERE transaction_type = 'Consumption' AND reference_number = $1 AND is_deleted = false`,
+      [String(entry.id), actor]
     );
 
     // Restore material/fabric master: current_stock and location_stocks
@@ -849,7 +849,7 @@ router.delete("/bom/:id", requireAuth, async (req, res) => {
   const bomId = Number(String(req.params.id));
   const [bomRow] = await db.select().from(swatchBomTable).where(and(eq(swatchBomTable.id, bomId), eq(swatchBomTable.isDeleted, false))).limit(1);
   const [deleted] = await db.update(swatchBomTable)
-    .set({ isDeleted: true, updatedBy: user.email, updatedAt: new Date() })
+    .set({ isDeleted: true, updatedBy: user.email, updatedAt: new Date(), deletedBy: user.email, deletedAt: new Date() })
     .where(and(eq(swatchBomTable.id, bomId), eq(swatchBomTable.isDeleted, false)))
     .returning();
   if (!deleted) { res.status(404).json({ error: "Not found" }); return; }
@@ -968,7 +968,7 @@ router.patch("/po/:id", requireAuth, async (req, res) => {
 router.delete("/po/:id", requireAuth, async (req, res) => {
   const user = (req as any).user;
   const [row] = await db.update(purchaseOrdersTable)
-    .set({ isDeleted: true, updatedBy: user.email, updatedAt: new Date() })
+    .set({ isDeleted: true, updatedBy: user.email, updatedAt: new Date(), deletedBy: user.email, deletedAt: new Date() })
     .where(and(eq(purchaseOrdersTable.id, Number(String(req.params.id))), eq(purchaseOrdersTable.isDeleted, false)))
     .returning();
   if (!row) { res.status(404).json({ error: "Not found" }); return; }
@@ -1077,7 +1077,7 @@ router.patch("/pr/:id", requireAuth, async (req, res) => {
 router.delete("/pr/:id", requireAuth, async (req, res) => {
   const user = (req as any).user;
   const [row] = await db.update(purchaseReceiptsTable)
-    .set({ isDeleted: true, updatedBy: user.email, updatedAt: new Date() })
+    .set({ isDeleted: true, updatedBy: user.email, updatedAt: new Date(), deletedBy: user.email, deletedAt: new Date() })
     .where(and(eq(purchaseReceiptsTable.id, Number(String(req.params.id))), eq(purchaseReceiptsTable.isDeleted, false)))
     .returning();
   if (!row) { res.status(404).json({ error: "Not found" }); return; }
@@ -1112,7 +1112,7 @@ router.post("/payments", requireAuth, async (req, res) => {
 router.delete("/payments/:id", requireAuth, async (req, res) => {
   const user = (req as any).user;
   const [row] = await db.update(prPaymentsTable)
-    .set({ isDeleted: true, updatedBy: user.email, updatedAt: new Date() })
+    .set({ isDeleted: true, updatedBy: user.email, updatedAt: new Date(), deletedBy: user.email, deletedAt: new Date() })
     .where(and(eq(prPaymentsTable.id, Number(String(req.params.id))), eq(prPaymentsTable.isDeleted, false)))
     .returning();
   if (!row) { res.status(404).json({ error: "Not found" }); return; }
@@ -1288,7 +1288,7 @@ router.delete("/consumption/:id", requireAuth, async (req, res) => {
   // Load BOM row before deletion so we have materialType + materialId for reversal
   const [bomRow] = await db.select().from(swatchBomTable).where(and(eq(swatchBomTable.id, entry.bomRowId), eq(swatchBomTable.isDeleted, false))).limit(1);
 
-  await db.update(consumptionLogTable).set({ isDeleted: true }).where(and(eq(consumptionLogTable.id, Number(String(req.params.id))), eq(consumptionLogTable.isDeleted, false)));
+  await db.update(consumptionLogTable).set({ isDeleted: true, deletedBy: user.email, deletedAt: new Date() }).where(and(eq(consumptionLogTable.id, Number(String(req.params.id))), eq(consumptionLogTable.isDeleted, false)));
 
   // Recompute and update BOM consumed qty
   const remaining = await db.select().from(consumptionLogTable).where(and(eq(consumptionLogTable.bomRowId, entry.bomRowId), eq(consumptionLogTable.isDeleted, false)));
@@ -1401,8 +1401,9 @@ router.put("/artisan-timesheets/:id", requireAuth, async (req, res) => {
 });
 
 router.delete("/artisan-timesheets/:id", requireAuth, async (req, res) => {
+  const deletedByUser = (req.user as any)?.email ?? "system";
   const [row] = await db.update(artisanTimesheetsTable)
-    .set({ isDeleted: true })
+    .set({ isDeleted: true, deletedBy: deletedByUser, deletedAt: new Date() })
     .where(and(eq(artisanTimesheetsTable.id, Number(String(req.params.id))), eq(artisanTimesheetsTable.isDeleted, false)))
     .returning();
   if (!row) { res.status(404).json({ error: "Not found" }); return; }
@@ -1462,8 +1463,9 @@ router.put("/outsource-jobs/:id", requireAuth, async (req, res) => {
 });
 
 router.delete("/outsource-jobs/:id", requireAuth, async (req, res) => {
+  const deletedByUser = (req.user as any)?.email ?? "system";
   const [row] = await db.update(outsourceJobsTable)
-    .set({ isDeleted: true })
+    .set({ isDeleted: true, deletedBy: deletedByUser, deletedAt: new Date() })
     .where(and(eq(outsourceJobsTable.id, Number(String(req.params.id))), eq(outsourceJobsTable.isDeleted, false)))
     .returning();
   if (!row) { res.status(404).json({ error: "Not found" }); return; }
@@ -1530,8 +1532,9 @@ router.put("/custom-charges/:id", requireAuth, async (req, res) => {
 });
 
 router.delete("/custom-charges/:id", requireAuth, async (req, res) => {
+  const deletedByUser = (req.user as any)?.email ?? "system";
   const [row] = await db.update(customChargesTable)
-    .set({ isDeleted: true })
+    .set({ isDeleted: true, deletedBy: deletedByUser, deletedAt: new Date() })
     .where(and(eq(customChargesTable.id, Number(String(req.params.id))), eq(customChargesTable.isDeleted, false)))
     .returning();
   if (!row) { res.status(404).json({ error: "Not found" }); return; }
@@ -2334,7 +2337,7 @@ router.delete("/costing-payments/:id", requireAuth, async (req, res) => {
       return res.status(403).json({ error: "Admin only" });
     }
     const id = parseInt(String(req.params.id));
-    const r = await pool.query("UPDATE costing_payments SET is_deleted = true WHERE id = $1 AND is_deleted = false RETURNING id", [id]);
+    const r = await pool.query("UPDATE costing_payments SET is_deleted = true, deleted_by = $2, deleted_at = now() WHERE id = $1 AND is_deleted = false RETURNING id", [id, user.email]);
     if (r.rowCount === 0) return res.status(404).json({ error: "Not found" });
     return res.json({ success: true });
   } catch (err: any) {

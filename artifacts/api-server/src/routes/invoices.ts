@@ -344,7 +344,7 @@ router.delete("/invoices/:id", requireAuth, async (req, res) => {
   const id = parseInt(String(req.params.id));
   if (isNaN(id)) return res.status(400).json({ error: "Invalid id" });
   const [row] = await db.update(invoicesTable)
-    .set({ isDeleted: true, updatedAt: new Date() })
+    .set({ isDeleted: true, updatedAt: new Date(), deletedBy: req.user?.email ?? "system", deletedAt: new Date() })
     .where(and(eq(invoicesTable.id, id), eq(invoicesTable.isDeleted, false)))
     .returning();
   if (!row) return res.status(404).json({ error: "Not found" });

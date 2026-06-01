@@ -169,7 +169,8 @@ router.patch("/shipping/vendors/:id/status", requireAuth, async (req: AuthReques
 router.delete("/shipping/vendors/:id", requireAuth, async (req: AuthRequest, res) => {
   try {
     const { id } = req.params;
-    const r = await pool.query(`UPDATE shipping_vendors SET is_deleted = true, updated_at = NOW() WHERE id=$1 AND is_deleted = false RETURNING id`, [id]);
+    const deletedByUser = (req as any).user?.email ?? "system";
+    const r = await pool.query(`UPDATE shipping_vendors SET is_deleted = true, updated_at = NOW(), deleted_by = $2, deleted_at = now() WHERE id=$1 AND is_deleted = false RETURNING id`, [id, deletedByUser]);
     if (!r.rows.length) return res.status(404).json({ error: "Vendor not found" });
     return res.json({ message: "Vendor deleted" });
   } catch (err: any) {
@@ -387,7 +388,8 @@ router.patch("/shipping/details/:id/status", requireAuth, async (req: AuthReques
 router.delete("/shipping/details/:id", requireAuth, async (req: AuthRequest, res) => {
   try {
     if ((req as any).user?.role !== "admin") return res.status(403).json({ error: "Admin only" });
-    const r = await pool.query(`UPDATE order_shipping_details SET is_deleted = true, updated_at = NOW() WHERE id = $1 AND is_deleted = false RETURNING id`, [req.params.id]);
+    const deletedByUser = (req as any).user?.email ?? "system";
+    const r = await pool.query(`UPDATE order_shipping_details SET is_deleted = true, updated_at = NOW(), deleted_by = $2, deleted_at = now() WHERE id = $1 AND is_deleted = false RETURNING id`, [req.params.id, deletedByUser]);
     if (!r.rows.length) return res.status(404).json({ error: "Not found" });
     return res.json({ message: "Shipping record deleted" });
   } catch (err: any) {

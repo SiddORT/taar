@@ -271,7 +271,7 @@ router.delete("/fabrics/:id", requireAuth, async (req: AuthRequest, res): Promis
   const updatedBy = req.user?.email ?? "system";
   const [record] = await db
     .update(fabricsTable)
-    .set({ isDeleted: true, updatedBy, updatedAt: new Date() })
+    .set({ isDeleted: true, updatedBy, updatedAt: new Date(), deletedBy: updatedBy, deletedAt: new Date() })
     .where(and(eq(fabricsTable.id, id), eq(fabricsTable.isDeleted, false)))
     .returning();
 

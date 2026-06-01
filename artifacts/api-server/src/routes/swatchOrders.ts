@@ -227,7 +227,7 @@ router.delete("/swatch-orders/:id", requireAuth, async (req, res): Promise<void>
   }
 
   const user = (req as typeof req & { user?: { email: string } }).user;
-  await db.update(swatchOrdersTable).set({ isDeleted: true, updatedBy: user?.email ?? "system", updatedAt: new Date() })
+  await db.update(swatchOrdersTable).set({ isDeleted: true, updatedBy: user?.email ?? "system", updatedAt: new Date(), deletedBy: user?.email ?? "system", deletedAt: new Date() })
     .where(eq(swatchOrdersTable.id, id));
   res.json({ message: "Deleted" });
 });

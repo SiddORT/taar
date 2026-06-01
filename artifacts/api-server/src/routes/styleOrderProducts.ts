@@ -61,7 +61,8 @@ router.put("/style-order-products/:id", requireAuth, async (req, res) => {
 router.delete("/style-order-products/:id", requireAuth, async (req, res) => {
   const id = parseInt(String(req.params.id));
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
-  await db.update(styleOrderProductsTable).set({ isDeleted: true }).where(eq(styleOrderProductsTable.id, id));
+  const user = (req as any).user;
+  await db.update(styleOrderProductsTable).set({ isDeleted: true, deletedBy: user?.email ?? "system", deletedAt: new Date() }).where(eq(styleOrderProductsTable.id, id));
   res.json({ message: "Deleted" });
 });
 

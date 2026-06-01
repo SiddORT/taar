@@ -117,8 +117,8 @@ async function reverseInventoryUpdate(
     );
 
     await client.query(
-      `UPDATE stock_ledger SET is_deleted = true WHERE reference_number = $1 AND item_id = $2 AND transaction_type = 'purchase_receipt' AND is_deleted = false`,
-      [prNumber, item.inventory_item_id]
+      `UPDATE stock_ledger SET is_deleted = true, deleted_by = $3, deleted_at = now() WHERE reference_number = $1 AND item_id = $2 AND transaction_type = 'purchase_receipt' AND is_deleted = false`,
+      [prNumber, item.inventory_item_id, userName]
     );
   }
 }
@@ -316,6 +316,7 @@ router.put("/purchase-receipts/:id", requireAuth, async (req: AuthRequest, res) 
   try {
     await client.query("BEGIN");
     const id = parseInt(String(req.params.id));
+    const deletedByUser = (req.user as any)?.email ?? "system";
     const prRes = await client.query(`SELECT * FROM inv_receipts WHERE id = $1 AND is_deleted = false`, [id]);
     if (!prRes.rows.length) return res.status(404).json({ error: "Not found" });
 
@@ -333,7 +334,7 @@ router.put("/purchase-receipts/:id", requireAuth, async (req: AuthRequest, res) 
       [vendorId ?? null, vendorName ?? null, prDate ?? pr.pr_date, remarks ?? null, totalAmount.toFixed(2), id]
     );
 
-    await client.query(`UPDATE inv_receipt_items SET is_deleted = true WHERE pr_id = $1 AND is_deleted = false`, [id]);
+    await client.query(`UPDATE inv_receipt_items SET is_deleted = true, deleted_by = $2, deleted_at = now() WHERE pr_id = $1 AND is_deleted = false`, [id, deletedByUser]);
     for (const it of items) {
       await client.query(
         `INSERT INTO inv_receipt_items (pr_id, inventory_item_id, item_name, item_code, quantity, unit_price, warehouse_location, remarks)
@@ -453,7 +454,7 @@ router.delete("/purchase-receipts/:id", requireAuth, async (req: AuthRequest, re
       await reverseInventoryUpdate(client, id, pr.pr_number, userName);
     }
 
-    await client.query(`UPDATE inv_receipts SET is_deleted = true, updated_at = NOW() WHERE id = $1`, [id]);
+    await client.query(`UPDATE inv_receipts SET is_deleted = true, updated_at = NOW(), deleted_by = $2, deleted_at = now() WHERE id = $1`, [id, userName]);
     await client.query("COMMIT");
     return res.json({ deleted: true });
   } catch (err) {

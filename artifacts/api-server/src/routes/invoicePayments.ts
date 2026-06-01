@@ -187,7 +187,8 @@ router.delete("/invoice-payments/:id", requireAuth, async (req, res) => {
     if (!pmtRes.rows.length) { await client.query("ROLLBACK"); return res.status(404).json({ error: "Payment not found" }); }
     const pmt = pmtRes.rows[0];
 
-    await client.query("UPDATE invoice_payments SET is_deleted = true, updated_at = NOW() WHERE payment_id=$1 AND is_deleted = false", [id]);
+    const deletedByUser = req.user?.email ?? "system";
+    await client.query("UPDATE invoice_payments SET is_deleted = true, updated_at = NOW(), deleted_by = $2, deleted_at = now() WHERE payment_id=$1 AND is_deleted = false", [id, deletedByUser]);
 
     // Recompute invoice totals
     const totRes = await client.query(`

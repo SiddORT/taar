@@ -29,6 +29,8 @@ export const vendorChallansTable = pgTable("vendor_challans", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   isDeleted: boolean("is_deleted").notNull().default(false),
+  deletedBy: text("deleted_by"),
+  deletedAt: timestamp("deleted_at", { withTimezone: true }),
 });
 
 export type VendorChallanRecord = typeof vendorChallansTable.$inferSelect;

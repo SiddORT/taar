@@ -43,6 +43,13 @@
       "when": 1780311221102,
       "tag": "0005_odd_forge",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1780313257919,
+      "tag": "0006_bizarre_master_chief",
+      "breakpoints": true
     }
   ]
 }

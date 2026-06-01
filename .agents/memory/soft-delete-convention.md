@@ -17,7 +17,15 @@ accepting that balances/totals may be affected, so records are auditable/restora
 - **Delete handler** = `UPDATE ... SET is_deleted=true WHERE id=$1 AND is_deleted=false RETURNING id`
   (drizzle: `.set({isDeleted:true}).where(and(eq(id),eq(isDeleted,false)))`). 0 rows ⇒ 404. This makes
   re-delete idempotent (second call 404s). Add `updated_at`/`updated_by` ONLY if the table has them.
-- **Cascade**: soft-delete child rows in the SAME transaction as the parent.
+- **WHO/WHEN metadata**: EVERY table also has `deleted_by text` (nullable) + `deleted_at timestamptz`
+  (nullable) (drizzle `deletedBy`/`deletedAt`). Every soft-delete write MUST also set them: raw →
+  `SET is_deleted=true, deleted_by=$N, deleted_at=now()` (deleted_at needs no param; deleted_by takes
+  ONE new positional `$N` appended to the params array — numbering is positional, not text-order);
+  drizzle → `.set({isDeleted:true, deletedBy:<identity>, deletedAt:new Date()})`. Identity = the
+  handler's existing actor var (`req.user?.email`/`(req.user as any)?.email`/`userName`), fallback
+  `"system"`. Never invent a new identity source. Reads/inserts/numbering/guards stay untouched.
+- **Cascade**: soft-delete child rows in the SAME transaction as the parent, with the SAME
+  `deleted_by`/`deleted_at` as the parent.
 - **Reads** (list, get-by-id, lookup/dropdown, export, count, SUM/aggregations) must filter
   `is_deleted=false`. get-by-id on a deleted row returns 404.
 - **LEFT JOIN gotcha**: put the child `is_deleted=false` filter in the **ON clause**, never WHERE —

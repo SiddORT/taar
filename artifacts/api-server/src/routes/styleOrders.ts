@@ -145,7 +145,8 @@ router.delete("/style-orders/:id", requireAuth, async (req, res) => {
     return res.status(409).json({ error: "This order has linked artworks or stock consumptions. Use 'Cancel Order' to deactivate it instead." });
   }
 
-  await db.update(styleOrdersTable).set({ isDeleted: true }).where(eq(styleOrdersTable.id, id));
+  const user = (req as any).user;
+  await db.update(styleOrdersTable).set({ isDeleted: true, deletedBy: user?.email ?? "system", deletedAt: new Date() }).where(eq(styleOrdersTable.id, id));
   return res.json({ message: "Deleted" });
 });
 

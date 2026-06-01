@@ -170,7 +170,7 @@ router.delete("/item-types/:id", requireAuth, async (req: AuthRequest, res): Pro
   const id = parseInt(String(req.params.id), 10);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid ID" }); return; }
   const updatedBy = req.user?.email ?? "system";
-  const [record] = await db.update(itemTypesTable).set({ isDeleted: true, updatedBy, updatedAt: new Date() })
+  const [record] = await db.update(itemTypesTable).set({ isDeleted: true, updatedBy, updatedAt: new Date(), deletedBy: updatedBy, deletedAt: new Date() })
     .where(and(eq(itemTypesTable.id, id), eq(itemTypesTable.isDeleted, false))).returning();
   if (!record) { res.status(404).json({ error: "Item type not found" }); return; }
   res.json({ message: "Item type deleted" });

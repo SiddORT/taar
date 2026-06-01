@@ -6,6 +6,8 @@ export const itemTypesTable = pgTable("item_types", {
   name: text("name").notNull().unique(),
   isActive: boolean("is_active").notNull().default(true),
   isDeleted: boolean("is_deleted").notNull().default(false),
+  deletedBy: text("deleted_by"),
+  deletedAt: timestamp("deleted_at", { withTimezone: true }),
   createdBy: text("created_by").notNull().default("system"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedBy: text("updated_by"),
@@ -18,6 +20,8 @@ export const unitTypesTable = pgTable("unit_types", {
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   isDeleted: boolean("is_deleted").notNull().default(false),
+  deletedBy: text("deleted_by"),
+  deletedAt: timestamp("deleted_at", { withTimezone: true }),
 });
 
 export const fabricTypesTable = pgTable("fabric_types", {
@@ -26,6 +30,8 @@ export const fabricTypesTable = pgTable("fabric_types", {
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   isDeleted: boolean("is_deleted").notNull().default(false),
+  deletedBy: text("deleted_by"),
+  deletedAt: timestamp("deleted_at", { withTimezone: true }),
 });
 
 export const departmentsTable = pgTable("departments", {
@@ -33,6 +39,8 @@ export const departmentsTable = pgTable("departments", {
   name: text("name").notNull().unique(),
   isActive: boolean("is_active").notNull().default(true),
   isDeleted: boolean("is_deleted").notNull().default(false),
+  deletedBy: text("deleted_by"),
+  deletedAt: timestamp("deleted_at", { withTimezone: true }),
   createdBy: text("created_by").notNull().default("system"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedBy: text("updated_by"),
@@ -44,6 +52,8 @@ export const swatchCategoriesTable = pgTable("swatch_categories", {
   name: text("name").notNull().unique(),
   isActive: boolean("is_active").notNull().default(true),
   isDeleted: boolean("is_deleted").notNull().default(false),
+  deletedBy: text("deleted_by"),
+  deletedAt: timestamp("deleted_at", { withTimezone: true }),
   createdBy: text("created_by").notNull().default("system"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedBy: text("updated_by"),

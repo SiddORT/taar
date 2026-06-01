@@ -133,7 +133,7 @@ router.delete("/departments/:id", requireAuth, async (req: AuthRequest, res): Pr
   if (isNaN(id)) { res.status(400).json({ error: "Invalid ID" }); return; }
   const updatedBy = req.user?.email ?? "system";
   const [record] = await db.update(departmentsTable)
-    .set({ isDeleted: true, updatedBy, updatedAt: new Date() })
+    .set({ isDeleted: true, updatedBy, updatedAt: new Date(), deletedBy: updatedBy, deletedAt: new Date() })
     .where(and(eq(departmentsTable.id, id), eq(departmentsTable.isDeleted, false))).returning();
   if (!record) { res.status(404).json({ error: "Department not found" }); return; }
   res.json({ message: "Department deleted" });

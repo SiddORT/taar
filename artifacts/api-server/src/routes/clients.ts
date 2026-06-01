@@ -140,7 +140,7 @@ router.delete("/clients/:id", requireAuth, async (req: AuthRequest, res): Promis
   const id = parseInt(String(req.params.id), 10);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid ID" }); return; }
   const updatedBy = req.user?.email ?? "system";
-  const [record] = await db.update(clientsTable).set({ isDeleted: true, updatedBy, updatedAt: new Date() })
+  const [record] = await db.update(clientsTable).set({ isDeleted: true, updatedBy, updatedAt: new Date(), deletedBy: updatedBy, deletedAt: new Date() })
     .where(and(eq(clientsTable.id, id), eq(clientsTable.isDeleted, false))).returning();
   if (!record) { res.status(404).json({ error: "Client not found" }); return; }
   res.json({ message: "Client deleted" });

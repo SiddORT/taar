@@ -261,6 +261,8 @@ router.delete("/style-order-artworks/:id", requireAuth, async (req, res): Promis
     isDeleted: true,
     updatedBy: user?.email ?? "system",
     updatedAt: new Date(),
+    deletedBy: user?.email ?? "system",
+    deletedAt: new Date(),
   }).where(eq(styleOrderArtworksTable.id, id));
   res.json({ message: "Deleted" });
 });

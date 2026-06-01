@@ -212,6 +212,7 @@ router.put("/quotations/:id", requireAuth, async (req: AuthRequest, res) => {
   const client = await (pool as any).connect();
   try {
     const { id } = req.params;
+    const deletedByUser = (req as any).user?.name || (req as any).user?.email || "System";
     const {
       clientId, clientName, clientState, requirementSummary,
       estimatedWeight, estimatedShippingCharges, internalNotes, clientNotes,
@@ -260,7 +261,7 @@ router.put("/quotations/:id", requireAuth, async (req: AuthRequest, res) => {
        internalNotes || null, clientNotes || null, coverPage, coverPageImage || null, id]
     );
 
-    await client.query(`UPDATE quotation_designs SET is_deleted = true WHERE quotation_id = $1 AND is_deleted = false`, [id]);
+    await client.query(`UPDATE quotation_designs SET is_deleted = true, deleted_by = $2, deleted_at = now() WHERE quotation_id = $1 AND is_deleted = false`, [id, deletedByUser]);
     for (const d of designs) {
       await client.query(
         `INSERT INTO quotation_designs (quotation_id, design_name, hsn_code, design_image, remarks) VALUES ($1,$2,$3,$4,$5)`,
@@ -268,7 +269,7 @@ router.put("/quotations/:id", requireAuth, async (req: AuthRequest, res) => {
       );
     }
 
-    await client.query(`UPDATE quotation_custom_charges SET is_deleted = true WHERE quotation_id = $1 AND is_deleted = false`, [id]);
+    await client.query(`UPDATE quotation_custom_charges SET is_deleted = true, deleted_by = $2, deleted_at = now() WHERE quotation_id = $1 AND is_deleted = false`, [id, deletedByUser]);
     for (const c of safeCharges) {
       await client.query(
         `INSERT INTO quotation_custom_charges (quotation_id, charge_name, hsn_code, unit, quantity, price, amount) VALUES ($1,$2,$3,$4,$5,$6,$7)`,
@@ -293,18 +294,19 @@ router.delete("/quotations/:id", requireAuth, async (req: AuthRequest, res) => {
   const client = await (pool as any).connect();
   try {
     const { id } = req.params;
+    const deletedByUser = (req as any).user?.name || (req as any).user?.email || "System";
     await client.query("BEGIN");
     const r = await client.query(
-      `UPDATE quotations SET is_deleted = true, updated_at = NOW() WHERE id = $1 AND is_deleted = false RETURNING id`,
-      [id]
+      `UPDATE quotations SET is_deleted = true, deleted_by = $2, deleted_at = now(), updated_at = NOW() WHERE id = $1 AND is_deleted = false RETURNING id`,
+      [id, deletedByUser]
     );
     if (r.rowCount === 0) {
       await client.query("ROLLBACK");
       return res.status(404).json({ error: "Quotation not found" });
     }
-    await client.query(`UPDATE quotation_designs SET is_deleted = true WHERE quotation_id = $1 AND is_deleted = false`, [id]);
-    await client.query(`UPDATE quotation_custom_charges SET is_deleted = true WHERE quotation_id = $1 AND is_deleted = false`, [id]);
-    await client.query(`UPDATE quotation_feedback_logs SET is_deleted = true WHERE quotation_id = $1 AND is_deleted = false`, [id]);
+    await client.query(`UPDATE quotation_designs SET is_deleted = true, deleted_by = $2, deleted_at = now() WHERE quotation_id = $1 AND is_deleted = false`, [id, deletedByUser]);
+    await client.query(`UPDATE quotation_custom_charges SET is_deleted = true, deleted_by = $2, deleted_at = now() WHERE quotation_id = $1 AND is_deleted = false`, [id, deletedByUser]);
+    await client.query(`UPDATE quotation_feedback_logs SET is_deleted = true, deleted_by = $2, deleted_at = now() WHERE quotation_id = $1 AND is_deleted = false`, [id, deletedByUser]);
     await client.query("COMMIT");
     return res.json({ success: true });
   } catch (err: any) {

@@ -488,9 +488,9 @@ router.delete("/inventory/ledger/:id", requireAuth, async (req: AuthRequest, res
       `UPDATE inventory_items SET current_stock = $1, available_stock = $2, last_updated_at = NOW() WHERE id = $3`,
       [newStock, newAvail, entry.item_id]
     );
-    await client.query(`UPDATE stock_ledger SET is_deleted = true WHERE id = $1 AND is_deleted = false`, [id]);
-
     const userName = req.user?.name || req.user?.email || "Admin";
+    await client.query(`UPDATE stock_ledger SET is_deleted = true, deleted_by = $2, deleted_at = now() WHERE id = $1 AND is_deleted = false`, [id, userName]);
+
     await client.query(
       `INSERT INTO inventory_stock_logs
          (inventory_item_id, action_type, quantity_before, quantity_after, quantity_delta, reference_type, notes, created_by_name, created_at)
@@ -977,7 +977,8 @@ router.delete("/inventory/reservations/:id", requireAuth, async (req, res) => {
         );
         await recalcAvailable(client, resv.inventory_id);
       }
-      await client.query(`UPDATE material_reservations SET is_deleted = true WHERE id = $1 AND is_deleted = false`, [id]);
+      const deletedByUser = (auth.user as any)?.email ?? "system";
+      await client.query(`UPDATE material_reservations SET is_deleted = true, deleted_by = $2, deleted_at = now() WHERE id = $1 AND is_deleted = false`, [id, deletedByUser]);
       await client.query("COMMIT");
       return res.json({ success: true });
     } catch (e) {
@@ -1283,8 +1284,9 @@ router.delete("/inventory/adjustments/:id", requireAuth, async (req: AuthRequest
         `UPDATE inventory_items SET current_stock=$1, available_stock=GREATEST(0,$2), last_updated_at=NOW() WHERE id=$3`,
         [newStock, newAvailable, old.inventory_id]
       );
-      await client.query(`UPDATE stock_ledger SET is_deleted = true WHERE reference_number=$1 AND transaction_type='adjustment' AND is_deleted = false`, [String(id)]);
-      await client.query(`UPDATE stock_adjustments SET is_deleted = true, updated_at = now() WHERE id=$1 AND is_deleted = false`, [id]);
+      const deletedByUser = (auth.user as any)?.email ?? "system";
+      await client.query(`UPDATE stock_ledger SET is_deleted = true, deleted_by = $2, deleted_at = now() WHERE reference_number=$1 AND transaction_type='adjustment' AND is_deleted = false`, [String(id), deletedByUser]);
+      await client.query(`UPDATE stock_adjustments SET is_deleted = true, updated_at = now(), deleted_by = $2, deleted_at = now() WHERE id=$1 AND is_deleted = false`, [id, deletedByUser]);
       await client.query("COMMIT");
       return res.json({ success: true });
     } catch (e) {

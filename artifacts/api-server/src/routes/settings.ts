@@ -429,7 +429,8 @@ router.delete("/settings/bank-accounts/:id", requireAuth, async (req: AuthReques
   const id = parseInt(String(req.params.id));
   if (isNaN(id)) return res.status(400).json({ error: "Invalid id" });
   try {
-    const { rowCount } = await pool.query(`UPDATE bank_accounts SET is_deleted = true, updated_at = NOW() WHERE id = $1 AND is_deleted = false`, [id]);
+    const deletedByUser = (req.user as any)?.email ?? "system";
+    const { rowCount } = await pool.query(`UPDATE bank_accounts SET is_deleted = true, updated_at = NOW(), deleted_by = $2, deleted_at = now() WHERE id = $1 AND is_deleted = false`, [id, deletedByUser]);
     if (rowCount === 0) return res.status(404).json({ error: "Not found" });
     return res.json({ success: true });
   } catch (err: any) { return res.status(500).json({ error: err.message }); }
@@ -578,7 +579,8 @@ router.delete("/settings/warehouses/:id", requireAuth, async (req: AuthRequest, 
   const id = parseInt(String(req.params.id));
   if (isNaN(id)) return res.status(400).json({ error: "Invalid id" });
   try {
-    const { rowCount } = await pool.query(`UPDATE warehouse_locations SET is_deleted = true, updated_at = NOW() WHERE id = $1 AND is_deleted = false`, [id]);
+    const deletedByUser = (req.user as any)?.email ?? "system";
+    const { rowCount } = await pool.query(`UPDATE warehouse_locations SET is_deleted = true, updated_at = NOW(), deleted_by = $2, deleted_at = now() WHERE id = $1 AND is_deleted = false`, [id, deletedByUser]);
     if (rowCount === 0) return res.status(404).json({ error: "Not found" });
     return res.json({ success: true });
   } catch (err: any) { return res.status(500).json({ error: err.message }); }

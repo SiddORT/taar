@@ -18,6 +18,8 @@ export const vendorPaymentsTable = pgTable("vendor_payments", {
   createdBy: text("created_by").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   isDeleted: boolean("is_deleted").notNull().default(false),
+  deletedBy: text("deleted_by"),
+  deletedAt: timestamp("deleted_at", { withTimezone: true }),
 });
 
 export const vendorLedgerChargesTable = pgTable("vendor_ledger_charges", {
@@ -36,6 +38,8 @@ export const vendorLedgerChargesTable = pgTable("vendor_ledger_charges", {
   createdBy: text("created_by").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   isDeleted: boolean("is_deleted").notNull().default(false),
+  deletedBy: text("deleted_by"),
+  deletedAt: timestamp("deleted_at", { withTimezone: true }),
 });
 
 export const insertVendorPaymentSchema = z.object({

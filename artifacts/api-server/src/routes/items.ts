@@ -290,7 +290,7 @@ router.delete("/items/:id", requireAuth, async (req: AuthRequest, res): Promise<
   if (isNaN(id)) { res.status(400).json({ error: "Invalid ID" }); return; }
   const updatedBy = req.user?.email ?? "system";
   const [record] = await db.update(itemsTable)
-    .set({ isDeleted: true, updatedBy, updatedAt: new Date() })
+    .set({ isDeleted: true, updatedBy, updatedAt: new Date(), deletedBy: updatedBy, deletedAt: new Date() })
     .where(and(eq(itemsTable.id, id), eq(itemsTable.isDeleted, false)))
     .returning();
   if (!record) { res.status(404).json({ error: "Item not found" }); return; }

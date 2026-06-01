@@ -55,6 +55,8 @@ export const swatchOrdersTable = pgTable("swatch_orders", {
   estimate: jsonb("estimate").default([]),
 
   isDeleted: boolean("is_deleted").notNull().default(false),
+  deletedBy: text("deleted_by"),
+  deletedAt: timestamp("deleted_at", { withTimezone: true }),
   createdBy: text("created_by").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedBy: text("updated_by"),

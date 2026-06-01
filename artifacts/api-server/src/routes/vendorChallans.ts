@@ -236,7 +236,8 @@ router.delete("/vendor-challans/:id", requireAuth, async (req, res) => {
   if (!["Draft", "Cancelled"].includes(existing.rows[0].status)) {
     res.status(400).json({ error: "Only Draft or Cancelled challans can be deleted" }); return;
   }
-  await pool.query(`UPDATE vendor_challans SET is_deleted=true, updated_at=NOW() WHERE id=$1`, [id]);
+  const deletedByUser = (req.user as any)?.email ?? "system";
+  await pool.query(`UPDATE vendor_challans SET is_deleted=true, updated_at=NOW(), deleted_by=$2, deleted_at=NOW() WHERE id=$1`, [id, deletedByUser]);
   res.json({ success: true });
 });
 

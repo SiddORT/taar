@@ -53,6 +53,8 @@ export const styleOrdersTable = pgTable("style_orders", {
   revisionCount: integer("revision_count").notNull().default(0),
 
   isDeleted: boolean("is_deleted").notNull().default(false),
+  deletedBy: text("deleted_by"),
+  deletedAt: timestamp("deleted_at", { withTimezone: true }),
   createdBy: text("created_by").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedBy: text("updated_by"),

@@ -313,7 +313,7 @@ router.delete("/materials/:id", requireAuth, async (req: AuthRequest, res): Prom
   const updatedBy = req.user?.email ?? "system";
   const [record] = await db
     .update(materialsTable)
-    .set({ isDeleted: true, updatedBy, updatedAt: new Date() })
+    .set({ isDeleted: true, updatedBy, updatedAt: new Date(), deletedBy: updatedBy, deletedAt: new Date() })
     .where(and(eq(materialsTable.id, id), eq(materialsTable.isDeleted, false)))
     .returning();
 

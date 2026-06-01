@@ -235,7 +235,8 @@ router.delete("/other-expenses/:id", requireAuth, async (req: any, res) => {
     const user = (req as AuthRequest).user;
     if ((user as any)?.role !== "admin")
       return res.status(403).json({ error: "Admin only" });
-    await pool.query(`UPDATE other_expenses SET is_deleted = true, updated_at = NOW() WHERE expense_id = $1 AND is_deleted = false`, [parseInt(String(req.params.id))]);
+    const deletedByUser = (user as any)?.email ?? "system";
+    await pool.query(`UPDATE other_expenses SET is_deleted = true, updated_at = NOW(), deleted_by = $2, deleted_at = now() WHERE expense_id = $1 AND is_deleted = false`, [parseInt(String(req.params.id)), deletedByUser]);
     return res.json({ success: true });
   } catch (e: any) {
     return res.status(500).json({ error: e.message });

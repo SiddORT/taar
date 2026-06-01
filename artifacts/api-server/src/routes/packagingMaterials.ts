@@ -113,7 +113,7 @@ router.delete("/packaging-materials/:id", requireAuth, async (req: AuthRequest, 
   if (isNaN(id)) { res.status(400).json({ error: "Invalid ID" }); return; }
   const updatedBy = req.user?.email ?? "system";
   await db.update(packagingMaterialsTable)
-    .set({ isDeleted: true, updatedBy, updatedAt: new Date() })
+    .set({ isDeleted: true, updatedBy, updatedAt: new Date(), deletedBy: updatedBy, deletedAt: new Date() })
     .where(eq(packagingMaterialsTable.id, id));
   res.json({ message: "Deleted" });
 });

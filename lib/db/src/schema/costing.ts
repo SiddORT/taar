@@ -29,6 +29,8 @@ export const swatchBomTable = pgTable("swatch_bom", {
   updatedBy: text("updated_by"),
   updatedAt: timestamp("updated_at", { withTimezone: true }),
   isDeleted: boolean("is_deleted").notNull().default(false),
+  deletedBy: text("deleted_by"),
+  deletedAt: timestamp("deleted_at", { withTimezone: true }),
 });
 
 export type SwatchBomRecord = typeof swatchBomTable.$inferSelect;
@@ -63,6 +65,8 @@ export const purchaseOrdersTable = pgTable("purchase_orders", {
   updatedBy: text("updated_by"),
   updatedAt: timestamp("updated_at", { withTimezone: true }),
   isDeleted: boolean("is_deleted").notNull().default(false),
+  deletedBy: text("deleted_by"),
+  deletedAt: timestamp("deleted_at", { withTimezone: true }),
 });
 
 export type PurchaseOrderRecord = typeof purchaseOrdersTable.$inferSelect;
@@ -85,6 +89,8 @@ export const purchaseReceiptsTable = pgTable("purchase_receipts", {
   updatedBy: text("updated_by"),
   updatedAt: timestamp("updated_at", { withTimezone: true }),
   isDeleted: boolean("is_deleted").notNull().default(false),
+  deletedBy: text("deleted_by"),
+  deletedAt: timestamp("deleted_at", { withTimezone: true }),
 });
 
 export type PurchaseReceiptRecord = typeof purchaseReceiptsTable.$inferSelect;
@@ -104,6 +110,8 @@ export const prPaymentsTable = pgTable("pr_payments", {
   updatedBy: text("updated_by"),
   updatedAt: timestamp("updated_at", { withTimezone: true }),
   isDeleted: boolean("is_deleted").notNull().default(false),
+  deletedBy: text("deleted_by"),
+  deletedAt: timestamp("deleted_at", { withTimezone: true }),
 });
 
 export type PrPaymentRecord = typeof prPaymentsTable.$inferSelect;
@@ -126,6 +134,8 @@ export const consumptionLogTable = pgTable("consumption_log", {
   warehouseLocation: text("warehouse_location"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   isDeleted: boolean("is_deleted").notNull().default(false),
+  deletedBy: text("deleted_by"),
+  deletedAt: timestamp("deleted_at", { withTimezone: true }),
 });
 
 export type ConsumptionLogRecord = typeof consumptionLogTable.$inferSelect;
@@ -148,6 +158,8 @@ export const artisanTimesheetsTable = pgTable("artisan_timesheets", {
   createdBy: text("created_by").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   isDeleted: boolean("is_deleted").notNull().default(false),
+  deletedBy: text("deleted_by"),
+  deletedAt: timestamp("deleted_at", { withTimezone: true }),
 });
 
 export type ArtisanTimesheetRecord = typeof artisanTimesheetsTable.$inferSelect;
@@ -172,6 +184,8 @@ export const outsourceJobsTable = pgTable("outsource_jobs", {
   createdBy: text("created_by").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   isDeleted: boolean("is_deleted").notNull().default(false),
+  deletedBy: text("deleted_by"),
+  deletedAt: timestamp("deleted_at", { withTimezone: true }),
 });
 
 export type OutsourceJobRecord = typeof outsourceJobsTable.$inferSelect;
@@ -195,6 +209,8 @@ export const customChargesTable = pgTable("custom_charges", {
   createdBy: text("created_by").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   isDeleted: boolean("is_deleted").notNull().default(false),
+  deletedBy: text("deleted_by"),
+  deletedAt: timestamp("deleted_at", { withTimezone: true }),
 });
 
 export type CustomChargeRecord = typeof customChargesTable.$inferSelect;
@@ -220,6 +236,8 @@ export const costingPaymentsTable = pgTable("costing_payments", {
   createdBy: text("created_by"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   isDeleted: boolean("is_deleted").notNull().default(false),
+  deletedBy: text("deleted_by"),
+  deletedAt: timestamp("deleted_at", { withTimezone: true }),
 });
 
 export type CostingPaymentRecord = typeof costingPaymentsTable.$inferSelect;
@@ -241,6 +259,8 @@ export const bomChangeLogTable = pgTable("bom_change_log", {
   changedBy: text("changed_by").notNull(),
   changedAt: timestamp("changed_at", { withTimezone: true }).notNull().defaultNow(),
   isDeleted: boolean("is_deleted").notNull().default(false),
+  deletedBy: text("deleted_by"),
+  deletedAt: timestamp("deleted_at", { withTimezone: true }),
 });
 
 export type BomChangeLogRecord = typeof bomChangeLogTable.$inferSelect;
