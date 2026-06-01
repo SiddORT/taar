@@ -497,7 +497,7 @@ async function reverseConsumptionFromInventory(opts: {
 
     // Remove ledger entry for this consumption log
     await client.query(
-      `UPDATE stock_ledger SET is_deleted = true, deleted_by = $2, deleted_at = now() WHERE transaction_type = 'Consumption' AND reference_number = $1 AND is_deleted = false`,
+      `UPDATE stock_ledger SET is_deleted = true, deleted_by = $2, deleted_at = now() WHERE LOWER(REPLACE(transaction_type,' ','_')) = 'consumption' AND reference_number = $1 AND is_deleted = false`,
       [String(entry.id), actor]
     );
 
