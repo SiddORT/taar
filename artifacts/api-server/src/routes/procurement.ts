@@ -34,7 +34,7 @@ async function nextPrNumber(client: typeof pool): Promise<string> {
 
 async function recalcPoStatus(client: { query: typeof pool.query }, poId: number) {
   const items = await client.query(
-    `SELECT ordered_quantity, received_quantity FROM purchase_order_items WHERE po_id = $1`,
+    `SELECT ordered_quantity, received_quantity FROM purchase_order_items WHERE po_id = $1 AND is_deleted = false`,
     [poId]
   );
   if (!items.rows.length) return;
@@ -71,7 +71,7 @@ router.get("/procurement/purchase-orders", requireAuth, async (req, res) => {
       page = "1", limit = "10", sort = "newest",
     } = req.query as Record<string, string>;
 
-    const conditions: string[] = [];
+    const conditions: string[] = ["po.is_deleted = false"];
     const params: (string | number)[] = [];
 
     if (search) {
@@ -90,14 +90,14 @@ router.get("/procurement/purchase-orders", requireAuth, async (req, res) => {
     const [rows, total] = await Promise.all([
       pool.query(
         `SELECT po.*,
-           (SELECT COUNT(*) FROM purchase_order_items WHERE po_id = po.id)::int AS item_count,
-           (SELECT COALESCE(SUM(poi.ordered_quantity),0)  FROM purchase_order_items poi WHERE poi.po_id = po.id) AS total_ordered_qty,
-           (SELECT COALESCE(SUM(poi.received_quantity),0) FROM purchase_order_items poi WHERE poi.po_id = po.id) AS total_received_qty,
+           (SELECT COUNT(*) FROM purchase_order_items WHERE po_id = po.id AND is_deleted = false)::int AS item_count,
+           (SELECT COALESCE(SUM(poi.ordered_quantity),0)  FROM purchase_order_items poi WHERE poi.po_id = po.id AND poi.is_deleted = false) AS total_ordered_qty,
+           (SELECT COALESCE(SUM(poi.received_quantity),0) FROM purchase_order_items poi WHERE poi.po_id = po.id AND poi.is_deleted = false) AS total_received_qty,
            sw.order_code AS swatch_order_code,
            so.order_code AS style_order_code
          FROM purchase_orders po
-         LEFT JOIN swatch_orders sw ON po.reference_type = 'Swatch' AND sw.id = po.swatch_order_id
-         LEFT JOIN style_orders  so ON po.reference_type = 'Style'  AND so.id = po.style_order_id
+         LEFT JOIN swatch_orders sw ON po.reference_type = 'Swatch' AND sw.id = po.swatch_order_id AND sw.is_deleted = false
+         LEFT JOIN style_orders  so ON po.reference_type = 'Style'  AND so.id = po.style_order_id AND so.is_deleted = false
          ${where} ORDER BY ${orderBy}
          LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
         [...params, limitNum, offset]
@@ -117,14 +117,14 @@ router.get("/procurement/purchase-orders/:id", requireAuth, async (req, res) => 
   try {
     const id = parseInt(String(req.params.id));
     const [poRes, itemsRes, prsRes] = await Promise.all([
-      pool.query(`SELECT * FROM purchase_orders WHERE id = $1`, [id]),
+      pool.query(`SELECT * FROM purchase_orders WHERE id = $1 AND is_deleted = false`, [id]),
       pool.query(
         `SELECT poi.*,
            ii.unit_type, ii.available_stock, ii.current_stock, ii.average_price,
            (poi.ordered_quantity - poi.received_quantity) AS pending_quantity
          FROM purchase_order_items poi
-         LEFT JOIN inventory_items ii ON ii.id = poi.inventory_item_id
-         WHERE poi.po_id = $1 ORDER BY poi.id`,
+         LEFT JOIN inventory_items ii ON ii.id = poi.inventory_item_id AND ii.is_deleted = false
+         WHERE poi.po_id = $1 AND poi.is_deleted = false ORDER BY poi.id`,
         [id]
       ),
       pool.query(
@@ -135,8 +135,8 @@ router.get("/procurement/purchase-orders/:id", requireAuth, async (req, res) => 
              'warehouse_location', pri.warehouse_location
            ) ORDER BY pri.id) AS items
          FROM purchase_receipts pr
-         LEFT JOIN purchase_receipt_items pri ON pri.pr_id = pr.id
-         WHERE pr.po_id = $1 AND pr.status != 'Cancelled'
+         LEFT JOIN purchase_receipt_items pri ON pri.pr_id = pr.id AND pri.is_deleted = false
+         WHERE pr.po_id = $1 AND pr.status != 'Cancelled' AND pr.is_deleted = false
          GROUP BY pr.id ORDER BY pr.received_date ASC`,
         [id]
       ),
@@ -227,7 +227,7 @@ router.patch("/procurement/purchase-orders/:id/status", requireAuth, async (req:
 
     // Guard: Closed is only meaningful from Approved / Partially Received / Closed (idempotent).
     if (status === "Closed") {
-      const cur = await pool.query(`SELECT status FROM purchase_orders WHERE id = $1`, [id]);
+      const cur = await pool.query(`SELECT status FROM purchase_orders WHERE id = $1 AND is_deleted = false`, [id]);
       if (!cur.rows.length) { res.status(404).json({ error: "PO not found" }); return; }
       const curStatus = cur.rows[0].status;
       if (!["Approved", "Partially Received", "Closed"].includes(curStatus)) {
@@ -248,7 +248,7 @@ router.patch("/procurement/purchase-orders/:id/status", requireAuth, async (req:
     }
 
     const r = await pool.query(
-      `UPDATE purchase_orders SET ${updates.join(", ")} WHERE id = $3 RETURNING *`,
+      `UPDATE purchase_orders SET ${updates.join(", ")} WHERE id = $3 AND is_deleted = false RETURNING *`,
       params
     );
     if (!r.rows.length) { res.status(404).json({ error: "PO not found" }); return; }
@@ -261,16 +261,23 @@ router.patch("/procurement/purchase-orders/:id/status", requireAuth, async (req:
 
 // DELETE PO (admin, draft only)
 router.delete("/procurement/purchase-orders/:id", requireAuth, async (req, res) => {
+  const client = await (pool as any).connect();
   try {
+    await client.query("BEGIN");
     const id = parseInt(String(req.params.id));
-    const po = await pool.query(`SELECT status FROM purchase_orders WHERE id = $1`, [id]);
-    if (!po.rows.length) { res.status(404).json({ error: "PO not found" }); return; }
-    if (po.rows[0].status !== "Draft") { res.status(400).json({ error: "Only Draft POs can be deleted" }); return; }
-    await pool.query(`DELETE FROM purchase_orders WHERE id = $1`, [id]);
+    const po = await client.query(`SELECT status FROM purchase_orders WHERE id = $1 AND is_deleted = false`, [id]);
+    if (!po.rows.length) { await client.query("ROLLBACK"); res.status(404).json({ error: "PO not found" }); return; }
+    if (po.rows[0].status !== "Draft") { await client.query("ROLLBACK"); res.status(400).json({ error: "Only Draft POs can be deleted" }); return; }
+    await client.query(`UPDATE purchase_order_items SET is_deleted = true, updated_at = NOW() WHERE po_id = $1 AND is_deleted = false`, [id]);
+    await client.query(`UPDATE purchase_orders SET is_deleted = true, updated_at = NOW() WHERE id = $1 AND is_deleted = false`, [id]);
+    await client.query("COMMIT");
     res.json({ message: "Purchase Order deleted" });
   } catch (err) {
+    await client.query("ROLLBACK");
     console.error(err);
     res.status(500).json({ error: "Failed to delete purchase order" });
+  } finally {
+    client.release();
   }
 });
 
@@ -287,7 +294,7 @@ router.get("/procurement/purchase-receipts", requireAuth, async (req, res) => {
       page = "1", limit = "10", sort = "newest",
     } = req.query as Record<string, string>;
 
-    const conditions: string[] = [];
+    const conditions: string[] = ["pr.is_deleted = false"];
     const params: (string | number)[] = [];
 
     if (search) {
@@ -317,16 +324,16 @@ router.get("/procurement/purchase-receipts", requireAuth, async (req, res) => {
         `SELECT pr.*,
            po.po_number, po.reference_type, po.reference_id,
            po.swatch_order_id AS po_swatch_id, po.style_order_id AS po_style_id,
-           (SELECT COUNT(*) FROM purchase_receipt_items WHERE pr_id = pr.id)::int AS item_count,
-           (SELECT COALESCE(SUM(quantity),0) FROM purchase_receipt_items WHERE pr_id = pr.id) AS total_qty
+           (SELECT COUNT(*) FROM purchase_receipt_items WHERE pr_id = pr.id AND is_deleted = false)::int AS item_count,
+           (SELECT COALESCE(SUM(quantity),0) FROM purchase_receipt_items WHERE pr_id = pr.id AND is_deleted = false) AS total_qty
          FROM purchase_receipts pr
-         LEFT JOIN purchase_orders po ON po.id = pr.po_id
+         LEFT JOIN purchase_orders po ON po.id = pr.po_id AND po.is_deleted = false
          ${where} ORDER BY ${orderBy}
          LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
         [...params, limitNum, offset]
       ),
       pool.query(
-        `SELECT COUNT(*) FROM purchase_receipts pr LEFT JOIN purchase_orders po ON po.id = pr.po_id ${where}`,
+        `SELECT COUNT(*) FROM purchase_receipts pr LEFT JOIN purchase_orders po ON po.id = pr.po_id AND po.is_deleted = false ${where}`,
         params
       ),
     ]);
@@ -346,17 +353,17 @@ router.get("/procurement/purchase-receipts/:id", requireAuth, async (req, res) =
       pool.query(
         `SELECT pr.*, po.po_number, po.reference_type, po.vendor_name AS po_vendor_name
          FROM purchase_receipts pr
-         LEFT JOIN purchase_orders po ON po.id = pr.po_id
-         WHERE pr.id = $1`,
+         LEFT JOIN purchase_orders po ON po.id = pr.po_id AND po.is_deleted = false
+         WHERE pr.id = $1 AND pr.is_deleted = false`,
         [id]
       ),
       pool.query(
         `SELECT pri.*, poi.ordered_quantity AS po_ordered_qty, poi.received_quantity AS po_received_qty,
            ii.unit_type, ii.available_stock, ii.current_stock
          FROM purchase_receipt_items pri
-         LEFT JOIN purchase_order_items poi ON poi.id = pri.po_item_id
-         LEFT JOIN inventory_items ii ON ii.id = pri.inventory_item_id
-         WHERE pri.pr_id = $1 ORDER BY pri.id`,
+         LEFT JOIN purchase_order_items poi ON poi.id = pri.po_item_id AND poi.is_deleted = false
+         LEFT JOIN inventory_items ii ON ii.id = pri.inventory_item_id AND ii.is_deleted = false
+         WHERE pri.pr_id = $1 AND pri.is_deleted = false ORDER BY pri.id`,
         [id]
       ),
     ]);
@@ -387,7 +394,7 @@ router.post("/procurement/purchase-receipts", requireAuth, async (req: AuthReque
     if (!items.length) { res.status(400).json({ error: "At least one item is required" }); return; }
 
     const poRes = await client.query(
-      `SELECT po.*, v.id AS vid FROM purchase_orders po LEFT JOIN vendors v ON v.id = po.vendor_id WHERE po.id = $1`,
+      `SELECT po.*, v.id AS vid FROM purchase_orders po LEFT JOIN vendors v ON v.id = po.vendor_id AND v.is_deleted = false WHERE po.id = $1 AND po.is_deleted = false`,
       [poId]
     );
     if (!poRes.rows.length) { res.status(400).json({ error: "PO not found" }); return; }
@@ -406,7 +413,7 @@ router.post("/procurement/purchase-receipts", requireAuth, async (req: AuthReque
         res.status(400).json({ error: `Missing inventory item reference for ${item.itemName}` }); return;
       }
       const poItem = await client.query(
-        `SELECT ordered_quantity, received_quantity FROM purchase_order_items WHERE id = $1 AND po_id = $2`,
+        `SELECT ordered_quantity, received_quantity FROM purchase_order_items WHERE id = $1 AND po_id = $2 AND is_deleted = false`,
         [item.poItemId, poId]
       );
       if (!poItem.rows.length) { res.status(400).json({ error: `PO item ${item.poItemId} not found` }); return; }
@@ -483,7 +490,7 @@ router.post("/procurement/purchase-receipts/:id/confirm", requireAuth, async (re
     const userName = (req.user as any)?.name || (req.user as any)?.email || "Admin";
     const id = parseInt(String(req.params.id));
 
-    const prRes = await client.query(`SELECT * FROM purchase_receipts WHERE id = $1`, [id]);
+    const prRes = await client.query(`SELECT * FROM purchase_receipts WHERE id = $1 AND is_deleted = false`, [id]);
     if (!prRes.rows.length) { res.status(404).json({ error: "PR not found" }); return; }
     const pr = prRes.rows[0];
     if (pr.status !== "Open") {
@@ -491,7 +498,7 @@ router.post("/procurement/purchase-receipts/:id/confirm", requireAuth, async (re
     }
 
     const itemsRes = await client.query(
-      `SELECT * FROM purchase_receipt_items WHERE pr_id = $1`,
+      `SELECT * FROM purchase_receipt_items WHERE pr_id = $1 AND is_deleted = false`,
       [id]
     );
     const items = itemsRes.rows.map((r: any) => ({
@@ -544,7 +551,7 @@ router.put("/procurement/purchase-receipts/:id", requireAuth, async (req: AuthRe
       items: { poItemId: number; inventoryItemId: number; itemName: string; itemCode: string; quantity: number; unitPrice: number; warehouseLocation?: string; remarks?: string }[];
     };
 
-    const prRes = await client.query(`SELECT * FROM purchase_receipts WHERE id = $1`, [id]);
+    const prRes = await client.query(`SELECT * FROM purchase_receipts WHERE id = $1 AND is_deleted = false`, [id]);
     if (!prRes.rows.length) { res.status(404).json({ error: "PR not found" }); return; }
     const pr = prRes.rows[0];
     if (pr.status !== "Open") {
@@ -561,13 +568,13 @@ router.put("/procurement/purchase-receipts/:id", requireAuth, async (req: AuthRe
       }
       // Get current PR item's saved quantity to exclude it from pending calculation
       const existingItem = await client.query(
-        `SELECT quantity FROM purchase_receipt_items WHERE pr_id = $1 AND po_item_id = $2`,
+        `SELECT quantity FROM purchase_receipt_items WHERE pr_id = $1 AND po_item_id = $2 AND is_deleted = false`,
         [id, item.poItemId]
       );
       const existingQty = existingItem.rows.length ? parseFloat(existingItem.rows[0].quantity) : 0;
 
       const poItem = await client.query(
-        `SELECT ordered_quantity, received_quantity FROM purchase_order_items WHERE id = $1 AND po_id = $2`,
+        `SELECT ordered_quantity, received_quantity FROM purchase_order_items WHERE id = $1 AND po_id = $2 AND is_deleted = false`,
         [item.poItemId, pr.po_id]
       );
       if (!poItem.rows.length) { res.status(400).json({ error: `PO item ${item.poItemId} not found` }); return; }
@@ -586,8 +593,8 @@ router.put("/procurement/purchase-receipts/:id", requireAuth, async (req: AuthRe
       );
     }
 
-    // Replace items: delete all existing, insert new
-    await client.query(`DELETE FROM purchase_receipt_items WHERE pr_id = $1`, [id]);
+    // Replace items: soft-delete all existing, insert new
+    await client.query(`UPDATE purchase_receipt_items SET is_deleted = true WHERE pr_id = $1 AND is_deleted = false`, [id]);
     for (const item of items) {
       await client.query(
         `INSERT INTO purchase_receipt_items
@@ -621,7 +628,7 @@ router.post("/procurement/purchase-receipts/:id/cancel", requireAuth, async (req
     const userName = (req.user as any)?.name || (req.user as any)?.email || "Admin";
     const id = parseInt(String(req.params.id));
 
-    const prRes = await client.query(`SELECT * FROM purchase_receipts WHERE id = $1`, [id]);
+    const prRes = await client.query(`SELECT * FROM purchase_receipts WHERE id = $1 AND is_deleted = false`, [id]);
     if (!prRes.rows.length) { res.status(404).json({ error: "PR not found" }); return; }
     const pr = prRes.rows[0];
     if (pr.status === "Cancelled") {
@@ -630,7 +637,7 @@ router.post("/procurement/purchase-receipts/:id/cancel", requireAuth, async (req
 
     if (pr.status === "Received") {
       // Reverse inventory changes (with avg price recalculation)
-      const itemsRes = await client.query(`SELECT * FROM purchase_receipt_items WHERE pr_id = $1`, [id]);
+      const itemsRes = await client.query(`SELECT * FROM purchase_receipt_items WHERE pr_id = $1 AND is_deleted = false`, [id]);
       for (const item of itemsRes.rows) {
         const qty       = parseFloat(item.quantity);
         const unitPrice = parseFloat(item.unit_price) || 0;
@@ -660,7 +667,7 @@ router.post("/procurement/purchase-receipts/:id/cancel", requireAuth, async (req
         }
         // Delete ledger entry for this PR
         await client.query(
-          `DELETE FROM stock_ledger WHERE reference_number = $1 AND item_id = $2 AND transaction_type = 'purchase_receipt'`,
+          `UPDATE stock_ledger SET is_deleted = true WHERE reference_number = $1 AND item_id = $2 AND transaction_type = 'purchase_receipt' AND is_deleted = false`,
           [pr.pr_number, item.inventory_item_id]
         );
         // Reverse PO item received quantity
@@ -695,13 +702,13 @@ router.delete("/procurement/purchase-receipts/:id", requireAuth, async (req, res
   try {
     await client.query("BEGIN");
     const id = parseInt(String(req.params.id));
-    const prRes = await client.query(`SELECT * FROM purchase_receipts WHERE id = $1`, [id]);
+    const prRes = await client.query(`SELECT * FROM purchase_receipts WHERE id = $1 AND is_deleted = false`, [id]);
     if (!prRes.rows.length) { res.status(404).json({ error: "PR not found" }); return; }
     const pr = prRes.rows[0];
 
     if (pr.status === "Received") {
       // Reverse inventory if confirmed (with avg price recalculation)
-      const itemsRes = await client.query(`SELECT * FROM purchase_receipt_items WHERE pr_id = $1`, [id]);
+      const itemsRes = await client.query(`SELECT * FROM purchase_receipt_items WHERE pr_id = $1 AND is_deleted = false`, [id]);
       for (const item of itemsRes.rows) {
         const qty       = parseFloat(item.quantity);
         const unitPrice = parseFloat(item.unit_price) || 0;
@@ -729,7 +736,7 @@ router.delete("/procurement/purchase-receipts/:id", requireAuth, async (req, res
           );
         }
         await client.query(
-          `DELETE FROM stock_ledger WHERE reference_number = $1 AND item_id = $2 AND transaction_type = 'purchase_receipt'`,
+          `UPDATE stock_ledger SET is_deleted = true WHERE reference_number = $1 AND item_id = $2 AND transaction_type = 'purchase_receipt' AND is_deleted = false`,
           [pr.pr_number, item.inventory_item_id]
         );
         if (item.po_item_id) {
@@ -742,8 +749,8 @@ router.delete("/procurement/purchase-receipts/:id", requireAuth, async (req, res
       await recalcPoStatus(client, pr.po_id);
     }
 
-    await client.query(`DELETE FROM purchase_receipt_items WHERE pr_id = $1`, [id]);
-    await client.query(`DELETE FROM purchase_receipts WHERE id = $1`, [id]);
+    await client.query(`UPDATE purchase_receipt_items SET is_deleted = true WHERE pr_id = $1 AND is_deleted = false`, [id]);
+    await client.query(`UPDATE purchase_receipts SET is_deleted = true, updated_at = NOW() WHERE id = $1 AND is_deleted = false`, [id]);
     await client.query("COMMIT");
     res.json({ message: "Purchase receipt deleted" });
   } catch (err) {
@@ -772,8 +779,8 @@ router.get("/procurement/item-tracking", requireAuth, async (req, res) => {
          COALESCE(SUM(poi.received_quantity), 0) AS total_received,
          COALESCE(SUM(poi.ordered_quantity - poi.received_quantity), 0) AS total_pending
        FROM purchase_order_items poi
-       JOIN purchase_orders po ON po.id = poi.po_id AND po.status NOT IN ('Draft','Cancelled')
-       WHERE poi.inventory_item_id = ANY($1)
+       JOIN purchase_orders po ON po.id = poi.po_id AND po.status NOT IN ('Draft','Cancelled') AND po.is_deleted = false
+       WHERE poi.inventory_item_id = ANY($1) AND poi.is_deleted = false
        GROUP BY poi.inventory_item_id`,
       [ids]
     );
@@ -794,7 +801,7 @@ router.get("/procurement/item-tracking", requireAuth, async (req, res) => {
 router.get("/procurement/po-numbers", requireAuth, async (_req, res) => {
   try {
     const rows = await pool.query(
-      `SELECT DISTINCT po_number FROM purchase_orders ORDER BY po_number DESC LIMIT 200`
+      `SELECT DISTINCT po_number FROM purchase_orders WHERE is_deleted = false ORDER BY po_number DESC LIMIT 200`
     );
     res.json(rows.rows.map((r: { po_number: string }) => r.po_number));
   } catch (err) {
@@ -811,8 +818,9 @@ router.get("/procurement/approved-pos", requireAuth, async (req, res) => {
   try {
     const { search = "" } = req.query as { search?: string };
     const conditions = [
+      "po.is_deleted = false",
       "po.status IN ('Approved','Partially Received')",
-      "EXISTS (SELECT 1 FROM purchase_order_items WHERE po_id = po.id AND (ordered_quantity - received_quantity) > 0)",
+      "EXISTS (SELECT 1 FROM purchase_order_items WHERE po_id = po.id AND (ordered_quantity - received_quantity) > 0 AND is_deleted = false)",
     ];
     const params: string[] = [];
     if (search) {
@@ -822,7 +830,7 @@ router.get("/procurement/approved-pos", requireAuth, async (req, res) => {
     const where = `WHERE ${conditions.join(" AND ")}`;
     const rows = await pool.query(
       `SELECT po.id, po.po_number, po.vendor_name, po.reference_type, po.status,
-         (SELECT COUNT(*) FROM purchase_order_items WHERE po_id = po.id AND (ordered_quantity - received_quantity) > 0)::int AS pending_items
+         (SELECT COUNT(*) FROM purchase_order_items WHERE po_id = po.id AND (ordered_quantity - received_quantity) > 0 AND is_deleted = false)::int AS pending_items
        FROM purchase_orders po ${where} ORDER BY po.created_at DESC LIMIT 100`,
       params
     );
@@ -905,8 +913,8 @@ router.post(
       const prRes = await client.query(
         `SELECT pr.*, po.vendor_id AS po_vendor_id, po.vendor_name AS po_vendor_name
          FROM purchase_receipts pr
-         LEFT JOIN purchase_orders po ON po.id = pr.po_id
-         WHERE pr.id = $1`,
+         LEFT JOIN purchase_orders po ON po.id = pr.po_id AND po.is_deleted = false
+         WHERE pr.id = $1 AND pr.is_deleted = false`,
         [prId]
       );
       if (!prRes.rows.length) { await client.query("ROLLBACK"); res.status(404).json({ error: "PR not found" }); return; }
@@ -917,7 +925,7 @@ router.post(
           await deleteUpload(pr.vendor_invoice_file);
         }
         await client.query(
-          `DELETE FROM vendor_invoice_ledger WHERE purchase_receipt_id = $1`,
+          `UPDATE vendor_invoice_ledger SET is_deleted = true, updated_at = NOW() WHERE purchase_receipt_id = $1 AND is_deleted = false`,
           [prId]
         );
       }
@@ -975,7 +983,7 @@ router.delete(
     try {
       await client.query("BEGIN");
       const prRes = await client.query(
-        `SELECT vendor_invoice_file FROM purchase_receipts WHERE id = $1`,
+        `SELECT vendor_invoice_file FROM purchase_receipts WHERE id = $1 AND is_deleted = false`,
         [prId]
       );
       if (!prRes.rows.length) { await client.query("ROLLBACK"); res.status(404).json({ error: "PR not found" }); return; }
@@ -993,7 +1001,7 @@ router.delete(
          WHERE id = $1`,
         [prId]
       );
-      await client.query(`DELETE FROM vendor_invoice_ledger WHERE purchase_receipt_id = $1`, [prId]);
+      await client.query(`UPDATE vendor_invoice_ledger SET is_deleted = true, updated_at = NOW() WHERE purchase_receipt_id = $1 AND is_deleted = false`, [prId]);
       await client.query("COMMIT");
       res.json({ success: true });
     } catch (err) {

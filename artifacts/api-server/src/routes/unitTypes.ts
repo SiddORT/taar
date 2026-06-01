@@ -10,11 +10,11 @@ const router: IRouter = Router();
 type AuthRequest = Request & { user?: { userId: number; email: string; role: string } };
 
 function buildWhere(search: string, status: string) {
-  const conditions: ReturnType<typeof eq>[] = [];
+  const conditions: ReturnType<typeof eq>[] = [eq(unitTypesTable.isDeleted, false)];
   if (status === "active") conditions.push(eq(unitTypesTable.isActive, true));
   else if (status === "inactive") conditions.push(eq(unitTypesTable.isActive, false));
   if (search) conditions.push(ilike(unitTypesTable.name, `%${search}%`));
-  return conditions.length > 0 ? and(...conditions) : undefined;
+  return and(...conditions);
 }
 
 router.get("/unit-types-master", requireAuth, async (req: AuthRequest, res): Promise<void> => {
@@ -113,7 +113,7 @@ router.put("/unit-types-master/:id", requireAuth, async (req: AuthRequest, res):
 router.patch("/unit-types-master/:id/status", requireAuth, async (req: AuthRequest, res): Promise<void> => {
   const id = parseInt(String(req.params.id), 10);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid ID" }); return; }
-  const [existing] = await db.select().from(unitTypesTable).where(eq(unitTypesTable.id, id));
+  const [existing] = await db.select().from(unitTypesTable).where(and(eq(unitTypesTable.id, id), eq(unitTypesTable.isDeleted, false)));
   if (!existing) { res.status(404).json({ error: "Unit Type not found" }); return; }
   const [record] = await db.update(unitTypesTable)
     .set({ isActive: !existing.isActive })
@@ -124,7 +124,10 @@ router.patch("/unit-types-master/:id/status", requireAuth, async (req: AuthReque
 router.delete("/unit-types-master/:id", requireAuth, async (req: AuthRequest, res): Promise<void> => {
   const id = parseInt(String(req.params.id), 10);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid ID" }); return; }
-  const [record] = await db.delete(unitTypesTable).where(eq(unitTypesTable.id, id)).returning();
+  const [record] = await db.update(unitTypesTable)
+    .set({ isDeleted: true })
+    .where(and(eq(unitTypesTable.id, id), eq(unitTypesTable.isDeleted, false)))
+    .returning();
   if (!record) { res.status(404).json({ error: "Unit Type not found" }); return; }
   res.json({ message: "Unit Type deleted" });
 });

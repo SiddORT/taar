@@ -1,4 +1,4 @@
-import { pgTable, serial, integer, text, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, serial, integer, text, timestamp, boolean } from "drizzle-orm/pg-core";
 import { z } from "zod/v4";
 
 export const vendorPaymentsTable = pgTable("vendor_payments", {
@@ -17,6 +17,7 @@ export const vendorPaymentsTable = pgTable("vendor_payments", {
   swatchOrderCode: text("swatch_order_code"),
   createdBy: text("created_by").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  isDeleted: boolean("is_deleted").notNull().default(false),
 });
 
 export const vendorLedgerChargesTable = pgTable("vendor_ledger_charges", {
@@ -34,6 +35,7 @@ export const vendorLedgerChargesTable = pgTable("vendor_ledger_charges", {
   swatchOrderCode: text("swatch_order_code"),
   createdBy: text("created_by").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  isDeleted: boolean("is_deleted").notNull().default(false),
 });
 
 export const insertVendorPaymentSchema = z.object({

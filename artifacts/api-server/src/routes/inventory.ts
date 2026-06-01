@@ -13,7 +13,7 @@ router.get("/inventory/summary", requireAuth, async (req, res) => {
       sourceType = "all", stockLevel = "all", fromDate = "", toDate = "",
     } = req.query as Record<string, string>;
 
-    const conditions: string[] = ["is_active = true"];
+    const conditions: string[] = ["is_active = true", "is_deleted = false"];
     const params: (string | number)[] = [];
     if (search)                { params.push(`%${search}%`); conditions.push(`(item_name ILIKE $${params.length} OR item_code ILIKE $${params.length})`); }
     if (category !== "all")    { params.push(category);       conditions.push(`category = $${params.length}`); }
@@ -74,7 +74,7 @@ router.get("/inventory/items", requireAuth, async (req, res) => {
     const limitNum = Math.min(100, Math.max(1, parseInt(limit)));
     const offset = (pageNum - 1) * limitNum;
 
-    const conditions: string[] = ["ii.is_active = true"];
+    const conditions: string[] = ["ii.is_active = true", "ii.is_deleted = false"];
     const params: (string | number)[] = [];
 
     if (search) {
@@ -139,8 +139,8 @@ router.get("/inventory/items", requireAuth, async (req, res) => {
            COALESCE(po_pending.on_order_qty, 0)::text AS on_order_qty,
            COALESCE(po_pending.open_po_count, 0)::int AS open_po_count
          FROM inventory_items ii
-         LEFT JOIN fabrics   f ON ii.source_type = 'fabric'   AND f.id = ii.source_id
-         LEFT JOIN materials m ON ii.source_type = 'material'  AND m.id = ii.source_id
+         LEFT JOIN fabrics   f ON ii.source_type = 'fabric'   AND f.id = ii.source_id AND f.is_deleted = false
+         LEFT JOIN materials m ON ii.source_type = 'material'  AND m.id = ii.source_id AND m.is_deleted = false
          LEFT JOIN (
            SELECT poi.inventory_item_id,
                   SUM(GREATEST(poi.ordered_quantity::numeric - poi.received_quantity::numeric, 0)) AS on_order_qty,
@@ -149,6 +149,7 @@ router.get("/inventory/items", requireAuth, async (req, res) => {
            JOIN purchase_orders po ON po.id = poi.po_id
            WHERE po.status NOT IN ('Cancelled','Closed','Completed')
              AND poi.ordered_quantity::numeric > poi.received_quantity::numeric
+             AND poi.is_deleted = false AND po.is_deleted = false
            GROUP BY poi.inventory_item_id
          ) po_pending ON po_pending.inventory_item_id = ii.id
          ${where}
@@ -184,9 +185,9 @@ router.get("/inventory/items/:id", requireAuth, async (req, res) => {
          COALESCE(f.hsn_code, m.hsn_code) AS hsn_code,
          COALESCE(f.gst_percent::numeric, m.gst_percent::numeric)::text AS gst_percent
        FROM inventory_items ii
-       LEFT JOIN fabrics   f ON ii.source_type = 'fabric'   AND f.id = ii.source_id
-       LEFT JOIN materials m ON ii.source_type = 'material'  AND m.id = ii.source_id
-       WHERE ii.id = $1`,
+       LEFT JOIN fabrics   f ON ii.source_type = 'fabric'   AND f.id = ii.source_id AND f.is_deleted = false
+       LEFT JOIN materials m ON ii.source_type = 'material'  AND m.id = ii.source_id AND m.is_deleted = false
+       WHERE ii.id = $1 AND ii.is_deleted = false`,
       [id]
     );
     if (!r.rows.length) return res.status(404).json({ error: "Not found" });
@@ -201,7 +202,7 @@ router.get("/inventory/items/:id/logs", requireAuth, async (req, res) => {
     const id = parseInt(String(req.params.id));
     const r = await pool.query(
       `SELECT * FROM inventory_stock_logs
-       WHERE inventory_item_id = $1
+       WHERE inventory_item_id = $1 AND is_deleted = false
        ORDER BY created_at DESC
        LIMIT 100`,
       [id]
@@ -217,7 +218,7 @@ router.get("/inventory/items/:id/reservations", requireAuth, async (req, res) =>
   try {
     const id = parseInt(String(req.params.id));
     const itemRes = await pool.query(
-      `SELECT source_type, source_id, item_name, style_reserved_qty, swatch_reserved_qty FROM inventory_items WHERE id = $1`,
+      `SELECT source_type, source_id, item_name, style_reserved_qty, swatch_reserved_qty FROM inventory_items WHERE id = $1 AND is_deleted = false`,
       [id]
     );
     if (!itemRes.rows.length) return res.status(404).json({ error: "Not found" });
@@ -265,9 +266,9 @@ router.get("/inventory/items/:id/reservations", requireAuth, async (req, res) =>
 router.get("/inventory/filters", requireAuth, async (_req, res) => {
   try {
     const [cats, depts, locs] = await Promise.all([
-      pool.query(`SELECT DISTINCT TRIM(category) AS category FROM inventory_items WHERE category IS NOT NULL AND TRIM(category) <> '' AND is_active=true ORDER BY category`),
-      pool.query(`SELECT DISTINCT TRIM(department) AS department FROM inventory_items WHERE department IS NOT NULL AND TRIM(department) <> '' AND is_active=true ORDER BY department`),
-      pool.query(`SELECT DISTINCT TRIM(warehouse_location) AS warehouse_location FROM inventory_items WHERE warehouse_location IS NOT NULL AND TRIM(warehouse_location) <> '' AND is_active=true ORDER BY warehouse_location`),
+      pool.query(`SELECT DISTINCT TRIM(category) AS category FROM inventory_items WHERE category IS NOT NULL AND TRIM(category) <> '' AND is_active=true AND is_deleted = false ORDER BY category`),
+      pool.query(`SELECT DISTINCT TRIM(department) AS department FROM inventory_items WHERE department IS NOT NULL AND TRIM(department) <> '' AND is_active=true AND is_deleted = false ORDER BY department`),
+      pool.query(`SELECT DISTINCT TRIM(warehouse_location) AS warehouse_location FROM inventory_items WHERE warehouse_location IS NOT NULL AND TRIM(warehouse_location) <> '' AND is_active=true AND is_deleted = false ORDER BY warehouse_location`),
     ]);
     return res.json({
       categories: cats.rows.map((r: { category: string }) => r.category),
@@ -300,7 +301,7 @@ router.get("/inventory/ledger", requireAuth, async (req, res) => {
     const limitNum = Math.min(200, Math.max(1, parseInt(limit)));
     const offset = (pageNum - 1) * limitNum;
 
-    const conditions: string[] = [];
+    const conditions: string[] = ["sl.is_deleted = false", "ii.is_deleted = false"];
     const params: (string | number)[] = [];
 
     if (itemId) {
@@ -352,9 +353,11 @@ router.get("/inventory/ledger", requireAuth, async (req, res) => {
          LEFT JOIN swatch_orders sw ON sl.reference_type = 'Swatch'
                 AND sl.reference_number ~ '^[0-9]+$'
                 AND sw.id = (CASE WHEN sl.reference_number ~ '^[0-9]+$' THEN sl.reference_number::bigint ELSE NULL END)
+                AND sw.is_deleted = false
          LEFT JOIN style_orders so ON sl.reference_type = 'Style'
                 AND sl.reference_number ~ '^[0-9]+$'
                 AND so.id = (CASE WHEN sl.reference_number ~ '^[0-9]+$' THEN sl.reference_number::bigint ELSE NULL END)
+                AND so.is_deleted = false
          ${where}
          ORDER BY ${orderBy}
          LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
@@ -384,7 +387,7 @@ router.post("/inventory/ledger/wastage", requireAuth, async (req: AuthRequest, r
     if (isNaN(qty) || qty <= 0) return res.status(400).json({ error: "Quantity must be a positive number" });
 
     const itemRes = await pool.query(
-      `SELECT id, item_name, current_stock, style_reserved_qty, swatch_reserved_qty, available_stock FROM inventory_items WHERE id = $1 AND is_active = true`,
+      `SELECT id, item_name, current_stock, style_reserved_qty, swatch_reserved_qty, available_stock FROM inventory_items WHERE id = $1 AND is_active = true AND is_deleted = false`,
       [itemId]
     );
     if (!itemRes.rows.length) return res.status(404).json({ error: "Item not found" });
@@ -432,7 +435,7 @@ router.delete("/inventory/ledger/:id", requireAuth, async (req: AuthRequest, res
     const id = parseInt(String(req.params.id));
 
     const preCheck = await client.query(
-      `SELECT transaction_type, reference_type, item_id FROM stock_ledger WHERE id = $1`, [id]
+      `SELECT transaction_type, reference_type, item_id FROM stock_ledger WHERE id = $1 AND is_deleted = false`, [id]
     );
     if (!preCheck.rows.length) return res.status(404).json({ error: "Not found" });
     const isManual = DELETABLE_TX_TYPES.includes(preCheck.rows[0].transaction_type)
@@ -449,7 +452,7 @@ router.delete("/inventory/ledger/:id", requireAuth, async (req: AuthRequest, res
       `SELECT sl.*, ii.current_stock, ii.style_reserved_qty, ii.swatch_reserved_qty, ii.item_name
        FROM stock_ledger sl
        JOIN inventory_items ii ON ii.id = sl.item_id
-       WHERE sl.id = $1
+       WHERE sl.id = $1 AND sl.is_deleted = false
        FOR UPDATE OF ii, sl`, [id]
     );
     if (!entryRes.rows.length) {
@@ -485,7 +488,7 @@ router.delete("/inventory/ledger/:id", requireAuth, async (req: AuthRequest, res
       `UPDATE inventory_items SET current_stock = $1, available_stock = $2, last_updated_at = NOW() WHERE id = $3`,
       [newStock, newAvail, entry.item_id]
     );
-    await client.query(`DELETE FROM stock_ledger WHERE id = $1`, [id]);
+    await client.query(`UPDATE stock_ledger SET is_deleted = true WHERE id = $1 AND is_deleted = false`, [id]);
 
     const userName = req.user?.name || req.user?.email || "Admin";
     await client.query(
@@ -541,7 +544,7 @@ router.put("/inventory/items/:id/stock", requireAuth, async (req: AuthRequest, r
     try {
       await client.query("BEGIN");
       const prevRes = await client.query(
-        `SELECT current_stock, style_reserved_qty, swatch_reserved_qty FROM inventory_items WHERE id = $1 FOR UPDATE`,
+        `SELECT current_stock, style_reserved_qty, swatch_reserved_qty FROM inventory_items WHERE id = $1 AND is_deleted = false FOR UPDATE`,
         [id]
       );
       if (!prevRes.rows.length) {
@@ -654,7 +657,7 @@ router.get("/inventory/reservations", requireAuth, async (req, res) => {
     } = req.query as Record<string, string>;
     const offset = (parseInt(page) - 1) * parseInt(limit);
 
-    const conditions: string[] = [];
+    const conditions: string[] = ["mr.is_deleted = false", "ii.is_deleted = false"];
     const params: (string | number)[] = [];
     let pi = 1;
     if (search) {
@@ -696,8 +699,8 @@ router.get("/inventory/reservations", requireAuth, async (req, res) => {
               COALESCE(so.style_name, sw.swatch_name) AS reference_name
        FROM material_reservations mr
        JOIN inventory_items ii ON ii.id = mr.inventory_id
-       LEFT JOIN style_orders  so ON mr.reservation_type = 'Style'  AND so.id = mr.reference_id
-       LEFT JOIN swatch_orders sw ON mr.reservation_type = 'Swatch' AND sw.id = mr.reference_id
+       LEFT JOIN style_orders  so ON mr.reservation_type = 'Style'  AND so.id = mr.reference_id AND so.is_deleted = false
+       LEFT JOIN swatch_orders sw ON mr.reservation_type = 'Swatch' AND sw.id = mr.reference_id AND sw.is_deleted = false
        ${where}
        ORDER BY mr.created_at DESC
        LIMIT $${limitIdx} OFFSET $${offsetIdx}`,
@@ -723,7 +726,7 @@ router.post("/inventory/reservations", requireAuth, async (req, res) => {
 
     const itemRow = await pool.query(
       `SELECT id, available_stock, style_reserved_qty, swatch_reserved_qty, current_stock
-       FROM inventory_items WHERE id = $1`,
+       FROM inventory_items WHERE id = $1 AND is_deleted = false`,
       [inventoryId]
     );
     if (!itemRow.rows.length) return res.status(404).json({ error: "Inventory item not found" });
@@ -779,7 +782,7 @@ router.patch("/inventory/reservations/:id/release", requireAuth, async (req, res
   const auth = req as AuthRequest;
   try {
     const { id } = req.params;
-    const r = await pool.query(`SELECT * FROM material_reservations WHERE id = $1`, [id]);
+    const r = await pool.query(`SELECT * FROM material_reservations WHERE id = $1 AND is_deleted = false`, [id]);
     if (!r.rows.length) return res.status(404).json({ error: "Not found" });
     const resv = r.rows[0];
     if (resv.status !== "Active") return res.status(400).json({ error: "Only Active reservations can be released" });
@@ -820,7 +823,7 @@ router.patch("/inventory/reservations/:id/cancel", requireAuth, async (req, res)
   const auth = req as AuthRequest;
   try {
     const { id } = req.params;
-    const r = await pool.query(`SELECT * FROM material_reservations WHERE id = $1`, [id]);
+    const r = await pool.query(`SELECT * FROM material_reservations WHERE id = $1 AND is_deleted = false`, [id]);
     if (!r.rows.length) return res.status(404).json({ error: "Not found" });
     const resv = r.rows[0];
     if (resv.status !== "Active") return res.status(400).json({ error: "Only Active reservations can be cancelled" });
@@ -857,9 +860,9 @@ router.patch("/inventory/reservations/:id/convert", requireAuth, async (req, res
       `SELECT mr.*,
          COALESCE(sw.order_code, so.order_code) AS order_code
        FROM material_reservations mr
-       LEFT JOIN swatch_orders sw ON mr.reservation_type = 'Swatch' AND sw.id = mr.reference_id
-       LEFT JOIN style_orders  so ON mr.reservation_type = 'Style'  AND so.id = mr.reference_id
-       WHERE mr.id = $1`, [id]);
+       LEFT JOIN swatch_orders sw ON mr.reservation_type = 'Swatch' AND sw.id = mr.reference_id AND sw.is_deleted = false
+       LEFT JOIN style_orders  so ON mr.reservation_type = 'Style'  AND so.id = mr.reference_id AND so.is_deleted = false
+       WHERE mr.id = $1 AND mr.is_deleted = false`, [id]);
     if (!r.rows.length) return res.status(404).json({ error: "Not found" });
     const resv = r.rows[0];
     const orderRef = resv.order_code ?? `#${resv.reference_id}`;
@@ -959,7 +962,7 @@ router.delete("/inventory/reservations/:id", requireAuth, async (req, res) => {
   if ((auth.user as any)?.role !== "admin") return res.status(403).json({ error: "Admin only" });
   try {
     const { id } = req.params;
-    const r = await pool.query(`SELECT * FROM material_reservations WHERE id = $1`, [id]);
+    const r = await pool.query(`SELECT * FROM material_reservations WHERE id = $1 AND is_deleted = false`, [id]);
     if (!r.rows.length) return res.status(404).json({ error: "Not found" });
     const resv = r.rows[0];
 
@@ -974,7 +977,7 @@ router.delete("/inventory/reservations/:id", requireAuth, async (req, res) => {
         );
         await recalcAvailable(client, resv.inventory_id);
       }
-      await client.query(`DELETE FROM material_reservations WHERE id = $1`, [id]);
+      await client.query(`UPDATE material_reservations SET is_deleted = true WHERE id = $1 AND is_deleted = false`, [id]);
       await client.query("COMMIT");
       return res.json({ success: true });
     } catch (e) {
@@ -1006,6 +1009,7 @@ router.get("/inventory/adjustments/summary", requireAuth, async (_req, res) => {
         COUNT(CASE WHEN adjustment_type='Opening Correction' THEN 1 END)::int AS opening_count_total,
         COALESCE(SUM(revenue_loss_amount::numeric),0)::text AS total_revenue_loss
       FROM stock_adjustments
+      WHERE is_deleted = false
     `);
     return res.json({ data: r.rows[0] });
   } catch (err) {
@@ -1023,7 +1027,7 @@ router.get("/inventory/adjustments", requireAuth, async (req, res) => {
       page = "1", limit = "20", sort = "newest",
     } = req.query as Record<string, string>;
 
-    const conditions: string[] = ["1=1"];
+    const conditions: string[] = ["sa.is_deleted = false", "ii.is_deleted = false"];
     const params: (string | number)[] = [];
 
     if (search) {
@@ -1085,7 +1089,7 @@ router.post("/inventory/adjustments", requireAuth, async (req: AuthRequest, res)
 
     const itemR = await pool.query(
       `SELECT id, item_code, current_stock, available_stock, average_price, style_reserved_qty, swatch_reserved_qty, unit_type, source_id
-       FROM inventory_items WHERE id = $1 AND is_active = true`, [inventoryId]);
+       FROM inventory_items WHERE id = $1 AND is_active = true AND is_deleted = false`, [inventoryId]);
     if (!itemR.rows.length) return res.status(404).json({ error: "Inventory item not found" });
     const item = itemR.rows[0];
 
@@ -1170,13 +1174,13 @@ router.put("/inventory/adjustments/:id", requireAuth, async (req: AuthRequest, r
       referenceType?: string; referenceId?: string; reason?: string; remarks?: string; adjustmentDate: string;
     };
 
-    const adjR = await pool.query(`SELECT * FROM stock_adjustments WHERE id = $1`, [id]);
+    const adjR = await pool.query(`SELECT * FROM stock_adjustments WHERE id = $1 AND is_deleted = false`, [id]);
     if (!adjR.rows.length) return res.status(404).json({ error: "Adjustment not found" });
     const old = adjR.rows[0];
 
     const itemR = await pool.query(
       `SELECT id, current_stock, available_stock, average_price, style_reserved_qty, swatch_reserved_qty, unit_type, source_id
-       FROM inventory_items WHERE id = $1`, [old.inventory_id]);
+       FROM inventory_items WHERE id = $1 AND is_deleted = false`, [old.inventory_id]);
     if (!itemR.rows.length) return res.status(404).json({ error: "Inventory item not found" });
     const item = itemR.rows[0];
 
@@ -1257,12 +1261,12 @@ router.delete("/inventory/adjustments/:id", requireAuth, async (req: AuthRequest
   if ((auth.user as any)?.role !== "admin") return res.status(403).json({ error: "Admin only" });
   try {
     const { id } = req.params;
-    const adjR = await pool.query(`SELECT * FROM stock_adjustments WHERE id = $1`, [id]);
+    const adjR = await pool.query(`SELECT * FROM stock_adjustments WHERE id = $1 AND is_deleted = false`, [id]);
     if (!adjR.rows.length) return res.status(404).json({ error: "Adjustment not found" });
     const old = adjR.rows[0];
 
     const itemR = await pool.query(
-      `SELECT current_stock, style_reserved_qty, swatch_reserved_qty FROM inventory_items WHERE id = $1`,
+      `SELECT current_stock, style_reserved_qty, swatch_reserved_qty FROM inventory_items WHERE id = $1 AND is_deleted = false`,
       [old.inventory_id]);
     if (!itemR.rows.length) return res.status(404).json({ error: "Inventory item not found" });
     const item = itemR.rows[0];
@@ -1279,8 +1283,8 @@ router.delete("/inventory/adjustments/:id", requireAuth, async (req: AuthRequest
         `UPDATE inventory_items SET current_stock=$1, available_stock=GREATEST(0,$2), last_updated_at=NOW() WHERE id=$3`,
         [newStock, newAvailable, old.inventory_id]
       );
-      await client.query(`DELETE FROM stock_ledger WHERE reference_number=$1 AND transaction_type='adjustment'`, [String(id)]);
-      await client.query(`DELETE FROM stock_adjustments WHERE id=$1`, [id]);
+      await client.query(`UPDATE stock_ledger SET is_deleted = true WHERE reference_number=$1 AND transaction_type='adjustment' AND is_deleted = false`, [String(id)]);
+      await client.query(`UPDATE stock_adjustments SET is_deleted = true, updated_at = now() WHERE id=$1 AND is_deleted = false`, [id]);
       await client.query("COMMIT");
       return res.json({ success: true });
     } catch (e) {
@@ -1301,7 +1305,7 @@ router.get("/inventory/item-categories", requireAuth, async (req, res) => {
     const VALID_CATS = ["fabric", "material", "packaging"];
     const safeSource = VALID_CATS.includes(sourceType) ? sourceType : null;
     const params: string[] = [];
-    const conds = ["is_active = true", "category IS NOT NULL", "category != ''"];
+    const conds = ["is_active = true", "is_deleted = false", "category IS NOT NULL", "category != ''"];
     if (safeSource) { params.push(safeSource); conds.push(`source_type = $${params.length}`); }
     const r = await pool.query(
       `SELECT DISTINCT category FROM inventory_items WHERE ${conds.join(" AND ")} ORDER BY category`,
@@ -1327,7 +1331,7 @@ router.get("/inventory/dashboard", requireAuth, async (req, res) => {
     const safeSubCategory = subCategory !== "all" && /^[\w\s\-\/]+$/.test(subCategory) ? subCategory : null;
     const safeDepartment  = department !== "all" && /^[\w\s-]+$/.test(department) ? department : null;
 
-    const itemConditions = ["is_active = true"];
+    const itemConditions = ["is_active = true", "is_deleted = false"];
     const itemParams: string[] = [];
     if (safeCategory)    { itemParams.push(safeCategory);    itemConditions.push(`source_type = $${itemParams.length}`); }
     if (safeSubCategory) { itemParams.push(safeSubCategory); itemConditions.push(`category = $${itemParams.length}`); }
@@ -1358,12 +1362,12 @@ router.get("/inventory/dashboard", requireAuth, async (req, res) => {
       `, itemParams),
       pool.query(`
         SELECT
-          (SELECT COUNT(DISTINCT po.id) FROM purchase_orders po WHERE po.status NOT IN ('Cancelled','Closed'))                 AS active_pos,
+          (SELECT COUNT(DISTINCT po.id) FROM purchase_orders po WHERE po.status NOT IN ('Cancelled','Closed') AND po.is_deleted = false)                 AS active_pos,
           (SELECT COUNT(DISTINCT poi.id) FROM purchase_order_items poi JOIN purchase_orders po ON po.id = poi.po_id
-            WHERE po.status NOT IN ('Cancelled','Closed'))                                                                      AS active_po_items,
+            WHERE po.status NOT IN ('Cancelled','Closed') AND poi.is_deleted = false AND po.is_deleted = false)                                          AS active_po_items,
           (SELECT COALESCE(SUM(poi.ordered_quantity - poi.received_quantity),0) FROM purchase_order_items poi
-            JOIN purchase_orders po ON po.id = poi.po_id WHERE po.status NOT IN ('Cancelled','Closed'))                        AS pending_qty,
-          (SELECT COUNT(DISTINCT pr.id) FROM purchase_receipts pr)                                                             AS total_receipts
+            JOIN purchase_orders po ON po.id = poi.po_id WHERE po.status NOT IN ('Cancelled','Closed') AND poi.is_deleted = false AND po.is_deleted = false) AS pending_qty,
+          (SELECT COUNT(DISTINCT pr.id) FROM purchase_receipts pr WHERE pr.is_deleted = false)                                 AS total_receipts
       `),
     ]);
 
@@ -1384,6 +1388,7 @@ router.get("/inventory/dashboard", requireAuth, async (req, res) => {
         FROM stock_ledger sl
         JOIN inventory_items ii ON ii.id = sl.item_id
         WHERE sl.created_at BETWEEN $1 AND $2::date + interval '1 day'
+          AND sl.is_deleted = false AND ii.is_deleted = false
           ${ledgerClauses}
         GROUP BY date_trunc('week', sl.created_at)
         ORDER BY date_trunc('week', sl.created_at)
@@ -1396,6 +1401,7 @@ router.get("/inventory/dashboard", requireAuth, async (req, res) => {
         JOIN inventory_items ii ON ii.id = sl.item_id
         WHERE sl.transaction_type ILIKE '%consumption%'
           AND sl.created_at BETWEEN $1 AND $2::date + interval '1 day'
+          AND sl.is_deleted = false AND ii.is_deleted = false
           ${ledgerClauses}
         GROUP BY ii.id, ii.item_name, ii.unit_type, ii.department
         ORDER BY total_consumed DESC
@@ -1407,6 +1413,7 @@ router.get("/inventory/dashboard", requireAuth, async (req, res) => {
         JOIN inventory_items ii ON ii.id = sl.item_id
         WHERE sl.transaction_type ILIKE '%consumption%'
           AND sl.created_at BETWEEN $1 AND $2::date + interval '1 day'
+          AND sl.is_deleted = false AND ii.is_deleted = false
           ${ledgerClauses}
       `, ledgerParams),
     ]);
@@ -1442,9 +1449,11 @@ router.get("/inventory/low-stock-alerts", requireAuth, async (_req, res) => {
         JOIN purchase_orders po ON po.id = poi.po_id
         WHERE po.status NOT IN ('Cancelled','Closed','Completed')
           AND poi.ordered_quantity::numeric > poi.received_quantity::numeric
+          AND poi.is_deleted = false AND po.is_deleted = false
         GROUP BY poi.inventory_item_id
       ) po_pending ON po_pending.inventory_item_id = ii.id
       WHERE ii.is_active = true
+        AND ii.is_deleted = false
         AND (
           ii.available_stock::numeric <= 0
           OR (ii.reorder_level::numeric > 0 AND ii.available_stock::numeric <= ii.reorder_level::numeric)

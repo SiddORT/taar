@@ -83,7 +83,7 @@ export async function ensureShippingTables() {
 router.get("/shipping/vendors", requireAuth, async (_req, res) => {
   try {
     const r = await pool.query(
-      `SELECT * FROM shipping_vendors WHERE is_active = TRUE ORDER BY vendor_name`
+      `SELECT * FROM shipping_vendors WHERE is_active = TRUE AND is_deleted = false ORDER BY vendor_name`
     );
     return res.json({ data: r.rows });
   } catch (err: any) {
@@ -96,7 +96,7 @@ router.get("/shipping/vendors/all", requireAuth, async (req, res) => {
   try {
     const { search, page = "1", limit = "20" } = req.query as Record<string, string>;
     const params: any[] = [];
-    const conditions: string[] = [];
+    const conditions: string[] = ["is_deleted = false"];
     if (search) {
       params.push(`%${search}%`);
       conditions.push(`(vendor_name ILIKE $${params.length} OR contact_person ILIKE $${params.length} OR phone_number ILIKE $${params.length})`);
@@ -139,7 +139,7 @@ router.put("/shipping/vendors/:id", requireAuth, async (req: AuthRequest, res) =
     const r = await pool.query(
       `UPDATE shipping_vendors SET vendor_name=$1, contact_person=$2, phone_number=$3, email_address=$4,
        weight_rate_per_kg=$5, minimum_charge=$6, remarks=$7, updated_at=NOW()
-       WHERE id=$8 RETURNING *`,
+       WHERE id=$8 AND is_deleted = false RETURNING *`,
       [vendor_name.trim(), contact_person || null, phone_number || null, email_address || null,
        parseFloat(weight_rate_per_kg) || 0, parseFloat(minimum_charge) || 0, remarks || null, id]
     );
@@ -155,7 +155,7 @@ router.patch("/shipping/vendors/:id/status", requireAuth, async (req: AuthReques
   try {
     const { id } = req.params;
     const r = await pool.query(
-      `UPDATE shipping_vendors SET is_active = NOT is_active, updated_at=NOW() WHERE id=$1 RETURNING *`,
+      `UPDATE shipping_vendors SET is_active = NOT is_active, updated_at=NOW() WHERE id=$1 AND is_deleted = false RETURNING *`,
       [id]
     );
     if (!r.rows.length) return res.status(404).json({ error: "Not found" });
@@ -169,7 +169,7 @@ router.patch("/shipping/vendors/:id/status", requireAuth, async (req: AuthReques
 router.delete("/shipping/vendors/:id", requireAuth, async (req: AuthRequest, res) => {
   try {
     const { id } = req.params;
-    const r = await pool.query(`DELETE FROM shipping_vendors WHERE id=$1 RETURNING id`, [id]);
+    const r = await pool.query(`UPDATE shipping_vendors SET is_deleted = true, updated_at = NOW() WHERE id=$1 AND is_deleted = false RETURNING id`, [id]);
     if (!r.rows.length) return res.status(404).json({ error: "Vendor not found" });
     return res.json({ message: "Vendor deleted" });
   } catch (err: any) {
@@ -194,7 +194,7 @@ router.get("/shipping/details", requireAuth, async (req, res) => {
   try {
     const { status, vendorId, referenceType, fromDate, toDate, search, page = "1", limit = "20" } = req.query as Record<string, string>;
     const params: any[] = [];
-    const conditions: string[] = [];
+    const conditions: string[] = ["d.is_deleted = false"];
 
     if (status) { params.push(status); conditions.push(`d.shipment_status = $${params.length}`); }
     if (vendorId) { params.push(parseInt(vendorId)); conditions.push(`d.shipping_vendor_id = $${params.length}`); }
@@ -214,9 +214,9 @@ router.get("/shipping/details", requireAuth, async (req, res) => {
         `SELECT d.*, sv.vendor_name,
                 COALESCE(sw.order_code, so.order_code) AS order_code
          FROM order_shipping_details d
-         LEFT JOIN shipping_vendors sv ON sv.id = d.shipping_vendor_id
-         LEFT JOIN swatch_orders sw ON d.reference_type = 'Swatch' AND sw.id = d.reference_id
-         LEFT JOIN style_orders so  ON d.reference_type = 'Style'  AND so.id = d.reference_id
+         LEFT JOIN shipping_vendors sv ON sv.id = d.shipping_vendor_id AND sv.is_deleted = false
+         LEFT JOIN swatch_orders sw ON d.reference_type = 'Swatch' AND sw.id = d.reference_id AND sw.is_deleted = false
+         LEFT JOIN style_orders so  ON d.reference_type = 'Style'  AND so.id = d.reference_id AND so.is_deleted = false
          ${where} ORDER BY d.created_at DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
         [...params, parseInt(limit), offset]
       ),
@@ -237,8 +237,8 @@ router.get("/shipping/details/by-reference", requireAuth, async (req, res) => {
     const r = await pool.query(
       `SELECT d.*, sv.vendor_name, sv.weight_rate_per_kg as vendor_rate_per_kg, sv.minimum_charge as vendor_minimum_charge
        FROM order_shipping_details d
-       LEFT JOIN shipping_vendors sv ON sv.id = d.shipping_vendor_id
-       WHERE d.reference_type = $1 AND d.reference_id = $2
+       LEFT JOIN shipping_vendors sv ON sv.id = d.shipping_vendor_id AND sv.is_deleted = false
+       WHERE d.reference_type = $1 AND d.reference_id = $2 AND d.is_deleted = false
        ORDER BY d.created_at DESC`,
       [referenceType, parseInt(referenceId)]
     );
@@ -253,8 +253,8 @@ router.get("/shipping/details/:id", requireAuth, async (req, res) => {
   try {
     const r = await pool.query(
       `SELECT d.*, sv.vendor_name FROM order_shipping_details d
-       LEFT JOIN shipping_vendors sv ON sv.id = d.shipping_vendor_id
-       WHERE d.id = $1`,
+       LEFT JOIN shipping_vendors sv ON sv.id = d.shipping_vendor_id AND sv.is_deleted = false
+       WHERE d.id = $1 AND d.is_deleted = false`,
       [req.params.id]
     );
     if (!r.rows.length) return res.status(404).json({ error: "Not found" });
@@ -288,7 +288,7 @@ router.post("/shipping/details", requireAuth, async (req: AuthRequest, res) => {
       if (dup.rows.length) return res.status(400).json({ error: "Tracking number already exists for this vendor" });
     }
 
-    const vendor = await pool.query(`SELECT weight_rate_per_kg, minimum_charge FROM shipping_vendors WHERE id = $1`, [shipping_vendor_id]);
+    const vendor = await pool.query(`SELECT weight_rate_per_kg, minimum_charge FROM shipping_vendors WHERE id = $1 AND is_deleted = false`, [shipping_vendor_id]);
     if (!vendor.rows.length) return res.status(404).json({ error: "Shipping vendor not found" });
     const { weight_rate_per_kg, minimum_charge } = vendor.rows[0];
     const override = manual_shipping_amount_override ? parseFloat(manual_shipping_amount_override) : null;
@@ -318,7 +318,7 @@ router.post("/shipping/details", requireAuth, async (req: AuthRequest, res) => {
 router.put("/shipping/details/:id", requireAuth, async (req: AuthRequest, res) => {
   try {
     const { id } = req.params;
-    const existing = await pool.query(`SELECT * FROM order_shipping_details WHERE id = $1`, [id]);
+    const existing = await pool.query(`SELECT * FROM order_shipping_details WHERE id = $1 AND is_deleted = false`, [id]);
     if (!existing.rows.length) return res.status(404).json({ error: "Not found" });
 
     const {
@@ -339,7 +339,7 @@ router.put("/shipping/details/:id", requireAuth, async (req: AuthRequest, res) =
       if (dup.rows.length) return res.status(400).json({ error: "Tracking number already exists for this vendor" });
     }
 
-    const vendor = await pool.query(`SELECT weight_rate_per_kg, minimum_charge FROM shipping_vendors WHERE id = $1`, [shipping_vendor_id]);
+    const vendor = await pool.query(`SELECT weight_rate_per_kg, minimum_charge FROM shipping_vendors WHERE id = $1 AND is_deleted = false`, [shipping_vendor_id]);
     if (!vendor.rows.length) return res.status(404).json({ error: "Shipping vendor not found" });
     const { weight_rate_per_kg, minimum_charge } = vendor.rows[0];
     const override = manual_shipping_amount_override ? parseFloat(manual_shipping_amount_override) : null;
@@ -352,7 +352,7 @@ router.put("/shipping/details/:id", requireAuth, async (req: AuthRequest, res) =
          manual_shipping_amount_override=$7, final_shipping_amount=$8,
          shipment_status=$9, shipment_date=$10, expected_delivery_date=$11,
          actual_delivery_date=$12, remarks=$13, updated_at=NOW()
-       WHERE id=$14 RETURNING *`,
+       WHERE id=$14 AND is_deleted = false RETURNING *`,
       [shipping_vendor_id, tracking_number?.trim() || null, tracking_url?.trim() || null,
        weight, parseFloat(weight_rate_per_kg), calculated, override,
        final, shipment_status || "Pending",
@@ -373,7 +373,7 @@ router.patch("/shipping/details/:id/status", requireAuth, async (req: AuthReques
     const valid = ["Pending","Dispatched","In Transit","Delivered","Returned","Cancelled"];
     if (!valid.includes(shipment_status)) return res.status(400).json({ error: "Invalid shipment status" });
     const r = await pool.query(
-      `UPDATE order_shipping_details SET shipment_status=$1, updated_at=NOW() WHERE id=$2 RETURNING *`,
+      `UPDATE order_shipping_details SET shipment_status=$1, updated_at=NOW() WHERE id=$2 AND is_deleted = false RETURNING *`,
       [shipment_status, id]
     );
     if (!r.rows.length) return res.status(404).json({ error: "Not found" });
@@ -387,7 +387,7 @@ router.patch("/shipping/details/:id/status", requireAuth, async (req: AuthReques
 router.delete("/shipping/details/:id", requireAuth, async (req: AuthRequest, res) => {
   try {
     if ((req as any).user?.role !== "admin") return res.status(403).json({ error: "Admin only" });
-    const r = await pool.query(`DELETE FROM order_shipping_details WHERE id = $1 RETURNING id`, [req.params.id]);
+    const r = await pool.query(`UPDATE order_shipping_details SET is_deleted = true, updated_at = NOW() WHERE id = $1 AND is_deleted = false RETURNING id`, [req.params.id]);
     if (!r.rows.length) return res.status(404).json({ error: "Not found" });
     return res.json({ message: "Shipping record deleted" });
   } catch (err: any) {

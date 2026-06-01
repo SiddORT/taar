@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { db, usersTable, rolesTable, rolePermissionsTable } from "@workspace/db";
 import {
   LoginBody,
@@ -38,7 +38,7 @@ router.post("/auth/login", async (req, res): Promise<void> => {
   const [user] = await db
     .select()
     .from(usersTable)
-    .where(eq(usersTable.email, email.toLowerCase()));
+    .where(and(eq(usersTable.email, email.toLowerCase()), eq(usersTable.isDeleted, false)));
 
   if (!user || !verifyPassword(password, user.hashedPassword)) {
     res.status(401).json({ error: "Invalid email or password" });
@@ -85,7 +85,7 @@ router.post("/auth/forgot-password", async (req, res): Promise<void> => {
   const [user] = await db
     .select()
     .from(usersTable)
-    .where(eq(usersTable.email, email.toLowerCase()));
+    .where(and(eq(usersTable.email, email.toLowerCase()), eq(usersTable.isDeleted, false)));
 
   if (!user) {
     res.status(404).json({ error: "No account found with this email address. Please check and try again." });
@@ -154,7 +154,7 @@ router.get("/auth/invite/:token", async (req, res): Promise<void> => {
   const [user] = await db
     .select({ id: usersTable.id, username: usersTable.username, email: usersTable.email, inviteTokenExpiry: usersTable.inviteTokenExpiry })
     .from(usersTable)
-    .where(eq(usersTable.inviteToken, token));
+    .where(and(eq(usersTable.inviteToken, token), eq(usersTable.isDeleted, false)));
 
   if (!user || !user.inviteTokenExpiry || user.inviteTokenExpiry < new Date()) {
     res.status(400).json({ error: "Invalid or expired invite link" });
@@ -173,7 +173,7 @@ router.post("/auth/accept-invite", async (req, res): Promise<void> => {
   const [user] = await db
     .select()
     .from(usersTable)
-    .where(eq(usersTable.inviteToken, token));
+    .where(and(eq(usersTable.inviteToken, token), eq(usersTable.isDeleted, false)));
 
   if (!user || !user.inviteTokenExpiry || user.inviteTokenExpiry < new Date()) {
     res.status(400).json({ error: "Invalid or expired invite link" });
@@ -198,7 +198,13 @@ router.get("/auth/my-permissions", requireAuth, async (req, res): Promise<void> 
     .select({ permission: rolePermissionsTable.permission })
     .from(rolePermissionsTable)
     .innerJoin(rolesTable, eq(rolesTable.id, rolePermissionsTable.roleId))
-    .where(eq(rolesTable.name, user.role));
+    .where(
+      and(
+        eq(rolesTable.name, user.role),
+        eq(rolePermissionsTable.isDeleted, false),
+        eq(rolesTable.isDeleted, false),
+      ),
+    );
 
   res.json({ permissions: rows.map(r => r.permission) });
 });
@@ -213,7 +219,7 @@ router.get("/auth/me", requireAuth, async (req, res): Promise<void> => {
   const [dbUser] = await db
     .select()
     .from(usersTable)
-    .where(eq(usersTable.id, user.userId));
+    .where(and(eq(usersTable.id, user.userId), eq(usersTable.isDeleted, false)));
 
   if (!dbUser) {
     res.status(404).json({ error: "User not found" });

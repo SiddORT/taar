@@ -372,7 +372,7 @@ router.patch("/settings/exchange-rates/:code", requireAuth, async (req: AuthRequ
 router.get("/settings/bank-accounts", requireAuth, async (_req, res) => {
   try {
     const { rows } = await pool.query(
-      `SELECT * FROM bank_accounts ORDER BY is_default DESC, created_at ASC`
+      `SELECT * FROM bank_accounts WHERE is_deleted = false ORDER BY is_default DESC, created_at ASC`
     );
     return res.json({ data: rows });
   } catch (err: any) { return res.status(500).json({ error: err.message }); }
@@ -384,7 +384,7 @@ router.post("/settings/bank-accounts", requireAuth, async (req: AuthRequest, res
   if (!bank_name?.trim()) return res.status(400).json({ error: "Bank name is required" });
   if (!account_no?.trim()) return res.status(400).json({ error: "Account number is required" });
   try {
-    if (is_default) await pool.query(`UPDATE bank_accounts SET is_default = FALSE`);
+    if (is_default) await pool.query(`UPDATE bank_accounts SET is_default = FALSE WHERE is_deleted = false`);
     const { rows } = await pool.query(
       `INSERT INTO bank_accounts (bank_name, account_no, ifsc_code, branch, account_name, bank_upi, is_default, created_by)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
@@ -402,7 +402,7 @@ router.put("/settings/bank-accounts/:id", requireAuth, async (req: AuthRequest, 
   try {
     const { rows } = await pool.query(
       `UPDATE bank_accounts SET bank_name=$1, account_no=$2, ifsc_code=$3, branch=$4, account_name=$5, bank_upi=$6, updated_at=NOW()
-       WHERE id=$7 RETURNING *`,
+       WHERE id=$7 AND is_deleted = false RETURNING *`,
       [bank_name?.trim(), account_no?.trim(), ifsc_code?.trim() ?? "", branch?.trim() ?? "", account_name?.trim() ?? "", bank_upi?.trim() ?? "", id]
     );
     if (!rows.length) return res.status(404).json({ error: "Not found" });
@@ -415,9 +415,9 @@ router.patch("/settings/bank-accounts/:id/default", requireAuth, async (req: Aut
   const id = parseInt(String(req.params.id));
   if (isNaN(id)) return res.status(400).json({ error: "Invalid id" });
   try {
-    await pool.query(`UPDATE bank_accounts SET is_default = FALSE`);
+    await pool.query(`UPDATE bank_accounts SET is_default = FALSE WHERE is_deleted = false`);
     const { rows } = await pool.query(
-      `UPDATE bank_accounts SET is_default = TRUE, updated_at = NOW() WHERE id = $1 RETURNING *`, [id]
+      `UPDATE bank_accounts SET is_default = TRUE, updated_at = NOW() WHERE id = $1 AND is_deleted = false RETURNING *`, [id]
     );
     if (!rows.length) return res.status(404).json({ error: "Not found" });
     return res.json({ data: rows[0] });
@@ -429,7 +429,8 @@ router.delete("/settings/bank-accounts/:id", requireAuth, async (req: AuthReques
   const id = parseInt(String(req.params.id));
   if (isNaN(id)) return res.status(400).json({ error: "Invalid id" });
   try {
-    await pool.query(`DELETE FROM bank_accounts WHERE id = $1`, [id]);
+    const { rowCount } = await pool.query(`UPDATE bank_accounts SET is_deleted = true, updated_at = NOW() WHERE id = $1 AND is_deleted = false`, [id]);
+    if (rowCount === 0) return res.status(404).json({ error: "Not found" });
     return res.json({ success: true });
   } catch (err: any) { return res.status(500).json({ error: err.message }); }
 });
@@ -525,7 +526,7 @@ router.get("/settings/activity-logs/users", requireAuth, async (req: AuthRequest
 router.get("/settings/warehouses", requireAuth, async (req: AuthRequest, res) => {
   if (!adminOnly(req, res)) return;
   try {
-    const { rows } = await pool.query(`SELECT * FROM warehouse_locations ORDER BY name ASC`);
+    const { rows } = await pool.query(`SELECT * FROM warehouse_locations WHERE is_deleted = false ORDER BY name ASC`);
     return res.json({ data: rows });
   } catch (err: any) { return res.status(500).json({ error: err.message }); }
 });
@@ -560,7 +561,7 @@ router.put("/settings/warehouses/:id", requireAuth, async (req: AuthRequest, res
       `UPDATE warehouse_locations SET
         name=$1, code=$2, address_line1=$3, address_line2=$4, city=$5, state=$6, pincode=$7,
         country=$8, contact_name=$9, contact_phone=$10, contact_email=$11, is_active=$12, notes=$13, updated_at=NOW()
-       WHERE id=$14 RETURNING *`,
+       WHERE id=$14 AND is_deleted = false RETURNING *`,
       [name?.trim(), code?.trim() ?? "", address_line1?.trim() ?? "", address_line2?.trim() ?? "",
        city?.trim() ?? "", state?.trim() ?? "", pincode?.trim() ?? "", country?.trim() || "India",
        contact_name?.trim() ?? "", contact_phone?.trim() ?? "", contact_email?.trim() ?? "",
@@ -577,7 +578,8 @@ router.delete("/settings/warehouses/:id", requireAuth, async (req: AuthRequest, 
   const id = parseInt(String(req.params.id));
   if (isNaN(id)) return res.status(400).json({ error: "Invalid id" });
   try {
-    await pool.query(`DELETE FROM warehouse_locations WHERE id = $1`, [id]);
+    const { rowCount } = await pool.query(`UPDATE warehouse_locations SET is_deleted = true, updated_at = NOW() WHERE id = $1 AND is_deleted = false`, [id]);
+    if (rowCount === 0) return res.status(404).json({ error: "Not found" });
     return res.json({ success: true });
   } catch (err: any) { return res.status(500).json({ error: err.message }); }
 });
@@ -705,9 +707,9 @@ router.get("/settings/my-permissions", requireAuth, async (req: AuthRequest, res
     const { rows } = await pool.query(
       `SELECT rp.permission
        FROM role_permissions rp
-       JOIN roles r ON r.id = rp.role_id
-       JOIN users u ON u.role = r.name
-       WHERE u.id = $1`,
+       JOIN roles r ON r.id = rp.role_id AND r.is_deleted = false
+       JOIN users u ON u.role = r.name AND u.is_deleted = false
+       WHERE u.id = $1 AND rp.is_deleted = false`,
       [req.user?.userId]
     );
     return res.json({ data: rows.map((r: any) => r.permission) });

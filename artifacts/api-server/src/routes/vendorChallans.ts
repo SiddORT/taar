@@ -249,8 +249,8 @@ router.patch("/vendor-challans/:id/verify", requireAuth, async (req: AuthRequest
   const userRole = req.user?.role ?? "";
   const permCheck = await pool.query(
     `SELECT rp.permission FROM role_permissions rp
-     JOIN roles r ON r.id = rp.role_id
-     WHERE r.name = $1 AND rp.permission = 'procurement:vendor_challans:verify'`,
+     JOIN roles r ON r.id = rp.role_id AND r.is_deleted = false
+     WHERE r.name = $1 AND rp.permission = 'procurement:vendor_challans:verify' AND rp.is_deleted = false`,
     [userRole]
   );
   if (!permCheck.rows.length) {

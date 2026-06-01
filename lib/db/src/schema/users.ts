@@ -12,6 +12,7 @@ export const usersTable = pgTable("users", {
   inviteToken: text("invite_token"),
   inviteTokenExpiry: timestamp("invite_token_expiry", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  isDeleted: boolean("is_deleted").notNull().default(false),
 });
 
 export const insertUserSchema = createInsertSchema(usersTable).omit({ id: true, createdAt: true });

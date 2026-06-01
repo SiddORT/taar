@@ -44,7 +44,7 @@ router.get("/quotations", requireAuth, async (req, res) => {
       page = "1", limit = "20",
     } = req.query as Record<string, string>;
 
-    const conditions: string[] = ["q.parent_quotation_id IS NULL"];
+    const conditions: string[] = ["q.parent_quotation_id IS NULL", "q.is_deleted = false"];
     const params: (string | number)[] = [];
 
     if (search) {
@@ -53,7 +53,7 @@ router.get("/quotations", requireAuth, async (req, res) => {
     }
     if (status !== "all") {
       params.push(status);
-      conditions.push(`EXISTS (SELECT 1 FROM quotations r WHERE (r.parent_quotation_id = q.id OR r.id = q.id) AND r.status = $${params.length})`);
+      conditions.push(`EXISTS (SELECT 1 FROM quotations r WHERE (r.parent_quotation_id = q.id OR r.id = q.id) AND r.status = $${params.length} AND r.is_deleted = false)`);
     }
     if (clientId) { params.push(clientId); conditions.push(`q.client_id = $${params.length}`); }
     if (fromDate) { params.push(fromDate); conditions.push(`q.created_at::date >= $${params.length}::date`); }
@@ -69,15 +69,15 @@ router.get("/quotations", requireAuth, async (req, res) => {
         `SELECT q.*,
                 COUNT(DISTINCT qd.id)::int AS design_count,
                 COUNT(DISTINCT qc.id)::int AS charge_count,
-                (SELECT COUNT(*) FROM quotations r WHERE r.parent_quotation_id = q.id OR r.id = q.id)::int AS revision_count,
+                (SELECT COUNT(*) FROM quotations r WHERE (r.parent_quotation_id = q.id OR r.id = q.id) AND r.is_deleted = false)::int AS revision_count,
                 (SELECT r2.status FROM quotations r2
-                 WHERE r2.parent_quotation_id = q.id OR r2.id = q.id
+                 WHERE (r2.parent_quotation_id = q.id OR r2.id = q.id) AND r2.is_deleted = false
                  ORDER BY r2.revision_number DESC LIMIT 1) AS latest_status,
                 (SELECT EXISTS (SELECT 1 FROM quotations r3
-                 WHERE (r3.parent_quotation_id = q.id OR r3.id = q.id) AND r3.status = 'Approved')) AS has_approval
+                 WHERE (r3.parent_quotation_id = q.id OR r3.id = q.id) AND r3.status = 'Approved' AND r3.is_deleted = false)) AS has_approval
          FROM quotations q
-         LEFT JOIN quotation_designs qd ON qd.quotation_id = q.id
-         LEFT JOIN quotation_custom_charges qc ON qc.quotation_id = q.id
+         LEFT JOIN quotation_designs qd ON qd.quotation_id = q.id AND qd.is_deleted = false
+         LEFT JOIN quotation_custom_charges qc ON qc.quotation_id = q.id AND qc.is_deleted = false
          ${where}
          GROUP BY q.id
          ORDER BY q.created_at DESC
@@ -102,14 +102,14 @@ router.get("/quotations/:id", requireAuth, async (req, res) => {
   try {
     const { id } = req.params;
     const [q, designs, charges, feedback, revisions] = await Promise.all([
-      pool.query(`SELECT * FROM quotations WHERE id = $1`, [id]),
-      pool.query(`SELECT * FROM quotation_designs WHERE quotation_id = $1 ORDER BY id`, [id]),
-      pool.query(`SELECT * FROM quotation_custom_charges WHERE quotation_id = $1 ORDER BY id`, [id]),
-      pool.query(`SELECT * FROM quotation_feedback_logs WHERE quotation_id = $1 ORDER BY created_at DESC`, [id]),
+      pool.query(`SELECT * FROM quotations WHERE id = $1 AND is_deleted = false`, [id]),
+      pool.query(`SELECT * FROM quotation_designs WHERE quotation_id = $1 AND is_deleted = false ORDER BY id`, [id]),
+      pool.query(`SELECT * FROM quotation_custom_charges WHERE quotation_id = $1 AND is_deleted = false ORDER BY id`, [id]),
+      pool.query(`SELECT * FROM quotation_feedback_logs WHERE quotation_id = $1 AND is_deleted = false ORDER BY created_at DESC`, [id]),
       pool.query(
         `SELECT id, quotation_number, revision_number, status, created_at, created_by, updated_at
          FROM quotations
-         WHERE parent_quotation_id = $1 OR (id = $1 AND parent_quotation_id IS NULL)
+         WHERE (parent_quotation_id = $1 OR (id = $1 AND parent_quotation_id IS NULL)) AND is_deleted = false
          ORDER BY revision_number ASC`,
         [id]
       ),
@@ -221,7 +221,7 @@ router.put("/quotations/:id", requireAuth, async (req: AuthRequest, res) => {
       shippingRatePerKg = 0,
     } = req.body;
 
-    const existing = await client.query(`SELECT status FROM quotations WHERE id = $1`, [id]);
+    const existing = await client.query(`SELECT status FROM quotations WHERE id = $1 AND is_deleted = false`, [id]);
     if (!existing.rows.length) return res.status(404).json({ error: "Quotation not found" });
 
     await client.query("BEGIN");
@@ -260,7 +260,7 @@ router.put("/quotations/:id", requireAuth, async (req: AuthRequest, res) => {
        internalNotes || null, clientNotes || null, coverPage, coverPageImage || null, id]
     );
 
-    await client.query(`DELETE FROM quotation_designs WHERE quotation_id = $1`, [id]);
+    await client.query(`UPDATE quotation_designs SET is_deleted = true WHERE quotation_id = $1 AND is_deleted = false`, [id]);
     for (const d of designs) {
       await client.query(
         `INSERT INTO quotation_designs (quotation_id, design_name, hsn_code, design_image, remarks) VALUES ($1,$2,$3,$4,$5)`,
@@ -268,7 +268,7 @@ router.put("/quotations/:id", requireAuth, async (req: AuthRequest, res) => {
       );
     }
 
-    await client.query(`DELETE FROM quotation_custom_charges WHERE quotation_id = $1`, [id]);
+    await client.query(`UPDATE quotation_custom_charges SET is_deleted = true WHERE quotation_id = $1 AND is_deleted = false`, [id]);
     for (const c of safeCharges) {
       await client.query(
         `INSERT INTO quotation_custom_charges (quotation_id, charge_name, hsn_code, unit, quantity, price, amount) VALUES ($1,$2,$3,$4,$5,$6,$7)`,
@@ -290,12 +290,29 @@ router.put("/quotations/:id", requireAuth, async (req: AuthRequest, res) => {
 // ─── DELETE ──────────────────────────────────────────────────────────────────
 router.delete("/quotations/:id", requireAuth, async (req: AuthRequest, res) => {
   if ((req as any).user?.role !== "admin") return res.status(403).json({ error: "Admin only" });
+  const client = await (pool as any).connect();
   try {
     const { id } = req.params;
-    await pool.query(`DELETE FROM quotations WHERE id = $1`, [id]);
+    await client.query("BEGIN");
+    const r = await client.query(
+      `UPDATE quotations SET is_deleted = true, updated_at = NOW() WHERE id = $1 AND is_deleted = false RETURNING id`,
+      [id]
+    );
+    if (r.rowCount === 0) {
+      await client.query("ROLLBACK");
+      return res.status(404).json({ error: "Quotation not found" });
+    }
+    await client.query(`UPDATE quotation_designs SET is_deleted = true WHERE quotation_id = $1 AND is_deleted = false`, [id]);
+    await client.query(`UPDATE quotation_custom_charges SET is_deleted = true WHERE quotation_id = $1 AND is_deleted = false`, [id]);
+    await client.query(`UPDATE quotation_feedback_logs SET is_deleted = true WHERE quotation_id = $1 AND is_deleted = false`, [id]);
+    await client.query("COMMIT");
     return res.json({ success: true });
   } catch (err: any) {
+    await client.query("ROLLBACK");
+    console.error(err);
     return res.status(500).json({ error: err.message });
+  } finally {
+    client.release();
   }
 });
 
@@ -304,7 +321,7 @@ router.post("/quotations/:id/status", requireAuth, async (req: AuthRequest, res)
   try {
     const { id } = req.params;
     const { newStatus } = req.body as { newStatus: string };
-    const q = await pool.query(`SELECT status, parent_quotation_id FROM quotations WHERE id = $1`, [id]);
+    const q = await pool.query(`SELECT status, parent_quotation_id FROM quotations WHERE id = $1 AND is_deleted = false`, [id]);
     if (!q.rows.length) return res.status(404).json({ error: "Not found" });
     const current = q.rows[0].status;
     const allowed = STATUS_TRANSITIONS[current] ?? [];
@@ -318,7 +335,8 @@ router.post("/quotations/:id/status", requireAuth, async (req: AuthRequest, res)
         `SELECT id FROM quotations
          WHERE (id = $1 OR parent_quotation_id = $1)
            AND id != $2
-           AND status = 'Approved'`,
+           AND status = 'Approved'
+           AND is_deleted = false`,
         [rootId, id]
       );
       if (conflict.rows.length > 0) {
@@ -361,7 +379,7 @@ router.post("/quotations/:id/revise", requireAuth, async (req: AuthRequest, res)
   const client = await (pool as any).connect();
   try {
     const { id } = req.params;
-    const orig = await client.query(`SELECT * FROM quotations WHERE id = $1`, [id]);
+    const orig = await client.query(`SELECT * FROM quotations WHERE id = $1 AND is_deleted = false`, [id]);
     if (!orig.rows.length) return res.status(404).json({ error: "Not found" });
     const o = orig.rows[0];
 
@@ -388,8 +406,8 @@ router.post("/quotations/:id/revise", requireAuth, async (req: AuthRequest, res)
     const newId = newRes.rows[0].id;
 
     const [designs, charges] = await Promise.all([
-      client.query(`SELECT * FROM quotation_designs WHERE quotation_id = $1`, [id]),
-      client.query(`SELECT * FROM quotation_custom_charges WHERE quotation_id = $1`, [id]),
+      client.query(`SELECT * FROM quotation_designs WHERE quotation_id = $1 AND is_deleted = false`, [id]),
+      client.query(`SELECT * FROM quotation_custom_charges WHERE quotation_id = $1 AND is_deleted = false`, [id]),
     ]);
     for (const d of designs.rows) {
       await client.query(
@@ -423,7 +441,7 @@ router.post("/quotations/:id/convert-swatch", requireAuth, async (req: AuthReque
   const client = await (pool as any).connect();
   try {
     const { id } = req.params;
-    const q = await client.query(`SELECT * FROM quotations WHERE id = $1`, [id]);
+    const q = await client.query(`SELECT * FROM quotations WHERE id = $1 AND is_deleted = false`, [id]);
     if (!q.rows.length) return res.status(404).json({ error: "Not found" });
     const qt = q.rows[0];
     if (qt.status !== "Approved") return res.status(400).json({ error: "Quotation must be Approved to convert" });
@@ -431,7 +449,7 @@ router.post("/quotations/:id/convert-swatch", requireAuth, async (req: AuthReque
 
     await client.query("BEGIN");
 
-    const designs = await client.query(`SELECT * FROM quotation_designs WHERE quotation_id = $1 LIMIT 1`, [id]);
+    const designs = await client.query(`SELECT * FROM quotation_designs WHERE quotation_id = $1 AND is_deleted = false LIMIT 1`, [id]);
     const firstDesign = designs.rows[0];
 
     const seq = await client.query(`SELECT nextval('quotation_number_seq') AS n`);
@@ -472,7 +490,7 @@ router.post("/quotations/:id/convert-style", requireAuth, async (req: AuthReques
   const client = await (pool as any).connect();
   try {
     const { id } = req.params;
-    const q = await client.query(`SELECT * FROM quotations WHERE id = $1`, [id]);
+    const q = await client.query(`SELECT * FROM quotations WHERE id = $1 AND is_deleted = false`, [id]);
     if (!q.rows.length) return res.status(404).json({ error: "Not found" });
     const qt = q.rows[0];
     if (qt.status !== "Approved") return res.status(400).json({ error: "Quotation must be Approved to convert" });
@@ -480,7 +498,7 @@ router.post("/quotations/:id/convert-style", requireAuth, async (req: AuthReques
 
     await client.query("BEGIN");
 
-    const designs = await client.query(`SELECT * FROM quotation_designs WHERE quotation_id = $1 LIMIT 1`, [id]);
+    const designs = await client.query(`SELECT * FROM quotation_designs WHERE quotation_id = $1 AND is_deleted = false LIMIT 1`, [id]);
     const firstDesign = designs.rows[0];
 
     const seq = await client.query(`SELECT nextval('quotation_number_seq') AS n`);

@@ -17,6 +17,7 @@ export const unitTypesTable = pgTable("unit_types", {
   name: text("name").notNull().unique(),
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  isDeleted: boolean("is_deleted").notNull().default(false),
 });
 
 export const fabricTypesTable = pgTable("fabric_types", {
@@ -24,6 +25,7 @@ export const fabricTypesTable = pgTable("fabric_types", {
   name: text("name").notNull().unique(),
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  isDeleted: boolean("is_deleted").notNull().default(false),
 });
 
 export const departmentsTable = pgTable("departments", {

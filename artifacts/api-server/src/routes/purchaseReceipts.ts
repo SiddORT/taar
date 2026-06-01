@@ -86,7 +86,7 @@ async function reverseInventoryUpdate(
   userName: string
 ) {
   const itemsRes = await client.query(
-    `SELECT inventory_item_id, quantity::numeric AS qty, unit_price::numeric AS price FROM inv_receipt_items WHERE pr_id = $1`,
+    `SELECT inventory_item_id, quantity::numeric AS qty, unit_price::numeric AS price FROM inv_receipt_items WHERE pr_id = $1 AND is_deleted = false`,
     [prId]
   );
   for (const item of itemsRes.rows) {
@@ -117,7 +117,7 @@ async function reverseInventoryUpdate(
     );
 
     await client.query(
-      `DELETE FROM stock_ledger WHERE reference_number = $1 AND item_id = $2 AND transaction_type = 'purchase_receipt'`,
+      `UPDATE stock_ledger SET is_deleted = true WHERE reference_number = $1 AND item_id = $2 AND transaction_type = 'purchase_receipt' AND is_deleted = false`,
       [prNumber, item.inventory_item_id]
     );
   }
@@ -165,7 +165,7 @@ router.get("/purchase-receipts", requireAuth, async (req, res) => {
           ir.pr_date::text AS pr_date,
           ir.status,
           ir.total_amount::numeric AS total_amount,
-          (SELECT COUNT(*) FROM inv_receipt_items WHERE pr_id = ir.id)::int AS item_count,
+          (SELECT COUNT(*) FROM inv_receipt_items WHERE pr_id = ir.id AND is_deleted = false)::int AS item_count,
           ir.created_by,
           ir.created_at,
           'inventory' AS source,
@@ -202,6 +202,7 @@ router.get("/purchase-receipts", requireAuth, async (req, res) => {
           pr.swatch_order_id,
           pr.style_order_id
         FROM purchase_receipts pr
+        WHERE pr.is_deleted = false
       )`;
 
     const [rows, totalRes] = await Promise.all([
@@ -230,8 +231,8 @@ router.get("/purchase-receipts/:id", requireAuth, async (req, res) => {
       pool.query(
         `SELECT pri.*, ii.unit_type, ii.warehouse_location AS default_location, ii.available_stock
          FROM inv_receipt_items pri
-         JOIN inventory_items ii ON ii.id = pri.inventory_item_id
-         WHERE pri.pr_id = $1 ORDER BY pri.id`,
+         JOIN inventory_items ii ON ii.id = pri.inventory_item_id AND ii.is_deleted = false
+         WHERE pri.pr_id = $1 AND pri.is_deleted = false ORDER BY pri.id`,
         [id]
       ),
     ]);
@@ -332,7 +333,7 @@ router.put("/purchase-receipts/:id", requireAuth, async (req: AuthRequest, res) 
       [vendorId ?? null, vendorName ?? null, prDate ?? pr.pr_date, remarks ?? null, totalAmount.toFixed(2), id]
     );
 
-    await client.query(`DELETE FROM inv_receipt_items WHERE pr_id = $1`, [id]);
+    await client.query(`UPDATE inv_receipt_items SET is_deleted = true WHERE pr_id = $1 AND is_deleted = false`, [id]);
     for (const it of items) {
       await client.query(
         `INSERT INTO inv_receipt_items (pr_id, inventory_item_id, item_name, item_code, quantity, unit_price, warehouse_location, remarks)
@@ -368,7 +369,7 @@ router.post("/purchase-receipts/:id/confirm", requireAuth, async (req: AuthReque
     if (pr.status !== "draft") return res.status(422).json({ error: `PR is already ${pr.status}` });
 
     const itemsRes = await client.query(
-      `SELECT inventory_item_id, quantity::numeric AS qty, unit_price::numeric AS price, warehouse_location, remarks FROM inv_receipt_items WHERE pr_id = $1`,
+      `SELECT inventory_item_id, quantity::numeric AS qty, unit_price::numeric AS price, warehouse_location, remarks FROM inv_receipt_items WHERE pr_id = $1 AND is_deleted = false`,
       [id]
     );
     if (!itemsRes.rows.length) return res.status(422).json({ error: "No items found on this PR" });

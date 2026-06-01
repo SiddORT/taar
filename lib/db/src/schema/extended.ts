@@ -28,6 +28,7 @@ export const activityLogs = pgTable("activity_logs", {
         statusCode: integer("status_code").default(200).notNull(),
         ipAddress: text("ip_address").default('').notNull(),
         createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+  isDeleted: boolean("is_deleted").notNull().default(false),
 });
 
 export const downloadLogs = pgTable("download_logs", {
@@ -40,6 +41,7 @@ export const downloadLogs = pgTable("download_logs", {
         module: text().default('').notNull(),
         reference: text().default('').notNull(),
         downloadedAt: timestamp("downloaded_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+  isDeleted: boolean("is_deleted").notNull().default(false),
 }, (table) => [
         index("idx_download_logs_downloaded_at").using("btree", table.downloadedAt.desc().nullsFirst().op("timestamptz_ops")),
         index("idx_download_logs_user_id").using("btree", table.userId.asc().nullsLast().op("int4_ops")),
@@ -62,6 +64,7 @@ export const bankAccounts = pgTable("bank_accounts", {
         createdBy: text("created_by").default('').notNull(),
         createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
         updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+  isDeleted: boolean("is_deleted").notNull().default(false),
 });
 
 export const companyGstSettings = pgTable("company_gst_settings", {
@@ -79,6 +82,7 @@ export const companyGstSettings = pgTable("company_gst_settings", {
         companyAddress: text("company_address").default('').notNull(),
         companyPhone: text("company_phone").default('').notNull(),
         companyEmail: text("company_email").default('').notNull(),
+  isDeleted: boolean("is_deleted").notNull().default(false),
 });
 
 export const currencies = pgTable("currencies", {
@@ -89,6 +93,7 @@ export const currencies = pgTable("currencies", {
         isActive: boolean("is_active").default(true).notNull(),
         isBase: boolean("is_base").default(false).notNull(),
         updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+  isDeleted: boolean("is_deleted").notNull().default(false),
 });
 
 export const exchangeRates = pgTable("exchange_rates", {
@@ -98,6 +103,7 @@ export const exchangeRates = pgTable("exchange_rates", {
         sourceType: text("source_type").default('Auto').notNull(),
         isManualOverride: boolean("is_manual_override").default(false).notNull(),
         createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+  isDeleted: boolean("is_deleted").notNull().default(false),
 });
 
 export const invoiceTemplates = pgTable("invoice_templates", {
@@ -109,6 +115,7 @@ export const invoiceTemplates = pgTable("invoice_templates", {
         isDefault: boolean("is_default").default(false).notNull(),
         createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
         updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+  isDeleted: boolean("is_deleted").notNull().default(false),
 });
 
 export const warehouseLocations = pgTable("warehouse_locations", {
@@ -129,6 +136,7 @@ export const warehouseLocations = pgTable("warehouse_locations", {
         createdBy: text("created_by").default('').notNull(),
         createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
         updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+  isDeleted: boolean("is_deleted").notNull().default(false),
 });
 
 export const shippingVendors = pgTable("shipping_vendors", {
@@ -143,6 +151,7 @@ export const shippingVendors = pgTable("shipping_vendors", {
         isActive: boolean("is_active").default(true).notNull(),
         createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
         updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+  isDeleted: boolean("is_deleted").notNull().default(false),
 });
 
 export const orderShippingDetails = pgTable("order_shipping_details", {
@@ -166,6 +175,7 @@ export const orderShippingDetails = pgTable("order_shipping_details", {
         createdBy: text("created_by").notNull(),
         createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
         updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+  isDeleted: boolean("is_deleted").notNull().default(false),
 }, (table) => [
         foreignKey({
                         columns: [table.shippingVendorId],
@@ -188,6 +198,7 @@ export const deliveryAddresses = pgTable("delivery_addresses", {
         isDefault: boolean("is_default").default(false).notNull(),
         createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
         updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+  isDeleted: boolean("is_deleted").notNull().default(false),
 }, (table) => [
         foreignKey({
                         columns: [table.clientId],
@@ -214,6 +225,7 @@ export const vendorInvoiceLedger = pgTable("vendor_invoice_ledger", {
         paidAmount: numeric("paid_amount", { precision: 18, scale:  2 }).default('0').notNull(),
         pendingAmount: numeric("pending_amount", { precision: 18, scale:  2 }).generatedAlwaysAs(sql`(vendor_invoice_amount - paid_amount)`),
         linkedPoNumber: text("linked_po_number").default(''),
+  isDeleted: boolean("is_deleted").notNull().default(false),
 }, (table) => [
         index("idx_vendor_invoice_ledger_pr").using("btree", table.purchaseReceiptId.asc().nullsLast().op("int4_ops")),
         index("idx_vendor_invoice_ledger_vendor").using("btree", table.vendorId.asc().nullsLast().op("int4_ops")),
@@ -230,6 +242,7 @@ export const clientInvoiceLedger = pgTable("client_invoice_ledger", {
         status: text().default('Completed'),
         createdBy: text("created_by").default(''),
         createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow(),
+  isDeleted: boolean("is_deleted").notNull().default(false),
 }, (table) => [
         index("idx_client_invoice_ledger_client").using("btree", table.clientId.asc().nullsLast().op("int4_ops")),
         index("idx_client_invoice_ledger_invoice").using("btree", table.invoiceId.asc().nullsLast().op("int4_ops")),
@@ -254,6 +267,7 @@ export const otherExpenses = pgTable("other_expenses", {
         createdBy: text("created_by").default(''),
         createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
         updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+  isDeleted: boolean("is_deleted").notNull().default(false),
 }, (table) => [
         unique("other_expenses_expense_number_key").on(table.expenseNumber),
 ]);
@@ -276,6 +290,7 @@ export const invoicePayments = pgTable("invoice_payments", {
         createdBy: text("created_by").default(''),
         createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow(),
         updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).defaultNow(),
+  isDeleted: boolean("is_deleted").notNull().default(false),
 }, (table) => [
         index("idx_invoice_payments_invoice").using("btree", table.invoiceId.asc().nullsLast().op("int4_ops")),
         index("idx_invoice_payments_party").using("btree", table.partyId.asc().nullsLast().op("int4_ops")),
@@ -307,6 +322,7 @@ export const creditDebitNotes = pgTable("credit_debit_notes", {
         createdBy: text("created_by"),
         createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow(),
         updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).defaultNow(),
+  isDeleted: boolean("is_deleted").notNull().default(false),
 }, (table) => [
         index("idx_cdn_invoice").using("btree", table.invoiceId.asc().nullsLast().op("int4_ops")),
         index("idx_cdn_party").using("btree", table.partyId.asc().nullsLast().op("int4_ops")),
@@ -334,6 +350,7 @@ export const purchaseOrderItems = pgTable("purchase_order_items", {
         createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
         updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
         itemImage: text("item_image"),
+  isDeleted: boolean("is_deleted").notNull().default(false),
 }, (table) => [
         foreignKey({
                         columns: [table.poId],
@@ -355,6 +372,7 @@ export const purchaseReceiptItems = pgTable("purchase_receipt_items", {
         createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
         poItemId: integer("po_item_id"),
         itemImage: text("item_image"),
+  isDeleted: boolean("is_deleted").notNull().default(false),
 }, (table) => [
         foreignKey({
                         columns: [table.poItemId],
@@ -391,6 +409,7 @@ export const quotations = pgTable("quotations", {
         coverPage: text("cover_page").default('classic').notNull(),
         coverPageImage: text("cover_page_image"),
         shippingRatePerKg: numeric("shipping_rate_per_kg").default('0'),
+  isDeleted: boolean("is_deleted").notNull().default(false),
 }, (table) => [
         foreignKey({
                         columns: [table.parentQuotationId],
@@ -408,6 +427,7 @@ export const quotationDesigns = pgTable("quotation_designs", {
         designImage: text("design_image"),
         remarks: text(),
         createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+  isDeleted: boolean("is_deleted").notNull().default(false),
 }, (table) => [
         foreignKey({
                         columns: [table.quotationId],
@@ -426,6 +446,7 @@ export const quotationCustomCharges = pgTable("quotation_custom_charges", {
         price: numeric({ precision: 14, scale:  2 }).default('0'),
         amount: numeric({ precision: 14, scale:  2 }).default('0'),
         createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+  isDeleted: boolean("is_deleted").notNull().default(false),
 }, (table) => [
         foreignKey({
                         columns: [table.quotationId],
@@ -442,6 +463,7 @@ export const quotationFeedbackLogs = pgTable("quotation_feedback_logs", {
         feedbackDate: text("feedback_date").notNull(),
         revisionReference: text("revision_reference"),
         createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+  isDeleted: boolean("is_deleted").notNull().default(false),
 }, (table) => [
         foreignKey({
                         columns: [table.quotationId],
@@ -467,6 +489,7 @@ export const packingLists = pgTable("packing_lists", {
         createdBy: text("created_by"),
         createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
         updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+  isDeleted: boolean("is_deleted").notNull().default(false),
 }, (table) => [
         foreignKey({
                         columns: [table.clientId],
@@ -498,6 +521,7 @@ export const packingListItems = pgTable("packing_list_items", {
         createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
         weightKg: numeric("weight_kg", { precision: 10, scale:  3 }),
         itemImageUrl: text("item_image_url"),
+  isDeleted: boolean("is_deleted").notNull().default(false),
 }, (table) => [
         foreignKey({
                         columns: [table.packingListId],
@@ -517,6 +541,7 @@ export const packingPackages = pgTable("packing_packages", {
         grossWeight: numeric("gross_weight", { precision: 12, scale:  3 }),
         shipmentId: integer("shipment_id"),
         createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+  isDeleted: boolean("is_deleted").notNull().default(false),
 }, (table) => [
         foreignKey({
                         columns: [table.packingListId],
@@ -543,6 +568,7 @@ export const packingPackageItems = pgTable("packing_package_items", {
         inventoryType: text("inventory_type"),
         stockDeducted: numeric("stock_deducted", { precision: 12, scale:  3 }).default('0'),
         deductedFromLocation: text("deducted_from_location"),
+  isDeleted: boolean("is_deleted").notNull().default(false),
 }, (table) => [
         foreignKey({
                         columns: [table.packageId],

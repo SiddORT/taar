@@ -25,7 +25,7 @@ router.get("/invoice-payments/accounts", requireAuth, async (req, res) => {
 
     /* Show all invoices by default; let the status dropdown drive visibility
        (previously Draft/Cancelled were hard-excluded which hid most rows). */
-    let where = "WHERE 1=1";
+    let where = "WHERE i.is_deleted = false";
     const params: (string | number)[] = [];
     let idx = 1;
 
@@ -39,8 +39,8 @@ router.get("/invoice-payments/accounts", requireAuth, async (req, res) => {
     const countQ = await pool.query(`
       SELECT COUNT(*) AS total
       FROM invoices i
-      LEFT JOIN clients c ON c.id = i.client_id
-      LEFT JOIN vendors v ON v.id = i.vendor_id
+      LEFT JOIN clients c ON c.id = i.client_id AND c.is_deleted = false
+      LEFT JOIN vendors v ON v.id = i.vendor_id AND v.is_deleted = false
       ${where}
     `, params);
 
@@ -55,11 +55,11 @@ router.get("/invoice-payments/accounts", requireAuth, async (req, res) => {
         i.received_amount::numeric,
         i.pending_amount::numeric,
         i.invoice_date, i.due_date,
-        (SELECT COUNT(*) FROM invoice_payments ip WHERE ip.invoice_id = i.id AND ip.payment_status <> 'Failed') AS payment_count,
-        (SELECT MAX(ip.payment_date) FROM invoice_payments ip WHERE ip.invoice_id = i.id) AS last_payment_date
+        (SELECT COUNT(*) FROM invoice_payments ip WHERE ip.invoice_id = i.id AND ip.is_deleted = false AND ip.payment_status <> 'Failed') AS payment_count,
+        (SELECT MAX(ip.payment_date) FROM invoice_payments ip WHERE ip.invoice_id = i.id AND ip.is_deleted = false) AS last_payment_date
       FROM invoices i
-      LEFT JOIN clients c ON c.id = i.client_id
-      LEFT JOIN vendors v ON v.id = i.vendor_id
+      LEFT JOIN clients c ON c.id = i.client_id AND c.is_deleted = false
+      LEFT JOIN vendors v ON v.id = i.vendor_id AND v.is_deleted = false
       ${where}
       ORDER BY i.invoice_date DESC, i.id DESC
       LIMIT $${idx++} OFFSET $${idx++}
@@ -80,7 +80,7 @@ router.get("/invoice-payments", requireAuth, async (req, res) => {
     const rows = await pool.query(`
       SELECT ip.*
       FROM invoice_payments ip
-      WHERE ip.invoice_id = $1
+      WHERE ip.invoice_id = $1 AND ip.is_deleted = false
       ORDER BY ip.payment_date DESC, ip.payment_id DESC
     `, [invoice_id]);
 
@@ -109,7 +109,7 @@ router.post("/invoice-payments", requireAuth, async (req: any, res) => {
   try {
     await client.query("BEGIN");
 
-    const invRes = await client.query("SELECT * FROM invoices WHERE id = $1 FOR UPDATE", [invoice_id]);
+    const invRes = await client.query("SELECT * FROM invoices WHERE id = $1 AND is_deleted = false FOR UPDATE", [invoice_id]);
     if (!invRes.rows.length) { await client.query("ROLLBACK"); return res.status(404).json({ error: "Invoice not found" }); }
     const inv = invRes.rows[0];
 
@@ -135,7 +135,7 @@ router.post("/invoice-payments", requireAuth, async (req: any, res) => {
     const totRes = await client.query(`
       SELECT COALESCE(SUM(base_currency_amount),0) AS total_received
       FROM invoice_payments
-      WHERE invoice_id = $1 AND payment_status = 'Completed'
+      WHERE invoice_id = $1 AND is_deleted = false AND payment_status = 'Completed'
     `, [invoice_id]);
 
     const totalReceived = parseFloat(totRes.rows[0].total_received);
@@ -183,19 +183,19 @@ router.delete("/invoice-payments/:id", requireAuth, async (req, res) => {
   try {
     await client.query("BEGIN");
 
-    const pmtRes = await client.query("SELECT * FROM invoice_payments WHERE payment_id=$1", [id]);
+    const pmtRes = await client.query("SELECT * FROM invoice_payments WHERE payment_id=$1 AND is_deleted = false", [id]);
     if (!pmtRes.rows.length) { await client.query("ROLLBACK"); return res.status(404).json({ error: "Payment not found" }); }
     const pmt = pmtRes.rows[0];
 
-    await client.query("DELETE FROM invoice_payments WHERE payment_id=$1", [id]);
+    await client.query("UPDATE invoice_payments SET is_deleted = true, updated_at = NOW() WHERE payment_id=$1 AND is_deleted = false", [id]);
 
     // Recompute invoice totals
     const totRes = await client.query(`
       SELECT COALESCE(SUM(base_currency_amount),0) AS total_received
-      FROM invoice_payments WHERE invoice_id=$1 AND payment_status='Completed'
+      FROM invoice_payments WHERE invoice_id=$1 AND is_deleted = false AND payment_status='Completed'
     `, [pmt.invoice_id]);
 
-    const invRes = await client.query("SELECT * FROM invoices WHERE id=$1", [pmt.invoice_id]);
+    const invRes = await client.query("SELECT * FROM invoices WHERE id=$1 AND is_deleted = false", [pmt.invoice_id]);
     if (invRes.rows.length) {
       const inv = invRes.rows[0];
       const totalReceived = parseFloat(totRes.rows[0].total_received);

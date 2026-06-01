@@ -22,7 +22,7 @@ async function nextExpenseNumber(client: any): Promise<string> {
 router.get("/other-expenses/categories", requireAuth, async (_req, res) => {
   try {
     const { rows } = await pool.query(
-      `SELECT DISTINCT expense_category FROM other_expenses ORDER BY expense_category`
+      `SELECT DISTINCT expense_category FROM other_expenses WHERE is_deleted = false ORDER BY expense_category`
     );
     const defaults = [
       "Courier Charges", "Office Expenses", "Packaging Expenses",
@@ -45,7 +45,7 @@ router.get("/other-expenses", requireAuth, async (req, res) => {
     } = req.query as Record<string, string>;
 
     const offset = (parseInt(page) - 1) * parseInt(limit);
-    const conditions: string[] = [];
+    const conditions: string[] = ["oe.is_deleted = false"];
     const params: any[] = [];
     let p = 1;
 
@@ -67,7 +67,7 @@ router.get("/other-expenses", requireAuth, async (req, res) => {
       pool.query(
         `SELECT oe.*, v.brand_name AS vendor_display_name
          FROM other_expenses oe
-         LEFT JOIN vendors v ON v.id = oe.vendor_id
+         LEFT JOIN vendors v ON v.id = oe.vendor_id AND v.is_deleted = false
          ${where}
          ORDER BY oe.expense_date DESC, oe.created_at DESC
          LIMIT $${p} OFFSET $${p + 1}`,
@@ -91,8 +91,8 @@ router.get("/other-expenses/:id", requireAuth, async (req, res) => {
     const { rows } = await pool.query(
       `SELECT oe.*, v.brand_name AS vendor_display_name
        FROM other_expenses oe
-       LEFT JOIN vendors v ON v.id = oe.vendor_id
-       WHERE oe.expense_id = $1`,
+       LEFT JOIN vendors v ON v.id = oe.vendor_id AND v.is_deleted = false
+       WHERE oe.expense_id = $1 AND oe.is_deleted = false`,
       [parseInt(String(req.params.id))]
     );
     if (!rows.length) return res.status(404).json({ error: "Not found" });
@@ -199,7 +199,7 @@ router.put("/other-expenses/:id", requireAuth, uploadMiddleware.single("attachme
     if (!amount || parseFloat(amount) <= 0)
       return res.status(400).json({ error: "Amount must be greater than 0" });
 
-    const curr = await pool.query(`SELECT attachment FROM other_expenses WHERE expense_id = $1`, [id]);
+    const curr = await pool.query(`SELECT attachment FROM other_expenses WHERE expense_id = $1 AND is_deleted = false`, [id]);
     if (!curr.rows.length) return res.status(404).json({ error: "Not found" });
 
     const attachmentPath = req.file
@@ -235,7 +235,7 @@ router.delete("/other-expenses/:id", requireAuth, async (req: any, res) => {
     const user = (req as AuthRequest).user;
     if ((user as any)?.role !== "admin")
       return res.status(403).json({ error: "Admin only" });
-    await pool.query(`DELETE FROM other_expenses WHERE expense_id = $1`, [parseInt(String(req.params.id))]);
+    await pool.query(`UPDATE other_expenses SET is_deleted = true, updated_at = NOW() WHERE expense_id = $1 AND is_deleted = false`, [parseInt(String(req.params.id))]);
     return res.json({ success: true });
   } catch (e: any) {
     return res.status(500).json({ error: e.message });

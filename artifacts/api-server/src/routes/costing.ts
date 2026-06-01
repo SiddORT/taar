@@ -37,7 +37,7 @@ async function autoReserveForBom(opts: {
       availableStock: inventoryItemsTable.availableStock,
     })
     .from(inventoryItemsTable)
-    .where(and(eq(inventoryItemsTable.sourceType, materialType), eq(inventoryItemsTable.sourceId, materialId)))
+    .where(and(eq(inventoryItemsTable.sourceType, materialType), eq(inventoryItemsTable.sourceId, materialId), eq(inventoryItemsTable.isDeleted, false)))
     .limit(1);
 
   if (!invRows.length) return { status: "skipped", reason: "No inventory record for this material" };
@@ -61,7 +61,7 @@ async function autoReserveForBom(opts: {
     // Section 8 — check for existing active reservation for same order + inventory
     const existR = await client.query(
       `SELECT id, reserved_quantity FROM material_reservations
-       WHERE inventory_id = $1 AND reservation_type = $2 AND reference_id = $3 AND status = 'Active'
+       WHERE inventory_id = $1 AND reservation_type = $2 AND reference_id = $3 AND status = 'Active' AND is_deleted = false
        ORDER BY id DESC LIMIT 1`,
       [inventoryId, reservationType, orderId]
     );
@@ -112,7 +112,7 @@ async function autoReserveForBom(opts: {
 
     // Section 4 — stock ledger entry (only for new reservations to avoid duplicates)
     if (resultStatus === "created") {
-      const balR = await client.query(`SELECT current_stock FROM inventory_items WHERE id = $1`, [inventoryId]);
+      const balR = await client.query(`SELECT current_stock FROM inventory_items WHERE id = $1 AND is_deleted = false`, [inventoryId]);
       await client.query(
         `INSERT INTO stock_ledger (item_id, transaction_type, reference_number, reference_type, in_quantity, out_quantity, balance_quantity, remarks, created_by)
          VALUES ($1,$2,$3,$4,0,$5,$6,$7,$8)`,
@@ -146,7 +146,7 @@ async function autoCancelReservation(opts: {
   const invRows = await db
     .select({ id: inventoryItemsTable.id })
     .from(inventoryItemsTable)
-    .where(and(eq(inventoryItemsTable.sourceType, materialType), eq(inventoryItemsTable.sourceId, materialId)))
+    .where(and(eq(inventoryItemsTable.sourceType, materialType), eq(inventoryItemsTable.sourceId, materialId), eq(inventoryItemsTable.isDeleted, false)))
     .limit(1);
 
   if (!invRows.length) return;
@@ -158,7 +158,7 @@ async function autoCancelReservation(opts: {
     const rR = await client.query(
       `SELECT id, reserved_quantity FROM material_reservations
        WHERE inventory_id = $1 AND reservation_type = $2 AND reference_id = $3
-         AND status = 'Active' AND reserved_quantity::numeric = $4
+         AND status = 'Active' AND reserved_quantity::numeric = $4 AND is_deleted = false
        ORDER BY id DESC LIMIT 1`,
       [inventoryId, reservationType, orderId, reqQty]
     );
@@ -209,14 +209,14 @@ async function applyCostingInventoryUpdate(opts: {
   const effectiveBomRowId = bomRowId != null
     ? bomRowId
     : await (async () => {
-        const poRes = await pool.query(`SELECT bom_items FROM purchase_orders WHERE id = $1`, [poId]);
+        const poRes = await pool.query(`SELECT bom_items FROM purchase_orders WHERE id = $1 AND is_deleted = false`, [poId]);
         const bomItems: Array<{ bomRowId?: number }> = poRes.rows[0]?.bom_items ?? [];
         return bomItems.length === 1 ? (bomItems[0].bomRowId ?? null) : null;
       })();
 
   if (effectiveBomRowId != null) {
     const bomRes = await pool.query(
-      `SELECT material_type, material_id FROM swatch_bom WHERE id = $1`,
+      `SELECT material_type, material_id FROM swatch_bom WHERE id = $1 AND is_deleted = false`,
       [effectiveBomRowId]
     );
     if (bomRes.rows.length) {
@@ -230,7 +230,7 @@ async function applyCostingInventoryUpdate(opts: {
   // 2. Find the inventory_item row
   const invRes = await pool.query(
     `SELECT id, current_stock, average_price, style_reserved_qty, swatch_reserved_qty
-     FROM inventory_items WHERE source_type = $1 AND source_id = $2`,
+     FROM inventory_items WHERE source_type = $1 AND source_id = $2 AND is_deleted = false`,
     [materialType, materialId]
   );
   if (!invRes.rows.length) return;
@@ -285,7 +285,7 @@ async function applyCostingInventoryUpdate(opts: {
   // 6. Update material/fabric master: current_stock + location_stocks JSONB
   const masterTable = materialType === "fabric" ? "fabrics" : "materials";
   const masterRes = await pool.query(
-    `SELECT current_stock, location_stocks FROM ${masterTable} WHERE id = $1`,
+    `SELECT current_stock, location_stocks FROM ${masterTable} WHERE id = $1 AND is_deleted = false`,
     [materialId]
   );
   if (masterRes.rows.length) {
@@ -329,6 +329,7 @@ async function syncConsumptionWithInventory(opts: {
     .where(and(
       eq(inventoryItemsTable.sourceType, bomRow.materialType),
       eq(inventoryItemsTable.sourceId, bomRow.materialId),
+      eq(inventoryItemsTable.isDeleted, false),
     ))
     .limit(1);
 
@@ -348,7 +349,7 @@ async function syncConsumptionWithInventory(opts: {
     // Section 3 — adjust the matching active reservation
     const rR = await client.query(
       `SELECT id, reserved_quantity FROM material_reservations
-       WHERE inventory_id = $1 AND reservation_type = $2 AND reference_id = $3 AND status = 'Active'
+       WHERE inventory_id = $1 AND reservation_type = $2 AND reference_id = $3 AND status = 'Active' AND is_deleted = false
        ORDER BY id DESC LIMIT 1`,
       [inventoryId, reservationType, orderId]
     );
@@ -389,7 +390,7 @@ async function syncConsumptionWithInventory(opts: {
     );
 
     // Section 4 — stock ledger entry (reference_number = orderId so it joins to swatch/style orders)
-    const balR = await client.query(`SELECT current_stock FROM inventory_items WHERE id = $1`, [inventoryId]);
+    const balR = await client.query(`SELECT current_stock FROM inventory_items WHERE id = $1 AND is_deleted = false`, [inventoryId]);
     await client.query(
       `INSERT INTO stock_ledger (item_id, transaction_type, reference_number, reference_type, in_quantity, out_quantity, balance_quantity, remarks, created_by)
        VALUES ($1,'consumption',$2,$3,0,$4,$5,$6,$7)`,
@@ -401,7 +402,7 @@ async function syncConsumptionWithInventory(opts: {
     // Update material/fabric master: current_stock and location_stocks
     const masterTable = bomRow.materialType === "fabric" ? "fabrics" : "materials";
     const masterRes = await client.query(
-      `SELECT current_stock, location_stocks FROM ${masterTable} WHERE id = $1`,
+      `SELECT current_stock, location_stocks FROM ${masterTable} WHERE id = $1 AND is_deleted = false`,
       [bomRow.materialId]
     );
     if (masterRes.rows.length) {
@@ -448,6 +449,7 @@ async function reverseConsumptionFromInventory(opts: {
     .where(and(
       eq(inventoryItemsTable.sourceType, materialType),
       eq(inventoryItemsTable.sourceId, materialId),
+      eq(inventoryItemsTable.isDeleted, false),
     ))
     .limit(1);
 
@@ -467,7 +469,7 @@ async function reverseConsumptionFromInventory(opts: {
     // Restore reservation — re-activate Converted or top-up Active
     const rR = await client.query(
       `SELECT id, reserved_quantity, status FROM material_reservations
-       WHERE inventory_id = $1 AND reservation_type = $2 AND reference_id = $3
+       WHERE inventory_id = $1 AND reservation_type = $2 AND reference_id = $3 AND is_deleted = false
        ORDER BY id DESC LIMIT 1`,
       [inventoryId, reservationType, orderId]
     );
@@ -495,14 +497,14 @@ async function reverseConsumptionFromInventory(opts: {
 
     // Remove ledger entry for this consumption log
     await client.query(
-      `DELETE FROM stock_ledger WHERE transaction_type = 'Consumption' AND reference_number = $1`,
+      `UPDATE stock_ledger SET is_deleted = true WHERE transaction_type = 'Consumption' AND reference_number = $1 AND is_deleted = false`,
       [String(entry.id)]
     );
 
     // Restore material/fabric master: current_stock and location_stocks
     const masterTable = materialType === "fabric" ? "fabrics" : "materials";
     const masterRes = await client.query(
-      `SELECT current_stock, location_stocks FROM ${masterTable} WHERE id = $1`,
+      `SELECT current_stock, location_stocks FROM ${masterTable} WHERE id = $1 AND is_deleted = false`,
       [materialId]
     );
     if (masterRes.rows.length) {
@@ -538,10 +540,10 @@ router.get("/material-search", requireAuth, async (req, res) => {
   const limit = 30;
   const [mats, fabs] = await Promise.all([
     db.select().from(materialsTable)
-      .where(q ? or(ilike(materialsTable.materialCode, `%${q}%`), ilike(materialsTable.colorName, `%${q}%`), ilike(materialsTable.type, `%${q}%`)) : undefined)
+      .where(and(eq(materialsTable.isDeleted, false), q ? or(ilike(materialsTable.materialCode, `%${q}%`), ilike(materialsTable.colorName, `%${q}%`), ilike(materialsTable.type, `%${q}%`)) : undefined))
       .limit(limit),
     db.select().from(fabricsTable)
-      .where(q ? or(ilike(fabricsTable.fabricCode, `%${q}%`), ilike(fabricsTable.colorName, `%${q}%`), ilike(fabricsTable.fabricType, `%${q}%`)) : undefined)
+      .where(and(eq(fabricsTable.isDeleted, false), q ? or(ilike(fabricsTable.fabricCode, `%${q}%`), ilike(fabricsTable.colorName, `%${q}%`), ilike(fabricsTable.fabricType, `%${q}%`)) : undefined))
       .limit(limit),
   ]);
   const results = [
@@ -571,7 +573,7 @@ router.get("/material-search", requireAuth, async (req, res) => {
 router.get("/bom/:swatchOrderId", requireAuth, async (req, res) => {
   const swatchOrderId = Number(String(req.params.swatchOrderId));
   const rows = await db.select().from(swatchBomTable)
-    .where(eq(swatchBomTable.swatchOrderId, swatchOrderId))
+    .where(and(eq(swatchBomTable.swatchOrderId, swatchOrderId), eq(swatchBomTable.isDeleted, false)))
     .orderBy(swatchBomTable.createdAt);
 
   const enriched = await Promise.all(rows.map(async (r) => {
@@ -581,6 +583,7 @@ router.get("/bom/:swatchOrderId", requireAuth, async (req, res) => {
       .where(and(
         eq(inventoryItemsTable.sourceType, r.materialType ?? ""),
         eq(inventoryItemsTable.sourceId, r.materialId ?? 0),
+        eq(inventoryItemsTable.isDeleted, false),
       ))
       .limit(1);
     const live = invRows[0] ?? null;
@@ -590,7 +593,7 @@ router.get("/bom/:swatchOrderId", requireAuth, async (req, res) => {
     if (live) {
       const resvRows = await pool.query(
         `SELECT reserved_quantity FROM material_reservations
-         WHERE inventory_id = $1 AND reservation_type = 'Swatch' AND reference_id = $2 AND status = 'Active'
+         WHERE inventory_id = $1 AND reservation_type = 'Swatch' AND reference_id = $2 AND status = 'Active' AND is_deleted = false
          ORDER BY id DESC LIMIT 1`,
         [live.id, swatchOrderId]
       );
@@ -680,7 +683,7 @@ async function adjustBomQty(opts: {
 
     const existR = await client.query(
       `SELECT id, reserved_quantity FROM material_reservations
-       WHERE inventory_id = $1 AND reservation_type = $2 AND reference_id = $3 AND status = 'Active'
+       WHERE inventory_id = $1 AND reservation_type = $2 AND reference_id = $3 AND status = 'Active' AND is_deleted = false
        ORDER BY id DESC LIMIT 1`,
       [inventoryId, reservationType, orderId]
     );
@@ -701,7 +704,7 @@ async function adjustBomQty(opts: {
         `SELECT COALESCE(SUM(out_quantity::numeric), 0) AS total
          FROM stock_ledger
          WHERE item_id = $1 AND LOWER(REPLACE(transaction_type,' ','_')) = 'consumption'
-           AND reference_number = $2::text AND reference_type = $3`,
+           AND reference_number = $2::text AND reference_type = $3 AND is_deleted = false`,
         [inventoryId, String(orderId), reservationType]
       );
       const totalConsumed = parseFloat(consumedR.rows[0].total);
@@ -715,7 +718,7 @@ async function adjustBomQty(opts: {
         [newReserved.toFixed(4), existing.id]
       );
     } else if (delta > 0) {
-      const availR = await client.query(`SELECT available_stock FROM inventory_items WHERE id = $1`, [inventoryId]);
+      const availR = await client.query(`SELECT available_stock FROM inventory_items WHERE id = $1 AND is_deleted = false`, [inventoryId]);
       const avail = parseFloat(availR.rows[0]?.available_stock ?? "0");
       if (delta > avail) {
         await client.query("ROLLBACK");
@@ -749,7 +752,7 @@ async function adjustBomQty(opts: {
     );
 
     if (actualResDelta !== 0) {
-      const balR = await client.query(`SELECT current_stock FROM inventory_items WHERE id = $1`, [inventoryId]);
+      const balR = await client.query(`SELECT current_stock FROM inventory_items WHERE id = $1 AND is_deleted = false`, [inventoryId]);
       const absDelta = Math.abs(actualResDelta);
       const txType = actualResDelta > 0 ? `${reservationType.toLowerCase()}_reservation` : "reservation_release";
       await client.query(
@@ -790,7 +793,7 @@ router.patch("/bom/:id/qty", requireAuth, async (req, res) => {
     const bomId = Number(String(req.params.id));
     const { requiredQty, notes } = req.body as { requiredQty: string; notes?: string };
 
-    const [bomRow] = await db.select().from(swatchBomTable).where(eq(swatchBomTable.id, bomId)).limit(1);
+    const [bomRow] = await db.select().from(swatchBomTable).where(and(eq(swatchBomTable.id, bomId), eq(swatchBomTable.isDeleted, false))).limit(1);
     if (!bomRow) { res.status(404).json({ error: "BOM row not found" }); return; }
 
     const oldQty = parseFloat(bomRow.requiredQty);
@@ -803,7 +806,7 @@ router.patch("/bom/:id/qty", requireAuth, async (req, res) => {
 
     const invRows = await db.select({ id: inventoryItemsTable.id })
       .from(inventoryItemsTable)
-      .where(and(eq(inventoryItemsTable.sourceType, bomRow.materialType), eq(inventoryItemsTable.sourceId, bomRow.materialId)))
+      .where(and(eq(inventoryItemsTable.sourceType, bomRow.materialType), eq(inventoryItemsTable.sourceId, bomRow.materialId), eq(inventoryItemsTable.isDeleted, false)))
       .limit(1);
 
     if (!invRows.length) { res.status(400).json({ error: "No inventory record for this material" }); return; }
@@ -832,7 +835,7 @@ router.patch("/bom/:id/qty", requireAuth, async (req, res) => {
 router.get("/bom/:id/log", requireAuth, async (req, res) => {
   try {
     const rows = await pool.query(
-      `SELECT * FROM bom_change_log WHERE bom_row_id = $1 ORDER BY changed_at DESC`,
+      `SELECT * FROM bom_change_log WHERE bom_row_id = $1 AND is_deleted = false ORDER BY changed_at DESC`,
       [Number(String(req.params.id))]
     );
     return res.json({ data: rows.rows });
@@ -842,9 +845,14 @@ router.get("/bom/:id/log", requireAuth, async (req, res) => {
 });
 
 router.delete("/bom/:id", requireAuth, async (req, res) => {
+  const user = (req as any).user;
   const bomId = Number(String(req.params.id));
-  const [bomRow] = await db.select().from(swatchBomTable).where(eq(swatchBomTable.id, bomId)).limit(1);
-  await db.delete(swatchBomTable).where(eq(swatchBomTable.id, bomId));
+  const [bomRow] = await db.select().from(swatchBomTable).where(and(eq(swatchBomTable.id, bomId), eq(swatchBomTable.isDeleted, false))).limit(1);
+  const [deleted] = await db.update(swatchBomTable)
+    .set({ isDeleted: true, updatedBy: user.email, updatedAt: new Date() })
+    .where(and(eq(swatchBomTable.id, bomId), eq(swatchBomTable.isDeleted, false)))
+    .returning();
+  if (!deleted) { res.status(404).json({ error: "Not found" }); return; }
 
   if (bomRow && bomRow.materialId && bomRow.materialType && bomRow.requiredQty) {
     const reqQty = parseFloat(bomRow.requiredQty);
@@ -885,7 +893,7 @@ async function nextPrNumber(): Promise<string> {
 // ─── PO ──────────────────────────────────────────────────────────────────────
 router.get("/po/:swatchOrderId", requireAuth, async (req, res) => {
   const rows = await db.select().from(purchaseOrdersTable)
-    .where(eq(purchaseOrdersTable.swatchOrderId, Number(String(req.params.swatchOrderId))))
+    .where(and(eq(purchaseOrdersTable.swatchOrderId, Number(String(req.params.swatchOrderId))), eq(purchaseOrdersTable.isDeleted, false)))
     .orderBy(purchaseOrdersTable.createdAt);
   return res.json({ data: rows });
 });
@@ -900,7 +908,7 @@ router.post("/po", requireAuth, async (req, res) => {
   };
   let vendorName: string | null = null;
   if (vendorId) {
-    const [vendor] = await db.select().from(vendorsTable).where(eq(vendorsTable.id, vendorId));
+    const [vendor] = await db.select().from(vendorsTable).where(and(eq(vendorsTable.id, vendorId), eq(vendorsTable.isDeleted, false)));
     if (!vendor) { res.status(404).json({ error: "Vendor not found" }); return; }
     vendorName = vendor.brandName;
   }
@@ -919,7 +927,7 @@ router.post("/po", requireAuth, async (req, res) => {
     bomItems: items,
     createdBy: user.email,
   }).returning();
-  const adminUsers = await db.select({ email: usersTable.email }).from(usersTable).where(eq(usersTable.role, "admin"));
+  const adminUsers = await db.select({ email: usersTable.email }).from(usersTable).where(and(eq(usersTable.role, "admin"), eq(usersTable.isDeleted, false)));
   const adminEmails = adminUsers.map(u => u.email).filter(Boolean) as string[];
   if (adminEmails.length > 0) {
     const apiBase = process.env.API_BASE_URL ?? `https://${process.env.REPLIT_DEV_DOMAIN ?? "zari-erp.replit.app"}`;
@@ -958,14 +966,19 @@ router.patch("/po/:id", requireAuth, async (req, res) => {
 });
 
 router.delete("/po/:id", requireAuth, async (req, res) => {
-  await db.delete(purchaseOrdersTable).where(eq(purchaseOrdersTable.id, Number(String(req.params.id))));
+  const user = (req as any).user;
+  const [row] = await db.update(purchaseOrdersTable)
+    .set({ isDeleted: true, updatedBy: user.email, updatedAt: new Date() })
+    .where(and(eq(purchaseOrdersTable.id, Number(String(req.params.id))), eq(purchaseOrdersTable.isDeleted, false)))
+    .returning();
+  if (!row) { res.status(404).json({ error: "Not found" }); return; }
   return res.json({ success: true });
 });
 
 // ─── PR ──────────────────────────────────────────────────────────────────────
 router.get("/pr/:swatchOrderId", requireAuth, async (req, res) => {
   const rows = await db.select().from(purchaseReceiptsTable)
-    .where(eq(purchaseReceiptsTable.swatchOrderId, Number(String(req.params.swatchOrderId))))
+    .where(and(eq(purchaseReceiptsTable.swatchOrderId, Number(String(req.params.swatchOrderId))), eq(purchaseReceiptsTable.isDeleted, false)))
     .orderBy(purchaseReceiptsTable.createdAt);
   return res.json({ data: rows });
 });
@@ -973,7 +986,7 @@ router.get("/pr/:swatchOrderId", requireAuth, async (req, res) => {
 router.post("/pr", requireAuth, async (req, res) => {
   const user = (req as any).user;
   const { poId, swatchOrderId, bomRowId, receivedQty, actualPrice, warehouseLocation } = req.body as Record<string, string | number | null>;
-  const [po] = await db.select().from(purchaseOrdersTable).where(eq(purchaseOrdersTable.id, Number(poId)));
+  const [po] = await db.select().from(purchaseOrdersTable).where(and(eq(purchaseOrdersTable.id, Number(poId)), eq(purchaseOrdersTable.isDeleted, false)));
   if (!po) { res.status(404).json({ error: "PO not found" }); return; }
   if (!["Approved", "In Process"].includes(po.status)) {
     return res.status(403).json({ error: `Purchase Receipt cannot be created: PO is currently in "${po.status}" status. An admin must approve it first.` });
@@ -995,7 +1008,7 @@ router.post("/pr", requireAuth, async (req, res) => {
   }
 
   // Get existing PRs for this specific item to check remaining qty
-  const existingPrs = await db.select().from(purchaseReceiptsTable).where(eq(purchaseReceiptsTable.poId, Number(poId)));
+  const existingPrs = await db.select().from(purchaseReceiptsTable).where(and(eq(purchaseReceiptsTable.poId, Number(poId)), eq(purchaseReceiptsTable.isDeleted, false)));
   const relevantPrs = resolvedBomRowId != null
     ? existingPrs.filter(pr => pr.bomRowId === resolvedBomRowId)
     : (isSingleItem ? existingPrs : existingPrs.filter(pr => pr.bomRowId == null));
@@ -1062,14 +1075,19 @@ router.patch("/pr/:id", requireAuth, async (req, res) => {
 });
 
 router.delete("/pr/:id", requireAuth, async (req, res) => {
-  await db.delete(purchaseReceiptsTable).where(eq(purchaseReceiptsTable.id, Number(String(req.params.id))));
+  const user = (req as any).user;
+  const [row] = await db.update(purchaseReceiptsTable)
+    .set({ isDeleted: true, updatedBy: user.email, updatedAt: new Date() })
+    .where(and(eq(purchaseReceiptsTable.id, Number(String(req.params.id))), eq(purchaseReceiptsTable.isDeleted, false)))
+    .returning();
+  if (!row) { res.status(404).json({ error: "Not found" }); return; }
   return res.json({ success: true });
 });
 
 // ─── Payments ─────────────────────────────────────────────────────────────────
 router.get("/payments/:prId", requireAuth, async (req, res) => {
   const rows = await db.select().from(prPaymentsTable)
-    .where(eq(prPaymentsTable.prId, Number(String(req.params.prId))))
+    .where(and(eq(prPaymentsTable.prId, Number(String(req.params.prId))), eq(prPaymentsTable.isDeleted, false)))
     .orderBy(prPaymentsTable.createdAt);
   return res.json({ data: rows });
 });
@@ -1092,14 +1110,19 @@ router.post("/payments", requireAuth, async (req, res) => {
 });
 
 router.delete("/payments/:id", requireAuth, async (req, res) => {
-  await db.delete(prPaymentsTable).where(eq(prPaymentsTable.id, Number(String(req.params.id))));
+  const user = (req as any).user;
+  const [row] = await db.update(prPaymentsTable)
+    .set({ isDeleted: true, updatedBy: user.email, updatedAt: new Date() })
+    .where(and(eq(prPaymentsTable.id, Number(String(req.params.id))), eq(prPaymentsTable.isDeleted, false)))
+    .returning();
+  if (!row) { res.status(404).json({ error: "Not found" }); return; }
   return res.json({ success: true });
 });
 
 // ─── Consumption Log ───────────────────────────────────────────────────────────
 router.get("/consumption/:swatchOrderId", requireAuth, async (req, res) => {
   const rows = await db.select().from(consumptionLogTable)
-    .where(eq(consumptionLogTable.swatchOrderId, Number(String(req.params.swatchOrderId))))
+    .where(and(eq(consumptionLogTable.swatchOrderId, Number(String(req.params.swatchOrderId))), eq(consumptionLogTable.isDeleted, false)))
     .orderBy(consumptionLogTable.consumedAt);
   return res.json({ data: rows });
 });
@@ -1108,7 +1131,7 @@ router.post("/consumption", requireAuth, async (req, res) => {
   const user = (req as any).user;
   const { swatchOrderId, bomRowId, materialCode, materialName, materialType, unitType, consumedQty, notes, warehouseLocation } = req.body as Record<string, string | number>;
 
-  const [bomRow] = await db.select().from(swatchBomTable).where(eq(swatchBomTable.id, Number(bomRowId)));
+  const [bomRow] = await db.select().from(swatchBomTable).where(and(eq(swatchBomTable.id, Number(bomRowId)), eq(swatchBomTable.isDeleted, false)));
   if (!bomRow) { res.status(404).json({ error: "BOM item not found" }); return; }
   const newConsumedQty = parseFloat(String(consumedQty)) || 0;
 
@@ -1116,13 +1139,13 @@ router.post("/consumption", requireAuth, async (req, res) => {
   const invR = await db
     .select({ id: inventoryItemsTable.id })
     .from(inventoryItemsTable)
-    .where(and(eq(inventoryItemsTable.sourceType, bomRow.materialType ?? ""), eq(inventoryItemsTable.sourceId, bomRow.materialId ?? 0)))
+    .where(and(eq(inventoryItemsTable.sourceType, bomRow.materialType ?? ""), eq(inventoryItemsTable.sourceId, bomRow.materialId ?? 0), eq(inventoryItemsTable.isDeleted, false)))
     .limit(1);
   if (invR.length > 0) {
     const invId = invR[0].id;
     const resvR = await pool.query(
       `SELECT reserved_quantity FROM material_reservations
-       WHERE inventory_id = $1 AND reservation_type = 'Swatch' AND reference_id = $2 AND status = 'Active'
+       WHERE inventory_id = $1 AND reservation_type = 'Swatch' AND reference_id = $2 AND status = 'Active' AND is_deleted = false
        ORDER BY id DESC LIMIT 1`,
       [invId, Number(swatchOrderId)]
     );
@@ -1136,7 +1159,7 @@ router.post("/consumption", requireAuth, async (req, res) => {
       // No reservation — fall back to available_stock check
       const currentStock = parseFloat(bomRow.currentStock || "0");
       const existingConsumed = parseFloat(bomRow.consumedQty || "0");
-      const allPrsForRow = await db.select().from(purchaseReceiptsTable).where(eq(purchaseReceiptsTable.bomRowId, Number(bomRowId)));
+      const allPrsForRow = await db.select().from(purchaseReceiptsTable).where(and(eq(purchaseReceiptsTable.bomRowId, Number(bomRowId)), eq(purchaseReceiptsTable.isDeleted, false)));
       const totalPrReceived = allPrsForRow.reduce((s, pr) => s + (parseFloat(pr.receivedQty) || 0), 0);
       const available = currentStock + totalPrReceived - existingConsumed;
       if (newConsumedQty > available) {
@@ -1161,7 +1184,7 @@ router.post("/consumption", requireAuth, async (req, res) => {
 
   // Recompute total consumed qty for this BOM row and update it
   const allEntries = await db.select().from(consumptionLogTable)
-    .where(eq(consumptionLogTable.bomRowId, Number(bomRowId)));
+    .where(and(eq(consumptionLogTable.bomRowId, Number(bomRowId)), eq(consumptionLogTable.isDeleted, false)));
   const totalConsumed = allEntries.reduce((s, e) => s + (parseFloat(e.consumedQty) || 0), 0);
   await db.update(swatchBomTable).set({ consumedQty: totalConsumed.toString(), updatedBy: user.email, updatedAt: new Date() })
     .where(eq(swatchBomTable.id, Number(bomRowId)));
@@ -1185,10 +1208,10 @@ router.put("/consumption/:id", requireAuth, async (req, res) => {
   const id = Number(String(req.params.id));
   const { consumedQty, notes, warehouseLocation } = req.body as Record<string, string | number | null>;
 
-  const [entry] = await db.select().from(consumptionLogTable).where(eq(consumptionLogTable.id, id));
+  const [entry] = await db.select().from(consumptionLogTable).where(and(eq(consumptionLogTable.id, id), eq(consumptionLogTable.isDeleted, false)));
   if (!entry) { res.status(404).json({ error: "Consumption entry not found" }); return; }
 
-  const [bomRow] = await db.select().from(swatchBomTable).where(eq(swatchBomTable.id, entry.bomRowId)).limit(1);
+  const [bomRow] = await db.select().from(swatchBomTable).where(and(eq(swatchBomTable.id, entry.bomRowId), eq(swatchBomTable.isDeleted, false))).limit(1);
   if (!bomRow) { res.status(404).json({ error: "BOM row not found" }); return; }
 
   const newQty = consumedQty !== undefined ? (parseFloat(String(consumedQty)) || 0) : (parseFloat(entry.consumedQty) || 0);
@@ -1197,13 +1220,13 @@ router.put("/consumption/:id", requireAuth, async (req, res) => {
   // Validate against reservation (allow up to reserved + already consumed by this entry)
   if (consumedQty !== undefined && newQty !== parseFloat(entry.consumedQty)) {
     const invR = await db.select({ id: inventoryItemsTable.id }).from(inventoryItemsTable)
-      .where(and(eq(inventoryItemsTable.sourceType, bomRow.materialType ?? ""), eq(inventoryItemsTable.sourceId, bomRow.materialId ?? 0))).limit(1);
+      .where(and(eq(inventoryItemsTable.sourceType, bomRow.materialType ?? ""), eq(inventoryItemsTable.sourceId, bomRow.materialId ?? 0), eq(inventoryItemsTable.isDeleted, false))).limit(1);
     if (invR.length > 0) {
       const reservationType = entry.styleOrderId ? "Style" : "Swatch";
       const orderId = entry.styleOrderId ?? entry.swatchOrderId;
       const resvR = await pool.query(
         `SELECT reserved_quantity FROM material_reservations
-         WHERE inventory_id = $1 AND reservation_type = $2 AND reference_id = $3 AND status IN ('Active','Converted')
+         WHERE inventory_id = $1 AND reservation_type = $2 AND reference_id = $3 AND status IN ('Active','Converted') AND is_deleted = false
          ORDER BY id DESC LIMIT 1`,
         [invR[0].id, reservationType, orderId]
       );
@@ -1249,7 +1272,7 @@ router.put("/consumption/:id", requireAuth, async (req, res) => {
   }
 
   // Recompute BOM consumed qty
-  const allEntries = await db.select().from(consumptionLogTable).where(eq(consumptionLogTable.bomRowId, entry.bomRowId));
+  const allEntries = await db.select().from(consumptionLogTable).where(and(eq(consumptionLogTable.bomRowId, entry.bomRowId), eq(consumptionLogTable.isDeleted, false)));
   const totalConsumed = allEntries.reduce((s, e) => s + (parseFloat(e.consumedQty) || 0), 0);
   await db.update(swatchBomTable).set({ consumedQty: totalConsumed.toString(), updatedBy: user.email, updatedAt: new Date() })
     .where(eq(swatchBomTable.id, entry.bomRowId));
@@ -1259,16 +1282,16 @@ router.put("/consumption/:id", requireAuth, async (req, res) => {
 
 router.delete("/consumption/:id", requireAuth, async (req, res) => {
   const user = (req as any).user;
-  const [entry] = await db.select().from(consumptionLogTable).where(eq(consumptionLogTable.id, Number(String(req.params.id))));
+  const [entry] = await db.select().from(consumptionLogTable).where(and(eq(consumptionLogTable.id, Number(String(req.params.id))), eq(consumptionLogTable.isDeleted, false)));
   if (!entry) { res.status(404).json({ error: "Not found" }); return; }
 
   // Load BOM row before deletion so we have materialType + materialId for reversal
-  const [bomRow] = await db.select().from(swatchBomTable).where(eq(swatchBomTable.id, entry.bomRowId)).limit(1);
+  const [bomRow] = await db.select().from(swatchBomTable).where(and(eq(swatchBomTable.id, entry.bomRowId), eq(swatchBomTable.isDeleted, false))).limit(1);
 
-  await db.delete(consumptionLogTable).where(eq(consumptionLogTable.id, Number(String(req.params.id))));
+  await db.update(consumptionLogTable).set({ isDeleted: true }).where(and(eq(consumptionLogTable.id, Number(String(req.params.id))), eq(consumptionLogTable.isDeleted, false)));
 
   // Recompute and update BOM consumed qty
-  const remaining = await db.select().from(consumptionLogTable).where(eq(consumptionLogTable.bomRowId, entry.bomRowId));
+  const remaining = await db.select().from(consumptionLogTable).where(and(eq(consumptionLogTable.bomRowId, entry.bomRowId), eq(consumptionLogTable.isDeleted, false)));
   const totalConsumed = remaining.reduce((s, e) => s + (parseFloat(e.consumedQty) || 0), 0);
   await db.update(swatchBomTable).set({ consumedQty: totalConsumed.toString(), updatedBy: user.email, updatedAt: new Date() })
     .where(eq(swatchBomTable.id, entry.bomRowId));
@@ -1295,9 +1318,9 @@ router.get("/vendor-search", requireAuth, async (req, res) => {
     vendorCode: vendorsTable.vendorCode,
     contactName: vendorsTable.contactName,
   }).from(vendorsTable)
-    .where(q
+    .where(and(eq(vendorsTable.isDeleted, false), q
       ? or(ilike(vendorsTable.brandName, `%${q}%`), ilike(vendorsTable.vendorCode, `%${q}%`))
-      : undefined)
+      : undefined))
     .limit(30);
   return res.json({ data: rows });
 });
@@ -1311,9 +1334,9 @@ router.get("/hsn-search", requireAuth, async (req, res) => {
     gstPercentage: hsnTable.gstPercentage,
     govtDescription: hsnTable.govtDescription,
   }).from(hsnTable)
-    .where(q
+    .where(and(eq(hsnTable.isDeleted, false), q
       ? or(ilike(hsnTable.hsnCode, `%${q}%`), ilike(hsnTable.govtDescription, `%${q}%`))
-      : undefined)
+      : undefined))
     .limit(30);
   return res.json({ data: rows });
 });
@@ -1321,7 +1344,7 @@ router.get("/hsn-search", requireAuth, async (req, res) => {
 // ─── Artisan Timesheets ───────────────────────────────────────────────────────
 router.get("/artisan-timesheets/:swatchOrderId", requireAuth, async (req, res) => {
   const rows = await db.select().from(artisanTimesheetsTable)
-    .where(eq(artisanTimesheetsTable.swatchOrderId, Number(String(req.params.swatchOrderId))))
+    .where(and(eq(artisanTimesheetsTable.swatchOrderId, Number(String(req.params.swatchOrderId))), eq(artisanTimesheetsTable.isDeleted, false)))
     .orderBy(desc(artisanTimesheetsTable.createdAt));
   return res.json({ data: rows });
 });
@@ -1355,7 +1378,7 @@ router.put("/artisan-timesheets/:id", requireAuth, async (req, res) => {
   const user = (req as any).user;
   const id = Number(String(req.params.id));
   const { noOfArtisans, startDate, endDate, shiftType, totalHours, hourlyRate, notes } = req.body as Record<string, string | number | null>;
-  const [existing] = await db.select().from(artisanTimesheetsTable).where(eq(artisanTimesheetsTable.id, id));
+  const [existing] = await db.select().from(artisanTimesheetsTable).where(and(eq(artisanTimesheetsTable.id, id), eq(artisanTimesheetsTable.isDeleted, false)));
   if (!existing) { res.status(404).json({ error: "Timesheet entry not found" }); return; }
   const totalHoursNum = totalHours !== undefined ? (parseFloat(String(totalHours)) || 0) : parseFloat(existing.totalHours);
   const hourlyRateNum = hourlyRate !== undefined ? (parseFloat(String(hourlyRate)) || 0) : parseFloat(existing.hourlyRate);
@@ -1378,14 +1401,18 @@ router.put("/artisan-timesheets/:id", requireAuth, async (req, res) => {
 });
 
 router.delete("/artisan-timesheets/:id", requireAuth, async (req, res) => {
-  await db.delete(artisanTimesheetsTable).where(eq(artisanTimesheetsTable.id, Number(String(req.params.id))));
+  const [row] = await db.update(artisanTimesheetsTable)
+    .set({ isDeleted: true })
+    .where(and(eq(artisanTimesheetsTable.id, Number(String(req.params.id))), eq(artisanTimesheetsTable.isDeleted, false)))
+    .returning();
+  if (!row) { res.status(404).json({ error: "Not found" }); return; }
   return res.json({ success: true });
 });
 
 // ─── Outsource Jobs ───────────────────────────────────────────────────────────
 router.get("/outsource-jobs/:swatchOrderId", requireAuth, async (req, res) => {
   const rows = await db.select().from(outsourceJobsTable)
-    .where(eq(outsourceJobsTable.swatchOrderId, Number(String(req.params.swatchOrderId))))
+    .where(and(eq(outsourceJobsTable.swatchOrderId, Number(String(req.params.swatchOrderId))), eq(outsourceJobsTable.isDeleted, false)))
     .orderBy(desc(outsourceJobsTable.createdAt));
   return res.json({ data: rows });
 });
@@ -1417,7 +1444,7 @@ router.put("/outsource-jobs/:id", requireAuth, async (req, res) => {
   const user = (req as any).user;
   const id = Number(String(req.params.id));
   const { vendorId, vendorName, hsnId, hsnCode, gstPercentage, issueDate, targetDate, deliveryDate, totalCost, notes } = req.body as Record<string, string | number | null>;
-  const [existing] = await db.select().from(outsourceJobsTable).where(eq(outsourceJobsTable.id, id));
+  const [existing] = await db.select().from(outsourceJobsTable).where(and(eq(outsourceJobsTable.id, id), eq(outsourceJobsTable.isDeleted, false)));
   if (!existing) { res.status(404).json({ error: "Outsource job not found" }); return; }
   const updates: Record<string, unknown> = { updatedBy: user.email, updatedAt: new Date() };
   if (vendorId !== undefined) updates.vendorId = Number(vendorId);
@@ -1435,14 +1462,18 @@ router.put("/outsource-jobs/:id", requireAuth, async (req, res) => {
 });
 
 router.delete("/outsource-jobs/:id", requireAuth, async (req, res) => {
-  await db.delete(outsourceJobsTable).where(eq(outsourceJobsTable.id, Number(String(req.params.id))));
+  const [row] = await db.update(outsourceJobsTable)
+    .set({ isDeleted: true })
+    .where(and(eq(outsourceJobsTable.id, Number(String(req.params.id))), eq(outsourceJobsTable.isDeleted, false)))
+    .returning();
+  if (!row) { res.status(404).json({ error: "Not found" }); return; }
   return res.json({ success: true });
 });
 
 // ─── Custom Charges ───────────────────────────────────────────────────────────
 router.get("/custom-charges/:swatchOrderId", requireAuth, async (req, res) => {
   const rows = await db.select().from(customChargesTable)
-    .where(eq(customChargesTable.swatchOrderId, Number(String(req.params.swatchOrderId))))
+    .where(and(eq(customChargesTable.swatchOrderId, Number(String(req.params.swatchOrderId))), eq(customChargesTable.isDeleted, false)))
     .orderBy(desc(customChargesTable.createdAt));
   return res.json({ data: rows });
 });
@@ -1476,7 +1507,7 @@ router.put("/custom-charges/:id", requireAuth, async (req, res) => {
   const user = (req as any).user;
   const id = Number(String(req.params.id));
   const { vendorId, vendorName, hsnId, hsnCode, gstPercentage, description, unitPrice, quantity } = req.body as Record<string, string | number>;
-  const [existing] = await db.select().from(customChargesTable).where(eq(customChargesTable.id, id));
+  const [existing] = await db.select().from(customChargesTable).where(and(eq(customChargesTable.id, id), eq(customChargesTable.isDeleted, false)));
   if (!existing) { res.status(404).json({ error: "Custom charge not found" }); return; }
   const unitPriceNum = unitPrice !== undefined ? (parseFloat(String(unitPrice)) || 0) : parseFloat(existing.unitPrice);
   const quantityNum = quantity !== undefined ? (parseFloat(String(quantity)) || 1) : parseFloat(existing.quantity);
@@ -1499,7 +1530,11 @@ router.put("/custom-charges/:id", requireAuth, async (req, res) => {
 });
 
 router.delete("/custom-charges/:id", requireAuth, async (req, res) => {
-  await db.delete(customChargesTable).where(eq(customChargesTable.id, Number(String(req.params.id))));
+  const [row] = await db.update(customChargesTable)
+    .set({ isDeleted: true })
+    .where(and(eq(customChargesTable.id, Number(String(req.params.id))), eq(customChargesTable.isDeleted, false)))
+    .returning();
+  if (!row) { res.status(404).json({ error: "Not found" }); return; }
   return res.json({ success: true });
 });
 
@@ -1511,7 +1546,7 @@ router.delete("/custom-charges/:id", requireAuth, async (req, res) => {
 router.get("/style-bom/:styleOrderId", requireAuth, async (req, res) => {
   const styleOrderId = Number(String(req.params.styleOrderId));
   const rows = await db.select().from(swatchBomTable)
-    .where(eq(swatchBomTable.styleOrderId, styleOrderId))
+    .where(and(eq(swatchBomTable.styleOrderId, styleOrderId), eq(swatchBomTable.isDeleted, false)))
     .orderBy(swatchBomTable.createdAt);
 
   // Enrich each row with live stock figures and active reservation for this order
@@ -1522,6 +1557,7 @@ router.get("/style-bom/:styleOrderId", requireAuth, async (req, res) => {
       .where(and(
         eq(inventoryItemsTable.sourceType, r.materialType ?? ""),
         eq(inventoryItemsTable.sourceId, r.materialId ?? 0),
+        eq(inventoryItemsTable.isDeleted, false),
       ))
       .limit(1);
     const live = invRows[0] ?? null;
@@ -1530,7 +1566,7 @@ router.get("/style-bom/:styleOrderId", requireAuth, async (req, res) => {
     if (live) {
       const resvRows = await pool.query(
         `SELECT reserved_quantity FROM material_reservations
-         WHERE inventory_id = $1 AND reservation_type = 'Style' AND reference_id = $2 AND status = 'Active'
+         WHERE inventory_id = $1 AND reservation_type = 'Style' AND reference_id = $2 AND status = 'Active' AND is_deleted = false
          ORDER BY id DESC LIMIT 1`,
         [live.id, styleOrderId]
       );
@@ -1590,7 +1626,7 @@ router.post("/style-bom", requireAuth, async (req, res) => {
 // ─── Style PO ─────────────────────────────────────────────────────────────────
 router.get("/style-po/:styleOrderId", requireAuth, async (req, res) => {
   const rows = await db.select().from(purchaseOrdersTable)
-    .where(eq(purchaseOrdersTable.styleOrderId, Number(String(req.params.styleOrderId))))
+    .where(and(eq(purchaseOrdersTable.styleOrderId, Number(String(req.params.styleOrderId))), eq(purchaseOrdersTable.isDeleted, false)))
     .orderBy(purchaseOrdersTable.createdAt);
   return res.json({ data: rows });
 });
@@ -1605,7 +1641,7 @@ router.post("/style-po", requireAuth, async (req, res) => {
   };
   let vendor: { brandName: string } | undefined;
   if (vendorId) {
-    const [v] = await db.select().from(vendorsTable).where(eq(vendorsTable.id, vendorId));
+    const [v] = await db.select().from(vendorsTable).where(and(eq(vendorsTable.id, vendorId), eq(vendorsTable.isDeleted, false)));
     if (!v) { res.status(404).json({ error: "Vendor not found" }); return; }
     vendor = v;
   }
@@ -1624,7 +1660,7 @@ router.post("/style-po", requireAuth, async (req, res) => {
     bomItems: items,
     createdBy: user.email,
   }).returning();
-  const adminUsers2 = await db.select({ email: usersTable.email }).from(usersTable).where(eq(usersTable.role, "admin"));
+  const adminUsers2 = await db.select({ email: usersTable.email }).from(usersTable).where(and(eq(usersTable.role, "admin"), eq(usersTable.isDeleted, false)));
   const adminEmails2 = adminUsers2.map(u => u.email).filter(Boolean) as string[];
   if (adminEmails2.length > 0) {
     const apiBase2 = process.env.API_BASE_URL ?? `https://${process.env.REPLIT_DEV_DOMAIN ?? "zari-erp.replit.app"}`;
@@ -1650,7 +1686,7 @@ router.post("/style-po", requireAuth, async (req, res) => {
 // ─── Style PR ─────────────────────────────────────────────────────────────────
 router.get("/style-pr/:styleOrderId", requireAuth, async (req, res) => {
   const rows = await db.select().from(purchaseReceiptsTable)
-    .where(eq(purchaseReceiptsTable.styleOrderId, Number(String(req.params.styleOrderId))))
+    .where(and(eq(purchaseReceiptsTable.styleOrderId, Number(String(req.params.styleOrderId))), eq(purchaseReceiptsTable.isDeleted, false)))
     .orderBy(purchaseReceiptsTable.createdAt);
   return res.json({ data: rows });
 });
@@ -1658,7 +1694,7 @@ router.get("/style-pr/:styleOrderId", requireAuth, async (req, res) => {
 router.post("/style-pr", requireAuth, async (req, res) => {
   const user = (req as any).user;
   const { poId, styleOrderId, bomRowId, receivedQty, actualPrice, warehouseLocation } = req.body as Record<string, string | number | null>;
-  const [po] = await db.select().from(purchaseOrdersTable).where(eq(purchaseOrdersTable.id, Number(poId)));
+  const [po] = await db.select().from(purchaseOrdersTable).where(and(eq(purchaseOrdersTable.id, Number(poId)), eq(purchaseOrdersTable.isDeleted, false)));
   if (!po) { res.status(404).json({ error: "PO not found" }); return; }
   if (!["Approved", "In Process"].includes(po.status)) {
     return res.status(403).json({ error: `Purchase Receipt cannot be created: PO is currently in "${po.status}" status. An admin must approve it first.` });
@@ -1678,7 +1714,7 @@ router.post("/style-pr", requireAuth, async (req, res) => {
     orderedQty = parseFloat(bomItems[0]?.quantity ?? "0") || 0;
   }
 
-  const existingPrs = await db.select().from(purchaseReceiptsTable).where(eq(purchaseReceiptsTable.poId, Number(poId)));
+  const existingPrs = await db.select().from(purchaseReceiptsTable).where(and(eq(purchaseReceiptsTable.poId, Number(poId)), eq(purchaseReceiptsTable.isDeleted, false)));
   const relevantPrs = resolvedBomRowId != null
     ? existingPrs.filter(pr => pr.bomRowId === resolvedBomRowId)
     : (isSingleItem ? existingPrs : existingPrs.filter(pr => pr.bomRowId == null));
@@ -1733,7 +1769,7 @@ router.post("/style-pr", requireAuth, async (req, res) => {
 // ─── Style Consumption ────────────────────────────────────────────────────────
 router.get("/style-consumption/:styleOrderId", requireAuth, async (req, res) => {
   const rows = await db.select().from(consumptionLogTable)
-    .where(eq(consumptionLogTable.styleOrderId, Number(String(req.params.styleOrderId))))
+    .where(and(eq(consumptionLogTable.styleOrderId, Number(String(req.params.styleOrderId))), eq(consumptionLogTable.isDeleted, false)))
     .orderBy(consumptionLogTable.consumedAt);
   return res.json({ data: rows });
 });
@@ -1742,7 +1778,7 @@ router.post("/style-consumption", requireAuth, async (req, res) => {
   const user = (req as any).user;
   const { styleOrderId, styleOrderProductId, styleOrderProductName, bomRowId, materialCode, materialName, materialType, unitType, consumedQty, notes, warehouseLocation } = req.body as Record<string, string | number>;
 
-  const [bomRow] = await db.select().from(swatchBomTable).where(eq(swatchBomTable.id, Number(bomRowId)));
+  const [bomRow] = await db.select().from(swatchBomTable).where(and(eq(swatchBomTable.id, Number(bomRowId)), eq(swatchBomTable.isDeleted, false)));
   if (!bomRow) { res.status(404).json({ error: "BOM item not found" }); return; }
   const newConsumedQty = parseFloat(String(consumedQty)) || 0;
 
@@ -1750,13 +1786,13 @@ router.post("/style-consumption", requireAuth, async (req, res) => {
   const invRS = await db
     .select({ id: inventoryItemsTable.id })
     .from(inventoryItemsTable)
-    .where(and(eq(inventoryItemsTable.sourceType, bomRow.materialType ?? ""), eq(inventoryItemsTable.sourceId, bomRow.materialId ?? 0)))
+    .where(and(eq(inventoryItemsTable.sourceType, bomRow.materialType ?? ""), eq(inventoryItemsTable.sourceId, bomRow.materialId ?? 0), eq(inventoryItemsTable.isDeleted, false)))
     .limit(1);
   if (invRS.length > 0) {
     const invId = invRS[0].id;
     const resvRS = await pool.query(
       `SELECT reserved_quantity FROM material_reservations
-       WHERE inventory_id = $1 AND reservation_type = 'Style' AND reference_id = $2 AND status = 'Active'
+       WHERE inventory_id = $1 AND reservation_type = 'Style' AND reference_id = $2 AND status = 'Active' AND is_deleted = false
        ORDER BY id DESC LIMIT 1`,
       [invId, Number(styleOrderId)]
     );
@@ -1769,7 +1805,7 @@ router.post("/style-consumption", requireAuth, async (req, res) => {
     } else {
       const currentStock = parseFloat(bomRow.currentStock || "0");
       const existingConsumed = parseFloat(bomRow.consumedQty || "0");
-      const allPrsForRow = await db.select().from(purchaseReceiptsTable).where(eq(purchaseReceiptsTable.bomRowId, Number(bomRowId)));
+      const allPrsForRow = await db.select().from(purchaseReceiptsTable).where(and(eq(purchaseReceiptsTable.bomRowId, Number(bomRowId)), eq(purchaseReceiptsTable.isDeleted, false)));
       const totalPrReceived = allPrsForRow.reduce((s, pr) => s + (parseFloat(pr.receivedQty) || 0), 0);
       const available = currentStock + totalPrReceived - existingConsumed;
       if (newConsumedQty > available) {
@@ -1795,7 +1831,7 @@ router.post("/style-consumption", requireAuth, async (req, res) => {
   }).returning();
 
   const allEntries = await db.select().from(consumptionLogTable)
-    .where(eq(consumptionLogTable.bomRowId, Number(bomRowId)));
+    .where(and(eq(consumptionLogTable.bomRowId, Number(bomRowId)), eq(consumptionLogTable.isDeleted, false)));
   const totalConsumed = allEntries.reduce((s, e) => s + (parseFloat(e.consumedQty) || 0), 0);
   await db.update(swatchBomTable).set({ consumedQty: totalConsumed.toString(), updatedBy: user.email, updatedAt: new Date() })
     .where(eq(swatchBomTable.id, Number(bomRowId)));
@@ -1817,7 +1853,7 @@ router.post("/style-consumption", requireAuth, async (req, res) => {
 // ─── Style Artisan Timesheets ─────────────────────────────────────────────────
 router.get("/style-artisan-timesheets/:styleOrderId", requireAuth, async (req, res) => {
   const rows = await db.select().from(artisanTimesheetsTable)
-    .where(eq(artisanTimesheetsTable.styleOrderId, Number(String(req.params.styleOrderId))))
+    .where(and(eq(artisanTimesheetsTable.styleOrderId, Number(String(req.params.styleOrderId))), eq(artisanTimesheetsTable.isDeleted, false)))
     .orderBy(desc(artisanTimesheetsTable.createdAt));
   return res.json({ data: rows });
 });
@@ -1852,7 +1888,7 @@ router.post("/style-artisan-timesheets", requireAuth, async (req, res) => {
 // ─── Style Outsource Jobs ─────────────────────────────────────────────────────
 router.get("/style-outsource-jobs/:styleOrderId", requireAuth, async (req, res) => {
   const rows = await db.select().from(outsourceJobsTable)
-    .where(eq(outsourceJobsTable.styleOrderId, Number(String(req.params.styleOrderId))))
+    .where(and(eq(outsourceJobsTable.styleOrderId, Number(String(req.params.styleOrderId))), eq(outsourceJobsTable.isDeleted, false)))
     .orderBy(desc(outsourceJobsTable.createdAt));
   return res.json({ data: rows });
 });
@@ -1885,7 +1921,7 @@ router.post("/style-outsource-jobs", requireAuth, async (req, res) => {
 // ─── Style Custom Charges ─────────────────────────────────────────────────────
 router.get("/style-custom-charges/:styleOrderId", requireAuth, async (req, res) => {
   const rows = await db.select().from(customChargesTable)
-    .where(eq(customChargesTable.styleOrderId, Number(String(req.params.styleOrderId))))
+    .where(and(eq(customChargesTable.styleOrderId, Number(String(req.params.styleOrderId))), eq(customChargesTable.isDeleted, false)))
     .orderBy(desc(customChargesTable.createdAt));
   return res.json({ data: rows });
 });
@@ -1933,32 +1969,32 @@ router.get("/invoice-items", requireAuth, async (req, res) => {
   // Fetch everything in parallel
   const [bomRows, artisanRows, outsourceRows, customRows, allMaterials, allFabrics, allPRs, shippingR, artworkRows] = await Promise.all([
     isSwatch
-      ? db.select().from(swatchBomTable).where(eq(swatchBomTable.swatchOrderId, orderId)).orderBy(swatchBomTable.createdAt)
-      : db.select().from(swatchBomTable).where(eq(swatchBomTable.styleOrderId, orderId)).orderBy(swatchBomTable.createdAt),
+      ? db.select().from(swatchBomTable).where(and(eq(swatchBomTable.swatchOrderId, orderId), eq(swatchBomTable.isDeleted, false))).orderBy(swatchBomTable.createdAt)
+      : db.select().from(swatchBomTable).where(and(eq(swatchBomTable.styleOrderId, orderId), eq(swatchBomTable.isDeleted, false))).orderBy(swatchBomTable.createdAt),
 
     isSwatch
-      ? db.select().from(artisanTimesheetsTable).where(eq(artisanTimesheetsTable.swatchOrderId, orderId))
-      : db.select().from(artisanTimesheetsTable).where(eq(artisanTimesheetsTable.styleOrderId, orderId)),
+      ? db.select().from(artisanTimesheetsTable).where(and(eq(artisanTimesheetsTable.swatchOrderId, orderId), eq(artisanTimesheetsTable.isDeleted, false)))
+      : db.select().from(artisanTimesheetsTable).where(and(eq(artisanTimesheetsTable.styleOrderId, orderId), eq(artisanTimesheetsTable.isDeleted, false))),
 
     isSwatch
-      ? db.select().from(outsourceJobsTable).where(eq(outsourceJobsTable.swatchOrderId, orderId))
-      : db.select().from(outsourceJobsTable).where(eq(outsourceJobsTable.styleOrderId, orderId)),
+      ? db.select().from(outsourceJobsTable).where(and(eq(outsourceJobsTable.swatchOrderId, orderId), eq(outsourceJobsTable.isDeleted, false)))
+      : db.select().from(outsourceJobsTable).where(and(eq(outsourceJobsTable.styleOrderId, orderId), eq(outsourceJobsTable.isDeleted, false))),
 
     isSwatch
-      ? db.select().from(customChargesTable).where(eq(customChargesTable.swatchOrderId, orderId))
-      : db.select().from(customChargesTable).where(eq(customChargesTable.styleOrderId, orderId)),
+      ? db.select().from(customChargesTable).where(and(eq(customChargesTable.swatchOrderId, orderId), eq(customChargesTable.isDeleted, false)))
+      : db.select().from(customChargesTable).where(and(eq(customChargesTable.styleOrderId, orderId), eq(customChargesTable.isDeleted, false))),
 
     // Material + Fabric full master (for label format matching the dropdown)
-    db.select({ materialCode: materialsTable.materialCode, itemType: materialsTable.type, quality: materialsTable.quality, colorName: materialsTable.colorName, hsnCode: materialsTable.hsnCode, gstPercent: materialsTable.gstPercent }).from(materialsTable),
-    db.select({ fabricCode: fabricsTable.fabricCode, fabricType: fabricsTable.fabricType, quality: fabricsTable.quality, colorName: fabricsTable.colorName, hsnCode: fabricsTable.hsnCode, gstPercent: fabricsTable.gstPercent }).from(fabricsTable),
+    db.select({ materialCode: materialsTable.materialCode, itemType: materialsTable.type, quality: materialsTable.quality, colorName: materialsTable.colorName, hsnCode: materialsTable.hsnCode, gstPercent: materialsTable.gstPercent }).from(materialsTable).where(eq(materialsTable.isDeleted, false)),
+    db.select({ fabricCode: fabricsTable.fabricCode, fabricType: fabricsTable.fabricType, quality: fabricsTable.quality, colorName: fabricsTable.colorName, hsnCode: fabricsTable.hsnCode, gstPercent: fabricsTable.gstPercent }).from(fabricsTable).where(eq(fabricsTable.isDeleted, false)),
 
     // PRs for weighted avg calculation
     isSwatch
-      ? db.select().from(purchaseReceiptsTable).where(eq(purchaseReceiptsTable.swatchOrderId as any, orderId)).catch(() => [] as any[])
-      : db.select().from(purchaseReceiptsTable).where(eq(purchaseReceiptsTable.styleOrderId, orderId)).catch(() => [] as any[]),
+      ? db.select().from(purchaseReceiptsTable).where(and(eq(purchaseReceiptsTable.swatchOrderId as any, orderId), eq(purchaseReceiptsTable.isDeleted, false))).catch(() => [] as any[])
+      : db.select().from(purchaseReceiptsTable).where(and(eq(purchaseReceiptsTable.styleOrderId, orderId), eq(purchaseReceiptsTable.isDeleted, false))).catch(() => [] as any[]),
 
     pool.query(
-      `SELECT final_shipping_amount FROM order_shipping_details WHERE reference_type = $1 AND reference_id = $2 ORDER BY created_at DESC LIMIT 1`,
+      `SELECT final_shipping_amount FROM order_shipping_details WHERE reference_type = $1 AND reference_id = $2 AND is_deleted = false ORDER BY created_at DESC LIMIT 1`,
       [type, orderId]
     ).catch(() => ({ rows: [] as any[] })),
 
@@ -2157,7 +2193,7 @@ router.get("/costing-payments-totals", requireAuth, async (req, res) => {
     const { referenceType, swatchOrderId, styleOrderId } = req.query as Record<string, string>;
     if (!referenceType) return res.status(400).json({ error: "referenceType required" });
     const params: (string | number)[] = [referenceType];
-    let where = "reference_type = $1";
+    let where = "reference_type = $1 AND is_deleted = false";
     if (swatchOrderId) { params.push(parseInt(swatchOrderId)); where += ` AND swatch_order_id = $${params.length}`; }
     if (styleOrderId)  { params.push(parseInt(styleOrderId));  where += ` AND style_order_id = $${params.length}`; }
     const { rows } = await pool.query(
@@ -2181,7 +2217,7 @@ router.get("/costing-payments", requireAuth, async (req, res) => {
     }
     const { rows } = await pool.query(
       `SELECT * FROM costing_payments
-       WHERE reference_type = $1 AND reference_id = $2
+       WHERE reference_type = $1 AND reference_id = $2 AND is_deleted = false
        ORDER BY created_at ASC`,
       [referenceType, parseInt(referenceId)]
     );
@@ -2298,7 +2334,8 @@ router.delete("/costing-payments/:id", requireAuth, async (req, res) => {
       return res.status(403).json({ error: "Admin only" });
     }
     const id = parseInt(String(req.params.id));
-    await pool.query("DELETE FROM costing_payments WHERE id = $1", [id]);
+    const r = await pool.query("UPDATE costing_payments SET is_deleted = true WHERE id = $1 AND is_deleted = false RETURNING id", [id]);
+    if (r.rowCount === 0) return res.status(404).json({ error: "Not found" });
     return res.json({ success: true });
   } catch (err: any) {
     return res.status(500).json({ error: err.message });
@@ -2353,7 +2390,7 @@ router.get("/po-action", async (req: Request, res: Response) => {
     return res.status(400).send(html("Invalid Action", "⚠️", "#D97706", `<p class="msg">Unknown action in token.</p>`));
   }
 
-  const [po] = await db.select().from(purchaseOrdersTable).where(eq(purchaseOrdersTable.id, Number(poId)));
+  const [po] = await db.select().from(purchaseOrdersTable).where(and(eq(purchaseOrdersTable.id, Number(poId)), eq(purchaseOrdersTable.isDeleted, false)));
   if (!po) {
     return res.status(404).send(html("PO Not Found", "🔍", "#DC2626", `<p class="msg">Purchase Order #${poId} could not be found.</p>`));
   }

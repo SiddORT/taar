@@ -1,4 +1,4 @@
-import { pgTable, serial, integer, text, timestamp, jsonb, numeric } from "drizzle-orm/pg-core";
+import { pgTable, serial, integer, text, timestamp, jsonb, numeric, boolean } from "drizzle-orm/pg-core";
 
 export interface PaymentAttachmentFile {
   name: string;
@@ -28,6 +28,7 @@ export const swatchBomTable = pgTable("swatch_bom", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedBy: text("updated_by"),
   updatedAt: timestamp("updated_at", { withTimezone: true }),
+  isDeleted: boolean("is_deleted").notNull().default(false),
 });
 
 export type SwatchBomRecord = typeof swatchBomTable.$inferSelect;
@@ -61,6 +62,7 @@ export const purchaseOrdersTable = pgTable("purchase_orders", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedBy: text("updated_by"),
   updatedAt: timestamp("updated_at", { withTimezone: true }),
+  isDeleted: boolean("is_deleted").notNull().default(false),
 });
 
 export type PurchaseOrderRecord = typeof purchaseOrdersTable.$inferSelect;
@@ -82,6 +84,7 @@ export const purchaseReceiptsTable = pgTable("purchase_receipts", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedBy: text("updated_by"),
   updatedAt: timestamp("updated_at", { withTimezone: true }),
+  isDeleted: boolean("is_deleted").notNull().default(false),
 });
 
 export type PurchaseReceiptRecord = typeof purchaseReceiptsTable.$inferSelect;
@@ -100,6 +103,7 @@ export const prPaymentsTable = pgTable("pr_payments", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedBy: text("updated_by"),
   updatedAt: timestamp("updated_at", { withTimezone: true }),
+  isDeleted: boolean("is_deleted").notNull().default(false),
 });
 
 export type PrPaymentRecord = typeof prPaymentsTable.$inferSelect;
@@ -121,6 +125,7 @@ export const consumptionLogTable = pgTable("consumption_log", {
   notes: text("notes"),
   warehouseLocation: text("warehouse_location"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  isDeleted: boolean("is_deleted").notNull().default(false),
 });
 
 export type ConsumptionLogRecord = typeof consumptionLogTable.$inferSelect;
@@ -142,6 +147,7 @@ export const artisanTimesheetsTable = pgTable("artisan_timesheets", {
   notes: text("notes"),
   createdBy: text("created_by").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  isDeleted: boolean("is_deleted").notNull().default(false),
 });
 
 export type ArtisanTimesheetRecord = typeof artisanTimesheetsTable.$inferSelect;
@@ -165,6 +171,7 @@ export const outsourceJobsTable = pgTable("outsource_jobs", {
   notes: text("notes"),
   createdBy: text("created_by").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  isDeleted: boolean("is_deleted").notNull().default(false),
 });
 
 export type OutsourceJobRecord = typeof outsourceJobsTable.$inferSelect;
@@ -187,6 +194,7 @@ export const customChargesTable = pgTable("custom_charges", {
   totalAmount: text("total_amount").notNull().default("0"),
   createdBy: text("created_by").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  isDeleted: boolean("is_deleted").notNull().default(false),
 });
 
 export type CustomChargeRecord = typeof customChargesTable.$inferSelect;
@@ -211,6 +219,7 @@ export const costingPaymentsTable = pgTable("costing_payments", {
   remarks: text("remarks"),
   createdBy: text("created_by"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  isDeleted: boolean("is_deleted").notNull().default(false),
 });
 
 export type CostingPaymentRecord = typeof costingPaymentsTable.$inferSelect;
@@ -231,6 +240,7 @@ export const bomChangeLogTable = pgTable("bom_change_log", {
   notes: text("notes"),
   changedBy: text("changed_by").notNull(),
   changedAt: timestamp("changed_at", { withTimezone: true }).notNull().defaultNow(),
+  isDeleted: boolean("is_deleted").notNull().default(false),
 });
 
 export type BomChangeLogRecord = typeof bomChangeLogTable.$inferSelect;

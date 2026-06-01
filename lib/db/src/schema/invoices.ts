@@ -1,4 +1,4 @@
-import { pgTable, serial, integer, text, numeric, jsonb, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, serial, integer, text, numeric, jsonb, timestamp, boolean } from "drizzle-orm/pg-core";
 
 export interface InvoiceLineItem {
   id: string;
@@ -91,4 +91,5 @@ export const invoicesTable = pgTable("invoices", {
   status: text("status").default("Draft"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+  isDeleted: boolean("is_deleted").notNull().default(false),
 });

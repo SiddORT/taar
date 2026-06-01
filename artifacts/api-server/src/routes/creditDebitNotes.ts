@@ -68,8 +68,8 @@ async function reverseNoteEffects(client: any, note: any) {
       [note.note_amount, note.invoice_id]
     );
     await client.query(
-      `DELETE FROM client_invoice_ledger
-       WHERE invoice_id = $1 AND entry_type = 'Credit Note' AND transaction_reference = $2`,
+      `UPDATE client_invoice_ledger SET is_deleted = true
+       WHERE invoice_id = $1 AND entry_type = 'Credit Note' AND transaction_reference = $2 AND is_deleted = false`,
       [note.invoice_id, note.note_number]
     );
   }
@@ -79,7 +79,7 @@ async function reverseNoteEffects(client: any, note: any) {
 router.get("/", requireAuth, async (req, res) => {
   try {
     const { search, type, status, ref_type } = req.query as Record<string, string>;
-    const conditions: string[] = [];
+    const conditions: string[] = ["n.is_deleted = false"];
     const params: any[] = [];
     let p = 1;
 
@@ -98,8 +98,8 @@ router.get("/", requireAuth, async (req, res) => {
               i.invoice_no,
               vil.vendor_invoice_number AS vendor_bill_number
          FROM credit_debit_notes n
-         LEFT JOIN invoices i                ON i.id = n.invoice_id
-         LEFT JOIN vendor_invoice_ledger vil ON vil.id = n.vendor_bill_id
+         LEFT JOIN invoices i                ON i.id = n.invoice_id AND i.is_deleted = false
+         LEFT JOIN vendor_invoice_ledger vil ON vil.id = n.vendor_bill_id AND vil.is_deleted = false
        ${where}
        ORDER BY n.note_id DESC`,
       params
@@ -117,9 +117,9 @@ router.get("/:id", requireAuth, async (req, res) => {
       `SELECT n.*, i.invoice_no,
               vil.vendor_invoice_number AS vendor_bill_number
          FROM credit_debit_notes n
-         LEFT JOIN invoices i                ON i.id = n.invoice_id
-         LEFT JOIN vendor_invoice_ledger vil ON vil.id = n.vendor_bill_id
-        WHERE n.note_id = $1`,
+         LEFT JOIN invoices i                ON i.id = n.invoice_id AND i.is_deleted = false
+         LEFT JOIN vendor_invoice_ledger vil ON vil.id = n.vendor_bill_id AND vil.is_deleted = false
+        WHERE n.note_id = $1 AND n.is_deleted = false`,
       [req.params.id]
     );
     if (!rows.length) return res.status(404).json({ error: "Note not found" });
@@ -156,7 +156,7 @@ router.post("/", requireAuth, async (req, res) => {
     const amtNum = parseFloat(note_amount);
     if (note_type === "Credit Note" && reference_type === "Client Invoice" && invoice_id) {
       const { rows: invRows } = await client.query(
-        `SELECT COALESCE(pending_amount, total_amount, 0) AS cap FROM invoices WHERE id = $1`,
+        `SELECT COALESCE(pending_amount, total_amount, 0) AS cap FROM invoices WHERE id = $1 AND is_deleted = false`,
         [invoice_id]
       );
       if (!invRows.length) throw new Error("Linked invoice not found");
@@ -166,7 +166,7 @@ router.post("/", requireAuth, async (req, res) => {
     }
     if (note_type === "Debit Note" && reference_type === "Vendor Bill" && vendor_bill_id) {
       const { rows: vbRows } = await client.query(
-        `SELECT COALESCE(pending_amount, vendor_invoice_amount, 0) AS cap FROM vendor_invoice_ledger WHERE id = $1`,
+        `SELECT COALESCE(pending_amount, vendor_invoice_amount, 0) AS cap FROM vendor_invoice_ledger WHERE id = $1 AND is_deleted = false`,
         [vendor_bill_id]
       );
       if (!vbRows.length) throw new Error("Linked vendor bill not found");
@@ -213,7 +213,7 @@ router.put("/:id/apply", requireAuth, async (req, res) => {
   try {
     await client.query("BEGIN");
     const { rows } = await client.query(
-      "SELECT * FROM credit_debit_notes WHERE note_id = $1", [req.params.id]
+      "SELECT * FROM credit_debit_notes WHERE note_id = $1 AND is_deleted = false", [req.params.id]
     );
     if (!rows.length) throw new Error("Note not found");
     const note = rows[0];
@@ -241,7 +241,7 @@ router.put("/:id/cancel", requireAuth, async (req, res) => {
   try {
     await client.query("BEGIN");
     const { rows } = await client.query(
-      "SELECT * FROM credit_debit_notes WHERE note_id = $1", [req.params.id]
+      "SELECT * FROM credit_debit_notes WHERE note_id = $1 AND is_deleted = false", [req.params.id]
     );
     if (!rows.length) throw new Error("Note not found");
     const note = rows[0];
@@ -266,11 +266,11 @@ router.put("/:id/cancel", requireAuth, async (req, res) => {
 router.delete("/:id", requireAuth, async (req, res) => {
   try {
     const { rows } = await pool.query(
-      "SELECT status FROM credit_debit_notes WHERE note_id=$1", [req.params.id]
+      "SELECT status FROM credit_debit_notes WHERE note_id=$1 AND is_deleted = false", [req.params.id]
     );
     if (!rows.length) return res.status(404).json({ error: "Not found" });
     if (rows[0].status !== "Draft") return res.status(400).json({ error: "Only Draft notes can be deleted" });
-    await pool.query("DELETE FROM credit_debit_notes WHERE note_id=$1", [req.params.id]);
+    await pool.query("UPDATE credit_debit_notes SET is_deleted = true, updated_at = NOW() WHERE note_id=$1 AND is_deleted = false", [req.params.id]);
     return res.json({ message: "Deleted" });
   } catch (err: any) {
     return res.status(500).json({ error: err.message });

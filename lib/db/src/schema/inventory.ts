@@ -28,7 +28,9 @@ export const inventoryItemsTable = pgTable(
     isActive: boolean("is_active").notNull().default(true),
     lastUpdatedAt: timestamp("last_updated_at", { withTimezone: true }).notNull().defaultNow(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-  },
+  
+  isDeleted: boolean("is_deleted").notNull().default(false),
+},
   (t) => [unique("inventory_items_source_unique").on(t.sourceType, t.sourceId)]
 );
 
@@ -46,6 +48,7 @@ export const inventoryStockLogsTable = pgTable("inventory_stock_logs", {
   notes: text("notes"),
   createdByName: text("created_by_name"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  isDeleted: boolean("is_deleted").notNull().default(false),
 });
 
 export type InventoryStockLog = typeof inventoryStockLogsTable.$inferSelect;
@@ -62,6 +65,7 @@ export const stockLedgerTable = pgTable("stock_ledger", {
   remarks: text("remarks"),
   createdBy: text("created_by"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  isDeleted: boolean("is_deleted").notNull().default(false),
 });
 
 export type StockLedgerRecord = typeof stockLedgerTable.$inferSelect;
@@ -78,6 +82,7 @@ export const materialReservationsTable = pgTable("material_reservations", {
   reservedBy: text("reserved_by"),
   reservationDate: text("reservation_date").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  isDeleted: boolean("is_deleted").notNull().default(false),
 });
 
 export type MaterialReservation = typeof materialReservationsTable.$inferSelect;
@@ -100,6 +105,7 @@ export const stockAdjustmentsTable = pgTable("stock_adjustments", {
   adjustmentDate: text("adjustment_date").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  isDeleted: boolean("is_deleted").notNull().default(false),
 });
 
 export type StockAdjustment = typeof stockAdjustmentsTable.$inferSelect;

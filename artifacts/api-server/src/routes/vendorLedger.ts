@@ -42,19 +42,19 @@ router.get("/vendor-ledger/summary", requireAuth, async (req, res) => {
       /* costing: outsource jobs */
       LEFT JOIN (
         SELECT vendor_id, SUM(total_cost::numeric) AS total, COUNT(*) AS cnt
-        FROM outsource_jobs GROUP BY vendor_id
+        FROM outsource_jobs WHERE is_deleted = false GROUP BY vendor_id
       ) oj_sum ON oj_sum.vendor_id = v.id
 
       /* costing: custom charges */
       LEFT JOIN (
         SELECT vendor_id, SUM(total_amount::numeric) AS total, COUNT(*) AS cnt
-        FROM custom_charges GROUP BY vendor_id
+        FROM custom_charges WHERE is_deleted = false GROUP BY vendor_id
       ) cc_sum ON cc_sum.vendor_id = v.id
 
       /* manual ledger charges */
       LEFT JOIN (
         SELECT vendor_id, SUM(amount::numeric) AS total, COUNT(*) AS cnt
-        FROM vendor_ledger_charges GROUP BY vendor_id
+        FROM vendor_ledger_charges WHERE is_deleted = false GROUP BY vendor_id
       ) lc_sum ON lc_sum.vendor_id = v.id
 
       /* swatch-order artworks outsourced */
@@ -67,6 +67,7 @@ router.get("/vendor-ledger/summary", requireAuth, async (req, res) => {
           AND outsource_vendor_id <> ''
           AND outsource_payment_amount IS NOT NULL
           AND outsource_payment_amount <> ''
+          AND is_deleted = false
         GROUP BY outsource_vendor_id::integer
       ) art_sum ON art_sum.vendor_id = v.id
 
@@ -80,6 +81,7 @@ router.get("/vendor-ledger/summary", requireAuth, async (req, res) => {
           AND outsource_vendor_id <> ''
           AND outsource_payment_amount IS NOT NULL
           AND outsource_payment_amount <> ''
+          AND is_deleted = false
         GROUP BY outsource_vendor_id::integer
       ) soa_sum ON soa_sum.vendor_id = v.id
 
@@ -95,6 +97,7 @@ router.get("/vendor-ledger/summary", requireAuth, async (req, res) => {
             (toile_making_cost IS NOT NULL AND toile_making_cost <> '')
             OR (toile_cost IS NOT NULL AND toile_cost <> '')
           )
+          AND is_deleted = false
         GROUP BY toile_vendor_id::integer
       ) toi_sum ON toi_sum.vendor_id = v.id
 
@@ -108,25 +111,26 @@ router.get("/vendor-ledger/summary", requireAuth, async (req, res) => {
           AND pattern_vendor_id <> ''
           AND pattern_payment_amount IS NOT NULL
           AND pattern_payment_amount <> ''
+          AND is_deleted = false
         GROUP BY pattern_vendor_id::integer
       ) pat_sum ON pat_sum.vendor_id = v.id
 
       /* vendor invoice ledger entries (debits) */
       LEFT JOIN (
         SELECT vendor_id, SUM(vendor_invoice_amount::numeric) AS total, COUNT(*) AS cnt
-        FROM vendor_invoice_ledger GROUP BY vendor_id
+        FROM vendor_invoice_ledger WHERE is_deleted = false GROUP BY vendor_id
       ) vil_sum ON vil_sum.vendor_id = v.id
 
       /* vendor payments (credits) */
       LEFT JOIN (
         SELECT vendor_id, SUM(amount::numeric) AS total, COUNT(*) AS cnt
-        FROM vendor_payments GROUP BY vendor_id
+        FROM vendor_payments WHERE is_deleted = false GROUP BY vendor_id
       ) vp_sum ON vp_sum.vendor_id = v.id
 
       /* costing payments — outsource jobs / custom charges / artwork (credits) */
       LEFT JOIN (
         SELECT vendor_id, SUM(payment_amount::numeric) AS total, COUNT(*) AS cnt
-        FROM costing_payments GROUP BY vendor_id
+        FROM costing_payments WHERE is_deleted = false GROUP BY vendor_id
       ) cp_sum ON cp_sum.vendor_id = v.id
 
       WHERE v.is_deleted = false
@@ -173,9 +177,9 @@ router.get("/vendor-ledger/:vendorId/entries", requireAuth, async (req, res) => 
           oj.total_cost::numeric  AS debit,
           0::numeric              AS credit
         FROM outsource_jobs oj
-        LEFT JOIN style_orders  so ON oj.style_order_id  = so.id
-        LEFT JOIN swatch_orders sw ON oj.swatch_order_id = sw.id
-        WHERE oj.vendor_id = $1
+        LEFT JOIN style_orders  so ON oj.style_order_id  = so.id AND so.is_deleted = false
+        LEFT JOIN swatch_orders sw ON oj.swatch_order_id = sw.id AND sw.is_deleted = false
+        WHERE oj.vendor_id = $1 AND oj.is_deleted = false
 
         UNION ALL
 
@@ -190,9 +194,9 @@ router.get("/vendor-ledger/:vendorId/entries", requireAuth, async (req, res) => 
           cc.total_amount::numeric  AS debit,
           0::numeric                AS credit
         FROM custom_charges cc
-        LEFT JOIN style_orders  so ON cc.style_order_id  = so.id
-        LEFT JOIN swatch_orders sw ON cc.swatch_order_id = sw.id
-        WHERE cc.vendor_id = $1
+        LEFT JOIN style_orders  so ON cc.style_order_id  = so.id AND so.is_deleted = false
+        LEFT JOIN swatch_orders sw ON cc.swatch_order_id = sw.id AND sw.is_deleted = false
+        WHERE cc.vendor_id = $1 AND cc.is_deleted = false
 
         UNION ALL
 
@@ -207,7 +211,7 @@ router.get("/vendor-ledger/:vendorId/entries", requireAuth, async (req, res) => 
           lc.amount::numeric    AS debit,
           0::numeric            AS credit
         FROM vendor_ledger_charges lc
-        WHERE lc.vendor_id = $1
+        WHERE lc.vendor_id = $1 AND lc.is_deleted = false
 
         UNION ALL
 
@@ -223,7 +227,7 @@ router.get("/vendor-ledger/:vendorId/entries", requireAuth, async (req, res) => 
           a.outsource_payment_amount::numeric AS debit,
           0::numeric               AS credit
         FROM artworks a
-        LEFT JOIN swatch_orders sw ON a.swatch_order_id = sw.id
+        LEFT JOIN swatch_orders sw ON a.swatch_order_id = sw.id AND sw.is_deleted = false
         WHERE a.outsource_vendor_id IS NOT NULL
           AND a.outsource_vendor_id <> ''
           AND a.outsource_payment_amount IS NOT NULL
@@ -245,12 +249,13 @@ router.get("/vendor-ledger/:vendorId/entries", requireAuth, async (req, res) => 
           soa.outsource_payment_amount::numeric AS debit,
           0::numeric               AS credit
         FROM style_order_artworks soa
-        LEFT JOIN style_orders so ON soa.style_order_id = so.id
+        LEFT JOIN style_orders so ON soa.style_order_id = so.id AND so.is_deleted = false
         WHERE soa.outsource_vendor_id IS NOT NULL
           AND soa.outsource_vendor_id <> ''
           AND soa.outsource_payment_amount IS NOT NULL
           AND soa.outsource_payment_amount <> ''
           AND soa.outsource_vendor_id::integer = $1
+          AND soa.is_deleted = false
 
         UNION ALL
 
@@ -266,7 +271,7 @@ router.get("/vendor-ledger/:vendorId/entries", requireAuth, async (req, res) => 
           COALESCE(NULLIF(soa.toile_making_cost,''), NULLIF(soa.toile_cost,''))::numeric AS debit,
           0::numeric               AS credit
         FROM style_order_artworks soa
-        LEFT JOIN style_orders so ON soa.style_order_id = so.id
+        LEFT JOIN style_orders so ON soa.style_order_id = so.id AND so.is_deleted = false
         WHERE soa.toile_vendor_id IS NOT NULL
           AND soa.toile_vendor_id <> ''
           AND (
@@ -274,6 +279,7 @@ router.get("/vendor-ledger/:vendorId/entries", requireAuth, async (req, res) => 
             OR (soa.toile_cost IS NOT NULL AND soa.toile_cost <> '')
           )
           AND soa.toile_vendor_id::integer = $1
+          AND soa.is_deleted = false
 
         UNION ALL
 
@@ -289,12 +295,13 @@ router.get("/vendor-ledger/:vendorId/entries", requireAuth, async (req, res) => 
           soa.pattern_payment_amount::numeric AS debit,
           0::numeric                       AS credit
         FROM style_order_artworks soa
-        LEFT JOIN style_orders so ON soa.style_order_id = so.id
+        LEFT JOIN style_orders so ON soa.style_order_id = so.id AND so.is_deleted = false
         WHERE soa.pattern_vendor_id IS NOT NULL
           AND soa.pattern_vendor_id <> ''
           AND soa.pattern_payment_amount IS NOT NULL
           AND soa.pattern_payment_amount <> ''
           AND soa.pattern_vendor_id::integer = $1
+          AND soa.is_deleted = false
 
         UNION ALL
 
@@ -310,7 +317,7 @@ router.get("/vendor-ledger/:vendorId/entries", requireAuth, async (req, res) => 
           vil.vendor_invoice_amount      AS debit,
           0::numeric                     AS credit
         FROM vendor_invoice_ledger vil
-        WHERE vil.vendor_id = $1
+        WHERE vil.vendor_id = $1 AND vil.is_deleted = false
 
         UNION ALL
 
@@ -326,7 +333,7 @@ router.get("/vendor-ledger/:vendorId/entries", requireAuth, async (req, res) => 
           0::numeric         AS debit,
           vp.amount::numeric AS credit
         FROM vendor_payments vp
-        WHERE vp.vendor_id = $1
+        WHERE vp.vendor_id = $1 AND vp.is_deleted = false
 
         UNION ALL
 
@@ -355,9 +362,9 @@ router.get("/vendor-ledger/:vendorId/entries", requireAuth, async (req, res) => 
           0::numeric            AS debit,
           cp.payment_amount     AS credit
         FROM costing_payments cp
-        LEFT JOIN style_orders  so ON cp.style_order_id  = so.id
-        LEFT JOIN swatch_orders sw ON cp.swatch_order_id = sw.id
-        WHERE cp.vendor_id = $1
+        LEFT JOIN style_orders  so ON cp.style_order_id  = so.id AND so.is_deleted = false
+        LEFT JOIN swatch_orders sw ON cp.swatch_order_id = sw.id AND sw.is_deleted = false
+        WHERE cp.vendor_id = $1 AND cp.is_deleted = false
 
       ) ledger
       WHERE 1=1${dateFilter}${orderTypeFilter}
@@ -420,33 +427,33 @@ router.post("/vendor-ledger/:vendorId/pay", requireAuth, async (req, res) => {
     // cap matches what the user sees on screen.
     const balRes = await pool.query(
       `SELECT
-        COALESCE((SELECT SUM(total_cost::numeric)              FROM outsource_jobs           WHERE vendor_id = $1), 0)
-      + COALESCE((SELECT SUM(total_amount::numeric)            FROM custom_charges           WHERE vendor_id = $1), 0)
-      + COALESCE((SELECT SUM(amount::numeric)                  FROM vendor_ledger_charges    WHERE vendor_id = $1), 0)
+        COALESCE((SELECT SUM(total_cost::numeric)              FROM outsource_jobs           WHERE vendor_id = $1 AND is_deleted = false), 0)
+      + COALESCE((SELECT SUM(total_amount::numeric)            FROM custom_charges           WHERE vendor_id = $1 AND is_deleted = false), 0)
+      + COALESCE((SELECT SUM(amount::numeric)                  FROM vendor_ledger_charges    WHERE vendor_id = $1 AND is_deleted = false), 0)
       + COALESCE((SELECT SUM(outsource_payment_amount::numeric)
                     FROM artworks
                     WHERE outsource_vendor_id IS NOT NULL AND outsource_vendor_id <> ''
                       AND outsource_payment_amount IS NOT NULL AND outsource_payment_amount <> ''
-                      AND outsource_vendor_id::integer = $1), 0)
+                      AND outsource_vendor_id::integer = $1 AND is_deleted = false), 0)
       + COALESCE((SELECT SUM(outsource_payment_amount::numeric)
                     FROM style_order_artworks
                     WHERE outsource_vendor_id IS NOT NULL AND outsource_vendor_id <> ''
                       AND outsource_payment_amount IS NOT NULL AND outsource_payment_amount <> ''
-                      AND outsource_vendor_id::integer = $1), 0)
+                      AND outsource_vendor_id::integer = $1 AND is_deleted = false), 0)
       + COALESCE((SELECT SUM(COALESCE(NULLIF(toile_making_cost,''), NULLIF(toile_cost,''))::numeric)
                     FROM style_order_artworks
                     WHERE toile_vendor_id IS NOT NULL AND toile_vendor_id <> ''
                       AND ((toile_making_cost IS NOT NULL AND toile_making_cost <> '')
                            OR (toile_cost IS NOT NULL AND toile_cost <> ''))
-                      AND toile_vendor_id::integer = $1), 0)
+                      AND toile_vendor_id::integer = $1 AND is_deleted = false), 0)
       + COALESCE((SELECT SUM(pattern_payment_amount::numeric)
                     FROM style_order_artworks
                     WHERE pattern_vendor_id IS NOT NULL AND pattern_vendor_id <> ''
                       AND pattern_payment_amount IS NOT NULL AND pattern_payment_amount <> ''
-                      AND pattern_vendor_id::integer = $1), 0)
-      + COALESCE((SELECT SUM(vendor_invoice_amount::numeric)   FROM vendor_invoice_ledger    WHERE vendor_id = $1), 0)
-      - COALESCE((SELECT SUM(amount::numeric)                  FROM vendor_payments          WHERE vendor_id = $1), 0)
-      - COALESCE((SELECT SUM(payment_amount::numeric)          FROM costing_payments         WHERE vendor_id = $1), 0)
+                      AND pattern_vendor_id::integer = $1 AND is_deleted = false), 0)
+      + COALESCE((SELECT SUM(vendor_invoice_amount::numeric)   FROM vendor_invoice_ledger    WHERE vendor_id = $1 AND is_deleted = false), 0)
+      - COALESCE((SELECT SUM(amount::numeric)                  FROM vendor_payments          WHERE vendor_id = $1 AND is_deleted = false), 0)
+      - COALESCE((SELECT SUM(payment_amount::numeric)          FROM costing_payments         WHERE vendor_id = $1 AND is_deleted = false), 0)
         AS outstanding`,
       [vendorId]
     );
@@ -530,7 +537,11 @@ router.post("/vendor-ledger/:vendorId/charge", requireAuth, async (req, res) => 
 router.delete("/vendor-ledger/payments/:id", requireAuth, async (req, res) => {
   try {
     const id = parseInt(String(req.params.id));
-    await db.delete(vendorPaymentsTable).where(eq(vendorPaymentsTable.id, id));
+    const [row] = await db.update(vendorPaymentsTable)
+      .set({ isDeleted: true })
+      .where(and(eq(vendorPaymentsTable.id, id), eq(vendorPaymentsTable.isDeleted, false)))
+      .returning();
+    if (!row) return res.status(404).json({ error: "Not found" });
     return res.json({ success: true });
   } catch (err) {
     return res.status(500).json({ error: "Failed to delete payment" });
@@ -540,7 +551,11 @@ router.delete("/vendor-ledger/payments/:id", requireAuth, async (req, res) => {
 router.delete("/vendor-ledger/charges/:id", requireAuth, async (req, res) => {
   try {
     const id = parseInt(String(req.params.id));
-    await db.delete(vendorLedgerChargesTable).where(eq(vendorLedgerChargesTable.id, id));
+    const [row] = await db.update(vendorLedgerChargesTable)
+      .set({ isDeleted: true })
+      .where(and(eq(vendorLedgerChargesTable.id, id), eq(vendorLedgerChargesTable.isDeleted, false)))
+      .returning();
+    if (!row) return res.status(404).json({ error: "Not found" });
     return res.json({ success: true });
   } catch (err) {
     return res.status(500).json({ error: "Failed to delete charge" });

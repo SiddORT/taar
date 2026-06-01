@@ -6,12 +6,14 @@ export const rolesTable = pgTable("roles", {
   description: text("description"),
   isSystem: boolean("is_system").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  isDeleted: boolean("is_deleted").notNull().default(false),
 });
 
 export const rolePermissionsTable = pgTable("role_permissions", {
   id: serial("id").primaryKey(),
   roleId: integer("role_id").notNull().references(() => rolesTable.id, { onDelete: "cascade" }),
   permission: text("permission").notNull(),
+  isDeleted: boolean("is_deleted").notNull().default(false),
 });
 
 export type Role = typeof rolesTable.$inferSelect;

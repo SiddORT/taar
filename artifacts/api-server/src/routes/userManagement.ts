@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import crypto from "crypto";
 import { db, usersTable, rolesTable, rolePermissionsTable } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
@@ -276,7 +276,7 @@ export const ALL_PERMISSIONS = [
 const requireAdmin = requireAuth;
 
 async function seedSystemRoles() {
-  const existing = await db.select().from(rolesTable);
+  const existing = await db.select().from(rolesTable).where(eq(rolesTable.isDeleted, false));
 
   if (existing.length === 0) {
     /* ── First boot: create admin + user roles ─────────── */
@@ -296,7 +296,7 @@ async function seedSystemRoles() {
       const existingPerms = await db
         .select({ permission: rolePermissionsTable.permission })
         .from(rolePermissionsTable)
-        .where(eq(rolePermissionsTable.roleId, adminRole.id));
+        .where(and(eq(rolePermissionsTable.roleId, adminRole.id), eq(rolePermissionsTable.isDeleted, false)));
       const existingKeys = new Set(existingPerms.map(p => p.permission));
       const missing = ALL_PERMISSIONS.filter(p => !existingKeys.has(p.key));
       if (missing.length > 0) {
@@ -328,6 +328,7 @@ router.get("/user-management/users", requireAdmin, async (_req, res): Promise<vo
       createdAt: usersTable.createdAt,
     })
     .from(usersTable)
+    .where(eq(usersTable.isDeleted, false))
     .orderBy(usersTable.createdAt);
   res.json({ data: users });
 });
@@ -382,7 +383,7 @@ router.put("/user-management/users/:id", requireAdmin, async (req, res): Promise
   const id = parseInt(String(req.params.id));
   const { username, email, role, isActive } = req.body as { username?: string; email?: string; role?: string; isActive?: boolean };
 
-  const [target] = await db.select({ email: usersTable.email }).from(usersTable).where(eq(usersTable.id, id));
+  const [target] = await db.select({ email: usersTable.email }).from(usersTable).where(and(eq(usersTable.id, id), eq(usersTable.isDeleted, false)));
   if (target?.email === SUPERUSER_EMAIL) {
     res.status(403).json({ error: "The superuser account cannot be modified" }); return;
   }
@@ -425,11 +426,11 @@ router.delete("/user-management/users/:id", requireAdmin, async (req, res): Prom
     res.status(400).json({ error: "Cannot delete your own account" });
     return;
   }
-  const [target] = await db.select({ email: usersTable.email }).from(usersTable).where(eq(usersTable.id, id));
+  const [target] = await db.select({ email: usersTable.email }).from(usersTable).where(and(eq(usersTable.id, id), eq(usersTable.isDeleted, false)));
   if (target?.email === SUPERUSER_EMAIL) {
     res.status(403).json({ error: "The superuser account cannot be deleted" }); return;
   }
-  await db.delete(usersTable).where(eq(usersTable.id, id));
+  await db.update(usersTable).set({ isDeleted: true }).where(and(eq(usersTable.id, id), eq(usersTable.isDeleted, false)));
   res.json({ message: "User deleted" });
 });
 
@@ -488,8 +489,8 @@ router.post("/user-management/users/:id/send-reset", requireAdmin, async (req, r
 });
 
 router.get("/user-management/roles", requireAdmin, async (_req, res): Promise<void> => {
-  const roles = await db.select().from(rolesTable).orderBy(rolesTable.createdAt);
-  const perms = await db.select().from(rolePermissionsTable);
+  const roles = await db.select().from(rolesTable).where(eq(rolesTable.isDeleted, false)).orderBy(rolesTable.createdAt);
+  const perms = await db.select().from(rolePermissionsTable).where(eq(rolePermissionsTable.isDeleted, false));
   const data = roles.map(r => ({
     ...r,
     permissions: perms.filter(p => p.roleId === r.id).map(p => p.permission),
@@ -512,7 +513,7 @@ router.put("/user-management/roles/:id", requireAdmin, async (req, res): Promise
   const id = parseInt(String(req.params.id));
   const { name, description } = req.body as { name?: string; description?: string };
 
-  const [existing] = await db.select().from(rolesTable).where(eq(rolesTable.id, id));
+  const [existing] = await db.select().from(rolesTable).where(and(eq(rolesTable.id, id), eq(rolesTable.isDeleted, false)));
   if (!existing) { res.status(404).json({ error: "Role not found" }); return; }
   if (existing.isSystem && name && name !== existing.name) {
     res.status(400).json({ error: "Cannot rename a system role" }); return;
@@ -523,16 +524,17 @@ router.put("/user-management/roles/:id", requireAdmin, async (req, res): Promise
   if (description !== undefined) updates.description = description;
 
   const [role] = await db.update(rolesTable).set(updates).where(eq(rolesTable.id, id)).returning();
-  const perms = await db.select().from(rolePermissionsTable).where(eq(rolePermissionsTable.roleId, id));
+  const perms = await db.select().from(rolePermissionsTable).where(and(eq(rolePermissionsTable.roleId, id), eq(rolePermissionsTable.isDeleted, false)));
   res.json({ data: { ...role, permissions: perms.map(p => p.permission) } });
 });
 
 router.delete("/user-management/roles/:id", requireAdmin, async (req, res): Promise<void> => {
   const id = parseInt(String(req.params.id));
-  const [role] = await db.select().from(rolesTable).where(eq(rolesTable.id, id));
+  const [role] = await db.select().from(rolesTable).where(and(eq(rolesTable.id, id), eq(rolesTable.isDeleted, false)));
   if (!role) { res.status(404).json({ error: "Role not found" }); return; }
   if (role.isSystem) { res.status(400).json({ error: "Cannot delete a system role" }); return; }
-  await db.delete(rolesTable).where(eq(rolesTable.id, id));
+  await db.update(rolesTable).set({ isDeleted: true }).where(and(eq(rolesTable.id, id), eq(rolesTable.isDeleted, false)));
+  await db.update(rolePermissionsTable).set({ isDeleted: true }).where(eq(rolePermissionsTable.roleId, id));
   res.json({ message: "Role deleted" });
 });
 
@@ -544,12 +546,12 @@ router.put("/user-management/roles/:id/permissions", requireAdmin, async (req, r
   const validKeys = new Set(ALL_PERMISSIONS.map(p => p.key));
   const filtered = permissions.filter(p => validKeys.has(p));
 
-  await db.delete(rolePermissionsTable).where(eq(rolePermissionsTable.roleId, id));
+  await db.update(rolePermissionsTable).set({ isDeleted: true }).where(eq(rolePermissionsTable.roleId, id));
   if (filtered.length > 0) {
     await db.insert(rolePermissionsTable).values(filtered.map(p => ({ roleId: id, permission: p })));
   }
 
-  const [role] = await db.select().from(rolesTable).where(eq(rolesTable.id, id));
+  const [role] = await db.select().from(rolesTable).where(and(eq(rolesTable.id, id), eq(rolesTable.isDeleted, false)));
   res.json({ data: { ...role, permissions: filtered } });
 });
 

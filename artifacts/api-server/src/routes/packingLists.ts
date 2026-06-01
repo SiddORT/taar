@@ -28,12 +28,12 @@ async function nextPLNumber(): Promise<string> {
 router.get("/delivery-addresses", requireAuth, async (req, res) => {
   try {
     const { client_id } = req.query;
-    const where = client_id ? "WHERE da.client_id = $1" : "";
+    const where = client_id ? "WHERE da.is_deleted = false AND da.client_id = $1" : "WHERE da.is_deleted = false";
     const params = client_id ? [client_id] : [];
     const r = await pool.query(
       `SELECT da.*, c.brand_name AS client_name
        FROM delivery_addresses da
-       JOIN clients c ON c.id = da.client_id
+       JOIN clients c ON c.id = da.client_id AND c.is_deleted = false
        ${where}
        ORDER BY da.is_default DESC, da.label`,
       params
@@ -73,7 +73,7 @@ router.post("/delivery-addresses", requireAuth, async (req, res) => {
 router.put("/delivery-addresses/:id", requireAuth, async (req, res) => {
   try {
     const { label, address_line1, address_line2, city, state, country, pincode, is_default } = req.body;
-    const existing = await pool.query(`SELECT * FROM delivery_addresses WHERE id = $1`, [req.params.id]);
+    const existing = await pool.query(`SELECT * FROM delivery_addresses WHERE id = $1 AND is_deleted = false`, [req.params.id]);
     if (!existing.rows.length) return res.status(404).json({ error: "Not found" });
     // Mirror POST validation for any field actually being changed.
     const lettersOnly = /^[A-Za-z][A-Za-z\s.\-']{0,99}$/;
@@ -114,9 +114,10 @@ router.put("/delivery-addresses/:id", requireAuth, async (req, res) => {
 
 router.delete("/delivery-addresses/:id", requireAuth, async (req, res) => {
   try {
-    const inUse = await pool.query(`SELECT id FROM packing_lists WHERE delivery_address_id = $1 LIMIT 1`, [req.params.id]);
+    const inUse = await pool.query(`SELECT id FROM packing_lists WHERE delivery_address_id = $1 AND is_deleted = false LIMIT 1`, [req.params.id]);
     if (inUse.rows.length) return res.status(400).json({ error: "Address is used by a packing list and cannot be deleted" });
-    await pool.query(`DELETE FROM delivery_addresses WHERE id = $1`, [req.params.id]);
+    const { rowCount } = await pool.query(`UPDATE delivery_addresses SET is_deleted = true, updated_at = NOW() WHERE id = $1 AND is_deleted = false`, [req.params.id]);
+    if (rowCount === 0) return res.status(404).json({ error: "Not found" });
     return res.json({ success: true });
   } catch (e) { return err(res, e, "Failed to delete delivery address"); }
 });
@@ -165,7 +166,7 @@ router.get("/eligible-orders-for-packing", requireAuth, async (req, res) => {
 router.get("/packing-lists", requireAuth, async (req, res) => {
   try {
     const { client_id, shipment_id, status, page = "1", limit = "25" } = req.query;
-    const conditions: string[] = [];
+    const conditions: string[] = ["pl.is_deleted = false"];
     const params: unknown[] = [];
     let p = 1;
 
@@ -185,16 +186,16 @@ router.get("/packing-lists", requireAuth, async (req, res) => {
                 osd.tracking_number AS shipment_tracking,
                 osd.shipment_status AS shipment_status_val,
                 osd.shipment_date,
-                (SELECT COUNT(*) FROM packing_packages pp WHERE pp.packing_list_id = pl.id) AS total_packages,
-                (SELECT COALESCE(SUM(pp.net_weight),0)   FROM packing_packages pp WHERE pp.packing_list_id = pl.id) AS total_net_weight,
-                (SELECT COALESCE(SUM(pp.gross_weight),0) FROM packing_packages pp WHERE pp.packing_list_id = pl.id) AS total_gross_weight,
+                (SELECT COUNT(*) FROM packing_packages pp WHERE pp.packing_list_id = pl.id AND pp.is_deleted = false) AS total_packages,
+                (SELECT COALESCE(SUM(pp.net_weight),0)   FROM packing_packages pp WHERE pp.packing_list_id = pl.id AND pp.is_deleted = false) AS total_net_weight,
+                (SELECT COALESCE(SUM(pp.gross_weight),0) FROM packing_packages pp WHERE pp.packing_list_id = pl.id AND pp.is_deleted = false) AS total_gross_weight,
                 (SELECT COUNT(*) FROM packing_packages pp
-                   JOIN packing_package_items ppi ON ppi.package_id = pp.id
-                   WHERE pp.packing_list_id = pl.id) AS total_items
+                   JOIN packing_package_items ppi ON ppi.package_id = pp.id AND ppi.is_deleted = false
+                   WHERE pp.packing_list_id = pl.id AND pp.is_deleted = false) AS total_items
          FROM packing_lists pl
-         JOIN clients c ON c.id = pl.client_id
-         LEFT JOIN delivery_addresses da ON da.id = pl.delivery_address_id
-         LEFT JOIN order_shipping_details osd ON osd.id = pl.shipment_id
+         JOIN clients c ON c.id = pl.client_id AND c.is_deleted = false
+         LEFT JOIN delivery_addresses da ON da.id = pl.delivery_address_id AND da.is_deleted = false
+         LEFT JOIN order_shipping_details osd ON osd.id = pl.shipment_id AND osd.is_deleted = false
          ${where}
          ORDER BY pl.created_at DESC
          LIMIT $${p} OFFSET $${p + 1}`,
@@ -219,11 +220,11 @@ router.get("/packing-lists/:id", requireAuth, async (req, res) => {
               osd.shipment_date, osd.shipment_status AS shipment_status_val,
               sv.vendor_name AS shipping_vendor_name
        FROM packing_lists pl
-       JOIN clients c ON c.id = pl.client_id
-       LEFT JOIN delivery_addresses da ON da.id = pl.delivery_address_id
-       LEFT JOIN order_shipping_details osd ON osd.id = pl.shipment_id
-       LEFT JOIN shipping_vendors sv ON sv.id = osd.shipping_vendor_id
-       WHERE pl.id = $1`,
+       JOIN clients c ON c.id = pl.client_id AND c.is_deleted = false
+       LEFT JOIN delivery_addresses da ON da.id = pl.delivery_address_id AND da.is_deleted = false
+       LEFT JOIN order_shipping_details osd ON osd.id = pl.shipment_id AND osd.is_deleted = false
+       LEFT JOIN shipping_vendors sv ON sv.id = osd.shipping_vendor_id AND sv.is_deleted = false
+       WHERE pl.id = $1 AND pl.is_deleted = false`,
       [req.params.id]
     );
     if (!r.rows.length) return res.status(404).json({ error: "Packing list not found" });
@@ -231,9 +232,9 @@ router.get("/packing-lists/:id", requireAuth, async (req, res) => {
     // Load packages with their items
     const pkgs = await pool.query(
       `SELECT pp.*,
-              (SELECT COUNT(*) FROM packing_package_items ppi WHERE ppi.package_id = pp.id) AS item_count
+              (SELECT COUNT(*) FROM packing_package_items ppi WHERE ppi.package_id = pp.id AND ppi.is_deleted = false) AS item_count
        FROM packing_packages pp
-       WHERE pp.packing_list_id = $1
+       WHERE pp.packing_list_id = $1 AND pp.is_deleted = false
        ORDER BY pp.package_number`,
       [req.params.id]
     );
@@ -241,7 +242,7 @@ router.get("/packing-lists/:id", requireAuth, async (req, res) => {
     const packagesWithItems: any[] = [];
     for (const pkg of pkgs.rows) {
       const items = await pool.query(
-        `SELECT * FROM packing_package_items WHERE package_id = $1 ORDER BY id`,
+        `SELECT * FROM packing_package_items WHERE package_id = $1 AND is_deleted = false ORDER BY id`,
         [pkg.id]
       );
       packagesWithItems.push({ ...pkg, items: items.rows });
@@ -361,7 +362,7 @@ router.post("/packing-lists", requireAuth, async (req: AuthRequest, res) => {
     }
 
     const addrCheck = await pool.query(
-      `SELECT id FROM delivery_addresses WHERE id = $1 AND client_id = $2`,
+      `SELECT id FROM delivery_addresses WHERE id = $1 AND client_id = $2 AND is_deleted = false`,
       [delivery_address_id, client_id]
     );
     if (!addrCheck.rows.length)
@@ -371,7 +372,7 @@ router.post("/packing-lists", requireAuth, async (req: AuthRequest, res) => {
     for (const pkg of packages) {
       for (const item of (pkg.items ?? [])) {
         const tbl = item.order_type === "Swatch" ? "swatch_orders" : "style_orders";
-        const chk = await pool.query(`SELECT order_status FROM ${tbl} WHERE id = $1`, [item.order_id]);
+        const chk = await pool.query(`SELECT order_status FROM ${tbl} WHERE id = $1 AND is_deleted = false`, [item.order_id]);
         if (chk.rows[0]?.order_status === "Shipped")
           return res.status(400).json({ error: `Order ${item.order_code ?? item.order_id} is already shipped and cannot be packed` });
       }
@@ -414,7 +415,7 @@ router.post("/packing-lists", requireAuth, async (req: AuthRequest, res) => {
 // PUT /api/packing-lists/:id  (header + packages full replace)
 router.put("/packing-lists/:id", requireAuth, async (req, res) => {
   try {
-    const existing = await pool.query(`SELECT * FROM packing_lists WHERE id = $1`, [req.params.id]);
+    const existing = await pool.query(`SELECT * FROM packing_lists WHERE id = $1 AND is_deleted = false`, [req.params.id]);
     if (!existing.rows.length) return res.status(404).json({ error: "Not found" });
     const ex = existing.rows[0];
 
@@ -422,7 +423,7 @@ router.put("/packing-lists/:id", requireAuth, async (req, res) => {
 
     if (delivery_address_id && delivery_address_id !== ex.delivery_address_id) {
       const addrCheck = await pool.query(
-        `SELECT id FROM delivery_addresses WHERE id = $1 AND client_id = $2`,
+        `SELECT id FROM delivery_addresses WHERE id = $1 AND client_id = $2 AND is_deleted = false`,
         [delivery_address_id, ex.client_id]
       );
       if (!addrCheck.rows.length)
@@ -462,8 +463,9 @@ router.put("/packing-lists/:id", requireAuth, async (req, res) => {
       // Before deleting, restore stock for any inventory items being replaced
       const oldItems = await pool.query(
         `SELECT ppi.* FROM packing_package_items ppi
-         JOIN packing_packages pp ON pp.id = ppi.package_id
+         JOIN packing_packages pp ON pp.id = ppi.package_id AND pp.is_deleted = false
          WHERE pp.packing_list_id = $1
+           AND ppi.is_deleted = false
            AND ppi.item_source IN ('material','fabric')
            AND ppi.stock_deducted > 0`,
         [req.params.id]
@@ -486,8 +488,13 @@ router.put("/packing-lists/:id", requireAuth, async (req, res) => {
         }
       }
 
-      // Delete all existing packages (cascades to items via FK)
-      await pool.query(`DELETE FROM packing_packages WHERE packing_list_id = $1`, [req.params.id]);
+      // Soft-delete all existing packages and their items (clean replace)
+      await pool.query(
+        `UPDATE packing_package_items SET is_deleted = true
+         WHERE package_id IN (SELECT id FROM packing_packages WHERE packing_list_id = $1 AND is_deleted = false)`,
+        [req.params.id]
+      );
+      await pool.query(`UPDATE packing_packages SET is_deleted = true WHERE packing_list_id = $1`, [req.params.id]);
 
       for (let i = 0; i < packages.length; i++) {
         const pkg = packages[i];
@@ -511,9 +518,19 @@ router.put("/packing-lists/:id", requireAuth, async (req, res) => {
 // DELETE /api/packing-lists/:id
 router.delete("/packing-lists/:id", requireAuth, async (req, res) => {
   try {
-    // Cascade via FK: packing_packages → packing_package_items
-    await pool.query(`DELETE FROM packing_list_items WHERE packing_list_id = $1`, [req.params.id]);
-    await pool.query(`DELETE FROM packing_lists WHERE id = $1`, [req.params.id]);
+    const { rowCount } = await pool.query(
+      `UPDATE packing_lists SET is_deleted = true, updated_at = NOW() WHERE id = $1 AND is_deleted = false`,
+      [req.params.id]
+    );
+    if (rowCount === 0) return res.status(404).json({ error: "Not found" });
+    // Soft-delete children (legacy list items, packages, and package items)
+    await pool.query(`UPDATE packing_list_items SET is_deleted = true WHERE packing_list_id = $1`, [req.params.id]);
+    await pool.query(
+      `UPDATE packing_package_items SET is_deleted = true
+       WHERE package_id IN (SELECT id FROM packing_packages WHERE packing_list_id = $1)`,
+      [req.params.id]
+    );
+    await pool.query(`UPDATE packing_packages SET is_deleted = true WHERE packing_list_id = $1`, [req.params.id]);
     return res.json({ success: true });
   } catch (e) { return err(res, e, "Failed to delete packing list"); }
 });
@@ -525,7 +542,7 @@ router.delete("/packing-lists/:id", requireAuth, async (req, res) => {
 // POST /api/packing-lists/:id/packages
 router.post("/packing-lists/:id/packages", requireAuth, async (req, res) => {
   try {
-    const pl = await pool.query(`SELECT * FROM packing_lists WHERE id = $1`, [req.params.id]);
+    const pl = await pool.query(`SELECT * FROM packing_lists WHERE id = $1 AND is_deleted = false`, [req.params.id]);
     if (!pl.rows.length) return res.status(404).json({ error: "Packing list not found" });
 
     const { length, width, height, net_weight, gross_weight, shipment_id } = req.body;
@@ -555,14 +572,14 @@ router.put("/packing-lists/:id/packages/:pkgId", requireAuth, async (req, res) =
          length = COALESCE($1, length), width = COALESCE($2, width), height = COALESCE($3, height),
          net_weight = COALESCE($4, net_weight), gross_weight = COALESCE($5, gross_weight),
          shipment_id = COALESCE($6, shipment_id)
-       WHERE id = $7 AND packing_list_id = $8 RETURNING *`,
+       WHERE id = $7 AND packing_list_id = $8 AND is_deleted = false RETURNING *`,
       [length ?? null, width ?? null, height ?? null, net_weight ?? null, gross_weight ?? null,
        shipment_id ?? null, req.params.pkgId, req.params.id]
     );
     if (!r.rows.length) return res.status(404).json({ error: "Package not found" });
 
     // Return with items
-    const items = await pool.query(`SELECT * FROM packing_package_items WHERE package_id = $1 ORDER BY id`, [req.params.pkgId]);
+    const items = await pool.query(`SELECT * FROM packing_package_items WHERE package_id = $1 AND is_deleted = false ORDER BY id`, [req.params.pkgId]);
     return res.json({ data: { ...r.rows[0], items: items.rows } });
   } catch (e) { return err(res, e, "Failed to update package"); }
 });
@@ -570,7 +587,12 @@ router.put("/packing-lists/:id/packages/:pkgId", requireAuth, async (req, res) =
 // DELETE /api/packing-lists/:id/packages/:pkgId
 router.delete("/packing-lists/:id/packages/:pkgId", requireAuth, async (req, res) => {
   try {
-    await pool.query(`DELETE FROM packing_packages WHERE id = $1 AND packing_list_id = $2`, [req.params.pkgId, req.params.id]);
+    const { rowCount } = await pool.query(
+      `UPDATE packing_packages SET is_deleted = true WHERE id = $1 AND packing_list_id = $2 AND is_deleted = false`,
+      [req.params.pkgId, req.params.id]
+    );
+    if (rowCount === 0) return res.status(404).json({ error: "Package not found" });
+    await pool.query(`UPDATE packing_package_items SET is_deleted = true WHERE package_id = $1`, [req.params.pkgId]);
     return res.json({ success: true });
   } catch (e) { return err(res, e, "Failed to delete package"); }
 });
@@ -620,8 +642,8 @@ router.post("/packing-lists/:id/packages/:pkgId/items", requireAuth, async (req,
   try {
     const pkg = await pool.query(
       `SELECT pp.*, pl.client_id, pl.delivery_address_id FROM packing_packages pp
-       JOIN packing_lists pl ON pl.id = pp.packing_list_id
-       WHERE pp.id = $1 AND pp.packing_list_id = $2`,
+       JOIN packing_lists pl ON pl.id = pp.packing_list_id AND pl.is_deleted = false
+       WHERE pp.id = $1 AND pp.packing_list_id = $2 AND pp.is_deleted = false`,
       [req.params.pkgId, req.params.id]
     );
     if (!pkg.rows.length) return res.status(404).json({ error: "Package not found" });
@@ -639,21 +661,21 @@ router.post("/packing-lists/:id/packages/:pkgId/items", requireAuth, async (req,
 
       const dup = await pool.query(
         `SELECT ppi.id FROM packing_package_items ppi
-         JOIN packing_packages pp ON pp.id = ppi.package_id
-         WHERE pp.packing_list_id = $1 AND ppi.order_type = $2 AND ppi.order_id = $3`,
+         JOIN packing_packages pp ON pp.id = ppi.package_id AND pp.is_deleted = false
+         WHERE pp.packing_list_id = $1 AND ppi.is_deleted = false AND ppi.order_type = $2 AND ppi.order_id = $3`,
         [req.params.id, order_type, order_id]
       );
       if (dup.rows.length)
         return res.status(400).json({ error: "This order is already packed in another package of this packing list" });
 
       const tbl = order_type === "Swatch" ? "swatch_orders" : "style_orders";
-      const orderRow = await pool.query(`SELECT order_status FROM ${tbl} WHERE id = $1`, [order_id]);
+      const orderRow = await pool.query(`SELECT order_status FROM ${tbl} WHERE id = $1 AND is_deleted = false`, [order_id]);
       if (orderRow.rows[0]?.order_status === "Shipped")
         return res.status(400).json({ error: "Cannot add a shipped order to a packing list" });
 
       if (delivery_address_id) {
         const chk = await pool.query(
-          `SELECT id FROM ${tbl} WHERE id = $1 AND client_id::text = $2::text AND delivery_address_id = $3`,
+          `SELECT id FROM ${tbl} WHERE id = $1 AND client_id::text = $2::text AND delivery_address_id = $3 AND is_deleted = false`,
           [order_id, client_id, delivery_address_id]
         );
         if (!chk.rows.length)
@@ -754,7 +776,7 @@ router.patch("/packing-lists/:id/packages/:pkgId/items/:itemId", requireAuth, as
          unit        = COALESCE($2, unit),
          item_weight = COALESCE($3, item_weight),
          description = COALESCE($4, description)
-       WHERE id = $5 AND package_id = $6 RETURNING *`,
+       WHERE id = $5 AND package_id = $6 AND is_deleted = false RETURNING *`,
       [quantity ?? null, unit ?? null, item_weight ?? null, description ?? null, req.params.itemId, req.params.pkgId]
     );
     if (!r.rows.length) return res.status(404).json({ error: "Item not found" });
@@ -766,7 +788,7 @@ router.patch("/packing-lists/:id/packages/:pkgId/items/:itemId", requireAuth, as
 router.delete("/packing-lists/:id/packages/:pkgId/items/:itemId", requireAuth, async (req, res) => {
   try {
     const itemRes = await pool.query(
-      `SELECT * FROM packing_package_items WHERE id = $1 AND package_id = $2`,
+      `SELECT * FROM packing_package_items WHERE id = $1 AND package_id = $2 AND is_deleted = false`,
       [req.params.itemId, req.params.pkgId]
     );
     if (!itemRes.rows.length) return res.status(404).json({ error: "Item not found" });
@@ -798,7 +820,7 @@ router.delete("/packing-lists/:id/packages/:pkgId/items/:itemId", requireAuth, a
       }
     }
 
-    await pool.query(`DELETE FROM packing_package_items WHERE id = $1 AND package_id = $2`, [req.params.itemId, req.params.pkgId]);
+    await pool.query(`UPDATE packing_package_items SET is_deleted = true WHERE id = $1 AND package_id = $2`, [req.params.itemId, req.params.pkgId]);
     return res.json({ success: true });
   } catch (e) { return err(res, e, "Failed to remove item from package"); }
 });
@@ -855,7 +877,7 @@ router.post(
     try {
       if (!req.file) return res.status(400).json({ error: "No file uploaded" });
 
-      const old = await pool.query(`SELECT item_image_url FROM packing_package_items WHERE id = $1 AND package_id = $2`, [req.params.itemId, req.params.pkgId]);
+      const old = await pool.query(`SELECT item_image_url FROM packing_package_items WHERE id = $1 AND package_id = $2 AND is_deleted = false`, [req.params.itemId, req.params.pkgId]);
       if (old.rows[0]?.item_image_url) {
         await deleteUpload(old.rows[0].item_image_url);
       }
@@ -867,7 +889,7 @@ router.post(
       });
 
       const r = await pool.query(
-        `UPDATE packing_package_items SET item_image_url = $1 WHERE id = $2 AND package_id = $3 RETURNING *`,
+        `UPDATE packing_package_items SET item_image_url = $1 WHERE id = $2 AND package_id = $3 AND is_deleted = false RETURNING *`,
         [imageUrl, req.params.itemId, req.params.pkgId]
       );
       if (!r.rows.length) return res.status(404).json({ error: "Item not found" });
@@ -878,12 +900,12 @@ router.post(
 
 router.delete("/packing-lists/:id/packages/:pkgId/items/:itemId/image", requireAuth, async (req, res) => {
   try {
-    const old = await pool.query(`SELECT item_image_url FROM packing_package_items WHERE id = $1 AND package_id = $2`, [req.params.itemId, req.params.pkgId]);
+    const old = await pool.query(`SELECT item_image_url FROM packing_package_items WHERE id = $1 AND package_id = $2 AND is_deleted = false`, [req.params.itemId, req.params.pkgId]);
     if (old.rows[0]?.item_image_url) {
       await deleteUpload(old.rows[0].item_image_url);
     }
     const r = await pool.query(
-      `UPDATE packing_package_items SET item_image_url = NULL WHERE id = $1 AND package_id = $2 RETURNING *`,
+      `UPDATE packing_package_items SET item_image_url = NULL WHERE id = $1 AND package_id = $2 AND is_deleted = false RETURNING *`,
       [req.params.itemId, req.params.pkgId]
     );
     if (!r.rows.length) return res.status(404).json({ error: "Item not found" });
@@ -897,15 +919,15 @@ router.delete("/packing-lists/:id/packages/:pkgId/items/:itemId/image", requireA
 
 router.get("/packing-lists/:id/eligible-orders", requireAuth, async (req, res) => {
   try {
-    const pl = await pool.query(`SELECT * FROM packing_lists WHERE id = $1`, [req.params.id]);
+    const pl = await pool.query(`SELECT * FROM packing_lists WHERE id = $1 AND is_deleted = false`, [req.params.id]);
     if (!pl.rows.length) return res.status(404).json({ error: "Not found" });
     const { client_id, delivery_address_id } = pl.rows[0];
 
     // Already packed in this packing list
     const packed = await pool.query(
       `SELECT ppi.order_type, ppi.order_id FROM packing_package_items ppi
-       JOIN packing_packages pp ON pp.id = ppi.package_id
-       WHERE pp.packing_list_id = $1`,
+       JOIN packing_packages pp ON pp.id = ppi.package_id AND pp.is_deleted = false
+       WHERE pp.packing_list_id = $1 AND ppi.is_deleted = false`,
       [req.params.id]
     );
     const packedSwatch = new Set(packed.rows.filter(r => r.order_type === "Swatch").map(r => r.order_id));
@@ -954,17 +976,17 @@ router.get("/packing-lists/:id/pdf-html", requireAuth, async (req, res) => {
               da.city, da.state, da.country AS addr_country, da.pincode AS addr_pincode,
               osd.tracking_number AS shipment_tracking, osd.shipment_date
        FROM packing_lists pl
-       JOIN clients c ON c.id = pl.client_id
-       LEFT JOIN delivery_addresses da ON da.id = pl.delivery_address_id
-       LEFT JOIN order_shipping_details osd ON osd.id = pl.shipment_id
-       WHERE pl.id = $1`,
+       JOIN clients c ON c.id = pl.client_id AND c.is_deleted = false
+       LEFT JOIN delivery_addresses da ON da.id = pl.delivery_address_id AND da.is_deleted = false
+       LEFT JOIN order_shipping_details osd ON osd.id = pl.shipment_id AND osd.is_deleted = false
+       WHERE pl.id = $1 AND pl.is_deleted = false`,
       [req.params.id]
     );
     if (!r.rows.length) return res.status(404).json({ error: "Packing list not found" });
     const pl = r.rows[0];
 
     const pkgs = await pool.query(
-      `SELECT * FROM packing_packages WHERE packing_list_id = $1 ORDER BY package_number`,
+      `SELECT * FROM packing_packages WHERE packing_list_id = $1 AND is_deleted = false ORDER BY package_number`,
       [req.params.id]
     );
 
@@ -978,7 +1000,7 @@ router.get("/packing-lists/:id/pdf-html", requireAuth, async (req, res) => {
       totalGrossWeight += parseFloat(pkg.gross_weight ?? 0);
 
       const items = await pool.query(
-        `SELECT * FROM packing_package_items WHERE package_id = $1 ORDER BY id`,
+        `SELECT * FROM packing_package_items WHERE package_id = $1 AND is_deleted = false ORDER BY id`,
         [pkg.id]
       );
       totalItems += items.rows.length;

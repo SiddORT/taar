@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { eq, asc, desc } from "drizzle-orm";
+import { eq, and, asc, desc } from "drizzle-orm";
 import { randomBytes } from "crypto";
 import { db, clientLinksTable, clientFeedbackTable, clientMessagesTable, artworksTable, swatchOrdersTable, styleOrdersTable } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
@@ -13,7 +13,7 @@ router.get("/client-links/swatch/:swatchOrderId", requireAuth, async (req, res):
   const id = parseInt(String(req.params.swatchOrderId));
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
 
-  let [link] = await db.select().from(clientLinksTable).where(eq(clientLinksTable.swatchOrderId, id));
+  let [link] = await db.select().from(clientLinksTable).where(and(eq(clientLinksTable.swatchOrderId, id), eq(clientLinksTable.isDeleted, false)));
   if (!link) {
     const token = randomBytes(16).toString("hex");
     const [created] = await db.insert(clientLinksTable).values({ swatchOrderId: id, token }).returning();
@@ -26,7 +26,7 @@ router.get("/client-links/style/:styleOrderId", requireAuth, async (req, res): P
   const id = parseInt(String(req.params.styleOrderId));
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
 
-  let [link] = await db.select().from(clientLinksTable).where(eq(clientLinksTable.styleOrderId, id));
+  let [link] = await db.select().from(clientLinksTable).where(and(eq(clientLinksTable.styleOrderId, id), eq(clientLinksTable.isDeleted, false)));
   if (!link) {
     const token = randomBytes(16).toString("hex");
     const [created] = await db.insert(clientLinksTable).values({ styleOrderId: id, token }).returning();
@@ -64,7 +64,7 @@ router.patch("/client-links/:id", requireAuth, async (req, res): Promise<void> =
   if (isPublished && updated.swatchOrderId) {
     try {
       const [order] = await db.select({ id: swatchOrdersTable.id, orderStatus: swatchOrdersTable.orderStatus })
-        .from(swatchOrdersTable).where(eq(swatchOrdersTable.id, updated.swatchOrderId));
+        .from(swatchOrdersTable).where(and(eq(swatchOrdersTable.id, updated.swatchOrderId), eq(swatchOrdersTable.isDeleted, false)));
       if (order && SWATCH_PRE_APPROVAL_STATUSES.includes(order.orderStatus)) {
         await db.update(swatchOrdersTable).set({ orderStatus: "Pending Approval", updatedAt: new Date() })
           .where(eq(swatchOrdersTable.id, updated.swatchOrderId));
@@ -74,7 +74,7 @@ router.patch("/client-links/:id", requireAuth, async (req, res): Promise<void> =
   if (isPublished && updated.styleOrderId) {
     try {
       const [order] = await db.select({ id: styleOrdersTable.id, orderStatus: styleOrdersTable.orderStatus })
-        .from(styleOrdersTable).where(eq(styleOrdersTable.id, updated.styleOrderId));
+        .from(styleOrdersTable).where(and(eq(styleOrdersTable.id, updated.styleOrderId), eq(styleOrdersTable.isDeleted, false)));
       if (order && STYLE_PRE_APPROVAL_STATUSES.includes(order.orderStatus)) {
         await db.update(styleOrdersTable).set({ orderStatus: "Pending Approval", updatedAt: new Date() })
           .where(eq(styleOrdersTable.id, updated.styleOrderId));
@@ -107,7 +107,7 @@ router.get("/client-links/:id/feedback", requireAuth, async (req, res): Promise<
   const rows = await db
     .select()
     .from(clientFeedbackTable)
-    .where(eq(clientFeedbackTable.clientLinkId, id))
+    .where(and(eq(clientFeedbackTable.clientLinkId, id), eq(clientFeedbackTable.isDeleted, false)))
     .orderBy(desc(clientFeedbackTable.createdAt));
   res.json({ data: rows });
 });
@@ -145,7 +145,7 @@ router.get("/client-links/:id/messages", requireAuth, async (req, res): Promise<
   const rows = await db
     .select()
     .from(clientMessagesTable)
-    .where(eq(clientMessagesTable.clientLinkId, id))
+    .where(and(eq(clientMessagesTable.clientLinkId, id), eq(clientMessagesTable.isDeleted, false)))
     .orderBy(asc(clientMessagesTable.createdAt));
 
   res.json({ data: rows });
@@ -181,7 +181,7 @@ router.patch("/client-links/:id/threads/toggle", requireAuth, async (req, res): 
 
   const { artworkId, closed } = req.body as { artworkId: number; closed: boolean };
 
-  const [link] = await db.select().from(clientLinksTable).where(eq(clientLinksTable.id, id));
+  const [link] = await db.select().from(clientLinksTable).where(and(eq(clientLinksTable.id, id), eq(clientLinksTable.isDeleted, false)));
   if (!link) { res.status(404).json({ error: "Not found" }); return; }
 
   const current = (link.closedThreads as number[]) ?? [];
