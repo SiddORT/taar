@@ -147,7 +147,7 @@ router.get("/materials/all", requireAuth, async (_req, res): Promise<void> => {
     .select()
     .from(materialsTable)
     .where(and(eq(materialsTable.isDeleted, false), eq(materialsTable.isActive, true)))
-    .orderBy(materialsTable.itemType, materialsTable.quality);
+    .orderBy(materialsTable.materialName, materialsTable.quality);
   res.json(rows);
 });
 
@@ -189,7 +189,6 @@ router.get("/materials", requireAuth, async (req: AuthRequest, res): Promise<voi
       .limit(limit).offset(offset),
     db.select({ id: materialsTable.id }).from(materialsTable).where(whereClause),
   ]);
-
   res.json({ data: rows, total: countRows.length, page, limit });
 });
 

@@ -19,7 +19,7 @@ function validateFabricFields(data: Record<string, unknown>): string | null {
   const q = String(data.quality ?? "").trim();
   const cn = String(data.colorName ?? "").trim();
   const w = String(data.width ?? "").trim();
-  const wut = String(data.widthUnitType ?? "").trim();
+  const ut = String(data.unitType ?? "").trim();
   const pm = String(data.pricePerMeter ?? "").trim();
 
   if (!ft) return "Fabric Type is required.";
@@ -30,8 +30,8 @@ function validateFabricFields(data: Record<string, unknown>): string | null {
   if (!NAME_REGEX.test(cn) || cn.length > 100) return "Color Name must contain only letters and spaces (max 100 characters).";
   if (!w) return "Width is required.";
   if (!NUMERIC_REGEX.test(w) || parseFloat(w) <= 0) return "Width must be a positive numeric value.";
-  if (!wut) return "Width Unit Type is required.";
-  if (wut.length > 50) return "Width Unit Type must be at most 50 characters.";
+  if (!ut) return "Unit Type is required.";
+  if (ut.length > 50) return "Unit Type must be at most 50 characters.";
   if (!pm) return "Price Per Meter is required.";
   if (!NUMERIC_REGEX.test(pm) || parseFloat(pm) <= 0) return "Price must be a positive numeric value.";
   return null;
@@ -177,7 +177,6 @@ function cleanStockLevels(body: Record<string, unknown>): Record<string, unknown
 router.post("/fabrics", requireAuth, async (req: AuthRequest, res): Promise<void> => {
   const fieldError = validateFabricFields(req.body);
   if (fieldError) { res.status(400).json({ error: fieldError }); return; }
-
   const parsed = insertFabricSchema.safeParse(cleanStockLevels(req.body));
   if (!parsed.success) {
     const firstMsg = parsed.error.issues[0]?.message ?? "Validation failed";
