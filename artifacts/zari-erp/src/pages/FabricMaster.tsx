@@ -80,7 +80,7 @@ function hexToColorName(hex: string): string {
 
 const EMPTY_FORM: FabricFormData = {
   fabricType: "", quality: "", color: "#c9b45c", hexCode: "#c9b45c",
-  colorName: "", width: "", height: "", unitType: "", pricePerMeter: "",
+  colorName: "", width: "", height: "", widthUnitType: "", unitType: "", pricePerMeter: "",
   currentStock: "", hsnCode: "", gstPercent: "",
   vendor: "", location: "", locationStocks: [], isActive: true, images: [],
   reorderLevel: "", minimumLevel: "", maximumLevel: "",
@@ -217,7 +217,7 @@ export default function FabricMaster() {
       : r.currentStock ? [{ location: r.location ?? "Out-house", stock: r.currentStock }] : [];
     setForm({ fabricType: r.fabricType, quality: r.quality, color: r.color ?? "#c9b45c",
       hexCode: r.hexCode ?? "#c9b45c", colorName: r.colorName, width: r.width, height: r.height ?? "",
-      unitType: r.unitType, pricePerMeter: r.pricePerMeter,
+      widthUnitType: r.widthUnitType ?? "", unitType: r.unitType, pricePerMeter: r.pricePerMeter,
       currentStock: r.currentStock, hsnCode: r.hsnCode, gstPercent: r.gstPercent,
       vendor: r.vendor ?? "", location: r.location ?? "", locationStocks: existingStocks,
       isActive: r.isActive, images: r.images ?? [],
@@ -321,7 +321,7 @@ export default function FabricMaster() {
       quality: form.quality.trim(),
       colorName: form.colorName.trim(),
       width: form.width.trim(),
-      widthUnitType: form.widthUnitType.trim(),
+      widthUnitType: (form.widthUnitType || form.unitType || "").trim(),
       pricePerMeter: form.pricePerMeter.trim(),
       unitType: (form.unitType ?? form.widthUnitType ?? "").trim(),
       currentStock: computedStock || "0",
@@ -410,6 +410,7 @@ export default function FabricMaster() {
         hexCode: String(r["Color Hex"] ?? "").trim() || undefined,
         width: String(r["Width"] ?? "").trim(),
         height: String(r["Height"] ?? "").trim() || undefined,
+        widthUnitType: String(r["Width Unit Type"] ?? "").trim(),
         unitType: String(r["Width Unit Type"] ?? "").trim(),
         pricePerMeter: String(r["Price Per Meter"] ?? "").trim(),
         hsnCode: String(r["HSN Code"] ?? "").trim(),
@@ -742,7 +743,7 @@ export default function FabricMaster() {
                   <InputField label="Height" placeholder="e.g. 2.0" type="number" value={form.height ?? ""}
                     onChange={(e) => setForm((f) => ({ ...f, height: e.target.value }))} />
                   <AddableSelect
-                    label="Unit Type" required value={form.unitType}
+                    label="Unit Type" required value={form.unitType ?? ""}
                     onChange={(v) => setForm((f) => ({ ...f, unitType: v }))}
                     onAdd={() => { setNewWidthUnitTypeName(""); setAddWidthUnitTypeOpen(true); }}
                     addLabel="+ Add Unit"

@@ -48,13 +48,13 @@ router.get("/materials/export-all", requireAuth, async (req: AuthRequest, res): 
   if (status === "active") conditions.push(eq(materialsTable.isActive, true));
   else if (status === "inactive") conditions.push(eq(materialsTable.isActive, false));
   if (hsnCodeFilter) conditions.push(eq(materialsTable.hsnCode, hsnCodeFilter));
-  if (typeFilter) conditions.push(eq(materialsTable.itemType, typeFilter));
+  if (typeFilter) conditions.push(eq(materialsTable.type, typeFilter));
   if (vendorFilter) conditions.push(ilike(materialsTable.vendor, `%${vendorFilter}%`));
   if (search) {
     conditions.push(or(
       ilike(materialsTable.materialCode, `%${search}%`),
       ilike(materialsTable.materialName, `%${search}%`),
-      ilike(materialsTable.itemType, `%${search}%`),
+      ilike(materialsTable.type, `%${search}%`),
       ilike(materialsTable.quality, `%${search}%`),
       ilike(materialsTable.colorName, `%${search}%`),
       ilike(materialsTable.hsnCode, `%${search}%`),
@@ -165,7 +165,7 @@ router.get("/materials", requireAuth, async (req: AuthRequest, res): Promise<voi
   if (status === "active") conditions.push(eq(materialsTable.isActive, true));
   else if (status === "inactive") conditions.push(eq(materialsTable.isActive, false));
   if (hsnCodeFilter) conditions.push(eq(materialsTable.hsnCode, hsnCodeFilter));
-  if (typeFilter) conditions.push(eq(materialsTable.itemType, typeFilter));
+  if (typeFilter) conditions.push(eq(materialsTable.type, typeFilter));
   if (vendorFilter) conditions.push(ilike(materialsTable.vendor, `%${vendorFilter}%`));
 
   if (search) {
@@ -173,7 +173,7 @@ router.get("/materials", requireAuth, async (req: AuthRequest, res): Promise<voi
       or(
         ilike(materialsTable.materialCode, `%${search}%`),
         ilike(materialsTable.materialName, `%${search}%`),
-        ilike(materialsTable.itemType, `%${search}%`),
+        ilike(materialsTable.type, `%${search}%`),
         ilike(materialsTable.quality, `%${search}%`),
         ilike(materialsTable.colorName, `%${search}%`),
         ilike(materialsTable.hsnCode, `%${search}%`),
@@ -206,9 +206,9 @@ router.post("/materials", requireAuth, async (req: AuthRequest, res): Promise<vo
   }
 
   const dupMat = await db.select({ id: materialsTable.id }).from(materialsTable).where(
-    and(ilike(materialsTable.itemType, parsed.data.itemType ?? ""), ilike(materialsTable.colorName, parsed.data.colorName), eq(materialsTable.size, parsed.data.size), eq(materialsTable.isDeleted, false))
+    and(ilike(materialsTable.type, parsed.data.type ?? ""), ilike(materialsTable.colorName, parsed.data.colorName), eq(materialsTable.size, parsed.data.size), eq(materialsTable.isDeleted, false))
   );
-  if (dupMat.length > 0) { res.status(409).json({ error: `A material with the same Type "${parsed.data.itemType}", Color "${parsed.data.colorName}", and Size "${parsed.data.size}" already exists.` }); return; }
+  if (dupMat.length > 0) { res.status(409).json({ error: `A material with the same Type "${parsed.data.type}", Color "${parsed.data.colorName}", and Size "${parsed.data.size}" already exists.` }); return; }
 
   const createdBy = req.user?.email ?? "system";
   const [{ total }] = await db.select({ total: count() }).from(materialsTable);
@@ -227,9 +227,9 @@ router.post("/materials", requireAuth, async (req: AuthRequest, res): Promise<vo
 
   logger.info({ id: record.id, materialCode }, "Material created");
   ensureInventoryRecord("material", record.id, {
-    itemName: record.materialName || [record.itemType, record.quality, record.colorName].filter(Boolean).join(" - "),
+    itemName: record.materialName || [record.type, record.quality, record.colorName].filter(Boolean).join(" - "),
     itemCode: record.materialCode,
-    category: record.itemType,
+    category: record.type,
     warehouseLocation: record.location ?? undefined,
     unitType: record.unitType,
     averagePrice: record.unitPrice,
@@ -255,11 +255,11 @@ router.put("/materials/:id", requireAuth, async (req: AuthRequest, res): Promise
     return;
   }
 
-  if (parsed.data.itemType !== undefined && parsed.data.colorName && parsed.data.size) {
+  if (parsed.data.type !== undefined && parsed.data.colorName && parsed.data.size) {
     const dupMat = await db.select({ id: materialsTable.id }).from(materialsTable).where(
-      and(ilike(materialsTable.itemType, parsed.data.itemType ?? ""), ilike(materialsTable.colorName, parsed.data.colorName), eq(materialsTable.size, parsed.data.size), eq(materialsTable.isDeleted, false), ne(materialsTable.id, id))
+      and(ilike(materialsTable.type, parsed.data.type ?? ""), ilike(materialsTable.colorName, parsed.data.colorName), eq(materialsTable.size, parsed.data.size), eq(materialsTable.isDeleted, false), ne(materialsTable.id, id))
     );
-    if (dupMat.length > 0) { res.status(409).json({ error: `A material with the same Type "${parsed.data.itemType}", Color "${parsed.data.colorName}", and Size "${parsed.data.size}" already exists.` }); return; }
+    if (dupMat.length > 0) { res.status(409).json({ error: `A material with the same Type "${parsed.data.type}", Color "${parsed.data.colorName}", and Size "${parsed.data.size}" already exists.` }); return; }
   }
 
   const updatedBy = req.user?.email ?? "system";

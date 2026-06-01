@@ -22,6 +22,13 @@
       "when": 1780296511381,
       "tag": "0002_romantic_hammerhead",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1780299086772,
+      "tag": "0003_chilly_callisto",
+      "breakpoints": true
     }
   ]
 }

@@ -538,7 +538,7 @@ router.get("/material-search", requireAuth, async (req, res) => {
   const limit = 30;
   const [mats, fabs] = await Promise.all([
     db.select().from(materialsTable)
-      .where(q ? or(ilike(materialsTable.materialCode, `%${q}%`), ilike(materialsTable.colorName, `%${q}%`), ilike(materialsTable.itemType, `%${q}%`)) : undefined)
+      .where(q ? or(ilike(materialsTable.materialCode, `%${q}%`), ilike(materialsTable.colorName, `%${q}%`), ilike(materialsTable.type, `%${q}%`)) : undefined)
       .limit(limit),
     db.select().from(fabricsTable)
       .where(q ? or(ilike(fabricsTable.fabricCode, `%${q}%`), ilike(fabricsTable.colorName, `%${q}%`), ilike(fabricsTable.fabricType, `%${q}%`)) : undefined)
@@ -548,7 +548,7 @@ router.get("/material-search", requireAuth, async (req, res) => {
     ...mats.map(m => ({
       id: m.id, type: "material" as const,
       code: m.materialCode,
-      name: `${m.itemType} — ${m.colorName}${m.size ? ` (${m.size})` : ""}`,
+      name: `${m.type} — ${m.colorName}${m.size ? ` (${m.size})` : ""}`,
       currentStock: m.currentStock,
       avgUnitPrice: m.unitPrice,
       unitType: m.unitType,
@@ -1949,7 +1949,7 @@ router.get("/invoice-items", requireAuth, async (req, res) => {
       : db.select().from(customChargesTable).where(eq(customChargesTable.styleOrderId, orderId)),
 
     // Material + Fabric full master (for label format matching the dropdown)
-    db.select({ materialCode: materialsTable.materialCode, itemType: materialsTable.itemType, quality: materialsTable.quality, colorName: materialsTable.colorName, hsnCode: materialsTable.hsnCode, gstPercent: materialsTable.gstPercent }).from(materialsTable),
+    db.select({ materialCode: materialsTable.materialCode, itemType: materialsTable.type, quality: materialsTable.quality, colorName: materialsTable.colorName, hsnCode: materialsTable.hsnCode, gstPercent: materialsTable.gstPercent }).from(materialsTable),
     db.select({ fabricCode: fabricsTable.fabricCode, fabricType: fabricsTable.fabricType, quality: fabricsTable.quality, colorName: fabricsTable.colorName, hsnCode: fabricsTable.hsnCode, gstPercent: fabricsTable.gstPercent }).from(fabricsTable),
 
     // PRs for weighted avg calculation
