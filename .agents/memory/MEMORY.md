@@ -1,3 +1,4 @@
 - [Drizzle migration policy](drizzle-migrations.md) — use versioned generate+migrate not push; how to baseline a pre-existing/pushed DB.
 - [Vendor Challan → PO → PR flow](vendor-challan-conversion.md) — PO items have no unit_type col (unit→remarks); challan-converted PO items have null inventory_item_id; challan totals are server-computed.
 - [Fabric import validation drift](fabric-import-validation.md) — /fabrics/import has its own inline row validation; keep it in lockstep with validateFabricFields and add legacy-header fallbacks on column renames.
+- [Vite build-html asset pitfalls](vite-html-asset-processing.md) — index.html link/meta refs get bundled on `vite build` (not dev); relative `canonical href="/"` or `./public-asset` paths crash with EISDIR. Use absolute `/` paths; verify with build.
