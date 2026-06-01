@@ -1,0 +1,1 @@
+- [Drizzle migration policy](drizzle-migrations.md) — use versioned generate+migrate not push; how to baseline a pre-existing/pushed DB.
