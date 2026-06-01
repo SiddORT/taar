@@ -4,6 +4,7 @@ import { db, ordersTable } from "@workspace/db";
 import { insertOrderSchema, updateOrderSchema } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
 import { logger } from "../lib/logger";
+import { nextSequenceNumber } from "../utils/sequence";
 import type { Request } from "express";
 
 const router: IRouter = Router();
@@ -59,8 +60,8 @@ router.post("/orders", requireAuth, async (req: AuthRequest, res): Promise<void>
   }
 
   const createdBy = req.user?.email ?? "system";
-  const [{ total }] = await db.select({ total: count() }).from(ordersTable);
-  const orderId = `ORD${String(total + 1).padStart(4, "0")}`;
+  const next = await nextSequenceNumber("orders", "order_id", "ORD%");
+  const orderId = `ORD${String(next).padStart(4, "0")}`;
 
   const [record] = await db.insert(ordersTable).values({ ...parsed.data, orderId, createdBy }).returning();
   logger.info({ id: record.id, orderId }, "Order created");

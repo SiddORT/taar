@@ -2,6 +2,7 @@ import { Router } from "express";
 import { pool } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
 import type { AuthRequest } from "../middlewares/requireAuth";
+import { nextSequenceNumber } from "../utils/sequence";
 
 const router = Router();
 
@@ -10,11 +11,8 @@ const router = Router();
 async function generatePrNumber(client: typeof pool): Promise<string> {
   const today = new Date();
   const ymd = today.toISOString().slice(0, 10).replace(/-/g, "");
-  const r = await client.query(
-    `SELECT COUNT(*) FROM inv_receipts WHERE pr_number LIKE $1`,
-    [`PR-${ymd}-%`]
-  );
-  const seq = (parseInt(r.rows[0].count) + 1).toString().padStart(4, "0");
+  const seq = (await nextSequenceNumber("inv_receipts", "pr_number", `PR-${ymd}-%`, client))
+    .toString().padStart(4, "0");
   return `PR-${ymd}-${seq}`;
 }
 

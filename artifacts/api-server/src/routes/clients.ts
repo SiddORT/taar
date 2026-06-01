@@ -4,6 +4,7 @@ import { db, clientsTable } from "@workspace/db";
 import { insertClientSchema, updateClientSchema } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
 import { logger } from "../lib/logger";
+import { nextSequenceNumber } from "../utils/sequence";
 import { zodFieldErrorsToHuman } from "../lib/importHelpers";
 import type { Request } from "express";
 
@@ -86,8 +87,8 @@ router.post("/clients", requireAuth, async (req: AuthRequest, res): Promise<void
   }
 
   const createdBy = req.user?.email ?? "system";
-  const [{ total }] = await db.select({ total: count() }).from(clientsTable);
-  const clientCode = `CLI${String(total + 1).padStart(4, "0")}`;
+  const next = await nextSequenceNumber("clients", "client_code", "CLI%");
+  const clientCode = `CLI${String(next).padStart(4, "0")}`;
 
   const [record] = await db.insert(clientsTable).values({ ...parsed.data, brandName: bn, contactName: cn, clientCode, createdBy }).returning();
   logger.info({ id: record.id, clientCode }, "Client created");

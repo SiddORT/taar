@@ -4,6 +4,7 @@ import { requireAuth } from "../middlewares/requireAuth";
 import path from "path";
 import fs from "fs";
 import { uploadMiddleware, uploadFile, deleteUpload, resolveUploadAbsPath } from "../utils/uploadHelper";
+import { nextSequenceNumber } from "../utils/sequence";
 
 type AuthRequest = Request & { user?: { userId: number; email: string; name?: string; role: string } };
 
@@ -15,9 +16,8 @@ function err(res: Response, e: unknown, msg = "Server error") {
 }
 
 async function nextPLNumber(): Promise<string> {
-  const r = await pool.query(`SELECT COUNT(*) AS cnt FROM packing_lists`);
-  const n = parseInt(r.rows[0].cnt, 10) + 1;
   const year = new Date().getFullYear();
+  const n = await nextSequenceNumber("packing_lists", "pl_number", `PL-${year}-%`);
   return `PL-${year}-${String(n).padStart(4, "0")}`;
 }
 

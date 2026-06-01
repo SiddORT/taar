@@ -3,6 +3,7 @@ import { pool } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
 import type { AuthRequest } from "../middlewares/requireAuth";
 import { uploadMiddleware, uploadFile, deleteUpload } from "../utils/uploadHelper";
+import { nextSequenceNumber } from "../utils/sequence";
 
 const router = Router();
 
@@ -16,11 +17,8 @@ function financialYear(): string {
 
 async function nextChallanNumber(): Promise<string> {
   const fy = financialYear();
-  const r = await pool.query(
-    `SELECT COUNT(*) FROM vendor_challans WHERE challan_number LIKE $1`,
-    [`VC/${fy}/%`]
-  );
-  const seq = (parseInt(r.rows[0].count) + 1).toString().padStart(4, "0");
+  const seq = (await nextSequenceNumber("vendor_challans", "challan_number", `VC/${fy}/%`))
+    .toString().padStart(4, "0");
   return `VC/${fy}/${seq}`;
 }
 
@@ -326,8 +324,8 @@ router.post("/vendor-challans/convert-to-po", requireAuth, async (req: AuthReque
     }
 
     const fy = financialYear();
-    const countRes = await client.query(`SELECT COUNT(*) FROM purchase_orders WHERE po_number LIKE $1`, [`PO/${fy}/%`]);
-    const seq = (parseInt(countRes.rows[0].count) + 1).toString().padStart(4, "0");
+    const seq = (await nextSequenceNumber("purchase_orders", "po_number", `PO/${fy}/%`, client))
+      .toString().padStart(4, "0");
     const poNumber = `PO/${fy}/${seq}`;
     const userName = req.user?.email ?? "system";
     const notes = `Consolidated from ${challans.rows.length} vendor challan(s) — Type: ${challanType}`;
@@ -409,8 +407,8 @@ router.post("/vendor-challans/convert-selected-to-po", requireAuth, async (req: 
     const challanType: string = challans.rows[0].challan_type;
 
     const fy = financialYear();
-    const countRes = await client.query(`SELECT COUNT(*) FROM purchase_orders WHERE po_number LIKE $1`, [`PO/${fy}/%`]);
-    const seq = (parseInt(countRes.rows[0].count) + 1).toString().padStart(4, "0");
+    const seq = (await nextSequenceNumber("purchase_orders", "po_number", `PO/${fy}/%`, client))
+      .toString().padStart(4, "0");
     const poNumber = `PO/${fy}/${seq}`;
     const userName = req.user?.email ?? "system";
     const notes = `Consolidated from ${challans.rows.length} vendor challan(s) — Type: ${challanType}`;

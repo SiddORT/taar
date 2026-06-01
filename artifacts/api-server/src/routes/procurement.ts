@@ -3,6 +3,7 @@ import { pool } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
 import type { AuthRequest } from "../middlewares/requireAuth";
 import { uploadMiddleware, uploadFile, deleteUpload } from "../utils/uploadHelper";
+import { nextSequenceNumber } from "../utils/sequence";
 
 const router = Router();
 
@@ -19,21 +20,15 @@ function financialYear(): string {
 
 async function nextPoNumber(client: typeof pool): Promise<string> {
   const fy = financialYear();
-  const r = await client.query(
-    `SELECT COUNT(*) FROM purchase_orders WHERE po_number LIKE $1`,
-    [`PO/${fy}/%`]
-  );
-  const seq = (parseInt(r.rows[0].count) + 1).toString().padStart(4, "0");
+  const seq = (await nextSequenceNumber("purchase_orders", "po_number", `PO/${fy}/%`, client))
+    .toString().padStart(4, "0");
   return `PO/${fy}/${seq}`;
 }
 
 async function nextPrNumber(client: typeof pool): Promise<string> {
   const fy = financialYear();
-  const r = await client.query(
-    `SELECT COUNT(*) FROM purchase_receipts WHERE pr_number LIKE $1`,
-    [`PR/${fy}/%`]
-  );
-  const seq = (parseInt(r.rows[0].count) + 1).toString().padStart(4, "0");
+  const seq = (await nextSequenceNumber("purchase_receipts", "pr_number", `PR/${fy}/%`, client))
+    .toString().padStart(4, "0");
   return `PR/${fy}/${seq}`;
 }
 

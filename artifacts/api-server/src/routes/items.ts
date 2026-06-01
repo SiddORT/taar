@@ -4,6 +4,7 @@ import { diceSimilarity } from "../lib/importHelpers";
 import { db, itemsTable, insertItemSchema, updateItemSchema } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
 import { logger } from "../lib/logger";
+import { nextSequenceNumber } from "../utils/sequence";
 import type { Request } from "express";
 
 const router: IRouter = Router();
@@ -29,8 +30,8 @@ function validateItemPayload(body: Record<string, unknown>): string | null {
 }
 
 async function generateItemCode(): Promise<string> {
-  const [{ count }] = await db.select({ count: sql<number>`cast(count(*) as int)` }).from(itemsTable);
-  return `ITM${String(count + 1).padStart(4, "0")}`;
+  const next = await nextSequenceNumber("items", "item_code", "ITM%");
+  return `ITM${String(next).padStart(4, "0")}`;
 }
 
 function computeStock(locationStocks: { location: string; stock: string }[]): string {
