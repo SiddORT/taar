@@ -13,7 +13,7 @@ export const itemsTable = pgTable("items", {
   gstPercent: text("gst_percent"),
   currentStock: text("current_stock").notNull().default("0"),
   locationStocks: jsonb("location_stocks").$type<{ location: string; stock: string }[]>().notNull().default([]),
-  images: jsonb("images").$type<{ id: string; name: string; data: string; size: number }[]>().notNull().default([]),
+  images: jsonb("images").$type<{ id: string; name: string; url: string; size: number }[]>().notNull().default([]),
   reorderLevel: numeric("reorder_level", { precision: 14, scale: 3 }),
   minimumLevel: numeric("minimum_level", { precision: 14, scale: 3 }),
   maximumLevel: numeric("maximum_level", { precision: 14, scale: 3 }),
@@ -35,7 +35,8 @@ const NUMERIC_REGEX = /^[0-9]+(\.[0-9]{1,2})?$/;
 export const itemImageSchema = z.object({
   id: z.string(),
   name: z.string(),
-  data: z.string(),
+  data: z.string().optional(),
+  url: z.string().optional(),
   size: z.number(),
 });
 

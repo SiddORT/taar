@@ -3,7 +3,7 @@ import { pgTable, serial, integer, text, timestamp, jsonb, numeric, boolean } fr
 export interface PaymentAttachmentFile {
   name: string;
   type: string;
-  data: string;
+  url: string;
   size: number;
 }
 

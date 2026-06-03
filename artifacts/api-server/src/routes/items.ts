@@ -5,6 +5,7 @@ import { db, itemsTable, insertItemSchema, updateItemSchema } from "@workspace/d
 import { requireAuth } from "../middlewares/requireAuth";
 import { logger } from "../lib/logger";
 import { nextSequenceNumber } from "../utils/sequence";
+import { persistImageArray } from "../utils/uploadHelper";
 import type { Request } from "express";
 
 const router: IRouter = Router();
@@ -199,7 +200,7 @@ router.post("/items", requireAuth, async (req: AuthRequest, res): Promise<void> 
     gstPercent: d.gstPercent?.trim() || undefined,
     currentStock,
     locationStocks,
-    images: d.images ?? [],
+    images: await persistImageArray(d.images, { entity: "items", category: "images" }),
     reorderLevel: d.reorderLevel || undefined,
     minimumLevel: d.minimumLevel || undefined,
     maximumLevel: d.maximumLevel || undefined,
@@ -255,7 +256,7 @@ router.put("/items/:id", requireAuth, async (req: AuthRequest, res): Promise<voi
       ...(d.hsnCode !== undefined && { hsnCode: d.hsnCode.trim() || undefined }),
       ...(d.gstPercent !== undefined && { gstPercent: d.gstPercent.trim() || undefined }),
       ...(d.locationStocks !== undefined && { locationStocks, currentStock }),
-      ...(d.images !== undefined && { images: d.images }),
+      ...(d.images !== undefined && { images: await persistImageArray(d.images, { entity: "items", category: "images" }) }),
       ...(d.reorderLevel !== undefined && { reorderLevel: d.reorderLevel || undefined }),
       ...(d.minimumLevel !== undefined && { minimumLevel: d.minimumLevel || undefined }),
       ...(d.maximumLevel !== undefined && { maximumLevel: d.maximumLevel || undefined }),

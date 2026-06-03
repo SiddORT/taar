@@ -10,6 +10,7 @@ import { usersTable } from "@workspace/db";
 import { eq, ilike, or, desc, and } from "drizzle-orm";
 import { requireAuth } from "../middlewares/requireAuth";
 import { sendPoApprovalRequestEmail } from "../lib/mailer";
+import { persistAttachmentObject } from "../utils/uploadHelper";
 import jwt from "jsonwebtoken";
 
 const router = Router();
@@ -1095,6 +1096,7 @@ router.get("/payments/:prId", requireAuth, async (req, res) => {
 router.post("/payments", requireAuth, async (req, res) => {
   const user = (req as any).user;
   const { prId, paymentType, paymentDate, paymentMode, amount, transactionStatus, paymentStatus, attachment } = req.body as Record<string, unknown>;
+  const savedAttachment = await persistAttachmentObject(attachment, { entity: "procurement", category: "pr-payments" });
   const [row] = await db.insert(prPaymentsTable).values({
     prId: Number(prId),
     paymentType: String(paymentType),
@@ -1103,7 +1105,7 @@ router.post("/payments", requireAuth, async (req, res) => {
     amount: String(amount),
     transactionStatus: String(transactionStatus ?? ""),
     paymentStatus: String(paymentStatus ?? "Pending"),
-    attachment: (attachment ?? null) as any,
+    attachment: savedAttachment,
     createdBy: user.email,
   }).returning();
   return res.status(201).json({ data: row });

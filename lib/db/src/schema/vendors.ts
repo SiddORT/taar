@@ -10,7 +10,7 @@ export interface BankAccount {
 export interface PaymentAttachment {
   name: string;
   type: string;
-  data: string;
+  url: string;
   size: number;
 }
 
@@ -72,7 +72,8 @@ const bankAccountSchema = z.object({
 const paymentAttachmentSchema = z.object({
   name: z.string(),
   type: z.string(),
-  data: z.string(),
+  data: z.string().optional(),
+  url: z.string().optional(),
   size: z.number(),
 });
 

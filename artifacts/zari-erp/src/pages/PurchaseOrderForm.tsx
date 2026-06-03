@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { downloadPoPdf } from "@/utils/pdfExport";
 import { logActivity } from "@/utils/logActivity";
+import { mediaUrl, fileSrc } from "@/utils/mediaUrl";
 import { useGetMe, getGetMeQueryKey, useLogout } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { customFetch } from "@workspace/api-client-react";
@@ -36,7 +37,7 @@ interface InventoryOption {
   average_price: string;
   hsn_code: string | null;
   gst_percent: string | null;
-  images?: Array<{ id: string; name: string; data: string; size: number }>;
+  images?: Array<{ id: string; name: string; url?: string; data?: string; size: number }>;
 }
 
 interface Vendor {
@@ -217,7 +218,7 @@ export default function PurchaseOrderForm() {
       orderedQuantity: "",
       targetPrice: found.average_price ? parseFloat(found.average_price).toFixed(2) : "",
       remarks: "",
-      itemImage: (found.images && found.images.length > 0) ? found.images[0].data : "",
+      itemImage: (found.images && found.images.length > 0) ? (found.images[0].url ?? found.images[0].data ?? "") : "",
     }]);
     setPrefillApplied(true);
   }, [isNew, inventoryItems, prefillApplied]);
@@ -896,7 +897,7 @@ export default function PurchaseOrderForm() {
                         <div className="flex flex-col gap-1">
                           {line.itemImage ? (
                             <div className="relative group w-10 h-10 rounded-lg overflow-hidden border border-gray-200">
-                              <img src={line.itemImage} alt="" className="w-full h-full object-cover" />
+                              <img src={mediaUrl(line.itemImage)} alt="" className="w-full h-full object-cover" />
                               <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center gap-0.5 opacity-0 group-hover:opacity-100">
                                 <button type="button" onClick={() => updateLine(line.key, "itemImage", "")}
                                   className="p-0.5 rounded-full bg-white/90"><XIcon className="h-2.5 w-2.5 text-red-500" /></button>
@@ -929,9 +930,9 @@ export default function PurchaseOrderForm() {
                                     <div className="flex flex-wrap gap-1.5 mb-2">
                                       {masterImgs.map(img => (
                                         <button key={img.id} type="button"
-                                          onClick={() => { updateLine(line.key, "itemImage", img.data); setImagePickerKey(null); }}
+                                          onClick={() => { updateLine(line.key, "itemImage", img.url ?? img.data ?? ""); setImagePickerKey(null); }}
                                           className="w-10 h-10 rounded-lg overflow-hidden border-2 border-transparent hover:border-[#C6AF4B] transition-colors">
-                                          <img src={img.data} alt="" className="w-full h-full object-cover" />
+                                          <img src={fileSrc(img)} alt="" className="w-full h-full object-cover" />
                                         </button>
                                       ))}
                                     </div>
@@ -952,7 +953,7 @@ export default function PurchaseOrderForm() {
                                       setImagePickerKey(null);
                                       if (!itemId) return;
                                       try {
-                                        const res = await customFetch<{ images: { id: string; name: string; data: string; size: number }[] }>(
+                                        const res = await customFetch<{ images: { id: string; name: string; url?: string; data?: string; size: number }[] }>(
                                           `/api/inventory/items/${itemId}/add-image`,
                                           {
                                             method: "POST",

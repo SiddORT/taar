@@ -19,7 +19,7 @@ export const materialsTable = pgTable("materials", {
   gstPercent: text("gst_percent").notNull(),
   vendor: text("vendor"),
   location: text("location"),
-  images: jsonb("images").$type<{ id: string; name: string; data: string; size: number }[]>().notNull().default([]),
+  images: jsonb("images").$type<{ id: string; name: string; url: string; size: number }[]>().notNull().default([]),
   reorderLevel: numeric("reorder_level", { precision: 14, scale: 3 }),
   minimumLevel: numeric("minimum_level", { precision: 14, scale: 3 }),
   maximumLevel: numeric("maximum_level", { precision: 14, scale: 3 }),
@@ -38,7 +38,8 @@ export type MaterialRecord = typeof materialsTable.$inferSelect;
 export const masterImageSchema = z.object({
   id: z.string(),
   name: z.string(),
-  data: z.string(),
+  data: z.string().optional(),
+  url: z.string().optional(),
   size: z.number(),
 });
 

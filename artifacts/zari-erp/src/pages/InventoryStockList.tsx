@@ -13,6 +13,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { customFetch } from "@workspace/api-client-react";
 import TopNavbar from "@/components/layout/TopNavbar";
 import { useToast } from "@/hooks/use-toast";
+import { fileSrc } from "@/utils/mediaUrl";
 
 const G       = "#C6AF4B";
 const G_DIM   = "#A8943E";
@@ -44,7 +45,7 @@ interface InventoryItem {
   maximum_level: string;
   preferred_vendor: string | null;
   last_updated_at: string;
-  images: Array<{ id: string; name: string; data: string; size: number }> | null;
+  images: Array<{ id: string; name: string; url?: string; data?: string; size: number }> | null;
   on_order_qty?: string;
   open_po_count?: number;
 }
@@ -308,7 +309,7 @@ export default function InventoryStockList() {
   const [resModal, setResModal]   = useState<{ item: InventoryItem | null; open: boolean; data: ReservationData | null; loading: boolean; tab: "swatch" | "style" }>({
     item: null, open: false, data: null, loading: false, tab: "swatch",
   });
-  const [lightboxImages, setLightboxImages] = useState<Array<{ id: string; name: string; data: string; size: number }> | null>(null);
+  const [lightboxImages, setLightboxImages] = useState<Array<{ id: string; name: string; url?: string; data?: string; size: number }> | null>(null);
   const [lightboxIdx, setLightboxIdx] = useState(0);
 
   const buildQs = useCallback(() => {
@@ -693,7 +694,7 @@ export default function InventoryStockList() {
                         {item.images && item.images.length > 0 ? (
                           <button type="button" onClick={() => { setLightboxImages(item.images!); setLightboxIdx(0); }}
                             className="relative w-9 h-9 rounded-lg overflow-hidden border border-gray-200 hover:border-[#C6AF4B] transition-colors">
-                            <img src={item.images[0].data} alt="" className="w-full h-full object-cover" />
+                            <img src={fileSrc(item.images[0])} alt="" className="w-full h-full object-cover" />
                             {item.images.length > 1 && (
                               <span className="absolute bottom-0 right-0 text-[9px] font-bold bg-black/60 text-white px-0.5 rounded-tl-md">+{item.images.length - 1}</span>
                             )}
@@ -1121,14 +1122,14 @@ export default function InventoryStockList() {
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 p-4"
           onClick={() => setLightboxImages(null)}>
           <div className="relative flex flex-col items-center gap-3" onClick={e => e.stopPropagation()}>
-            <img src={lightboxImages[lightboxIdx].data} alt={lightboxImages[lightboxIdx].name}
+            <img src={fileSrc(lightboxImages[lightboxIdx])} alt={lightboxImages[lightboxIdx].name}
               className="max-w-[85vw] max-h-[80vh] rounded-2xl shadow-2xl object-contain" />
             {lightboxImages.length > 1 && (
               <div className="flex items-center gap-2">
                 {lightboxImages.map((img, i) => (
-                  <button key={img.id} onClick={() => setLightboxIdx(i)}
+                  <button key={img.id} type="button" onClick={() => setLightboxIdx(i)}
                     className={`w-10 h-10 rounded-lg overflow-hidden border-2 transition-all ${i === lightboxIdx ? "border-[#C6AF4B] scale-110" : "border-transparent opacity-60"}`}>
-                    <img src={img.data} alt="" className="w-full h-full object-cover" />
+                    <img src={fileSrc(img)} alt="" className="w-full h-full object-cover" />
                   </button>
                 ))}
               </div>

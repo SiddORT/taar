@@ -10,6 +10,7 @@ import {
 import { downloadCostingPoPdf } from "@/utils/pdfExport";
 import { logActivity } from "@/utils/logActivity";
 import { logDownload } from "@/utils/logDownload";
+import { fileSrc } from "@/utils/mediaUrl";
 import CostingPaymentsPanel from "@/components/CostingPaymentsPanel";
 import { useCostingPaymentTotals } from "@/hooks/useCostingPayments";
 import { useQuery } from "@tanstack/react-query";
@@ -854,7 +855,7 @@ function StylePaymentRow({ pay, onDelete }: { pay: PrPaymentRecord; onDelete: ()
       <td className="px-3 py-2.5"><StatusBadge status={pay.paymentStatus} map={PAYMENT_STATUS_COLORS} /></td>
       <td className="px-3 py-2.5">
         {pay.attachment ? (
-          <a href={pay.attachment.data} download={pay.attachment.name} className="flex items-center gap-1 text-[10px] text-blue-600 hover:underline">
+          <a href={fileSrc(pay.attachment)} download={pay.attachment.name} className="flex items-center gap-1 text-[10px] text-blue-600 hover:underline">
             <Paperclip className="h-3 w-3" />{pay.attachment.name}
           </a>
         ) : <span className="text-gray-300">—</span>}

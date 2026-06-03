@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
 import { Pencil, Trash2, ImagePlus, X as XIcon, ZoomIn, ArrowLeft, Save, Loader2, FileDown, FileUp, FileSpreadsheet, Star, ChevronLeft, ChevronRight } from "lucide-react";
+import { fileSrc } from "@/utils/mediaUrl";
 import { useGetMe, useLogout, getGetMeQueryKey } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
 import * as XLSX from "xlsx";
@@ -502,7 +503,7 @@ export default function MaterialsMaster() {
         return (
           <button type="button" onClick={() => openCarousel(imgs, 0)}
             className="w-9 h-9 rounded-lg overflow-hidden border border-gray-200 hover:border-[#C6AF4B] transition-colors relative group">
-            <img src={imgs[0].data} alt="" className="w-full h-full object-cover" />
+            <img src={fileSrc(imgs[0])} alt="" className="w-full h-full object-cover" />
             {imgs.length > 1 && <span className="absolute bottom-0 right-0 text-[9px] font-bold bg-black/60 text-white px-0.5 rounded-tl-md">+{imgs.length - 1}</span>}
           </button>
         );
@@ -949,7 +950,7 @@ export default function MaterialsMaster() {
                   <div className="grid grid-cols-3 gap-2">
                     {form.images.map((img, imgIdx) => (
                       <div key={img.id} className="relative group aspect-square rounded-xl border border-gray-200 overflow-hidden bg-gray-50">
-                        <img src={img.data} alt={img.name} className="w-full h-full object-cover" />
+                        <img src={fileSrc(img)} alt={img.name} className="w-full h-full object-cover" />
                         {imgIdx === 0 && (
                           <div className="absolute top-1 left-1 bg-[#C6AF4B] rounded-full p-0.5 shadow" title="Thumbnail">
                             <Star className="h-2.5 w-2.5 text-white fill-white" />
@@ -1128,7 +1129,7 @@ export default function MaterialsMaster() {
             {/* Image */}
             <div className="flex-1 flex flex-col items-center gap-3">
               <img
-                src={carouselImages[carouselIdx]?.data}
+                src={fileSrc(carouselImages[carouselIdx])}
                 alt={carouselImages[carouselIdx]?.name}
                 className="max-h-[75vh] max-w-full rounded-2xl shadow-2xl object-contain"
               />

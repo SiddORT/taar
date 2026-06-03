@@ -5,6 +5,7 @@ import { insertMaterialSchema, updateMaterialSchema } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
 import { logger } from "../lib/logger";
 import { ensureInventoryRecord, updateInventoryImages, updateInventoryStockLevels } from "../services/inventoryService";
+import { persistImageArray } from "../utils/uploadHelper";
 import type { Request } from "express";
 import * as XLSX from "xlsx";
 
@@ -218,8 +219,10 @@ router.post("/materials", requireAuth, async (req: AuthRequest, res): Promise<vo
   const totalStock = ls.reduce((sum, s) => sum + (parseFloat(s.stock) || 0), 0);
   const currentStock = ls.length > 0 ? String(totalStock) : parsed.data.currentStock;
 
+  const images = await persistImageArray(parsed.data.images, { entity: "materials", category: "images" });
   const [record] = await db.insert(materialsTable).values({
     ...parsed.data,
+    images,
     materialCode,
     currentStock,
     createdBy,
@@ -234,7 +237,7 @@ router.post("/materials", requireAuth, async (req: AuthRequest, res): Promise<vo
     unitType: record.unitType,
     averagePrice: record.unitPrice,
     preferredVendor: record.vendor ?? undefined,
-    images: (record.images as { id: string; name: string; data: string; size: number }[]) ?? [],
+    images: (record.images as { id: string; name: string; url: string; size: number }[]) ?? [],
   });
   res.status(201).json(record);
 });
@@ -271,16 +274,20 @@ router.put("/materials/:id", requireAuth, async (req: AuthRequest, res): Promise
     currentStock = String(total);
   }
 
+  const { images: rawImages, ...rest } = parsed.data;
+  const images = rawImages !== undefined
+    ? await persistImageArray(rawImages, { entity: "materials", category: "images" })
+    : undefined;
   const [record] = await db
     .update(materialsTable)
-    .set({ ...parsed.data, currentStock, updatedBy, updatedAt: new Date() })
+    .set({ ...rest, ...(images !== undefined ? { images } : {}), currentStock, updatedBy, updatedAt: new Date() })
     .where(and(eq(materialsTable.id, id), eq(materialsTable.isDeleted, false)))
     .returning();
 
   if (!record) { res.status(404).json({ error: "Material not found" }); return; }
   logger.info({ id: record.id }, "Material updated");
   if (parsed.data.images !== undefined) {
-    updateInventoryImages("material", record.id, (record.images as { id: string; name: string; data: string; size: number }[]) ?? []);
+    updateInventoryImages("material", record.id, (record.images as { id: string; name: string; url: string; size: number }[]) ?? []);
   }
   if (parsed.data.reorderLevel !== undefined || parsed.data.minimumLevel !== undefined || parsed.data.maximumLevel !== undefined) {
     updateInventoryStockLevels("material", record.id, parsed.data.reorderLevel, parsed.data.minimumLevel, parsed.data.maximumLevel);

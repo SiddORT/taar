@@ -11,7 +11,7 @@ export interface InventoryAutoCreateData {
   unitType?: string | null;
   averagePrice?: string | number | null;
   preferredVendor?: string | null;
-  images?: { id: string; name: string; data: string; size: number }[] | null;
+  images?: { id: string; name: string; url: string; size: number }[] | null;
 }
 
 export async function ensureInventoryRecord(
@@ -52,7 +52,7 @@ export async function ensureInventoryRecord(
 export async function updateInventoryImages(
   sourceType: InventorySourceType,
   sourceId: number,
-  images: { id: string; name: string; data: string; size: number }[]
+  images: { id: string; name: string; url: string; size: number }[]
 ): Promise<void> {
   try {
     await pool.query(
@@ -72,8 +72,8 @@ export async function updateInventoryImages(
  */
 export async function appendImageToInventoryAndMaster(
   inventoryItemId: number,
-  image: { id: string; name: string; data: string; size: number }
-): Promise<{ id: string; name: string; data: string; size: number }[]> {
+  image: { id: string; name: string; url: string; size: number }
+): Promise<{ id: string; name: string; url: string; size: number }[]> {
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
@@ -87,7 +87,7 @@ export async function appendImageToInventoryAndMaster(
     }
     const row = invRes.rows[0] as { source_type: InventorySourceType; source_id: number; images: unknown };
     const current = Array.isArray(row.images)
-      ? (row.images as { id: string; name: string; data: string; size: number }[])
+      ? (row.images as { id: string; name: string; url: string; size: number }[])
       : [];
     const next = [...current, image];
     const nextJson = JSON.stringify(next);

@@ -5,6 +5,7 @@ import { insertFabricSchema, updateFabricSchema } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
 import { logger } from "../lib/logger";
 import { ensureInventoryRecord, updateInventoryImages, updateInventoryStockLevels } from "../services/inventoryService";
+import { persistImageArray } from "../utils/uploadHelper";
 import type { Request } from "express";
 
 const router: IRouter = Router();
@@ -192,7 +193,8 @@ router.post("/fabrics", requireAuth, async (req: AuthRequest, res): Promise<void
   const [{ total }] = await db.select({ total: count() }).from(fabricsTable);
   const fabricCode = `FAB${String(total + 1).padStart(4, "0")}`;
 
-  const [record] = await db.insert(fabricsTable).values({ ...parsed.data, fabricCode, createdBy }).returning();
+  const images = await persistImageArray(parsed.data.images, { entity: "fabrics", category: "images" });
+  const [record] = await db.insert(fabricsTable).values({ ...parsed.data, images, fabricCode, createdBy }).returning();
   logger.info({ id: record.id, fabricCode }, "Fabric created");
   ensureInventoryRecord("fabric", record.id, {
     itemName: [record.fabricType, record.quality, record.colorName].filter(Boolean).join(" - "),
@@ -202,7 +204,7 @@ router.post("/fabrics", requireAuth, async (req: AuthRequest, res): Promise<void
     unitType: record.unitType,
     averagePrice: record.pricePerMeter,
     preferredVendor: record.vendor ?? undefined,
-    images: (record.images as { id: string; name: string; data: string; size: number }[]) ?? [],
+    images: (record.images as { id: string; name: string; url: string; size: number }[]) ?? [],
   });
   res.status(201).json(record);
 });
@@ -229,16 +231,20 @@ router.put("/fabrics/:id", requireAuth, async (req: AuthRequest, res): Promise<v
   }
 
   const updatedBy = req.user?.email ?? "system";
+  const { images: rawImages, ...rest } = parsed.data;
+  const images = rawImages !== undefined
+    ? await persistImageArray(rawImages, { entity: "fabrics", category: "images" })
+    : undefined;
   const [record] = await db
     .update(fabricsTable)
-    .set({ ...parsed.data, updatedBy, updatedAt: new Date() })
+    .set({ ...rest, ...(images !== undefined ? { images } : {}), updatedBy, updatedAt: new Date() })
     .where(and(eq(fabricsTable.id, id), eq(fabricsTable.isDeleted, false)))
     .returning();
 
   if (!record) { res.status(404).json({ error: "Fabric not found" }); return; }
   logger.info({ id: record.id }, "Fabric updated");
   if (parsed.data.images !== undefined) {
-    updateInventoryImages("fabric", record.id, (record.images as { id: string; name: string; data: string; size: number }[]) ?? []);
+    updateInventoryImages("fabric", record.id, (record.images as { id: string; name: string; url: string; size: number }[]) ?? []);
   }
   if (parsed.data.reorderLevel !== undefined || parsed.data.minimumLevel !== undefined || parsed.data.maximumLevel !== undefined) {
     updateInventoryStockLevels("fabric", record.id, parsed.data.reorderLevel, parsed.data.minimumLevel, parsed.data.maximumLevel);

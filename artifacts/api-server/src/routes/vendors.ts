@@ -5,6 +5,7 @@ import { insertVendorSchema, updateVendorSchema } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
 import { logger } from "../lib/logger";
 import { zodFieldErrorsToHuman } from "../lib/importHelpers";
+import { persistAttachmentArray } from "../utils/uploadHelper";
 import type { Request } from "express";
 
 const router: IRouter = Router();
@@ -75,7 +76,11 @@ router.post("/vendors", requireAuth, async (req: AuthRequest, res): Promise<void
   const [{ total }] = await db.select({ total: count() }).from(vendorsTable);
   const vendorCode = `VEN${String(total + 1).padStart(4, "0")}`;
 
-  const [record] = await db.insert(vendorsTable).values({ ...parsed.data, vendorCode, createdBy }).returning();
+  const { paymentAttachments: rawAtt, ...rest } = parsed.data;
+  const paymentAttachments = rawAtt !== undefined
+    ? await persistAttachmentArray(rawAtt, { entity: "vendors", category: "payments" })
+    : undefined;
+  const [record] = await db.insert(vendorsTable).values({ ...rest, ...(paymentAttachments !== undefined ? { paymentAttachments } : {}), vendorCode, createdBy }).returning();
   logger.info({ id: record.id, vendorCode }, "Vendor created");
   res.status(201).json(record);
 });
@@ -126,7 +131,7 @@ router.post("/vendors/import", requireAuth, async (req: AuthRequest, res): Promi
     try {
       const [{ total }] = await db.select({ total: count() }).from(vendorsTable);
       const vendorCode = `VEN${String(total + 1).padStart(4, "0")}`;
-      await db.insert(vendorsTable).values({ ...parsed.data, vendorCode, createdBy });
+      await db.insert(vendorsTable).values({ ...parsed.data, paymentAttachments: undefined, vendorCode, createdBy });
       imported++;
     } catch {
       errors.push({ row: rowNum, name: brandName, error: "Database insert failed." });
@@ -152,7 +157,11 @@ router.put("/vendors/:id", requireAuth, async (req: AuthRequest, res): Promise<v
   }
 
   const updatedBy = req.user?.email ?? "system";
-  const [record] = await db.update(vendorsTable).set({ ...parsed.data, updatedBy, updatedAt: new Date() })
+  const { paymentAttachments: rawAtt, ...rest } = parsed.data;
+  const paymentAttachments = rawAtt !== undefined
+    ? await persistAttachmentArray(rawAtt, { entity: "vendors", category: "payments" })
+    : undefined;
+  const [record] = await db.update(vendorsTable).set({ ...rest, ...(paymentAttachments !== undefined ? { paymentAttachments } : {}), updatedBy, updatedAt: new Date() })
     .where(and(eq(vendorsTable.id, id), eq(vendorsTable.isDeleted, false))).returning();
   if (!record) { res.status(404).json({ error: "Vendor not found" }); return; }
   res.json(record);

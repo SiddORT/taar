@@ -161,3 +161,119 @@ export async function deleteUpload(urlOrPath: string): Promise<void> {
   const absPath = resolveUploadAbsPath(urlOrPath);
   await storage.deleteFile(absPath);
 }
+
+// ─── Base64 data-URI → disk conversion ───────────────────────────────────────
+// Master/payment forms still submit images as base64 data URIs inside the JSON
+// body. These helpers decode that base64, write the bytes to the configured
+// storage backend, and return a `/uploads/...` URL so the DB only stores paths.
+// Entries that already carry a `url` are passed through unchanged (e.g. on edit).
+
+const DATA_URI_RE = /^data:([^;]+);base64,(.+)$/s;
+
+/** Max decoded size for a single base64 data-URI persisted to disk (20 MB). */
+const MAX_DATA_URI_BYTES = 20 * 1024 * 1024;
+
+const MIME_EXT: Record<string, string> = {
+  "image/jpeg": ".jpg",
+  "image/jpg": ".jpg",
+  "image/png": ".png",
+  "image/webp": ".webp",
+  "image/gif": ".gif",
+  "application/pdf": ".pdf",
+  "application/vnd.ms-excel": ".xls",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": ".xlsx",
+};
+
+/**
+ * Persist a base64 data-URI to storage. Returns the relative URL and decoded
+ * byte size, or null when the string is not a data URI.
+ */
+export async function persistDataUri(
+  dataUri: string,
+  originalName: string,
+  opts: UploadOptions
+): Promise<{ url: string; size: number } | null> {
+  const m = DATA_URI_RE.exec(dataUri);
+  if (!m) return null;
+  const mime = m[1].toLowerCase();
+  if (!(mime in MIME_EXT)) return null;
+  const buffer = Buffer.from(m[2], "base64");
+  if (buffer.length === 0 || buffer.length > MAX_DATA_URI_BYTES) return null;
+  const uid = crypto.randomBytes(8).toString("hex");
+  const safe = (originalName || "file")
+    .replace(/[^a-zA-Z0-9._-]/g, "_")
+    .replace(/_{2,}/g, "_")
+    .slice(0, 60);
+  const existingExt = path.extname(safe);
+  const ext = existingExt || MIME_EXT[mime] || "";
+  const nameNoExt = existingExt ? path.basename(safe, existingExt) : safe;
+  const filename = `${uid}_${nameNoExt}${ext}`;
+  const dir = buildTargetDir(opts);
+  await storage.saveFile(buffer, { dir, filename });
+  return { url: buildRelativeUrl(dir, filename), size: buffer.length };
+}
+
+export interface StoredImage {
+  id: string;
+  name: string;
+  url: string;
+  size: number;
+}
+
+export interface StoredAttachment {
+  name: string;
+  type: string;
+  url: string;
+  size: number;
+}
+
+/**
+ * Convert an images array so any base64 `data` entries are written to disk and
+ * replaced with a `url`. Already-stored entries (with a `url`) pass through.
+ */
+export async function persistImageArray(
+  items: unknown,
+  opts: UploadOptions
+): Promise<StoredImage[]> {
+  if (!Array.isArray(items)) return [];
+  const out: StoredImage[] = [];
+  for (const raw of items) {
+    const it = raw as { id?: string; name?: string; data?: string; url?: string; size?: number };
+    if (typeof it?.url === "string" && it.url && !it.url.startsWith("data:")) {
+      out.push({ id: it.id ?? crypto.randomUUID(), name: it.name ?? "image", url: it.url, size: it.size ?? 0 });
+    } else if (typeof it?.data === "string" && it.data.startsWith("data:")) {
+      const saved = await persistDataUri(it.data, it.name ?? "image", opts);
+      if (saved) out.push({ id: it.id ?? crypto.randomUUID(), name: it.name ?? "image", url: saved.url, size: saved.size });
+    }
+  }
+  return out;
+}
+
+/** Same as persistImageArray but for {name,type,url,size} payment attachments. */
+export async function persistAttachmentArray(
+  items: unknown,
+  opts: UploadOptions
+): Promise<StoredAttachment[]> {
+  if (!Array.isArray(items)) return [];
+  const out: StoredAttachment[] = [];
+  for (const raw of items) {
+    const it = raw as { name?: string; type?: string; data?: string; url?: string; size?: number };
+    if (typeof it?.url === "string" && it.url && !it.url.startsWith("data:")) {
+      out.push({ name: it.name ?? "file", type: it.type ?? "", url: it.url, size: it.size ?? 0 });
+    } else if (typeof it?.data === "string" && it.data.startsWith("data:")) {
+      const saved = await persistDataUri(it.data, it.name ?? "file", opts);
+      if (saved) out.push({ name: it.name ?? "file", type: it.type ?? "", url: saved.url, size: saved.size });
+    }
+  }
+  return out;
+}
+
+/** Single-attachment variant (e.g. pr_payments.attachment). */
+export async function persistAttachmentObject(
+  item: unknown,
+  opts: UploadOptions
+): Promise<StoredAttachment | null> {
+  if (!item || typeof item !== "object") return null;
+  const [first] = await persistAttachmentArray([item], opts);
+  return first ?? null;
+}

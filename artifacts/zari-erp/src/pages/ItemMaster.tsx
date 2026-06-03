@@ -7,6 +7,7 @@ import {
   FileDown, FileUp, FileSpreadsheet,
   Star, ChevronLeft, ChevronRight,
 } from "lucide-react";
+import { fileSrc } from "@/utils/mediaUrl";
 import { useGetMe, useLogout, getGetMeQueryKey } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
 import * as XLSX from "xlsx";
@@ -391,7 +392,7 @@ export default function ItemMaster() {
         return (
           <div className="flex items-center gap-2">
             {rec.images?.[0] && (
-              <img src={rec.images[0].data} alt={rec.itemName} className="h-8 w-8 rounded object-cover border border-gray-100 flex-shrink-0" />
+              <img src={fileSrc(rec.images[0])} alt={rec.itemName} className="h-8 w-8 rounded object-cover border border-gray-100 flex-shrink-0" />
             )}
             <span className="font-medium text-gray-900">{rec.itemName}</span>
           </div>
@@ -638,7 +639,7 @@ export default function ItemMaster() {
                   <div className="grid grid-cols-3 gap-2">
                     {form.images.map((img, imgIdx) => (
                       <div key={img.id} className="relative group aspect-square rounded-xl border border-gray-200 overflow-hidden bg-gray-50">
-                        <img src={img.data} alt={img.name} className="w-full h-full object-cover" />
+                        <img src={fileSrc(img)} alt={img.name} className="w-full h-full object-cover" />
                         {imgIdx === 0 && (
                           <div className="absolute top-1 left-1 bg-[#C6AF4B] rounded-full p-0.5 shadow" title="Thumbnail">
                             <Star className="h-2.5 w-2.5 text-white fill-white" />
@@ -751,7 +752,7 @@ export default function ItemMaster() {
                 <ChevronLeft className="h-6 w-6" />
               </button>
               <div className="flex-1 flex flex-col items-center gap-3">
-                <img src={carouselImages[carouselIdx]?.data} alt={carouselImages[carouselIdx]?.name}
+                <img src={fileSrc(carouselImages[carouselIdx])} alt={carouselImages[carouselIdx]?.name}
                   className="max-h-[75vh] max-w-full rounded-2xl shadow-2xl object-contain" />
                 {carouselImages.length > 1 && (
                   <div className="flex gap-1.5">

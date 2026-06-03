@@ -2,6 +2,7 @@ import { Router } from "express";
 import { pool } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
 import { syncAllFromMasters, appendImageToInventoryAndMaster } from "../services/inventoryService";
+import { persistDataUri } from "../utils/uploadHelper";
 import type { AuthRequest } from "../middlewares/requireAuth";
 
 const router = Router();
@@ -1489,11 +1490,15 @@ router.post("/inventory/items/:id/add-image", requireAuth, async (req: AuthReque
       return res.status(413).json({ error: "Image exceeds 5 MB limit" });
     }
     const safeName = (name || "uploaded-image").toString().slice(0, 200);
+    const saved = await persistDataUri(data, safeName, { entity: "inventory", id, category: "images" });
+    if (!saved) {
+      return res.status(400).json({ error: "Failed to process image" });
+    }
     const image = {
       id: `img-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       name: safeName,
-      data,
-      size: typeof size === "number" && size > 0 ? size : data.length,
+      url: saved.url,
+      size: typeof size === "number" && size > 0 ? size : saved.size,
     };
     const images = await appendImageToInventoryAndMaster(id, image);
     return res.json({ image, images });
