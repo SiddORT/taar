@@ -503,19 +503,6 @@ export default function VendorChallanDetail() {
 
   const canEdit = isNew || status === "Draft";
 
-  async function uploadPendingFiles(id: number, files: File[]) {
-    if (!files.length) return;
-    const fd = new FormData();
-    for (const f of files) fd.append("files", f);
-    const r = await fetch(`${BASE}/api/vendor-challans/${id}/document`, { method: "POST", headers: authToken(), body: fd });
-    if (r.ok) {
-      setPendingFiles([]);
-    } else {
-      const d = await r.json().catch(() => ({}));
-      toast({ title: d.error ?? "Failed to upload attachments", variant: "destructive" });
-    }
-  }
-
   async function handleSave() {
     setError("");
     if (!form.vendorId)    { setError("Vendor is required");       return; }
@@ -563,14 +550,30 @@ export default function VendorChallanDetail() {
       })),
     };
 
-    const r = isNew
-      ? await apiFetch("/api/vendor-challans",           { method: "POST", body: JSON.stringify(body) })
-      : await apiFetch(`/api/vendor-challans/${numId}`,  { method: "PUT",  body: JSON.stringify(body) });
+    let r: Response;
+    if (isNew) {
+      // Send as multipart so any staged attachments are saved as part of
+      // creation — before the admin auto-verify status would otherwise lock
+      // out a follow-up document upload via the "Draft only" endpoint.
+      const fd = new FormData();
+      fd.append("challanDate", body.challanDate);
+      fd.append("vendorId", String(body.vendorId));
+      fd.append("vendorName", body.vendorName);
+      fd.append("challanType", body.challanType);
+      if (body.referenceOrderId) fd.append("referenceOrderId", body.referenceOrderId);
+      if (body.description)      fd.append("description", body.description);
+      if (body.remarks)          fd.append("remarks", body.remarks);
+      fd.append("lineItems", JSON.stringify(body.lineItems));
+      for (const f of pendingFiles) fd.append("files", f);
+      r = await fetch(`${BASE}/api/vendor-challans`, { method: "POST", headers: authToken(), body: fd });
+    } else {
+      r = await apiFetch(`/api/vendor-challans/${numId}`, { method: "PUT", body: JSON.stringify(body) });
+    }
 
     const d = await r.json();
     if (r.ok) {
       const newId: number = d.data.id;
-      if (pendingFiles.length) await uploadPendingFiles(newId, pendingFiles);
+      if (isNew) setPendingFiles([]);
       toast({ title: isNew ? "Vendor challan created" : "Vendor challan saved" });
       if (isNew) setLocation(`/procurement/vendor-challans/${newId}`);
       else void fetchChallan();

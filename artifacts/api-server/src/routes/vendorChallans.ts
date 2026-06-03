@@ -149,10 +149,22 @@ router.get("/vendor-challans/:id", requireAuth, async (req, res) => {
 });
 
 // ── CREATE ────────────────────────────────────────────────────────────────────
-router.post("/vendor-challans", requireAuth, async (req: AuthRequest, res) => {
+// Accepts multipart/form-data so any staged attachments are saved as part of
+// creation (files under "files"). Stays backwards-compatible with JSON bodies:
+// when the request isn't multipart, multer is a no-op and express.json populates
+// req.body — in that case `lineItems` arrives as an array instead of a string.
+router.post("/vendor-challans", requireAuth, uploadMiddleware.array("files", 10), async (req: AuthRequest, res) => {
+  const client = await pool.connect();
+  // Track files written to disk so they can be cleaned up if the transaction
+  // rolls back (filesystem writes aren't covered by the DB transaction).
+  const writtenUrls: string[] = [];
   try {
     const userName = req.user?.email ?? "system";
-    const { challanDate, vendorId, vendorName, challanType, referenceOrderId, description, unit, attachment, remarks, lineItems } = req.body;
+    const { challanDate, vendorId, vendorName, challanType, referenceOrderId, description, unit, remarks } = req.body;
+    let lineItems: unknown = (req.body as { lineItems?: unknown }).lineItems;
+    if (typeof lineItems === "string") {
+      try { lineItems = JSON.parse(lineItems); } catch { lineItems = []; }
+    }
     if (!vendorId) { res.status(400).json({ error: "Vendor is required" }); return; }
     if (!challanDate) { res.status(400).json({ error: "Challan date is required" }); return; }
     if (!challanType) { res.status(400).json({ error: "Challan type is required" }); return; }
@@ -164,26 +176,55 @@ router.post("/vendor-challans", requireAuth, async (req: AuthRequest, res) => {
     const amount = validated.totalAmount.toFixed(2);
 
     const challanNumber = await nextChallanNumber();
-    // Admin-created challans are auto-verified
+    // Admin-created challans are auto-verified.
     const isAdmin = (req.user?.role ?? "") === "admin";
     const initialStatus = isAdmin ? "Verified" : "Draft";
-    const r = await pool.query(
+    const files = (req.files as Express.Multer.File[] | undefined) ?? [];
+
+    await client.query("BEGIN");
+    const ins = await client.query(
       `INSERT INTO vendor_challans
          (challan_number, challan_date, vendor_id, vendor_name, challan_type,
           reference_order_id, description, quantity, unit, rate, amount,
-          attachment, line_items, status, remarks, created_by, created_at, updated_at)
+          attachments, line_items, status, remarks, created_by, created_at, updated_at)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,NOW(),NOW())
        RETURNING *`,
-      [challanNumber, challanDate, vendorId, vendorName ?? null, challanType,
+      [challanNumber, challanDate, parseInt(String(vendorId), 10), vendorName ?? null, challanType,
        referenceOrderId ?? null, description ?? null, quantity, unit ?? null,
-       rate, amount, attachment ? JSON.stringify(attachment) : null,
+       rate, amount, null,
        JSON.stringify(validated.items),
        initialStatus, remarks ?? null, userName]
     );
-    res.status(201).json({ data: r.rows[0] });
+    let row = ins.rows[0];
+
+    // Upload attachments within the same transaction, after the row exists (we
+    // need its id for the folder path) but tied to creation — so the admin
+    // auto-verify status never blocks the creator's own uploads.
+    if (files.length) {
+      const id = row.id as number;
+      const uploaded: ChallanFile[] = [];
+      for (const f of files) {
+        const url = await uploadFile(f, { entity: "vendor-challans", id: String(id), category: "document" });
+        writtenUrls.push(url);
+        uploaded.push({ url, originalName: f.originalname, mimeType: f.mimetype, size: f.size });
+      }
+      const upd = await client.query(
+        `UPDATE vendor_challans SET attachments=$1, attachment=NULL, updated_at=NOW() WHERE id=$2 RETURNING *`,
+        [JSON.stringify(uploaded), id]
+      );
+      row = upd.rows[0];
+    }
+
+    await client.query("COMMIT");
+    res.status(201).json({ data: row });
   } catch (err) {
+    try { await client.query("ROLLBACK"); } catch { /* ignore */ }
+    // The DB rolled back, so drop any files already written to avoid orphans.
+    await Promise.all(writtenUrls.map((u) => deleteUpload(u).catch(() => undefined)));
     req.log?.error(err);
     res.status(500).json({ error: "Failed to create vendor challan" });
+  } finally {
+    client.release();
   }
 });
 
