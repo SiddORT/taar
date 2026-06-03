@@ -39,18 +39,28 @@ dedicated `POST/DELETE /:id/document` endpoints (and the CREATE exception below)
 endpoints lock the row (`SELECT … FOR UPDATE` in a txn) so concurrent upload/remove can't clobber
 the array, and enforce Draft-only status server-side (FE `canEdit` alone is not a security boundary).
 
-## CREATE accepts files atomically (admin auto-verify gotcha)
-Admin-created challans are auto-set to `Verified` at CREATE, but the `POST /:id/document` endpoint
-rejects any non-Draft challan ("Only Draft challans can be edited"). So the old two-step flow
-(create JSON → then upload to /document) silently dropped admin attachments. Fix: the CREATE route
-(`POST /vendor-challans`) now accepts `multipart/form-data` (files under `files`) and, in ONE
-handler/txn, INSERTs the row (Draft or Verified), uploads files using the new id, then writes
-`attachments` — so files land before the verify status would block them. It stays
-backwards-compatible with JSON bodies (multer no-ops on non-multipart; `lineItems` parsed from
-string-or-array). FE create branch sends FormData, not JSON, and does NOT do a follow-up /document
-call. On txn rollback the route deletes any already-written files to avoid orphans.
+## ALL challans start as Draft; verification is explicit
+Challans are editable only while `Draft` (FE `canEdit = isNew || status==="Draft"`; BE PUT + the
+`POST /:id/document` endpoint both reject non-Draft). CREATE (`POST /vendor-challans`) sets status
+`Draft` for everyone — there is NO admin auto-verify. Verification is a separate `PATCH /:id/verify`
+gated by the `procurement:vendor_challans:verify` permission (admin role holds it). Conversion to
+PO/PR still requires `Verified`. The list shows an Edit (pencil) button on Draft rows.
 
-**Why:** auto-verify-on-create + Draft-only-document-endpoint are mutually exclusive for the one
-path that offers an attachment box (admin creating).
-**How to apply:** keep CREATE the only place besides /document that may write attachments; if you
-ever split create+upload again, the admin path will silently lose files.
+**Why:** auto-verify-on-create previously made admin challans skip Draft → admins could never edit
+them, and also broke the (separate) attachment upload which is Draft-only. Removing auto-verify
+restores a real edit window and a uniform Draft→Verify workflow.
+**How to apply:** don't reintroduce auto-verify on create; if you do, the admin path loses both edit
+access and (without the atomic-create path below) attachments. Already-`Verified` legacy challans
+stay immutable unless you add a reopen/migration.
+
+## CREATE accepts attachments atomically (within creation)
+The CREATE route accepts `multipart/form-data` (files under `files`) and, in ONE handler/txn,
+INSERTs the row, uploads files using the new id, then writes `attachments` — so attachments are
+saved as part of creation. Stays backwards-compatible with JSON bodies (multer no-ops on
+non-multipart; `lineItems` parsed from string-or-array). FE create branch sends FormData, not JSON,
+and does NOT do a follow-up `/document` call. On txn rollback the route deletes any already-written
+files to avoid orphans.
+
+**Why:** keeps attachment persistence tied to creation in a single atomic step (originally added to
+survive the admin auto-verify timing bug; the guarantee is still desirable now that creation is
+Draft).

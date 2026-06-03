@@ -176,9 +176,9 @@ router.post("/vendor-challans", requireAuth, uploadMiddleware.array("files", 10)
     const amount = validated.totalAmount.toFixed(2);
 
     const challanNumber = await nextChallanNumber();
-    // Admin-created challans are auto-verified.
-    const isAdmin = (req.user?.role ?? "") === "admin";
-    const initialStatus = isAdmin ? "Verified" : "Draft";
+    // All challans start as Draft so they remain editable; verification is an
+    // explicit follow-up action (PATCH /:id/verify) gated by permission.
+    const initialStatus = "Draft";
     const files = (req.files as Express.Multer.File[] | undefined) ?? [];
 
     await client.query("BEGIN");

@@ -3,7 +3,7 @@ import { useLocation } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   Plus, Search, X, CheckCircle, XCircle, ArrowRight,
-  FileText, ChevronLeft, ChevronRight, Loader2, RefreshCw,
+  FileText, ChevronLeft, ChevronRight, Loader2, RefreshCw, Pencil,
 } from "lucide-react";
 import { useGetMe, useLogout, getGetMeQueryKey } from "@workspace/api-client-react";
 import TopNavbar from "@/components/layout/TopNavbar";
@@ -405,6 +405,13 @@ export default function VendorChallans() {
                         <td className="px-4 py-3 text-xs font-mono text-indigo-600">{ch.linked_pr_number ?? "—"}</td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-1">
+                            {ch.status === "Draft" && (
+                              <button onClick={() => setLocation(`/procurement/vendor-challans/${ch.id}`)} disabled={actionId === ch.id}
+                                title="Edit"
+                                className="p-1.5 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors disabled:opacity-40">
+                                <Pencil className="h-3.5 w-3.5" />
+                              </button>
+                            )}
                             {ch.status === "Draft" && can("procurement:vendor_challans:verify") && (
                               <button onClick={() => handleVerify(ch.id)} disabled={actionId === ch.id}
                                 title="Verify"
