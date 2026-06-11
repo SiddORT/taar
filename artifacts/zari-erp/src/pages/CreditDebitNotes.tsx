@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import AppLayout from "@/components/layout/AppLayout";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 const G = "#C6AF4B";
 
@@ -27,9 +28,7 @@ function customFetch<T = any>(url: string, options?: RequestInit): Promise<T> {
   });
 }
 
-function fmt(n: any) {
-  return parseFloat(String(n ?? 0)).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
+// fmt replaced per-component via useCurrency()
 function fmtDate(d?: string | null) {
   if (!d) return "—";
   try { return new Date(d).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }); }
@@ -101,6 +100,8 @@ const EMPTY_FORM = {
 };
 
 export default function CreditDebitNotes() {
+  const { fmt: dcFmt } = useCurrency();
+  const fmt = (n: any) => dcFmt(parseFloat(String(n ?? 0)));
   const { toast } = useToast();
 
   const [notes, setNotes]       = useState<CdNote[]>([]);
@@ -230,7 +231,7 @@ export default function CreditDebitNotes() {
     }
     if (noteMax !== null && amt > noteMax) {
       toast({
-        title: `Amount cannot exceed ₹${fmt(noteMax)}`,
+        title: `Amount cannot exceed ${fmt(noteMax)}`,
         description: form.note_type === "Credit Note"
           ? "Credit note is limited to the invoice pending amount"
           : "Debit note is limited to the linked document total",
@@ -335,8 +336,8 @@ export default function CreditDebitNotes() {
         <div className="grid grid-cols-4 gap-4">
           {[
             { label: "Total Notes", val: notes.length, sub: "all time", color: "text-gray-900", raw: true },
-            { label: "Credit Notes Applied", val: `₹${fmt(totalCN)}`, sub: "balance reduced", color: "text-emerald-600", raw: false },
-            { label: "Debit Notes Applied",  val: `₹${fmt(totalDN)}`, sub: "balance increased", color: "text-rose-600", raw: false },
+            { label: "Credit Notes Applied", val: `${fmt(totalCN+0)}`, sub: "balance reduced", color: "text-emerald-600", raw: false },
+            { label: "Debit Notes Applied",  val: `${fmt(totalDN+0)}`, sub: "balance increased", color: "text-rose-600", raw: false },
             { label: "Pending Drafts", val: drafts, sub: "awaiting application", color: "text-amber-600", raw: true },
           ].map(c => (
             <div key={c.label} className={`${card} p-4`}>
@@ -419,7 +420,7 @@ export default function CreditDebitNotes() {
                       {n.invoice_no ?? n.vendor_bill_number ?? "—"}
                     </td>
                     <td className="px-4 py-3 text-xs text-gray-700 max-w-[120px] truncate">{n.party_name || "—"}</td>
-                    <td className="px-4 py-3 text-xs font-semibold text-gray-900 tabular-nums">₹{fmt(n.base_currency_amount)}</td>
+                    <td className="px-4 py-3 text-xs font-semibold text-gray-900 tabular-nums">{fmt(n.base_currency_amount+0)}</td>
                     <td className="px-4 py-3 text-xs font-mono text-gray-500">{n.currency_code}</td>
                     <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">{fmtDate(n.note_date)}</td>
                     <td className="px-4 py-3">
@@ -549,7 +550,7 @@ export default function CreditDebitNotes() {
                     <option value="">— Select Invoice —</option>
                     {invoices.filter(i => i.invoiceDirection === "Client").map(i => (
                       <option key={i.id} value={i.id}>
-                        {i.invoiceNo} — {i.clientName || "—"} (Pending: ₹{fmt(i.pendingAmount)})
+                        {i.invoiceNo} — {i.clientName || "—"} (Pending: {fmt(i.pendingAmount+0)})
                       </option>
                     ))}
                   </select>
@@ -611,7 +612,7 @@ export default function CreditDebitNotes() {
                     Note Amount <span className="text-red-500 ml-0.5">*</span>
                     {noteMax !== null && (
                       <span className="ml-2 text-[10px] font-normal text-gray-400 normal-case tracking-normal">
-                        max ₹{fmt(noteMax)}
+                        max {fmt(noteMax+0)}
                       </span>
                     )}
                   </label>
@@ -628,7 +629,7 @@ export default function CreditDebitNotes() {
                     }}
                     className={inp} placeholder="0.00" />
                   {form.note_amount && noteMax !== null && parseFloat(form.note_amount) > noteMax && (
-                    <p className="text-xs text-red-600 mt-1">Amount cannot exceed ₹{fmt(noteMax)}</p>
+                    <p className="text-xs text-red-600 mt-1">Amount cannot exceed {fmt(noteMax+0)}</p>
                   )}
                 </div>
                 <div>

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useLocation } from "wouter";
 import { FileText, Plus, ExternalLink, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 const G = "#C6AF4B";
 
@@ -15,10 +16,7 @@ const STATUS_COLORS: Record<string, string> = {
   Cancelled:       "bg-gray-100 text-gray-400 border-gray-200",
 };
 
-function fmt(n: string | number | null | undefined) {
-  const v = parseFloat(String(n ?? 0));
-  return isNaN(v) ? "0.00" : v.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
+// fmt replaced per-component via useCurrency()
 
 function fmtDate(d: string | null | undefined) {
   if (!d) return "—";
@@ -49,6 +47,7 @@ interface Props {
 }
 
 export default function LinkedInvoicesPanel({ type, orderId, orderNo }: Props) {
+  const { fmt } = useCurrency();
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const [invoices, setInvoices] = useState<LinkedInvoice[]>([]);
@@ -122,7 +121,7 @@ export default function LinkedInvoicesPanel({ type, orderId, orderNo }: Props) {
           <div key={c.label} className={`${card} p-3`}>
             <p className="text-[11px] text-gray-400 mb-0.5">{c.label}</p>
             <p className={`text-base font-bold ${c.color}`}>
-              {c.isMoney ? `₹${fmt(c.val)}` : c.val}
+              {c.isMoney ? fmt(c.val) : c.val}
             </p>
           </div>
         ))}
@@ -183,9 +182,9 @@ export default function LinkedInvoicesPanel({ type, orderId, orderNo }: Props) {
                       {inv.invoiceStatus}
                     </span>
                   </td>
-                  <td className="px-4 py-3 font-semibold text-gray-900 text-xs">₹{fmt(inv.totalAmount)}</td>
-                  <td className="px-4 py-3 text-emerald-600 font-medium text-xs">₹{fmt(inv.receivedAmount)}</td>
-                  <td className="px-4 py-3 text-amber-600 font-medium text-xs">₹{fmt(inv.pendingAmount)}</td>
+                  <td className="px-4 py-3 font-semibold text-gray-900 text-xs">{fmt(parseFloat(String(inv.totalAmount)))}</td>
+                  <td className="px-4 py-3 text-emerald-600 font-medium text-xs">{fmt(parseFloat(String(inv.receivedAmount)))}</td>
+                  <td className="px-4 py-3 text-amber-600 font-medium text-xs">{fmt(parseFloat(String(inv.pendingAmount)))}</td>
                   <td className="px-4 py-3 text-gray-500 text-xs whitespace-nowrap">{fmtDate(inv.invoiceDate)}</td>
                   <td className="px-4 py-3 text-gray-500 text-xs whitespace-nowrap">{fmtDate(inv.dueDate)}</td>
                   <td className="px-4 py-3">
@@ -206,9 +205,9 @@ export default function LinkedInvoicesPanel({ type, orderId, orderNo }: Props) {
                   <td colSpan={3} className="px-4 py-2.5 text-xs font-semibold text-gray-500">
                     {invoices.length} Invoice{invoices.length !== 1 ? "s" : ""}
                   </td>
-                  <td className="px-4 py-2.5 text-xs font-bold text-gray-900">₹{fmt(totalValue)}</td>
-                  <td className="px-4 py-2.5 text-xs font-bold text-emerald-600">₹{fmt(totalReceived)}</td>
-                  <td className="px-4 py-2.5 text-xs font-bold text-amber-600">₹{fmt(totalPending)}</td>
+                  <td className="px-4 py-2.5 text-xs font-bold text-gray-900">{fmt(parseFloat(String(totalValue)))}</td>
+                  <td className="px-4 py-2.5 text-xs font-bold text-emerald-600">{fmt(parseFloat(String(totalReceived)))}</td>
+                  <td className="px-4 py-2.5 text-xs font-bold text-amber-600">{fmt(parseFloat(String(totalPending)))}</td>
                   <td colSpan={3} />
                 </tr>
               </tfoot>

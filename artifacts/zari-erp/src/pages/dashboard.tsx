@@ -13,6 +13,7 @@ import {
 import { useGetMe, useLogout, getGetMeQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import AppLayout from "@/components/layout/AppLayout";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 const G       = "#C6AF4B";
 const G_LIGHT = "#D4C870";
@@ -117,6 +118,7 @@ function Skeleton({ className = "" }: { className?: string }) {
 }
 
 export default function Dashboard() {
+  const { fmt, currency: dc } = useCurrency();
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
   const authToken = localStorage.getItem("zarierp_token");
@@ -243,10 +245,10 @@ export default function Dashboard() {
   /* ── invoice stats ──────────────────────────────────────── */
   const iv = ov?.invoiceStats;
   const invoiceStats = [
-    { status: "Generated", Icon: FileText,     count: iv?.generated.count ?? 0, amount: iv?.generated.amount ?? "₹0", color: "#3B82F6", bg: "rgba(59,130,246,0.08)"  },
-    { status: "Pending",   Icon: Clock,         count: iv?.pending.count   ?? 0, amount: iv?.pending.amount   ?? "₹0", color: G,         bg: `${G}12`                 },
-    { status: "Completed", Icon: CheckCircle,   count: iv?.completed.count ?? 0, amount: iv?.completed.amount ?? "₹0", color: "#10B981", bg: "rgba(16,185,129,0.08)"  },
-    { status: "Overdue",   Icon: AlertTriangle, count: iv?.overdue.count   ?? 0, amount: iv?.overdue.amount   ?? "₹0", color: "#EF4444", bg: "rgba(239,68,68,0.08)"   },
+    { status: "Generated", Icon: FileText,     count: iv?.generated.count ?? 0, amount: iv?.generated.amount ?? `${dc.symbol}0`, color: "#3B82F6", bg: "rgba(59,130,246,0.08)"  },
+    { status: "Pending",   Icon: Clock,         count: iv?.pending.count   ?? 0, amount: iv?.pending.amount   ?? `${dc.symbol}0`, color: G,         bg: `${G}12`                 },
+    { status: "Completed", Icon: CheckCircle,   count: iv?.completed.count ?? 0, amount: iv?.completed.amount ?? `${dc.symbol}0`, color: "#10B981", bg: "rgba(16,185,129,0.08)"  },
+    { status: "Overdue",   Icon: AlertTriangle, count: iv?.overdue.count   ?? 0, amount: iv?.overdue.amount   ?? `${dc.symbol}0`, color: "#EF4444", bg: "rgba(239,68,68,0.08)"   },
   ];
 
   /* ── artwork pipeline ───────────────────────────────────── */
@@ -580,7 +582,7 @@ export default function Dashboard() {
               <div>
                 {ovLoading
                   ? <Skeleton className="h-8 w-28 mb-1" />
-                  : <p className="text-2xl font-black text-gray-900">{ov?.vendorPending?.formatted ?? "₹0"}</p>}
+                  : <p className="text-2xl font-black text-gray-900">{ov?.vendorPending?.formatted ?? `${dc.symbol}0`}</p>}
                 <p className="text-[10px] text-gray-400 font-medium">Total pending amount</p>
               </div>
             </div>

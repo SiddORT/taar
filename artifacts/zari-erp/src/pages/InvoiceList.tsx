@@ -6,6 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import AppLayout from "@/components/layout/AppLayout";
 import InvoicePreviewModal from "@/components/InvoicePreviewModal";
 import { useAddInvoicePayment } from "@/hooks/useInvoicePayments";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 const G = "#C6AF4B";
 
@@ -78,6 +79,8 @@ const PAYMENT_STATUSES_LIST = ["Completed", "Processing", "Failed"] as const;
 const PAY_ELIGIBLE = ["Sent", "Generated", "Partially Paid", "Overdue"];
 
 export default function InvoiceList() {
+  const { fmt: dcFmt } = useCurrency();
+  const fmt = (n: string | number | null | undefined) => dcFmt(parseFloat(String(n ?? 0)));
   const [, navigate] = useLocation();
   const { toast } = useToast();
 
@@ -254,7 +257,7 @@ export default function InvoiceList() {
           ].map(c => (
             <div key={c.label} className={`${card} p-4`}>
               <p className="text-xs text-gray-400 mb-1">{c.label}</p>
-              <p className={`text-lg font-bold ${c.color}`}>₹{fmt(c.val)}</p>
+              <p className={`text-lg font-bold ${c.color}`}>{fmt(c.val)}</p>
               <p className="text-xs text-gray-300 mt-0.5">{invoices.length} invoice{invoices.length !== 1 ? "s" : ""}</p>
             </div>
           ))}
@@ -379,9 +382,9 @@ export default function InvoiceList() {
                       ) : <span className="text-gray-300 text-xs">—</span>}
                     </td>
                     <td className="px-4 py-3 font-mono text-xs text-gray-600">{inv.currencyCode}</td>
-                    <td className="px-4 py-3 font-semibold text-gray-900 text-xs">₹{fmt(inv.totalAmount)}</td>
-                    <td className="px-4 py-3 text-emerald-600 font-medium text-xs">₹{fmt(inv.receivedAmount)}</td>
-                    <td className="px-4 py-3 text-amber-600 font-medium text-xs">₹{fmt(inv.pendingAmount)}</td>
+                    <td className="px-4 py-3 font-semibold text-gray-900 text-xs">{fmt(inv.totalAmount)}</td>
+                    <td className="px-4 py-3 text-emerald-600 font-medium text-xs">{fmt(inv.receivedAmount)}</td>
+                    <td className="px-4 py-3 text-amber-600 font-medium text-xs">{fmt(inv.pendingAmount)}</td>
                     <td className="px-4 py-3 text-gray-500 text-xs whitespace-nowrap">{fmtDate(inv.invoiceDate)}</td>
                     <td className="px-4 py-3 text-gray-500 text-xs whitespace-nowrap">{fmtDate(inv.dueDate)}</td>
                     <td className="px-4 py-3">

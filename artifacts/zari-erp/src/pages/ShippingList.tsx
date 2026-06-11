@@ -6,6 +6,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { customFetch } from "@workspace/api-client-react";
 import AppLayout from "@/components/layout/AppLayout";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 const G = "#C6AF4B";
 
@@ -41,6 +42,7 @@ const STATUSES = ["Pending", "Dispatched", "In Transit", "Delivered", "Returned"
 const REF_TYPES = ["Swatch", "Style"];
 
 export default function ShippingList() {
+  const { fmt, currency: dc } = useCurrency();
   const [, setLocation] = useLocation();
   const qc = useQueryClient();
   const { toast } = useToast();
@@ -114,7 +116,6 @@ export default function ShippingList() {
     }
   }
 
-  const fmt = (n: string | number) => parseFloat(String(n)).toLocaleString("en-IN", { minimumFractionDigits: 2 });
   const fmtDate = (d: string | null) => d ? new Date(d).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—";
 
   const card = "rounded-2xl bg-white border border-[#C6AF4B]/15 shadow-[0_2px_16px_rgba(198,175,75,0.12),0_1px_3px_rgba(0,0,0,0.06)]";
@@ -214,7 +215,7 @@ export default function ShippingList() {
                       ) : "—"}
                     </td>
                     <td className="px-4 py-3 text-gray-700">{parseFloat(r.shipment_weight).toFixed(3)} kg</td>
-                    <td className="px-4 py-3 font-semibold text-gray-900">₹{fmt(r.final_shipping_amount)}</td>
+                    <td className="px-4 py-3 font-semibold text-gray-900">{fmt(r.final_shipping_amount)}</td>
                     <td className="px-4 py-3">
                       <span className={`px-2.5 py-1 rounded-full text-xs font-semibold border ${STATUS_COLORS[r.shipment_status] ?? "bg-gray-50 text-gray-500 border-gray-200"}`}>{r.shipment_status}</span>
                     </td>

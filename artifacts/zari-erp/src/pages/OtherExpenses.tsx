@@ -9,6 +9,7 @@ import { customFetch } from "@workspace/api-client-react";
 import TopNavbar from "@/components/layout/TopNavbar";
 import SearchableSelect from "@/components/ui/SearchableSelect";
 import { useToast } from "@/hooks/use-toast";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 /* ── styles ─────────────────────────────────────────── */
 const CARD = "rounded-2xl bg-white border border-[#C6AF4B]/15 shadow-[0_2px_16px_rgba(198,175,75,0.12),0_1px_3px_rgba(0,0,0,0.06)]";
@@ -40,7 +41,7 @@ function fmtDate(s: string | null) {
   if (!s) return "—";
   return new Date(s).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
 }
-function fmtAmt(n: number | string | null, sym = "₹") {
+function fmtAmt(n: number | string | null, sym = "₹") { // sym overridden in component
   const v = parseFloat(String(n ?? 0));
   return isNaN(v) ? "—" : `${sym}${v.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
@@ -271,7 +272,8 @@ function ExpenseModal({
 
 /* ── ViewModal ─────────────────────────────────────── */
 function ViewModal({ row, onClose }: { row: any; onClose: () => void }) {
-  const sym = row.currency_code === "INR" ? "₹" : row.currency_code + " ";
+  const { currency: dc } = useCurrency();
+  const sym = row.currency_code === "INR" ? dc.symbol : row.currency_code + " ";
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
       <div className={`${CARD} w-full max-w-lg`}>
@@ -335,6 +337,7 @@ function fileUrl(p?: string | null) {
 }
 
 export default function OtherExpenses() {
+  const { fmt, currency: dc } = useCurrency();
   const { data: me, isError, isLoading: meLoading } = useGetMe();
   const { toast } = useToast();
   const isAdmin = (me as any)?.role === "admin";
@@ -563,7 +566,7 @@ export default function OtherExpenses() {
                     <td className={TD}>{row.expense_category}</td>
                     <td className={TD}>{(row.vendor_display_name ?? row.vendor_name) || <span className="text-gray-400">—</span>}</td>
                     <td className={`${TD} font-semibold`}>
-                      {row.currency_code === "INR" ? "₹" : row.currency_code + " "}
+                      {row.currency_code === "INR" ? dc.symbol : row.currency_code + " "}
                       {parseFloat(row.amount).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </td>
                     <td className={TD}>{row.currency_code}</td>

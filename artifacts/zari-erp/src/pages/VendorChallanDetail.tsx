@@ -7,6 +7,7 @@ import TopNavbar from "@/components/layout/TopNavbar";
 import { SmallSearchSelect } from "@/components/ui/SearchableSelect";
 import { useToast } from "@/hooks/use-toast";
 import { useMyPermissions } from "@/hooks/useMyPermissions";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 const G = "#C6AF4B";
 const BASE = (import.meta.env.BASE_URL ?? "/").replace(/\/$/, "");
@@ -303,6 +304,7 @@ function LineItemsTable({ items, onChange, disabled }: {
   onChange: (items: LineItem[]) => void;
   disabled: boolean;
 }) {
+  const { fmt } = useCurrency();
   function updateItem(id: string, field: keyof LineItem, value: string) {
     // Block negative quantities/rates outright.
     if ((field === "quantity" || field === "rate") && value !== "" && parseFloat(value) < 0) {
@@ -336,8 +338,8 @@ function LineItemsTable({ items, onChange, disabled }: {
             <th className={`${colBase} text-left px-3 py-2.5 text-xs font-semibold text-gray-500`}>Description / Details</th>
             <th className={`${colBase} text-right px-3 py-2.5 text-xs font-semibold text-gray-500 w-24`}>Quantity</th>
             <th className={`${colBase} text-left px-3 py-2.5 text-xs font-semibold text-gray-500 w-20`}>Unit</th>
-            <th className={`${colBase} text-right px-3 py-2.5 text-xs font-semibold text-gray-500 w-28`}>Rate (₹)</th>
-            <th className={`${colBase} text-right px-3 py-2.5 text-xs font-semibold text-gray-500 w-28`}>Amount (₹)</th>
+            <th className={`${colBase} text-right px-3 py-2.5 text-xs font-semibold text-gray-500 w-28`}>Rate</th>
+            <th className={`${colBase} text-right px-3 py-2.5 text-xs font-semibold text-gray-500 w-28`}>Amount</th>
             {!disabled && <th className="w-10 px-2 py-2.5" />}
           </tr>
         </thead>
@@ -368,7 +370,7 @@ function LineItemsTable({ items, onChange, disabled }: {
                   className={`${cellInput} text-right` + (disabled ? " opacity-50 cursor-not-allowed" : "")} />
               </td>
               <td className={`${colBase} px-3 py-1.5 text-sm text-right font-medium text-gray-700`}>
-                {item.amount ? `₹${parseFloat(item.amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}` : "—"}
+                {item.amount ? `${fmt(parseFloat(item.amount))}` : "—"}
               </td>
               {!disabled && (
                 <td className="px-2 py-1 text-center">
@@ -396,7 +398,7 @@ function LineItemsTable({ items, onChange, disabled }: {
                 Total
               </td>
               <td className="px-3 py-2.5 text-sm text-right font-bold text-gray-900">
-                ₹{total.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                {fmt(total)}
               </td>
               {!disabled && <td />}
             </tr>
@@ -419,6 +421,7 @@ function LineItemsTable({ items, onChange, disabled }: {
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 export default function VendorChallanDetail() {
+  const { fmt, currency: dc } = useCurrency();
   const params = useParams<{ id: string }>();
   const [, setLocation] = useLocation();
   const qc = useQueryClient();

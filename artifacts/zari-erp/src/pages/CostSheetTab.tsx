@@ -1,6 +1,7 @@
 import { useRef, useState, useEffect } from "react";
 import { Printer, Loader2, RefreshCw } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
+import { useCurrency } from "@/contexts/CurrencyContext";
 import {
   useSwatchBom, useSwatchPOs, useSwatchPRs,
   useSwatchConsumptionLog, useArtisanTimesheets,
@@ -31,7 +32,7 @@ function computeRowMetrics(r: BomRecord, pos: PurchaseOrderRecord[], prs: Purcha
 }
 
 function fmt(n: number, dec = 2) { return n.toFixed(dec); }
-function rupee(n: number) { return `₹${n.toFixed(2)}`; }
+
 
 function SheetSection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -102,6 +103,7 @@ export default function CostSheetTab({
   clientName?: string;
   quantity?: string;
 }) {
+  const { fmt: dcFmt, currency: dc } = useCurrency();
   const printRef = useRef<HTMLDivElement>(null);
   const qc = useQueryClient();
   const [refreshing, setRefreshing] = useState(false);
@@ -310,7 +312,7 @@ export default function CostSheetTab({
         </div>
         <SheetSection title="Material Consumption">
           <SheetTable
-            headers={["Code", "Material / Fabric", "Type", "Consumed Qty", "Avg Price ₹", "HSN", "GST%", "Final Rate ₹", includeGst ? "Total (incl. GST) ₹" : "Total ₹", "Consumed By"]}
+            headers={["Code", "Material / Fabric", "Type", "Consumed Qty", "Avg Price", "HSN", "GST%", "Final Rate", includeGst ? "Total (incl. GST)" : "Total", "Consumed By"]}
             rows={bomWithMetrics.filter(({ m }) => m.consumedQtyNum > 0).map(({ r, m }) => {
               const { hsnCode, gstPct } = getBomHsnGst(r);
               const effectiveGst = includeGst ? gstPct : 0;
@@ -323,17 +325,17 @@ export default function CostSheetTab({
                 r.materialName,
                 r.materialType === "fabric" ? "Fabric" : "Material",
                 `${fmt(m.consumedQtyNum)} ${r.unitType}`,
-                rupee(m.weightedAvg),
+                dcFmt(m.weightedAvg),
                 includeGst ? (hsnCode || "—") : "—",
                 includeGst && gstPct > 0 ? `${gstPct}%` : "—",
-                rupee(finalRate),
-                rupee(totalWithGst),
+                dcFmt(finalRate),
+                dcFmt(totalWithGst),
                 lastEntry?.consumedBy ?? "—",
               ];
             })}
             footer={bomWithMetrics.filter(({ m }) => m.consumedQtyNum > 0).length > 0 ? [
               "", "", "Total", "", "", "", "", "",
-              rupee(bomConsumedTotal + (includeGst ? bomGstTotal : 0)),
+              dcFmt(bomConsumedTotal + (includeGst ? bomGstTotal : 0)),
               "",
             ] : undefined}
           />
@@ -342,19 +344,19 @@ export default function CostSheetTab({
         {/* ── 2. Artisan Time Sheet ───────────────────────────────────────── */}
         <SheetSection title="Artisan Time Sheet">
           <SheetTable
-            headers={["Start Date", "End Date", "Shift Type", "# Artisans", "Total Hours", "Rate / Hr ₹", "Total Rate ₹"]}
+            headers={["Start Date", "End Date", "Shift Type", "# Artisans", "Total Hours", "Rate / Hr", "Total Rate"]}
             rows={artisanTimesheets.map(r => [
               r.startDate,
               r.endDate,
               SHIFT_LABELS[r.shiftType] ?? r.shiftType,
               r.noOfArtisans,
               parseFloat(r.totalHours).toFixed(1),
-              rupee(parseFloat(r.hourlyRate)),
-              rupee(parseFloat(r.totalRate)),
+              dcFmt(parseFloat(r.hourlyRate)),
+              dcFmt(parseFloat(r.totalRate)),
             ])}
             footer={artisanTimesheets.length > 0 ? [
               "", "", "", "", "", "Total",
-              rupee(artisanTotal),
+              dcFmt(artisanTotal),
             ] : undefined}
           />
         </SheetSection>
@@ -364,7 +366,7 @@ export default function CostSheetTab({
           <SheetTable
             colWidths={["22%", "9%", "7%", "9%", "9%", "10%", "11%", "11%", "12%"]}
             wrapCols={[0]}
-            headers={["Vendor", "HSN", "GST%", "Issued", "Target", "Delivered", "Cost ₹", "GST ₹", "Total ₹"]}
+            headers={["Vendor", "HSN", "GST%", "Issued", "Target", "Delivered", "Cost", "GST", "Total"]}
             rows={outsourceJobs.map(r => {
               const base = parseFloat(r.totalCost) || 0;
               const gstPct = parseFloat(r.gstPercentage) || 0;
@@ -377,19 +379,19 @@ export default function CostSheetTab({
                 r.issueDate,
                 r.targetDate ?? "—",
                 r.deliveryDate ?? "—",
-                rupee(base),
-                includeGst ? rupee(gstAmt) : "—",
-                rupee(totalWithGst),
+                dcFmt(base),
+                includeGst ? dcFmt(gstAmt) : "—",
+                dcFmt(totalWithGst),
               ];
             })}
-            footer={outsourceJobs.length > 0 ? ["", "", "", "", "", "Total", rupee(outsourceBaseTotal), includeGst ? rupee(outsourceGstTotal) : "—", rupee(outsourceTotal)] : undefined}
+            footer={outsourceJobs.length > 0 ? ["", "", "", "", "", "Total", dcFmt(outsourceBaseTotal), includeGst ? dcFmt(outsourceGstTotal) : "—", dcFmt(outsourceTotal)] : undefined}
           />
         </SheetSection>
 
         {/* ── 4. Custom Charges ───────────────────────────────────────────── */}
         <SheetSection title="Custom Charges">
           <SheetTable
-            headers={["Vendor", "HSN", "GST%", "Description", "Unit Price ₹", "Qty", "Cost ₹", "GST ₹", "Total ₹"]}
+            headers={["Vendor", "HSN", "GST%", "Description", "Unit Price", "Qty", "Cost", "GST", "Total"]}
             rows={customCharges.map(r => {
               const base = parseFloat(r.totalAmount) || 0;
               const gstPct = parseFloat(r.gstPercentage) || 0;
@@ -400,21 +402,21 @@ export default function CostSheetTab({
                 r.hsnCode || "—",
                 gstPct > 0 ? `${gstPct}%` : "—",
                 r.description,
-                rupee(parseFloat(r.unitPrice)),
+                dcFmt(parseFloat(r.unitPrice)),
                 parseFloat(r.quantity).toFixed(2),
-                rupee(base),
-                includeGst ? rupee(gstAmt) : "—",
-                rupee(totalWithGst),
+                dcFmt(base),
+                includeGst ? dcFmt(gstAmt) : "—",
+                dcFmt(totalWithGst),
               ];
             })}
-            footer={customCharges.length > 0 ? ["", "", "", "", "", "Total", rupee(customBaseTotal), includeGst ? rupee(customGstTotal) : "—", rupee(customTotal)] : undefined}
+            footer={customCharges.length > 0 ? ["", "", "", "", "", "Total", dcFmt(customBaseTotal), includeGst ? dcFmt(customGstTotal) : "—", dcFmt(customTotal)] : undefined}
           />
         </SheetSection>
 
         {/* ── 5. Artwork Costs ─────────────────────────────────────────────── */}
         <SheetSection title="Artwork Costs">
           <SheetTable
-            headers={["Artwork Code", "Artwork Name", "Type", "Vendor", "Amount ₹", "Status"]}
+            headers={["Artwork Code", "Artwork Name", "Type", "Vendor", "Amount", "Status"]}
             rows={artworks.flatMap(a => {
               const prodCost = a.artworkCreated === "Outsource"
                 ? (parseFloat(a.outsourcePaymentAmount ?? "") || parseFloat(a.totalCost ?? "") || 0)
@@ -423,9 +425,9 @@ export default function CostSheetTab({
               const typeLabel = a.artworkCreated === "Outsource" ? "Artwork (Outsource)" : "Artwork (Inhouse)";
               const vendor = a.artworkCreated === "Outsource" ? (a.outsourceVendorName || "—") : "Inhouse";
               const status = a.artworkCreated === "Outsource" ? (a.outsourcePaymentStatus || "—") : "—";
-              return [[a.artworkCode, a.artworkName, typeLabel, vendor, rupee(prodCost), status]];
+              return [[a.artworkCode, a.artworkName, typeLabel, vendor, dcFmt(prodCost), status]];
             })}
-            footer={artworkTotal > 0 ? ["", "", "", "", "Total", rupee(artworkTotal)] : undefined}
+            footer={artworkTotal > 0 ? ["", "", "", "", "Total", dcFmt(artworkTotal)] : undefined}
           />
         </SheetSection>
 
@@ -446,12 +448,12 @@ export default function CostSheetTab({
                 ].map(({ label, value }) => (
                   <div key={label} className="flex justify-between text-xs text-gray-600 px-3 py-0.5">
                     <span>{label}</span>
-                    <span className="font-medium text-gray-800">{rupee(value)}</span>
+                    <span className="font-medium text-gray-800">{dcFmt(value)}</span>
                   </div>
                 ))}
                 <div className="flex justify-between items-center px-3 py-2 rounded-xl bg-gray-900 mt-2">
                   <span className="text-xs font-bold text-white tracking-wide">GRAND TOTAL</span>
-                  <span className="text-base font-black text-[#C9B45C]">{rupee(grandTotal)}</span>
+                  <span className="text-base font-black text-[#C9B45C]">{dcFmt(grandTotal)}</span>
                 </div>
                 {quantity && parseFloat(quantity) > 0 && (
                   <div className="flex justify-between items-center px-3 py-2 rounded-xl bg-indigo-50 border border-indigo-100 mt-1.5">
@@ -459,7 +461,7 @@ export default function CostSheetTab({
                       <span className="text-xs font-semibold text-indigo-700">Cost per Unit</span>
                       <p className="text-[9px] text-indigo-400 mt-0.5">Grand Total ÷ {quantity} units</p>
                     </div>
-                    <span className="text-sm font-black text-indigo-700">{rupee(grandTotal / parseFloat(quantity))}</span>
+                    <span className="text-sm font-black text-indigo-700">{dcFmt(grandTotal / parseFloat(quantity))}</span>
                   </div>
                 )}
               </div>

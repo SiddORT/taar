@@ -12,6 +12,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { customFetch } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
 import AppLayout from "@/components/layout/AppLayout";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 const G     = "#C6AF4B";
 const G_DIM = "#A8943E";
@@ -25,7 +26,7 @@ const card = [
 
 const inp = "border border-gray-300 rounded-lg px-3 py-1.5 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/40 min-w-[160px]";
 
-const fmtCurr = (n: number | string) => "₹" + parseFloat(String(n ?? 0)).toLocaleString("en-IN", { maximumFractionDigits: 2 });
+// fmtCurr replaced per-component via useCurrency()
 const fmtNum  = (n: number | string) => parseFloat(String(n ?? 0)).toLocaleString("en-IN", { maximumFractionDigits: 3 });
 
 const PAGE_SIZE = 25;
@@ -87,7 +88,7 @@ interface GstSummary {
   paid:      { cgst: number; sgst: number; igst: number; total: number };
 }
 
-function rowVal(id: ReportId, row: Record<string, unknown>, col: string): string {
+function rowVal(id: ReportId, row: Record<string, unknown>, col: string, fmtCurr: (v: string | number) => string): string {
   const currCols = new Set([
     "PO Amount","PR Value","Vendor Bills","Pending Payables","Invoice Amount","Received Amount",
     "Pending Amount","Amount","Paid","Balance","Net Profit","Total Sales","Total Purchases",
@@ -173,6 +174,8 @@ interface FilterOptions {
 }
 
 export default function Reports() {
+  const { fmt: dcFmt } = useCurrency();
+  const fmtCurr = (n: number | string) => dcFmt(parseFloat(String(n ?? 0)));
   const [, navigate]     = useLocation();
   const { toast }        = useToast();
   const qc               = useQueryClient();
@@ -305,7 +308,7 @@ export default function Reports() {
           return Number.isFinite(num) ? num : 0;
         }
         // For text cells, use rowVal so client/date aliases & "—" fallback work
-        return rowVal(selected, row, col);
+        return rowVal(selected, row, col, fmtCurr);
       })];
     });
     const ws = XLSX.utils.aoa_to_sheet([header, ...body]);
@@ -704,9 +707,9 @@ export default function Reports() {
                                 <span className="text-xs font-semibold text-gray-400">{globalIdx + 1}</span>
                               </td>
                               {REPORT_COLS[selected!].map((col, ci) => {
-                                const val     = rowVal(selected!, row, col);
+                                const val     = rowVal(selected!, row, col, fmtCurr);
                                 const isStatus = col === "Status" || col === "stock_status" || col === "Transaction Type";
-                                const isNeg   = val.startsWith("₹-") || (col === "Net Revenue" && parseFloat(String((row as Record<string, unknown>)["net_revenue"] ?? 0)) < 0);
+                                const isNeg   = val.startsWith("₹-") /* INR formatted server value */ || (col === "Net Revenue" && parseFloat(String((row as Record<string, unknown>)["net_revenue"] ?? 0)) < 0);
                                 return (
                                   <td key={ci} className="px-4 py-3 whitespace-nowrap">
                                     {isStatus ? (

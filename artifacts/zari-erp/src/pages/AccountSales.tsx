@@ -11,6 +11,7 @@ import { useGetMe } from "@workspace/api-client-react";
 import { customFetch } from "@workspace/api-client-react";
 import TopNavbar from "@/components/layout/TopNavbar";
 import { useToast } from "@/hooks/use-toast";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 /* ── theme ─────────────────────────────────────────── */
 const G    = "#C6AF4B";
@@ -35,19 +36,7 @@ const STATUS_TABS = ["All", "Pending", "Partially Received", "Paid", "Overdue"];
 const CURRENCIES  = ["INR", "USD", "EUR", "GBP", "AED"];
 
 /* ── helpers ───────────────────────────────────────── */
-const CURRENCY_SYMBOL: Record<string, string> = {
-  INR: "₹", USD: "$", EUR: "€", GBP: "£", AED: "د.إ ",
-};
-const sym = (c?: string) => CURRENCY_SYMBOL[(c ?? "INR").toUpperCase()] ?? `${(c ?? "INR").toUpperCase()} `;
-const fmtAmt = (v: any, currency?: string) =>
-  `${sym(currency)}${parseFloat(v ?? 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-const fmtCrLk = (v: any, currency?: string) => {
-  const n = parseFloat(v ?? 0);
-  const s = sym(currency);
-  if (n >= 1e7) return `${s}${(n / 1e7).toFixed(2)} Cr`;
-  if (n >= 1e5) return `${s}${(n / 1e5).toFixed(2)} L`;
-  return `${s}${n.toLocaleString("en-IN", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
-};
+// fmtAmt / fmtCrLk replaced at runtime by useCurrency — see component body
 const fmtDate = (d: any) => {
   if (!d) return "—";
   const dt = new Date(d);
@@ -93,6 +82,16 @@ function refTypeBadge(t: string) {
    PAYMENT MODAL
 ══════════════════════════════════════════════════════ */
 function PaymentModal({ row, onClose, onSuccess }: { row: any; onClose: () => void; onSuccess: () => void }) {
+  const { fmt: dcFmt } = useCurrency();
+  const fmtAmt = (v: any, currency?: string) => {
+    const n = parseFloat(v ?? 0);
+    if (currency && currency !== "INR") {
+      const CURRENCY_SYMBOL: Record<string, string> = { INR: "₹", USD: "$", EUR: "€", GBP: "£", AED: "د.إ " };
+      const s = CURRENCY_SYMBOL[currency.toUpperCase()] ?? `${currency} `;
+      return `${s}${n.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    }
+    return dcFmt(n);
+  };
   const today = new Date().toISOString().split("T")[0];
   const rowCurrency = row.currency_code ?? "INR";
   const [form, setForm] = useState({
@@ -279,6 +278,20 @@ function Chip({ label, color }: { label: string; color: "gold" | "blue" | "purpl
    MAIN PAGE
 ══════════════════════════════════════════════════════ */
 export default function AccountSales() {
+  const { fmt: dcFmt, fmtAbbr: dcAbbr } = useCurrency();
+  const fmtAmt = (v: any, currency?: string) => {
+    const n = parseFloat(v ?? 0);
+    if (currency && currency !== "INR") {
+      const CURRENCY_SYMBOL: Record<string, string> = { INR: "₹", USD: "$", EUR: "€", GBP: "£", AED: "د.إ " };
+      const s = CURRENCY_SYMBOL[currency.toUpperCase()] ?? `${currency} `;
+      return `${s}${n.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    }
+    return dcFmt(n);
+  };
+  const fmtCrLk = (v: any, currency?: string) => {
+    if (currency && currency !== "INR") return fmtAmt(v, currency);
+    return dcAbbr(parseFloat(v ?? 0));
+  };
   const { data: me } = useGetMe();
   const role = (me as any)?.role ?? "";
   const hasAccess = role === "admin" || role === "accounts";

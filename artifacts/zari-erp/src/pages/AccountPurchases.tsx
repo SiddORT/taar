@@ -9,6 +9,7 @@ import { useGetMe } from "@workspace/api-client-react";
 import { customFetch } from "@workspace/api-client-react";
 import TopNavbar from "@/components/layout/TopNavbar";
 import { useToast } from "@/hooks/use-toast";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 /* ── theme ─────────────────────────────────────────── */
 const G    = "#C6AF4B";
@@ -46,24 +47,7 @@ function fmtDate(s: string | null) {
   try { return new Date(s).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }); }
   catch { return s; }
 }
-function fmtAmt(n: number | string | null) {
-  const v = parseFloat(String(n ?? 0));
-  return isNaN(v) ? "₹0.00" : `₹${v.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
-function fmtFx(n: number | string | null, ccy: string) {
-  const v = parseFloat(String(n ?? 0));
-  if (isNaN(v)) return ccy === "INR" ? "₹0.00" : `${ccy} 0.00`;
-  if (ccy === "INR") return `₹${v.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-  return `${ccy} ${v.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
-function fmtCrLk(n: number | string | null) {
-  const v = parseFloat(String(n ?? 0));
-  if (isNaN(v)) return "₹0";
-  if (v >= 1_00_00_000) return `₹${(v / 1_00_00_000).toFixed(2)} Cr`;
-  if (v >= 1_00_000)    return `₹${(v / 1_00_000).toFixed(2)} L`;
-  if (v >= 1_000)       return `₹${(v / 1_000).toFixed(1)} K`;
-  return fmtAmt(v);
-}
+// fmtAmt, fmtFx, fmtCrLk replaced at runtime by useCurrency — see component body
 function statusBadge(status: string) {
   const map: Record<string, string> = {
     Paid:             "bg-emerald-100 text-emerald-700",
@@ -118,6 +102,17 @@ function KpiCard({ icon, label, value, sub, accent = G, loading }: {
 function PaymentModal({ row, onClose, onSuccess }: {
   row: any; onClose: () => void; onSuccess: () => void;
 }) {
+  const { fmt: dcFmt } = useCurrency();
+  const fmtAmt = (v: any) => dcFmt(parseFloat(v ?? 0));
+  const fmtFx = (v: any, ccy: string) => {
+    const n = parseFloat(String(v ?? 0));
+    if (ccy && ccy !== "INR") {
+      const CURRENCY_SYMBOL: Record<string, string> = { INR: "₹", USD: "$", EUR: "€", GBP: "£", AED: "د.إ " };
+      const s = CURRENCY_SYMBOL[ccy.toUpperCase()] ?? `${ccy} `;
+      return `${s}${n.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    }
+    return dcFmt(n);
+  };
   const { toast } = useToast();
   const billCcy = row.currency_code || "INR";
   const billRate = parseFloat(row.exchange_rate_snapshot ?? "1") || 1;
@@ -274,6 +269,18 @@ function PaymentModal({ row, onClose, onSuccess }: {
    MAIN PAGE
 ══════════════════════════════════════════════════════ */
 export default function AccountPurchases() {
+  const { fmt: dcFmt, fmtAbbr: dcAbbr } = useCurrency();
+  const fmtAmt = (v: any) => dcFmt(parseFloat(v ?? 0));
+  const fmtFx = (v: any, ccy: string) => {
+    const n = parseFloat(String(v ?? 0));
+    if (ccy && ccy !== "INR") {
+      const CURRENCY_SYMBOL: Record<string, string> = { INR: "₹", USD: "$", EUR: "€", GBP: "£", AED: "د.إ " };
+      const s = CURRENCY_SYMBOL[ccy.toUpperCase()] ?? `${ccy} `;
+      return `${s}${n.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    }
+    return dcFmt(n);
+  };
+  const fmtCrLk = (v: any) => dcAbbr(parseFloat(v ?? 0));
   const { data: me } = useGetMe();
   const role = (me as any)?.role ?? "";
   const hasAccess = role === "admin" || role === "accounts";

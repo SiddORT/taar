@@ -8,6 +8,7 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import TopNavbar from "../components/layout/TopNavbar";
 import { useToast } from "../hooks/use-toast";
+import { useCurrency } from "@/contexts/CurrencyContext";
 import {
   useAccountInvoices, useInvoicePaymentsList,
   useAddInvoicePayment, useDeleteInvoicePayment,
@@ -21,10 +22,7 @@ const PAYMENT_TYPES   = ["Cash", "Bank Transfer", "UPI", "Cheque", "Online Gatew
 const PAYMENT_STATUSES = ["Completed", "Processing", "Failed"] as const;
 const CURRENCIES = ["INR", "USD", "EUR", "GBP", "AED", "JPY", "CNY"];
 
-function fmt(n: number | string | undefined | null, cur = "INR") {
-  const v = parseFloat(String(n ?? 0));
-  return new Intl.NumberFormat("en-IN", { maximumFractionDigits: 2, minimumFractionDigits: 2 }).format(v);
-}
+// fmt() replaced per-component via useCurrency() — see component body
 function fmtDate(d: string | null | undefined) {
   if (!d) return "—";
   try { return new Date(d).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }); }
@@ -62,6 +60,8 @@ function useMe() {
 
 /* ─── Payment Modal ───────────────────────────────────────────────────────── */
 function PaymentModal({ invoice, onClose }: { invoice: AccountInvoice; onClose: () => void }) {
+  const { fmt: dcFmt } = useCurrency();
+  const fmt = (n: number | string | undefined | null) => dcFmt(parseFloat(String(n ?? 0)));
   const { toast } = useToast();
   const addPmt = useAddInvoicePayment();
   const direction = invoice.invoice_direction === "Vendor" ? "Paid" : "Received";
@@ -220,8 +220,11 @@ function PaymentsHistory({ invoiceId }: { invoiceId: number }) {
   const deletePmt = useDeleteInvoicePayment();
   const { toast } = useToast();
 
+  const { fmt, fmt: dcFmtH } = useCurrency();
+  const fmtH = (n: number | string | undefined | null) => dcFmtH(parseFloat(String(n ?? 0)));
+
   async function handleDelete(p: InvoicePayment) {
-    if (!confirm(`Delete payment of ${p.currency_code} ${fmt(p.payment_amount)} on ${fmtDate(p.payment_date)}?`)) return;
+    if (!confirm(`Delete payment of ${p.currency_code} ${fmtH(p.payment_amount)} on ${fmtDate(p.payment_date)}?`)) return;
     try {
       await deletePmt.mutateAsync(p.payment_id);
       toast({ title: "Payment deleted" });
@@ -269,7 +272,7 @@ function PaymentsHistory({ invoiceId }: { invoiceId: number }) {
               <td className="py-2 text-right font-medium text-gray-900 tabular-nums">
                 {p.currency_code} {fmt(p.payment_amount)}
               </td>
-              <td className="py-2 text-right text-gray-600 tabular-nums">₹{fmt(p.base_currency_amount)}</td>
+              <td className="py-2 text-right text-gray-600 tabular-nums">{fmtH(p.base_currency_amount)}</td>
               <td className="py-2 text-gray-500 max-w-[120px] truncate" title={p.transaction_reference}>
                 {p.transaction_reference || "—"}
               </td>
@@ -299,6 +302,7 @@ function PaymentsHistory({ invoiceId }: { invoiceId: number }) {
 function InvoiceRow({
   inv, index, expanded, onToggle, onPay,
 }: { inv: AccountInvoice; index: number; expanded: boolean; onToggle: () => void; onPay: () => void }) {
+  const { fmt } = useCurrency();
   const direction = inv.invoice_direction;
   const pct = inv.total_amount > 0 ? Math.min(100, (inv.received_amount / inv.total_amount) * 100) : 0;
 
@@ -399,6 +403,7 @@ function SummaryCard({ label, value, color, icon }: { label: string; value: stri
 
 /* ─── Main Accounts Page ───────────────────────────────────────────────────── */
 export default function Accounts() {
+  const { fmt: dcFmt, currency: dc } = useCurrency();
   const [, setLocation] = useLocation();
   const { data: meData } = useMe();
   const { toast } = useToast();
@@ -461,9 +466,9 @@ export default function Accounts() {
 
         {/* Summary cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <SummaryCard label="Total Outstanding" value={`₹${fmt(totalPending)}`} color="#ef4444" icon={<Wallet size={18} />} />
-          <SummaryCard label="Receivable (Clients)" value={`₹${fmt(totalReceivable)}`} color="#10b981" icon={<ArrowDownLeft size={18} />} />
-          <SummaryCard label="Payable (Vendors)" value={`₹${fmt(totalPayable)}`} color="#f59e0b" icon={<ArrowUpRight size={18} />} />
+          <SummaryCard label="Total Outstanding" value={dcFmt(totalPending)} color="#ef4444" icon={<Wallet size={18} />} />
+          <SummaryCard label="Receivable (Clients)" value={dcFmt(totalReceivable)} color="#10b981" icon={<ArrowDownLeft size={18} />} />
+          <SummaryCard label="Payable (Vendors)" value={dcFmt(totalPayable)} color="#f59e0b" icon={<ArrowUpRight size={18} />} />
           <SummaryCard label={`Fully Paid (${paidCount})`} value={`of ${invoices.length} shown`} color={G} icon={<CheckCircle2 size={18} />} />
         </div>
 

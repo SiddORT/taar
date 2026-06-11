@@ -27,6 +27,7 @@ import CostingTab from "@/pages/CostingTab";
 import CostSheetTab from "@/pages/CostSheetTab";
 import ShippingTab from "@/pages/ShippingTab";
 import LinkedInvoicesPanel from "@/components/LinkedInvoicesPanel";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 const PRIORITIES = ["Low", "Medium", "High", "Urgent"];
 const ORDER_STATUSES = ["Draft", "Issued", "In Sampling", "In Artwork", "Pending Approval", "Completed", "Rejected"];
@@ -295,6 +296,7 @@ function FileUploadZone({ files, onChange, accept, icon, label }: {
 }
 
 export default function SwatchOrderDetail() {
+  const { fmt, currency: dc } = useCurrency();
   const { id } = useParams<{ id: string }>();
   const isNew = id === "new";
   const numId = isNew ? null : parseInt(id ?? "0");
@@ -1210,7 +1212,7 @@ export default function SwatchOrderDetail() {
                             }`}>{art.feedbackStatus}</span>
                             <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 border border-gray-200">{art.artworkCreated}</span>
                             {art.totalCost && (
-                              <span className="text-xs font-medium text-gray-700">₹ {Number(art.totalCost).toLocaleString()}</span>
+                              <span className="text-xs font-medium text-gray-700">{fmt(Number(art.totalCost))}</span>
                             )}
                           </div>
                           {/* Action buttons */}
@@ -1334,7 +1336,7 @@ export default function SwatchOrderDetail() {
                   <thead>
                     <tr className="bg-gray-50 border-b border-gray-100">
                       <th className="text-left text-xs font-semibold text-gray-500 px-6 py-3 w-full">Item</th>
-                      <th className="text-right text-xs font-semibold text-gray-500 px-6 py-3 whitespace-nowrap">Rate (₹)</th>
+                      <th className="text-right text-xs font-semibold text-gray-500 px-6 py-3 whitespace-nowrap">Rate</th>
                       <th className="px-4 py-3 w-10"></th>
                     </tr>
                   </thead>
@@ -1359,7 +1361,7 @@ export default function SwatchOrderDetail() {
                         </td>
                         <td className="px-6 py-3">
                           <div className="flex items-center justify-end gap-1">
-                            <span className="text-xs text-gray-400">₹</span>
+                            <span className="text-xs text-gray-400">{dc.symbol}</span>
                             <input
                               type="number"
                               min="0"
@@ -1423,7 +1425,7 @@ export default function SwatchOrderDetail() {
                     <div>
                       <h2 className="text-sm font-semibold text-gray-900">Summary</h2>
                       <p className="text-xs text-gray-400">
-                        {lineItems.length > 0 ? `${lineItems.length} item${lineItems.length !== 1 ? "s" : ""} · Total ₹ ${total.toLocaleString("en-IN", { minimumFractionDigits: 2 })}` : "No rates entered yet"}
+                        {lineItems.length > 0 ? `${lineItems.length} item${lineItems.length !== 1 ? "s" : ""} · Total ${fmt(total)}` : "No rates entered yet"}
                       </p>
                     </div>
                   </div>
@@ -1437,7 +1439,7 @@ export default function SwatchOrderDetail() {
                         <thead>
                           <tr className="bg-gray-50 border-b border-gray-100">
                             <th className="text-left text-xs font-semibold text-gray-500 px-6 py-3 w-full">Item</th>
-                            <th className="text-right text-xs font-semibold text-gray-500 px-6 py-3 whitespace-nowrap">Amount (₹)</th>
+                            <th className="text-right text-xs font-semibold text-gray-500 px-6 py-3 whitespace-nowrap">Amount</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-50">
@@ -1445,7 +1447,7 @@ export default function SwatchOrderDetail() {
                             <tr key={i} className="hover:bg-gray-50/50">
                               <td className="px-6 py-3 text-sm text-gray-700">{it.label}</td>
                               <td className="px-6 py-3 text-sm text-right text-gray-900 font-medium tabular-nums">
-                                ₹ {parseFloat(it.rate).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                                {fmt(parseFloat(it.rate))}
                               </td>
                             </tr>
                           ))}
@@ -1454,7 +1456,7 @@ export default function SwatchOrderDetail() {
                           <tr className="border-t-2 border-gray-200 bg-gray-900">
                             <td className="px-6 py-3.5 text-sm font-semibold text-[#C9B45C]">Grand Total</td>
                             <td className="px-6 py-3.5 text-sm font-bold text-right text-[#C9B45C] tabular-nums">
-                              ₹ {total.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                              {fmt(total)}
                             </td>
                           </tr>
                         </tfoot>

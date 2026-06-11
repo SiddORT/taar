@@ -17,6 +17,7 @@ import {
 } from "@/hooks/useStyleOrderProducts";
 import { useToast } from "@/hooks/use-toast";
 import { useAllVendors, type VendorRecord } from "@/hooks/useVendors";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 const PRODUCT_STATUSES = ["Draft", "In Progress", "Completed", "On Hold", "Cancelled"];
@@ -267,6 +268,7 @@ export default function ProductsTab({
   styleOrderId: number | null;
   isNew: boolean;
 }) {
+  const { fmt, currency: dc } = useCurrency();
   const { toast } = useToast();
 
   // Data hooks
@@ -653,7 +655,7 @@ export default function ProductsTab({
               <div className="space-y-4">
                 <Field label="Pattern Making Cost">
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">₹</span>
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">{dc.symbol}</span>
                     <input type="number" min="0" step="0.01" placeholder="0.00"
                       className={`${inputCls} pl-7`}
                       value={form.patternMakingCost}
@@ -691,7 +693,7 @@ export default function ProductsTab({
                 <div className="grid grid-cols-2 gap-4">
                   <Field label="Payment Amount">
                     <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">₹</span>
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">{dc.symbol}</span>
                       <input type="number" min="0" step="0.01" placeholder="0.00"
                         className={`${inputCls} pl-7`}
                         value={form.patternPaymentAmount}

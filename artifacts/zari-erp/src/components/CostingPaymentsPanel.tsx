@@ -4,6 +4,7 @@ import { customFetch } from "@workspace/api-client-react";
 import { useGetMe } from "@workspace/api-client-react";
 import { Plus, Trash2, Loader2, Pencil, X, Check, ChevronDown, ChevronUp } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 export interface CostingPaymentRecord {
   id: number;
@@ -54,6 +55,7 @@ interface Props {
 export default function CostingPaymentsPanel({
   referenceType, referenceId, vendorId, vendorName, swatchOrderId, styleOrderId,
 }: Props) {
+  const { fmt, currency: dc } = useCurrency();
   const { toast } = useToast();
   const qc = useQueryClient();
   const { data: meData } = useGetMe();
@@ -183,7 +185,7 @@ export default function CostingPaymentsPanel({
           {collapsed ? <ChevronDown className="h-3 w-3" /> : <ChevronUp className="h-3 w-3" />}
           Payments{payments.length > 0 ? ` (${payments.length})` : ""}
           {totalPaid > 0 && !collapsed && (
-            <span className="ml-1 text-gray-400 font-normal">— Total Paid: ₹{totalPaid.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</span>
+            <span className="ml-1 text-gray-400 font-normal">— Total Paid: {fmt(totalPaid)}</span>
           )}
         </button>
         {!collapsed && !hasCompleted && (

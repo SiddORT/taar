@@ -23,6 +23,7 @@ import { useAllFabrics, useCreateFabric, type FabricFormData } from "@/hooks/use
 import { useItemTypes, useUnitTypes, useFabricTypes } from "@/hooks/useLookups";
 import { useHSNList } from "@/hooks/useHSN";
 import { useStyleOrderProducts } from "@/hooks/useStyleOrderProducts";
+import { useCurrency } from "@/contexts/CurrencyContext";
 import {
   useStyleBom, useAddStyleBomRow, useDeleteStyleBomRow, useUpdateBomQty, useBomChangeLog,
   useStylePOs, useCreateStylePO, useUpdateStylePO as useUpdatePO, useDeleteStylePO,
@@ -166,7 +167,7 @@ function QuickAddMaterialModal({ onClose, onCreated }: {
                 {unitTypes.map((t: any) => <option key={t.id} value={t.name}>{t.name}</option>)}
               </select>
             )},
-            { label: "Unit Price ₹ *", node: (
+            { label: "Unit Price *", node: (
               <input type="number" min="0" step="any" value={f.unitPrice} onChange={e => setF(p => ({ ...p, unitPrice: e.target.value }))}
                 placeholder="0.00" className="w-full text-xs text-gray-900 border border-gray-200 rounded-xl px-3 py-2 focus:outline-none" />
             )},
@@ -282,7 +283,7 @@ function QuickAddFabricModal({ onClose, onCreated }: {
                 {unitTypes.map((t: any) => <option key={t.id} value={t.name}>{t.name}</option>)}
               </select>
             )},
-            { label: "Price/Meter ₹ *", node: (
+            { label: "Price/Meter *", node: (
               <input type="number" min="0" step="any" value={f.pricePerMeter} onChange={e => setF(p => ({ ...p, pricePerMeter: e.target.value }))}
                 placeholder="0.00" className="w-full text-xs text-gray-900 border border-gray-200 rounded-xl px-3 py-2 focus:outline-none" />
             )},
@@ -442,7 +443,7 @@ function StyleBomSection({ styleOrderId, orderCode, styleName, clientName }: {
       ["ZARI EMBROIDERIES – Bill of Materials"],
       ["Order:", orderCode ?? "—", "Style:", styleName ?? "—", "Client:", clientName ?? "—", "Date:", today],
       [],
-      ["Code", "Material/Fabric", "Type", "Stock", "Avg Price (₹)", "Req Qty", "PO Target Price (₹)", "PO Qty", "PR Qty", "PR Total (₹)", "Consumed Qty", "Consumed Total (₹)"],
+      ["Code", "Material/Fabric", "Type", "Stock", "Avg Price", "Req Qty", "PO Target Price", "PO Qty", "PR Qty", "PR Total", "Consumed Qty", "Consumed Total"],
     ];
     const dataRows = filteredRows.map(r => {
       const m = computeRowMetrics(r, pos, prs);
@@ -563,7 +564,7 @@ function StyleBomSection({ styleOrderId, orderCode, styleName, clientName }: {
               </div>
               <div className="bg-white rounded-lg border border-gray-200 px-3 py-2">
                 <p className="text-[10px] text-gray-400">Avg Price</p>
-                <p className="font-semibold text-gray-800">₹{form.avgUnitPrice}/{form.unitType}</p>
+                <p className="font-semibold text-gray-800">{form.avgUnitPrice}/{form.unitType}</p>
               </div>
               <div className="bg-white rounded-lg border border-gray-200 px-3 py-2">
                 <p className="text-[10px] text-gray-400">Unit</p>
@@ -582,7 +583,7 @@ function StyleBomSection({ styleOrderId, orderCode, styleName, clientName }: {
             <div className="flex-1">
               <label className="text-[10px] text-gray-500 font-medium">Estimated Amount</label>
               <div className="mt-0.5 text-xs border border-gray-100 rounded-xl px-3 py-2 bg-gray-50 font-semibold text-gray-700">
-                ₹{estimatedAmount.toFixed(2)}
+                {estimatedAmount.toFixed(2)}
               </div>
             </div>
             <button onClick={handleAdd} disabled={addRow.isPending}
@@ -607,10 +608,10 @@ function StyleBomSection({ styleOrderId, orderCode, styleName, clientName }: {
                 <span className="flex items-center gap-1">Avg Price <span title="Weighted average of current stock price and all PR actual prices received" className="cursor-help text-gray-500 hover:text-gray-500"><Info className="h-3 w-3" /></span></span>
               </th>
               <th className="text-left text-[10px] font-semibold text-amber-500 px-3 py-2 whitespace-nowrap">
-                <span className="flex items-center gap-1">PO Rate ₹ <span title="Target unit price agreed in the Purchase Order" className="cursor-help text-gray-500 hover:text-gray-500"><Info className="h-3 w-3" /></span></span>
+                <span className="flex items-center gap-1">PO Rate <span title="Target unit price agreed in the Purchase Order" className="cursor-help text-gray-500 hover:text-gray-500"><Info className="h-3 w-3" /></span></span>
               </th>
               <th className="text-left text-[10px] font-semibold text-violet-500 px-3 py-2 whitespace-nowrap">Req / Reserved Qty</th>
-              <th className="text-left text-[10px] font-semibold text-amber-500 px-3 py-2 whitespace-nowrap">PO Total ₹</th>
+              <th className="text-left text-[10px] font-semibold text-amber-500 px-3 py-2 whitespace-nowrap">PO Total</th>
               <th className="text-left text-[10px] font-semibold text-amber-500 px-3 py-2 whitespace-nowrap">PO Qty</th>
               <th className="text-left text-[10px] font-semibold text-blue-500 px-3 py-2 whitespace-nowrap">PR Qty</th>
               <th className="text-left text-[10px] font-semibold text-blue-500 px-3 py-2 whitespace-nowrap">PR Total</th>
@@ -657,18 +658,18 @@ function StyleBomSection({ styleOrderId, orderCode, styleName, clientName }: {
                       <span className="text-gray-400 text-[10px] italic">not in inventory</span>
                     )}
                   </td>
-                  <td className="px-3 py-2.5 text-gray-600 whitespace-nowrap">₹{m.weightedAvg.toFixed(2)}</td>
-                  <td className="px-3 py-2.5 text-amber-700 whitespace-nowrap">{m.poTargetPrice > 0 ? `₹${m.poTargetPrice.toFixed(2)}` : <span className="text-gray-300">—</span>}</td>
+                  <td className="px-3 py-2.5 text-gray-600 whitespace-nowrap">{m.weightedAvg.toFixed(2)}</td>
+                  <td className="px-3 py-2.5 text-amber-700 whitespace-nowrap">{m.poTargetPrice > 0 ? `${m.poTargetPrice.toFixed(2)}` : <span className="text-gray-300">—</span>}</td>
                   <td className="px-3 py-2.5">
                     <span className="font-semibold text-violet-700">{parseFloat(r.requiredQty).toFixed(2)}</span>
                     <span className="text-gray-400 ml-1 text-[10px]">{r.unitType}</span>
                   </td>
-                  <td className="px-3 py-2.5 font-semibold text-amber-700">{m.poTargetTotal > 0 ? `₹${m.poTargetTotal.toFixed(2)}` : <span className="text-gray-300">—</span>}</td>
+                  <td className="px-3 py-2.5 font-semibold text-amber-700">{m.poTargetTotal > 0 ? `${m.poTargetTotal.toFixed(2)}` : <span className="text-gray-300">—</span>}</td>
                   <td className="px-3 py-2.5 text-amber-700">{m.poQty > 0 ? m.poQty : <span className="text-gray-300">—</span>}</td>
                   <td className="px-3 py-2.5 text-blue-700">{m.prQty > 0 ? m.prQty : <span className="text-gray-300">—</span>}</td>
-                  <td className="px-3 py-2.5 font-semibold text-blue-700">{m.prTotal > 0 ? `₹${m.prTotal.toFixed(2)}` : <span className="text-gray-300">—</span>}</td>
+                  <td className="px-3 py-2.5 font-semibold text-blue-700">{m.prTotal > 0 ? `${m.prTotal.toFixed(2)}` : <span className="text-gray-300">—</span>}</td>
                   <td className="px-3 py-2.5 text-green-700 font-semibold">{m.consumedQtyNum > 0 ? m.consumedQtyNum : <span className="text-gray-300">—</span>}</td>
-                  <td className="px-3 py-2.5 font-semibold text-green-700">{m.consumedTotal > 0 ? `₹${m.consumedTotal.toFixed(2)}` : <span className="text-gray-300">—</span>}</td>
+                  <td className="px-3 py-2.5 font-semibold text-green-700">{m.consumedTotal > 0 ? `${m.consumedTotal.toFixed(2)}` : <span className="text-gray-300">—</span>}</td>
                   <td className="px-3 py-2.5">
                     <div className="flex items-center gap-1">
                       <button onClick={() => { setEditRow(r); setEditQty(""); setEditNotes(""); setEditMode("add"); }}
@@ -693,12 +694,12 @@ function StyleBomSection({ styleOrderId, orderCode, styleName, clientName }: {
                 <td colSpan={5} className="px-3 py-2 text-[10px] font-semibold text-gray-400">{filteredRows.length} item{filteredRows.length > 1 ? "s" : ""}</td>
                 <td className="px-3 py-2 font-bold text-gray-700 text-xs">{filteredRows.reduce((s, r) => s + (parseFloat(r.requiredQty) || 0), 0)}</td>
                 <td className="px-3 py-2" />
-                <td className="px-3 py-2 font-bold text-amber-700 text-xs">₹{filteredRows.reduce((s, r) => s + computeRowMetrics(r, pos, prs).poTargetTotal, 0).toFixed(2)}</td>
+                <td className="px-3 py-2 font-bold text-amber-700 text-xs">{filteredRows.reduce((s, r) => s + computeRowMetrics(r, pos, prs).poTargetTotal, 0).toFixed(2)}</td>
                 <td className="px-3 py-2"></td>
                 <td className="px-3 py-2 font-bold text-blue-700 text-xs">{filteredRows.reduce((s, r) => s + computeRowMetrics(r, pos, prs).prQty, 0).toFixed(0)}</td>
-                <td className="px-3 py-2 font-bold text-blue-700 text-xs">₹{filteredRows.reduce((s, r) => s + computeRowMetrics(r, pos, prs).prTotal, 0).toFixed(2)}</td>
+                <td className="px-3 py-2 font-bold text-blue-700 text-xs">{filteredRows.reduce((s, r) => s + computeRowMetrics(r, pos, prs).prTotal, 0).toFixed(2)}</td>
                 <td className="px-3 py-2"></td>
-                <td className="px-3 py-2 font-bold text-green-700 text-xs">₹{filteredRows.reduce((s, r) => s + computeRowMetrics(r, pos, prs).consumedTotal, 0).toFixed(2)}</td>
+                <td className="px-3 py-2 font-bold text-green-700 text-xs">{filteredRows.reduce((s, r) => s + computeRowMetrics(r, pos, prs).consumedTotal, 0).toFixed(2)}</td>
                 <td />
               </tr>
             )}
@@ -849,7 +850,7 @@ function StylePaymentRow({ pay, onDelete }: { pay: PrPaymentRecord; onDelete: ()
     <tr className="border-b border-gray-50 hover:bg-gray-50/50">
       <td className="px-3 py-2.5 text-gray-700 font-medium">{pay.paymentType}</td>
       <td className="px-3 py-2.5 text-gray-600">{pay.paymentMode || "—"}</td>
-      <td className="px-3 py-2.5 font-semibold text-gray-900">₹{pay.amount}</td>
+      <td className="px-3 py-2.5 font-semibold text-gray-900">{pay.amount}</td>
       <td className="px-3 py-2.5 text-gray-500">{pay.paymentDate ? new Date(pay.paymentDate).toLocaleDateString() : "—"}</td>
       <td className="px-3 py-2.5 text-gray-500">{pay.transactionStatus || "—"}</td>
       <td className="px-3 py-2.5"><StatusBadge status={pay.paymentStatus} map={PAYMENT_STATUS_COLORS} /></td>
@@ -921,7 +922,7 @@ function StylePrPaymentsPanel({ prId }: { prId: number }) {
               <input value={payForm.paymentMode} onChange={e => setPayForm(f => ({ ...f, paymentMode: e.target.value }))} className="w-full mt-0.5 text-xs text-gray-900 bg-white border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none" placeholder="Bank / UPI / Cash…" />
             </div>
             <div>
-              <label className="text-[10px] text-gray-500 font-medium">Amount (₹)</label>
+              <label className="text-[10px] text-gray-500 font-medium">Amount</label>
               <input type="number" min="0" step="any" value={payForm.amount} onChange={e => setPayForm(f => ({ ...f, amount: e.target.value }))} className="w-full mt-0.5 text-xs text-gray-900 bg-white border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none" placeholder="0.00" />
             </div>
             <div>
@@ -1008,8 +1009,8 @@ function StylePrTableRow({ pr, poNumber, bomItems }: { pr: PurchaseReceiptRecord
         <td className="px-3 py-2.5 text-gray-700 text-xs">{pr.vendorName}</td>
         <td className="px-3 py-2.5 text-gray-500 whitespace-nowrap text-xs">{new Date(pr.receivedDate).toLocaleDateString()}</td>
         <td className="px-3 py-2.5 font-semibold text-gray-800 text-xs">{pr.receivedQty}</td>
-        <td className="px-3 py-2.5 text-gray-700 text-xs">₹{parseFloat(pr.actualPrice).toFixed(2)}</td>
-        <td className="px-3 py-2.5 font-semibold text-blue-700 text-xs">₹{total.toFixed(2)}</td>
+        <td className="px-3 py-2.5 text-gray-700 text-xs">{parseFloat(pr.actualPrice).toFixed(2)}</td>
+        <td className="px-3 py-2.5 font-semibold text-blue-700 text-xs">{total.toFixed(2)}</td>
         <td className="px-3 py-2.5 max-w-[200px]">
           {bomItems.length === 0 ? <span className="text-gray-300 text-xs">—</span> : (
             <div className="flex flex-col gap-1">
@@ -1056,7 +1057,7 @@ function StylePrTableRow({ pr, poNumber, bomItems }: { pr: PurchaseReceiptRecord
               <div className="px-6 py-4 space-y-3">
                 <p className="text-[11px] text-gray-400">Received quantity cannot be edited; create a new receipt or delete and re-create instead.</p>
                 <div>
-                  <label className="text-[10px] text-gray-500 font-medium">Actual Price (₹) <span className="text-red-500 ml-0.5">*</span></label>
+                  <label className="text-[10px] text-gray-500 font-medium">Actual Price <span className="text-red-500 ml-0.5">*</span></label>
                   <input type="number" min="0" step="any" value={editForm.actualPrice}
                     onChange={e => setEditForm(f => ({ ...f, actualPrice: e.target.value }))}
                     className="w-full mt-1 border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-800 outline-none focus:border-[#C9B45C]" />
@@ -1171,7 +1172,7 @@ function EditStylePoModal({ po, vendors, onClose, onSave, saving }: {
                           </td>
                           <td className="px-3 py-2.5">
                             <div className="flex items-center gap-1">
-                              <span className="text-[10px] text-gray-400">₹</span>
+                              <span className="text-[10px] text-gray-400"></span>
                               <input type="number" min="0" step="any" value={ed.targetPrice}
                                 onChange={e => setField(i, "targetPrice", e.target.value)}
                                 className="w-24 text-xs text-gray-900 border border-gray-200 rounded-lg px-2 py-1 focus:outline-none" />
@@ -1293,13 +1294,13 @@ function StylePoCard({ po, onCreatePR, onExportPdf, vendors }: { po: PurchaseOrd
                   <td className="px-2 py-2 text-gray-800">{item.materialName}</td>
                   <td className="px-2 py-2 text-gray-500">{item.targetVendorName || po.vendorName || "—"}</td>
                   <td className="px-2 py-2 text-gray-600">{parseFloat(item.quantity).toFixed(2)} {item.unitType}</td>
-                  <td className="px-2 py-2 text-gray-600">₹{parseFloat(item.targetPrice).toFixed(2)}</td>
-                  <td className="px-2 py-2 font-semibold text-gray-900">₹{((parseFloat(item.targetPrice) || 0) * (parseFloat(item.quantity) || 0)).toFixed(2)}</td>
+                  <td className="px-2 py-2 text-gray-600">{parseFloat(item.targetPrice).toFixed(2)}</td>
+                  <td className="px-2 py-2 font-semibold text-gray-900">{((parseFloat(item.targetPrice) || 0) * (parseFloat(item.quantity) || 0)).toFixed(2)}</td>
                 </tr>
               ))}
               <tr className="bg-gray-50">
                 <td colSpan={5} className="px-2 py-1.5 text-right text-[10px] font-semibold text-gray-500">Total Target</td>
-                <td className="px-2 py-1.5 font-bold text-gray-900">₹{items.reduce((s, i) => s + (parseFloat(i.targetPrice) || 0) * (parseFloat(i.quantity) || 0), 0).toFixed(2)}</td>
+                <td className="px-2 py-1.5 font-bold text-gray-900">{items.reduce((s, i) => s + (parseFloat(i.targetPrice) || 0) * (parseFloat(i.quantity) || 0), 0).toFixed(2)}</td>
               </tr>
             </tbody>
           </table>
@@ -1428,7 +1429,7 @@ function StyleCreatePoModal({
                           </td>
                           <td className="px-3 py-2.5">
                             <div className="flex items-center gap-1">
-                              <span className="text-[10px] text-gray-400">₹</span>
+                              <span className="text-[10px] text-gray-400"></span>
                               <input type="number" min="0" step="any" value={ov.targetPrice}
                                 onChange={e => setField(r.id, "targetPrice", e.target.value)}
                                 disabled={!ov.checked}
@@ -1457,7 +1458,7 @@ function StyleCreatePoModal({
           {selectedItems.length > 0 && (
             <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 flex items-center justify-between">
               <span className="text-xs text-gray-600">{selectedItems.length} item{selectedItems.length > 1 ? "s" : ""} selected</span>
-              <span className="font-bold text-amber-700 text-sm">Target Total: ₹{totalTarget.toFixed(2)}</span>
+              <span className="font-bold text-amber-700 text-sm">Target Total: {totalTarget.toFixed(2)}</span>
             </div>
           )}
         </div>
@@ -1620,7 +1621,7 @@ function StylePoSection({ styleOrderId, orderCode, styleName, clientName }: {
                 <div className="rounded-xl bg-gray-50 border border-gray-100 px-3 py-2.5">
                   <p className="text-[10px] text-gray-400 font-medium mb-0.5">Item</p>
                   <p className="text-xs font-semibold text-gray-800">[{prModal.bomItems[0].materialCode}] {prModal.bomItems[0].materialName}</p>
-                  <p className="text-[10px] text-gray-500 mt-0.5">Ordered: {prModal.bomItems[0].quantity} {prModal.bomItems[0].unitType} @ ₹{parseFloat(prModal.bomItems[0].targetPrice).toFixed(2)}</p>
+                  <p className="text-[10px] text-gray-500 mt-0.5">Ordered: {prModal.bomItems[0].quantity} {prModal.bomItems[0].unitType} @ {parseFloat(prModal.bomItems[0].targetPrice).toFixed(2)}</p>
                 </div>
               )}
               {prItemStats && (
@@ -1643,7 +1644,7 @@ function StylePoSection({ styleOrderId, orderCode, styleName, clientName }: {
                   placeholder="0" max={prItemStats ? prItemStats.remaining : undefined} />
               </div>
               <div>
-                <label className="text-[10px] text-gray-500 font-medium">Actual Price (₹) <span className="text-red-500 ml-0.5">*</span></label>
+                <label className="text-[10px] text-gray-500 font-medium">Actual Price <span className="text-red-500 ml-0.5">*</span></label>
                 <input type="number" min="0" step="any" value={prForm.actualPrice}
                   onChange={e => setPrForm(f => ({ ...f, actualPrice: e.target.value }))}
                   className="w-full mt-0.5 text-xs text-gray-900 bg-white border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-gray-900/10"
@@ -1703,7 +1704,7 @@ function StylePrSection({ styleOrderId }: { styleOrderId: number }) {
       <SectionHeader icon={<FileText className="h-4 w-4" />} title="Purchase Receipts">
         {prs.length > 0 && (
           <span className="text-xs text-gray-400">
-            {filteredPrs.length} receipt{filteredPrs.length !== 1 ? "s" : ""} · Total: <span className="font-semibold text-blue-700">₹{totalValue.toFixed(2)}</span>
+            {filteredPrs.length} receipt{filteredPrs.length !== 1 ? "s" : ""} · Total: <span className="font-semibold text-blue-700">{totalValue.toFixed(2)}</span>
           </span>
         )}
       </SectionHeader>
@@ -1749,7 +1750,7 @@ function StylePrSection({ styleOrderId }: { styleOrderId: number }) {
             <tfoot>
               <tr className="bg-gray-50 border-t border-gray-200">
                 <td colSpan={6} className="px-3 py-2 text-right text-[10px] font-semibold text-gray-400">{filteredPrs.length} receipt{filteredPrs.length !== 1 ? "s" : ""} · Grand Total</td>
-                <td className="px-3 py-2 font-bold text-blue-700">₹{totalValue.toFixed(2)}</td>
+                <td className="px-3 py-2 font-bold text-blue-700">{totalValue.toFixed(2)}</td>
                 <td colSpan={2} />
               </tr>
             </tfoot>
@@ -1901,9 +1902,9 @@ function StyleConsumptionSection({ styleOrderId }: { styleOrderId: number }) {
                   <span className="flex items-center gap-1">Live Stock <span title="Base stock + all PR received quantities" className="cursor-help text-gray-500 hover:text-gray-500"><Info className="h-3 w-3" /></span></span>
                 </th>
                 <th className="text-left text-[10px] font-semibold text-violet-500 px-3 py-2 whitespace-nowrap">Req / Reserved</th>
-                <th className="text-left text-[10px] font-semibold text-gray-400 px-3 py-2 whitespace-nowrap">Avg Price (₹)</th>
+                <th className="text-left text-[10px] font-semibold text-gray-400 px-3 py-2 whitespace-nowrap">Avg Price</th>
                 <th className="text-left text-[10px] font-semibold text-amber-500 px-3 py-2 whitespace-nowrap">Consumed Qty</th>
-                <th className="text-left text-[10px] font-semibold text-red-500 px-3 py-2 whitespace-nowrap">Consumed Total (₹)</th>
+                <th className="text-left text-[10px] font-semibold text-red-500 px-3 py-2 whitespace-nowrap">Consumed Total</th>
                 <th className="text-left text-[10px] font-semibold text-gray-400 px-3 py-2 whitespace-nowrap">Last Consumed</th>
                 <th className="px-3 py-2 whitespace-nowrap text-[10px] font-semibold text-gray-400">Log</th>
               </tr>
@@ -1934,9 +1935,9 @@ function StyleConsumptionSection({ styleOrderId }: { styleOrderId: number }) {
                       <span className="font-semibold text-violet-700">{parseFloat(r.requiredQty).toFixed(2)}</span>
                       <span className="text-gray-400 ml-1 text-[10px]">{r.unitType}</span>
                     </td>
-                    <td className="px-3 py-2.5 text-gray-700">₹{m.weightedAvg.toFixed(2)}</td>
+                    <td className="px-3 py-2.5 text-gray-700">{m.weightedAvg.toFixed(2)}</td>
                     <td className="px-3 py-2.5 text-amber-700 font-medium">{m.consumedQtyNum.toFixed(2)} {r.unitType}</td>
-                    <td className="px-3 py-2.5 font-semibold text-red-700">₹{m.consumedTotal.toFixed(2)}</td>
+                    <td className="px-3 py-2.5 font-semibold text-red-700">{m.consumedTotal.toFixed(2)}</td>
                     <td className="px-3 py-2.5 text-gray-400 whitespace-nowrap text-[10px]">
                       {lastEntry ? (
                         <span title={new Date(lastEntry.consumedAt).toLocaleString("en-IN")}>
@@ -1965,7 +1966,7 @@ function StyleConsumptionSection({ styleOrderId }: { styleOrderId: number }) {
                   <td className="px-3 py-2" />
                   <td className="px-3 py-2" />
                   <td className="px-3 py-2 font-bold text-amber-700">{totals.consumedQty.toFixed(2)}</td>
-                  <td className="px-3 py-2 font-bold text-red-700">₹{totals.consumedTotal.toFixed(2)}</td>
+                  <td className="px-3 py-2 font-bold text-red-700">{totals.consumedTotal.toFixed(2)}</td>
                   <td colSpan={2} className="px-3 py-2" />
                 </tr>
               </tfoot>
@@ -2343,8 +2344,8 @@ function StyleArtisanSection({ styleOrderId }: { styleOrderId: number }) {
                 <th className="text-left text-[10px] font-semibold text-gray-400 px-3 py-2 whitespace-nowrap">Type</th>
                 <th className="text-right text-[10px] font-semibold text-gray-400 px-3 py-2 whitespace-nowrap"># Artisans</th>
                 <th className="text-right text-[10px] font-semibold text-gray-400 px-3 py-2 whitespace-nowrap">Total Hrs</th>
-                <th className="text-right text-[10px] font-semibold text-gray-400 px-3 py-2 whitespace-nowrap">Rate/Hr (₹)</th>
-                <th className="text-right text-[10px] font-semibold text-amber-500 px-3 py-2 whitespace-nowrap">Total Rate (₹)</th>
+                <th className="text-right text-[10px] font-semibold text-gray-400 px-3 py-2 whitespace-nowrap">Rate/Hr</th>
+                <th className="text-right text-[10px] font-semibold text-amber-500 px-3 py-2 whitespace-nowrap">Total Rate</th>
                 <th className="text-left text-[10px] font-semibold text-gray-400 px-3 py-2 whitespace-nowrap">Added By</th>
                 <th className="px-3 py-2"></th>
               </tr>
@@ -2364,8 +2365,8 @@ function StyleArtisanSection({ styleOrderId }: { styleOrderId: number }) {
                   </td>
                   <td className="px-3 py-2.5 text-right text-gray-800">{r.noOfArtisans}</td>
                   <td className="px-3 py-2.5 text-right text-gray-800">{parseFloat(r.totalHours).toFixed(1)}</td>
-                  <td className="px-3 py-2.5 text-right text-gray-800">₹{parseFloat(r.hourlyRate).toFixed(2)}</td>
-                  <td className="px-3 py-2.5 text-right font-semibold text-amber-700">₹{parseFloat(r.totalRate).toFixed(2)}</td>
+                  <td className="px-3 py-2.5 text-right text-gray-800">{parseFloat(r.hourlyRate).toFixed(2)}</td>
+                  <td className="px-3 py-2.5 text-right font-semibold text-amber-700">{parseFloat(r.totalRate).toFixed(2)}</td>
                   <td className="px-3 py-2.5 text-gray-500 text-[10px]">{r.createdBy}</td>
                   <td className="px-3 py-2.5 text-right">
                     <div className="flex items-center justify-end gap-1">
@@ -2387,7 +2388,7 @@ function StyleArtisanSection({ styleOrderId }: { styleOrderId: number }) {
               <tfoot>
                 <tr className="bg-gray-50 border-t border-gray-200">
                   <td colSpan={7} className="px-3 py-2 text-right text-[10px] font-semibold text-gray-400">Total</td>
-                  <td className="px-3 py-2 text-right font-bold text-amber-700">₹{grandTotal.toFixed(2)}</td>
+                  <td className="px-3 py-2 text-right font-bold text-amber-700">{grandTotal.toFixed(2)}</td>
                   <td colSpan={2} />
                 </tr>
               </tfoot>
@@ -2451,14 +2452,14 @@ function StyleArtisanSection({ styleOrderId }: { styleOrderId: number }) {
                     className="w-full mt-1 border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-800 outline-none focus:border-[#C9B45C]" placeholder="0.0" />
                 </div>
                 <div>
-                  <label className="text-[10px] text-gray-500 font-medium">Hourly Rate (₹) <span className="text-red-500 ml-0.5">*</span></label>
+                  <label className="text-[10px] text-gray-500 font-medium">Hourly Rate <span className="text-red-500 ml-0.5">*</span></label>
                   <input type="number" min="0" step="any" value={form.hourlyRate} onChange={e => setForm(f => ({ ...f, hourlyRate: e.target.value }))}
                     className="w-full mt-1 border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-800 outline-none focus:border-[#C9B45C]" placeholder="0.00" />
                 </div>
               </div>
               <div className="bg-amber-50 border border-amber-100 rounded-xl px-3 py-2 text-xs flex items-center justify-between">
-                <span className="text-gray-500">Total Rate = {form.noOfArtisans || 1} artisan(s) × {form.totalHours || 0} hrs × ₹{form.hourlyRate || 0}/hr</span>
-                <span className="font-bold text-amber-700">₹{computedTotal}</span>
+                <span className="text-gray-500">Total Rate = {form.noOfArtisans || 1} artisan(s) × {form.totalHours || 0} hrs × {form.hourlyRate || 0}/hr</span>
+                <span className="font-bold text-amber-700">{computedTotal}</span>
               </div>
               <div>
                 <label className="text-[10px] text-gray-500 font-medium">Notes</label>
@@ -2605,11 +2606,11 @@ function StyleOutsourceSection({ styleOrderId }: { styleOrderId: number }) {
                 <th className="text-left text-[10px] font-semibold text-gray-400 px-3 py-2 whitespace-nowrap">Issue Date</th>
                 <th className="text-left text-[10px] font-semibold text-gray-400 px-3 py-2 whitespace-nowrap">Target Date</th>
                 <th className="text-left text-[10px] font-semibold text-gray-400 px-3 py-2 whitespace-nowrap">Delivery Date</th>
-                <th className="text-right text-[10px] font-semibold text-gray-400 px-3 py-2 whitespace-nowrap">Cost (₹)</th>
-                <th className="text-right text-[10px] font-semibold text-blue-500 px-3 py-2 whitespace-nowrap">GST (₹)</th>
-                <th className="text-right text-[10px] font-semibold text-amber-500 px-3 py-2 whitespace-nowrap">Total (₹)</th>
-                <th className="text-right text-[10px] font-semibold text-emerald-600 px-3 py-2 whitespace-nowrap">Paid (₹)</th>
-                <th className="text-right text-[10px] font-semibold text-red-500 px-3 py-2 whitespace-nowrap">Balance (₹)</th>
+                <th className="text-right text-[10px] font-semibold text-gray-400 px-3 py-2 whitespace-nowrap">Cost</th>
+                <th className="text-right text-[10px] font-semibold text-blue-500 px-3 py-2 whitespace-nowrap">GST</th>
+                <th className="text-right text-[10px] font-semibold text-amber-500 px-3 py-2 whitespace-nowrap">Total</th>
+                <th className="text-right text-[10px] font-semibold text-emerald-600 px-3 py-2 whitespace-nowrap">Paid</th>
+                <th className="text-right text-[10px] font-semibold text-red-500 px-3 py-2 whitespace-nowrap">Balance</th>
                 <th className="text-left text-[10px] font-semibold text-gray-400 px-3 py-2 whitespace-nowrap">Notes</th>
                 <th className="px-3 py-2"></th>
               </tr>
@@ -2635,11 +2636,11 @@ function StyleOutsourceSection({ styleOrderId }: { styleOrderId: number }) {
                     <td className="px-3 py-2.5 text-gray-600">{r.issueDate}</td>
                     <td className="px-3 py-2.5 text-gray-400">{r.targetDate ?? "—"}</td>
                     <td className="px-3 py-2.5 text-gray-400">{r.deliveryDate ?? "—"}</td>
-                    <td className="px-3 py-2.5 text-right text-gray-800">₹{base.toFixed(2)}</td>
-                    <td className="px-3 py-2.5 text-right text-blue-700">₹{gstAmt.toFixed(2)}</td>
-                    <td className="px-3 py-2.5 text-right font-semibold text-amber-700">₹{total.toFixed(2)}</td>
-                    <td className="px-3 py-2.5 text-right font-semibold text-emerald-700">₹{paid.toFixed(2)}</td>
-                    <td className={`px-3 py-2.5 text-right font-semibold ${balance <= 0 ? "text-emerald-600" : "text-red-500"}`}>₹{balance.toFixed(2)}</td>
+                    <td className="px-3 py-2.5 text-right text-gray-800">{base.toFixed(2)}</td>
+                    <td className="px-3 py-2.5 text-right text-blue-700">{gstAmt.toFixed(2)}</td>
+                    <td className="px-3 py-2.5 text-right font-semibold text-amber-700">{total.toFixed(2)}</td>
+                    <td className="px-3 py-2.5 text-right font-semibold text-emerald-700">{paid.toFixed(2)}</td>
+                    <td className={`px-3 py-2.5 text-right font-semibold ${balance <= 0 ? "text-emerald-600" : "text-red-500"}`}>{balance.toFixed(2)}</td>
                     <td className="px-3 py-2.5 text-gray-400 max-w-[120px] truncate" title={r.notes ?? ""}>{r.notes ?? "—"}</td>
                     <td className="px-3 py-2.5 text-right">
                       <div className="flex items-center gap-1 justify-end">
@@ -2686,11 +2687,11 @@ function StyleOutsourceSection({ styleOrderId }: { styleOrderId: number }) {
               <tfoot>
                 <tr className="bg-gray-50 border-t border-gray-200">
                   <td colSpan={7} className="px-3 py-2 text-right text-[10px] font-semibold text-gray-400">Total</td>
-                  <td className="px-3 py-2 text-right font-bold text-gray-700">₹{grandBase.toFixed(2)}</td>
-                  <td className="px-3 py-2 text-right font-bold text-blue-700">₹{grandGst.toFixed(2)}</td>
-                  <td className="px-3 py-2 text-right font-bold text-amber-700">₹{grandTotal.toFixed(2)}</td>
-                  <td className="px-3 py-2 text-right font-bold text-emerald-700">₹{grandPaid.toFixed(2)}</td>
-                  <td className={`px-3 py-2 text-right font-bold ${grandBalance <= 0 ? "text-emerald-600" : "text-red-500"}`}>₹{grandBalance.toFixed(2)}</td>
+                  <td className="px-3 py-2 text-right font-bold text-gray-700">{grandBase.toFixed(2)}</td>
+                  <td className="px-3 py-2 text-right font-bold text-blue-700">{grandGst.toFixed(2)}</td>
+                  <td className="px-3 py-2 text-right font-bold text-amber-700">{grandTotal.toFixed(2)}</td>
+                  <td className="px-3 py-2 text-right font-bold text-emerald-700">{grandPaid.toFixed(2)}</td>
+                  <td className={`px-3 py-2 text-right font-bold ${grandBalance <= 0 ? "text-emerald-600" : "text-red-500"}`}>{grandBalance.toFixed(2)}</td>
                   <td colSpan={2} />
                 </tr>
               </tfoot>
@@ -2806,7 +2807,7 @@ function StyleOutsourceSection({ styleOrderId }: { styleOrderId: number }) {
                 </div>
               </div>
               <div>
-                <label className="text-[10px] text-gray-500 font-medium">Total Cost (₹)</label>
+                <label className="text-[10px] text-gray-500 font-medium">Total Cost</label>
                 <input type="number" min="0" step="any" value={form.totalCost} onChange={e => setForm(f => ({ ...f, totalCost: e.target.value }))}
                   className="w-full mt-1 border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-800 outline-none focus:border-[#C9B45C]" placeholder="0.00" />
               </div>
@@ -2949,13 +2950,13 @@ function StyleCustomChargesSection({ styleOrderId }: { styleOrderId: number }) {
                 <th className="text-left text-[10px] font-semibold text-gray-400 px-3 py-2 whitespace-nowrap">HSN</th>
                 <th className="text-left text-[10px] font-semibold text-gray-400 px-3 py-2 whitespace-nowrap">GST%</th>
                 <th className="text-left text-[10px] font-semibold text-gray-400 px-3 py-2">Description</th>
-                <th className="text-right text-[10px] font-semibold text-gray-400 px-3 py-2 whitespace-nowrap">Unit Price (₹)</th>
+                <th className="text-right text-[10px] font-semibold text-gray-400 px-3 py-2 whitespace-nowrap">Unit Price</th>
                 <th className="text-right text-[10px] font-semibold text-gray-400 px-3 py-2 whitespace-nowrap">Qty</th>
-                <th className="text-right text-[10px] font-semibold text-gray-400 px-3 py-2 whitespace-nowrap">Cost (₹)</th>
-                <th className="text-right text-[10px] font-semibold text-blue-500 px-3 py-2 whitespace-nowrap">GST (₹)</th>
-                <th className="text-right text-[10px] font-semibold text-amber-500 px-3 py-2 whitespace-nowrap">Total (₹)</th>
-                <th className="text-right text-[10px] font-semibold text-emerald-600 px-3 py-2 whitespace-nowrap">Paid (₹)</th>
-                <th className="text-right text-[10px] font-semibold text-red-500 px-3 py-2 whitespace-nowrap">Balance (₹)</th>
+                <th className="text-right text-[10px] font-semibold text-gray-400 px-3 py-2 whitespace-nowrap">Cost</th>
+                <th className="text-right text-[10px] font-semibold text-blue-500 px-3 py-2 whitespace-nowrap">GST</th>
+                <th className="text-right text-[10px] font-semibold text-amber-500 px-3 py-2 whitespace-nowrap">Total</th>
+                <th className="text-right text-[10px] font-semibold text-emerald-600 px-3 py-2 whitespace-nowrap">Paid</th>
+                <th className="text-right text-[10px] font-semibold text-red-500 px-3 py-2 whitespace-nowrap">Balance</th>
                 <th className="px-3 py-2"></th>
               </tr>
             </thead>
@@ -2978,13 +2979,13 @@ function StyleCustomChargesSection({ styleOrderId }: { styleOrderId: number }) {
                   <td className="px-3 py-2.5 font-mono text-[10px] text-gray-500">{r.hsnCode}</td>
                   <td className="px-3 py-2.5"><span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700">{r.gstPercentage}%</span></td>
                   <td className="px-3 py-2.5 text-gray-800">{r.description}</td>
-                  <td className="px-3 py-2.5 text-right text-gray-800">₹{parseFloat(r.unitPrice).toFixed(2)}</td>
+                  <td className="px-3 py-2.5 text-right text-gray-800">{parseFloat(r.unitPrice).toFixed(2)}</td>
                   <td className="px-3 py-2.5 text-right text-gray-800">{parseFloat(r.quantity).toFixed(2)}</td>
-                  <td className="px-3 py-2.5 text-right text-gray-800">₹{base.toFixed(2)}</td>
-                  <td className="px-3 py-2.5 text-right text-blue-700">₹{gstAmt.toFixed(2)}</td>
-                  <td className="px-3 py-2.5 text-right font-semibold text-amber-700">₹{total.toFixed(2)}</td>
-                  <td className="px-3 py-2.5 text-right font-semibold text-emerald-700">₹{paid.toFixed(2)}</td>
-                  <td className={`px-3 py-2.5 text-right font-semibold ${balance <= 0 ? "text-emerald-600" : "text-red-500"}`}>₹{balance.toFixed(2)}</td>
+                  <td className="px-3 py-2.5 text-right text-gray-800">{base.toFixed(2)}</td>
+                  <td className="px-3 py-2.5 text-right text-blue-700">{gstAmt.toFixed(2)}</td>
+                  <td className="px-3 py-2.5 text-right font-semibold text-amber-700">{total.toFixed(2)}</td>
+                  <td className="px-3 py-2.5 text-right font-semibold text-emerald-700">{paid.toFixed(2)}</td>
+                  <td className={`px-3 py-2.5 text-right font-semibold ${balance <= 0 ? "text-emerald-600" : "text-red-500"}`}>{balance.toFixed(2)}</td>
                   <td className="px-3 py-2.5 text-right">
                     <div className="flex items-center gap-1 justify-end">
                       {fullyPaid ? (
@@ -3030,11 +3031,11 @@ function StyleCustomChargesSection({ styleOrderId }: { styleOrderId: number }) {
               <tfoot>
                 <tr className="bg-gray-50 border-t border-gray-200">
                   <td colSpan={7} className="px-3 py-2 text-right text-[10px] font-semibold text-gray-400">Total</td>
-                  <td className="px-3 py-2 text-right font-bold text-gray-700">₹{grandBase.toFixed(2)}</td>
-                  <td className="px-3 py-2 text-right font-bold text-blue-700">₹{grandGst.toFixed(2)}</td>
-                  <td className="px-3 py-2 text-right font-bold text-amber-700">₹{grandTotal.toFixed(2)}</td>
-                  <td className="px-3 py-2 text-right font-bold text-emerald-700">₹{grandPaid.toFixed(2)}</td>
-                  <td className={`px-3 py-2 text-right font-bold ${grandBalance <= 0 ? "text-emerald-600" : "text-red-500"}`}>₹{grandBalance.toFixed(2)}</td>
+                  <td className="px-3 py-2 text-right font-bold text-gray-700">{grandBase.toFixed(2)}</td>
+                  <td className="px-3 py-2 text-right font-bold text-blue-700">{grandGst.toFixed(2)}</td>
+                  <td className="px-3 py-2 text-right font-bold text-amber-700">{grandTotal.toFixed(2)}</td>
+                  <td className="px-3 py-2 text-right font-bold text-emerald-700">{grandPaid.toFixed(2)}</td>
+                  <td className={`px-3 py-2 text-right font-bold ${grandBalance <= 0 ? "text-emerald-600" : "text-red-500"}`}>{grandBalance.toFixed(2)}</td>
                   <td />
                 </tr>
               </tfoot>
@@ -3140,7 +3141,7 @@ function StyleCustomChargesSection({ styleOrderId }: { styleOrderId: number }) {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[10px] text-gray-500 font-medium">Unit Price (₹)</label>
+                  <label className="text-[10px] text-gray-500 font-medium">Unit Price</label>
                   <input type="number" min="0" step="any" value={form.unitPrice} onChange={e => setForm(f => ({ ...f, unitPrice: e.target.value }))}
                     className="w-full mt-1 border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-800 outline-none focus:border-[#C9B45C]" placeholder="0.00" />
                 </div>
@@ -3152,7 +3153,7 @@ function StyleCustomChargesSection({ styleOrderId }: { styleOrderId: number }) {
               </div>
               <div className="bg-amber-50 border border-amber-100 rounded-xl px-3 py-2 text-xs flex items-center justify-between">
                 <span className="text-gray-500">Total Amount = {form.unitPrice || 0} × {form.quantity || 0}</span>
-                <span className="font-bold text-amber-700">₹{computedTotal}</span>
+                <span className="font-bold text-amber-700">{computedTotal}</span>
               </div>
             </div>
             <div className="px-6 py-4 border-t border-gray-200 flex justify-end gap-2">

@@ -13,6 +13,7 @@ import MasterFormModal from "@/components/master/MasterFormModal";
 import StatusToggle from "@/components/master/StatusToggle";
 import InputField from "@/components/ui/InputField";
 import ConfirmModal from "@/components/ui/ConfirmModal";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 /* ─── Country codes ─── */
 const COUNTRIES = [
@@ -176,11 +177,12 @@ function formatDate(val: string | null | undefined) {
   } catch { return String(val); }
 }
 
-const fmt = (n: string | number) =>
-  parseFloat(String(n)).toLocaleString("en-IN", { minimumFractionDigits: 2 });
+// fmt replaced per-component via useCurrency()
 
 /* ─── Page ─── */
 export default function ShippingVendors() {
+  const { fmt: dcFmt } = useCurrency();
+  const fmt = (n: string | number) => dcFmt(parseFloat(String(n)));
   const [, setLocation] = useLocation();
   const qc = useQueryClient();
   const { toast } = useToast();
@@ -357,13 +359,13 @@ export default function ShippingVendors() {
       key: "weight_rate_per_kg",
       label: "Rate / KG",
       className: "text-right",
-      render: (r) => <span className="font-semibold text-gray-900">₹{fmt(asV(r).weight_rate_per_kg)}</span>,
+      render: (r) => <span className="font-semibold text-gray-900">{fmt(asV(r).weight_rate_per_kg)}</span>,
     },
     {
       key: "minimum_charge",
       label: "Min Charge",
       className: "text-right",
-      render: (r) => <span>₹{fmt(asV(r).minimum_charge)}</span>,
+      render: (r) => <span>{fmt(asV(r).minimum_charge)}</span>,
     },
     {
       key: "is_active",
@@ -520,7 +522,7 @@ export default function ShippingVendors() {
 
           <div className="grid grid-cols-2 gap-4">
             <InputField
-              label="Rate per KG (₹)"
+              label="Rate per KG"
               required
               type="number"
               step="0.01"
@@ -530,7 +532,7 @@ export default function ShippingVendors() {
               error={errors.weight_rate_per_kg}
             />
             <InputField
-              label="Minimum Charge (₹)"
+              label="Minimum Charge"
               type="number"
               step="0.01"
               value={form.minimum_charge}

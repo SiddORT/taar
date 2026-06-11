@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { setAuthTokenGetter } from "@workspace/api-client-react";
 import { NavigationGuardProvider } from "@/contexts/NavigationGuardContext";
+import { CurrencyProvider } from "@/contexts/CurrencyContext";
 import NotFound from "@/pages/not-found";
 
 import Login from "@/pages/login";
@@ -188,12 +189,14 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <NavigationGuardProvider>
-          <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-            <Router />
-          </WouterRouter>
-          <Toaster />
-        </NavigationGuardProvider>
+        <CurrencyProvider>
+          <NavigationGuardProvider>
+            <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+              <Router />
+            </WouterRouter>
+            <Toaster />
+          </NavigationGuardProvider>
+        </CurrencyProvider>
       </TooltipProvider>
     </QueryClientProvider>
   );

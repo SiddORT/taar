@@ -11,6 +11,7 @@ import {
 } from "@/hooks/useStyleOrderArtworks";
 import { useStyleOrderProducts, type StyleOrderProductRecord } from "@/hooks/useStyleOrderProducts";
 import { useToast } from "@/hooks/use-toast";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 // ── Helpers (outside component to prevent focus-loss) ─────────────────────────
 
@@ -56,6 +57,7 @@ function ArtworkRow({
   onAddWip: (artId: number) => void;
   onAddFinal: (artId: number) => void;
 }) {
+  const { fmt, currency: dc } = useCurrency();
   const [, setLocation] = useLocation();
   const isApproved = art.feedbackStatus === "Approved";
 
@@ -90,7 +92,7 @@ function ArtworkRow({
             {art.artworkCreated}
           </span>
           {art.totalCost && (
-            <span className="text-xs font-medium text-gray-700">₹{Number(art.totalCost).toLocaleString()}</span>
+            <span className="text-xs font-medium text-gray-700">{fmt(Number(art.totalCost))}</span>
           )}
         </div>
         {/* Actions */}
@@ -251,6 +253,7 @@ export default function StyleOrderArtworksTab({
   styleOrderId: number | null;
   isNew: boolean;
 }) {
+  const { fmt, currency: dc } = useCurrency();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
 

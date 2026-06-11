@@ -11,6 +11,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import AppLayout from "@/components/layout/AppLayout";
 import { customFetch } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 const G     = "#C6AF4B";
 const G_DIM = "#A8943E";
@@ -40,12 +41,7 @@ interface LedgerEntry {
   running_balance: number;
 }
 
-function fmt(n: string | number) {
-  const val = typeof n === "string" ? parseFloat(n) : Number(n);
-  if (!Number.isFinite(val)) return "₹0.00";
-  const sign = val < 0 ? "−" : "";
-  return sign + "₹" + Math.abs(val).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
+// fmt replaced at runtime by useCurrency — see component body
 
 function fmtDate(d: string) {
   return new Date(d).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
@@ -74,6 +70,7 @@ function rowKey(e: LedgerEntry) {
 }
 
 export default function VendorLedgerDetail() {
+  const { fmt, currency: dc } = useCurrency();
   const [, setLocation] = useLocation();
   const params = useParams<{ vendorId: string }>();
   const vendorId = parseInt(params.vendorId);
@@ -230,7 +227,7 @@ export default function VendorLedgerDetail() {
     const maxAllowed = payFromSelection ? selectedTotal : Math.max(0, balance);
     if (maxAllowed > 0 && amt > maxAllowed + 0.001) {
       toast({
-        title: `Amount cannot exceed ₹${maxAllowed.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`,
+        title: `Amount cannot exceed ${fmt(maxAllowed)}`,
         description: payFromSelection ? "Limited to the total of selected items" : "Limited to the current outstanding balance",
         variant: "destructive",
       });
@@ -282,7 +279,7 @@ export default function VendorLedgerDetail() {
     }
     const label = entry.entry_type === "payment" ? "payment" : "manual charge";
     const amount = parseFloat(entry.debit || entry.credit || "0").toLocaleString("en-IN", { minimumFractionDigits: 2 });
-    if (!confirm(`Delete this ${label} of ₹${amount} dated ${fmtDate(entry.entry_date)}?\n\nThis will adjust the vendor balance and cannot be undone.`)) return;
+    if (!confirm(`Delete this ${label} of ${fmt(parseFloat(String(amount ?? 0)))} dated ${fmtDate(entry.entry_date)}?\n\nThis will adjust the vendor balance and cannot be undone.`)) return;
     const path = entry.entry_type === "payment"
       ? `/api/vendor-ledger/payments/${entry.entry_id}`
       : `/api/vendor-ledger/charges/${entry.entry_id}`;
@@ -688,7 +685,7 @@ export default function VendorLedgerDetail() {
                       </span>
                     </label>
                     <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">₹</span>
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">{dc.symbol}</span>
                       <input
                         type="number" min="0.01" step="0.01"
                         max={(payFromSelection ? selectedTotal : Math.max(0, balance)) || undefined}
@@ -798,7 +795,7 @@ export default function VendorLedgerDetail() {
                   <div>
                     <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1.5">Amount <span className="text-red-500 ml-0.5">*</span></label>
                     <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">₹</span>
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">{dc.symbol}</span>
                       <input
                         type="number" min="0.01" step="0.01"
                         value={chargeForm.amount}

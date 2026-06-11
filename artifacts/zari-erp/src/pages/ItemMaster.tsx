@@ -31,6 +31,7 @@ import {
 import { useItemTypes, useUnitTypes, useCreateUnitType, useCreateItemType } from "@/hooks/useLookups";
 import { useHSNList, useCreateHSN, type HsnFormData } from "@/hooks/useHSN";
 import { useWarehouseLocations } from "@/hooks/useWarehouseLocations";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 const NAME_REGEX = /^[A-Za-z]+( [A-Za-z]+)*$/;
 const NUMERIC_REGEX = /^[0-9]+(\.[0-9]{1,2})?$/;
@@ -72,6 +73,7 @@ const inputCls = "w-full rounded-lg border border-gray-300 bg-white px-3 py-2 te
 const inputErrCls = "border-red-400 focus:border-red-500 focus:ring-red-200";
 
 export default function ItemMaster() {
+  const { fmt, currency: dc } = useCurrency();
   const [, setLocation] = useLocation();
   const qc = useQueryClient();
   const { toast } = useToast();
@@ -401,7 +403,7 @@ export default function ItemMaster() {
     },
     { key: "itemType", label: "Item Type", render: (r) => <span className="text-gray-600">{asItem(r).itemType || "—"}</span> },
     { key: "unitType", label: "Unit", render: (r) => <span className="text-gray-600">{asItem(r).unitType}</span> },
-    { key: "unitPrice", label: "Unit Price", render: (r) => <span className="text-gray-700">₹{asItem(r).unitPrice}</span> },
+    { key: "unitPrice", label: "Unit Price", render: (r) => <span className="text-gray-700">{fmt(parseFloat(asItem(r).unitPrice || "0"))}</span> },
     { key: "currentStock", label: "Stock", render: (r) => <span className="font-medium text-gray-800">{asItem(r).currentStock}</span> },
     {
       key: "isActive", label: "Status",
@@ -509,7 +511,7 @@ export default function ItemMaster() {
                     placeholder="Select or add…"
                     error={errors.unitType}
                   />
-                  <InputField label="Unit Price (₹)" required value={form.unitPrice}
+                  <InputField label="Unit Price" required value={form.unitPrice}
                     onChange={(e) => setForm((f) => ({ ...f, unitPrice: e.target.value }))}
                     error={errors.unitPrice} placeholder="0.00" />
                 </div>

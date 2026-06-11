@@ -15,6 +15,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { customFetch } from "@workspace/api-client-react";
 import TopNavbar from "@/components/layout/TopNavbar";
 import { useToast } from "@/hooks/use-toast";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 const G     = "#C6AF4B";
 const G_DIM = "#A8943E";
@@ -27,7 +28,7 @@ const card = [
 ].join(" ");
 
 const fmt  = (n: number | string) => parseFloat(String(n ?? 0)).toLocaleString("en-IN", { maximumFractionDigits: 2 });
-const fmtC = (n: number | string) => "₹" + parseFloat(String(n ?? 0)).toLocaleString("en-IN", { maximumFractionDigits: 0 });
+// fmtC replaced per-component via useCurrency()
 
 interface DashboardData {
   summary: {
@@ -151,6 +152,7 @@ function InventoryDonut({ title, subtitle, data, loading }: {
 }
 
 export default function InventoryDashboard() {
+  const { fmt: fmtC, currency: dc } = useCurrency();
   const [, navigate]  = useLocation();
   const { toast }     = useToast();
   const queryClient   = useQueryClient();

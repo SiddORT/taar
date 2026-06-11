@@ -8,6 +8,7 @@ import {
   type BomRecord, type PurchaseOrderRecord, type PurchaseReceiptRecord,
 } from "@/hooks/useCosting";
 import { useStyleOrderProducts } from "@/hooks/useStyleOrderProducts";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 function computeRowMetrics(r: BomRecord, pos: PurchaseOrderRecord[], prs: PurchaseReceiptRecord[]) {
@@ -32,7 +33,7 @@ function computeRowMetrics(r: BomRecord, pos: PurchaseOrderRecord[], prs: Purcha
 }
 
 function fmt(n: number, dec = 2) { return n.toFixed(dec); }
-function rupee(n: number) { return `₹${n.toFixed(2)}`; }
+
 
 function SheetSection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -103,6 +104,7 @@ export default function StyleCostSheetTab({
   clientName?: string;
   quantity?: string;
 }) {
+  const { fmt: dcFmt, currency: dc } = useCurrency();
   const printRef = useRef<HTMLDivElement>(null);
   const qc = useQueryClient();
   const [refreshing, setRefreshing] = useState(false);
@@ -395,7 +397,7 @@ export default function StyleCostSheetTab({
             headers={[
               ...((!isFiltered && products.length > 0) ? ["Product"] : []),
               "Code", "Material / Fabric", "Type",
-              "Consumed Qty", "Avg Price ₹", "HSN", "GST%", "Final Rate ₹", includeGst ? "Total (incl. GST) ₹" : "Total ₹", "Consumed By",
+              "Consumed Qty", "Avg Price", "HSN", "GST%", "Final Rate", includeGst ? "Total (incl. GST)" : "Total", "Consumed By",
             ]}
             rows={bomWithMetrics.filter(({ m }) => m.consumedQtyNum > 0).map(({ r, m }) => {
               const { hsnCode, gstPct } = getBomHsnGst(r);
@@ -412,11 +414,11 @@ export default function StyleCostSheetTab({
                 r.materialName,
                 r.materialType === "fabric" ? "Fabric" : "Material",
                 `${fmt(m.consumedQtyNum)} ${r.unitType}`,
-                rupee(m.weightedAvg),
+                dcFmt(m.weightedAvg),
                 includeGst ? (hsnCode || "—") : "—",
                 includeGst && gstPct > 0 ? `${gstPct}%` : "—",
-                rupee(finalRate),
-                rupee(totalWithGst),
+                dcFmt(finalRate),
+                dcFmt(totalWithGst),
                 lastEntry?.consumedBy ?? "—",
               ];
               if (!isFiltered && products.length > 0) row.unshift(productNames);
@@ -425,7 +427,7 @@ export default function StyleCostSheetTab({
             footer={bomWithMetrics.filter(({ m }) => m.consumedQtyNum > 0).length > 0 ? [
               ...(!isFiltered && products.length > 0 ? [""] : []),
               "", "", "Total", "", "", "", "", "",
-              rupee(bomConsumedTotal + (includeGst ? bomGstTotal : 0)),
+              dcFmt(bomConsumedTotal + (includeGst ? bomGstTotal : 0)),
               "",
             ] : undefined}
           />
@@ -436,7 +438,7 @@ export default function StyleCostSheetTab({
           <SheetTable
             headers={[
               ...((!isFiltered && products.length > 0) ? ["Product"] : []),
-              "Start Date", "End Date", "Shift Type", "# Artisans", "Total Hours", "Rate / Hr ₹", "Total Rate ₹",
+              "Start Date", "End Date", "Shift Type", "# Artisans", "Total Hours", "Rate / Hr", "Total Rate",
             ]}
             rows={filteredArtisan.map(r => {
               const row: (string | React.ReactNode)[] = [
@@ -445,8 +447,8 @@ export default function StyleCostSheetTab({
                 SHIFT_LABELS[r.shiftType] ?? r.shiftType,
                 String(r.noOfArtisans),
                 parseFloat(r.totalHours).toFixed(1),
-                rupee(parseFloat(r.hourlyRate)),
-                rupee(parseFloat(r.totalRate)),
+                dcFmt(parseFloat(r.hourlyRate)),
+                dcFmt(parseFloat(r.totalRate)),
               ];
               if (!isFiltered && products.length > 0) row.unshift((r as any).styleOrderProductName ?? "—");
               return row;
@@ -454,7 +456,7 @@ export default function StyleCostSheetTab({
             footer={filteredArtisan.length > 0 ? [
               ...(!isFiltered && products.length > 0 ? [""] : []),
               "", "", "", "", "", "Total",
-              rupee(artisanTotal),
+              dcFmt(artisanTotal),
             ] : undefined}
           />
         </SheetSection>
@@ -469,7 +471,7 @@ export default function StyleCostSheetTab({
             headers={[
               ...((!isFiltered && products.length > 0) ? ["Product"] : []),
               "Vendor", "HSN", "GST%", "Issued", "Target", "Delivered",
-              "Cost ₹", "GST ₹", "Total ₹",
+              "Cost", "GST", "Total",
             ]}
             rows={filteredOutsource.map(r => {
               const base = parseFloat(r.totalCost) || 0;
@@ -483,9 +485,9 @@ export default function StyleCostSheetTab({
                 r.issueDate,
                 r.targetDate ?? "—",
                 r.deliveryDate ?? "—",
-                rupee(base),
-                includeGst ? rupee(gstAmt) : "—",
-                rupee(totalWithGst),
+                dcFmt(base),
+                includeGst ? dcFmt(gstAmt) : "—",
+                dcFmt(totalWithGst),
               ];
               if (!isFiltered && products.length > 0) row.unshift((r as any).styleOrderProductName ?? "—");
               return row;
@@ -493,9 +495,9 @@ export default function StyleCostSheetTab({
             footer={filteredOutsource.length > 0 ? [
               ...(!isFiltered && products.length > 0 ? [""] : []),
               "", "", "", "", "", "Total",
-              rupee(outsourceBaseTotal),
-              includeGst ? rupee(outsourceGstTotal) : "—",
-              rupee(outsourceTotal),
+              dcFmt(outsourceBaseTotal),
+              includeGst ? dcFmt(outsourceGstTotal) : "—",
+              dcFmt(outsourceTotal),
             ] : undefined}
           />
         </SheetSection>
@@ -505,8 +507,8 @@ export default function StyleCostSheetTab({
           <SheetTable
             headers={[
               ...((!isFiltered && products.length > 0) ? ["Product"] : []),
-              "Vendor", "HSN", "GST%", "Description", "Unit Price ₹", "Qty",
-              "Cost ₹", "GST ₹", "Total ₹",
+              "Vendor", "HSN", "GST%", "Description", "Unit Price", "Qty",
+              "Cost", "GST", "Total",
             ]}
             rows={filteredCustom.map(r => {
               const base = parseFloat(r.totalAmount) || 0;
@@ -518,11 +520,11 @@ export default function StyleCostSheetTab({
                 r.hsnCode || "—",
                 gstPct > 0 ? `${gstPct}%` : "—",
                 r.description,
-                rupee(parseFloat(r.unitPrice)),
+                dcFmt(parseFloat(r.unitPrice)),
                 parseFloat(r.quantity).toFixed(2),
-                rupee(base),
-                includeGst ? rupee(gstAmt) : "—",
-                rupee(totalWithGst),
+                dcFmt(base),
+                includeGst ? dcFmt(gstAmt) : "—",
+                dcFmt(totalWithGst),
               ];
               if (!isFiltered && products.length > 0) row.unshift((r as any).styleOrderProductName ?? "—");
               return row;
@@ -530,9 +532,9 @@ export default function StyleCostSheetTab({
             footer={filteredCustom.length > 0 ? [
               ...(!isFiltered && products.length > 0 ? [""] : []),
               "", "", "", "", "", "Total",
-              rupee(customBaseTotal),
-              includeGst ? rupee(customGstTotal) : "—",
-              rupee(customTotal),
+              dcFmt(customBaseTotal),
+              includeGst ? dcFmt(customGstTotal) : "—",
+              dcFmt(customTotal),
             ] : undefined}
           />
         </SheetSection>
@@ -543,7 +545,7 @@ export default function StyleCostSheetTab({
             <SheetTable
               headers={[
                 ...((!isFiltered && products.length > 0) ? ["Product"] : []),
-                "Artwork Code", "Artwork Name", "Type", "Vendor", "Amount ₹", "Status",
+                "Artwork Code", "Artwork Name", "Type", "Vendor", "Amount", "Status",
               ]}
               rows={filteredArtworks.flatMap(a => {
                 const rows: (string | React.ReactNode)[][] = [];
@@ -557,7 +559,7 @@ export default function StyleCostSheetTab({
                   const status = a.artworkCreated === "Outsource" ? (a.outsourcePaymentStatus || "—") : "—";
                   const row: (string | React.ReactNode)[] = [
                     a.artworkCode, a.artworkName, typeLabel,
-                    vendor, rupee(prodCost), status,
+                    vendor, dcFmt(prodCost), status,
                   ];
                   if (!isFiltered && products.length > 0) row.unshift(a.styleOrderProductName ?? "—");
                   rows.push(row);
@@ -566,7 +568,7 @@ export default function StyleCostSheetTab({
                 if (a.toileMakingCost && parseFloat(a.toileMakingCost) > 0) {
                   const row: (string | React.ReactNode)[] = [
                     a.artworkCode, a.artworkName, "Toile",
-                    a.toileVendorName || "—", rupee(parseFloat(a.toileMakingCost)),
+                    a.toileVendorName || "—", dcFmt(parseFloat(a.toileMakingCost)),
                     a.toilePaymentStatus || "—",
                   ];
                   if (!isFiltered && products.length > 0) row.unshift(a.styleOrderProductName ?? "—");
@@ -576,7 +578,7 @@ export default function StyleCostSheetTab({
                 if (a.patternType === "Outhouse" && a.patternPaymentAmount && parseFloat(a.patternPaymentAmount) > 0) {
                   const row: (string | React.ReactNode)[] = [
                     a.artworkCode, a.artworkName, "Pattern (Outhouse)",
-                    a.patternVendorName || "—", rupee(parseFloat(a.patternPaymentAmount)),
+                    a.patternVendorName || "—", dcFmt(parseFloat(a.patternPaymentAmount)),
                     a.patternPaymentStatus || "—",
                   ];
                   if (!isFiltered && products.length > 0) row.unshift(a.styleOrderProductName ?? "—");
@@ -585,7 +587,7 @@ export default function StyleCostSheetTab({
                 if (a.patternType === "Inhouse" && a.patternMakingCost && parseFloat(a.patternMakingCost) > 0) {
                   const row: (string | React.ReactNode)[] = [
                     a.artworkCode, a.artworkName, "Pattern (Inhouse)",
-                    "Inhouse", rupee(parseFloat(a.patternMakingCost)), "—",
+                    "Inhouse", dcFmt(parseFloat(a.patternMakingCost)), "—",
                   ];
                   if (!isFiltered && products.length > 0) row.unshift(a.styleOrderProductName ?? "—");
                   rows.push(row);
@@ -594,7 +596,7 @@ export default function StyleCostSheetTab({
               })}
               footer={artworkTotal > 0 ? [
                 ...(!isFiltered && products.length > 0 ? [""] : []),
-                "", "", "", "Total", rupee(artworkTotal), "",
+                "", "", "", "Total", dcFmt(artworkTotal), "",
               ] : undefined}
             />
           </SheetSection>
@@ -619,7 +621,7 @@ export default function StyleCostSheetTab({
                 ].map(({ label, value }) => (
                   <div key={label} className="flex justify-between text-xs text-gray-600 px-3 py-0.5">
                     <span>{label}</span>
-                    <span className="font-medium text-gray-800">{rupee(value)}</span>
+                    <span className="font-medium text-gray-800">{dcFmt(value)}</span>
                   </div>
                 ))}
                 <div className="flex justify-between items-center px-3 py-2 rounded-xl bg-gray-900 mt-2">
@@ -629,7 +631,7 @@ export default function StyleCostSheetTab({
                       <p className="text-[9px] text-[#C9B45C]/70 mt-0.5">{selectedProduct.productName}</p>
                     )}
                   </div>
-                  <span className="text-base font-black text-[#C9B45C]">{rupee(grandTotal)}</span>
+                  <span className="text-base font-black text-[#C9B45C]">{dcFmt(grandTotal)}</span>
                 </div>
                 {quantity && parseFloat(quantity) > 0 && (
                   <div className="flex justify-between items-center px-3 py-2 rounded-xl bg-indigo-50 border border-indigo-100 mt-1.5">
@@ -637,7 +639,7 @@ export default function StyleCostSheetTab({
                       <span className="text-xs font-semibold text-indigo-700">Cost per Unit</span>
                       <p className="text-[9px] text-indigo-400 mt-0.5">Grand Total ÷ {quantity} units</p>
                     </div>
-                    <span className="text-sm font-black text-indigo-700">{rupee(grandTotal / parseFloat(quantity))}</span>
+                    <span className="text-sm font-black text-indigo-700">{dcFmt(grandTotal / parseFloat(quantity))}</span>
                   </div>
                 )}
               </div>
@@ -678,12 +680,12 @@ export default function StyleCostSheetTab({
                       ].map(({ label, value }) => value > 0 && (
                         <div key={label} className="flex justify-between text-[10px] text-gray-500">
                           <span>{label}</span>
-                          <span className="font-medium text-gray-700">{rupee(value)}</span>
+                          <span className="font-medium text-gray-700">{dcFmt(value)}</span>
                         </div>
                       ))}
                       <div className="flex justify-between text-[11px] font-bold text-gray-900 border-t border-gray-200 pt-1 mt-1">
                         <span>Total</span>
-                        <span className="text-[#8a7a30]">{rupee(prodTotal)}</span>
+                        <span className="text-[#8a7a30]">{dcFmt(prodTotal)}</span>
                       </div>
                     </div>
                   </div>
@@ -716,12 +718,12 @@ export default function StyleCostSheetTab({
                       ].map(({ label, value }) => value > 0 && (
                         <div key={label} className="flex justify-between text-[10px] text-amber-600">
                           <span>{label}</span>
-                          <span className="font-medium">{rupee(value)}</span>
+                          <span className="font-medium">{dcFmt(value)}</span>
                         </div>
                       ))}
                       <div className="flex justify-between text-[11px] font-bold text-amber-800 border-t border-amber-200 pt-1 mt-1">
                         <span>Total</span>
-                        <span>{rupee(unassignedTotal)}</span>
+                        <span>{dcFmt(unassignedTotal)}</span>
                       </div>
                     </div>
                   </div>

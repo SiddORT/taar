@@ -37,6 +37,7 @@ import { useUnitTypes, useCreateUnitType, useFabricTypes, useCreateFabricType } 
 import { useHSNList, useCreateHSN, type HsnFormData } from "@/hooks/useHSN";
 import { useAllVendors } from "@/hooks/useVendors";
 import { useWarehouseLocations } from "@/hooks/useWarehouseLocations";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 const NAMED_COLORS = [
   { name: "Black", r: 0, g: 0, b: 0 }, { name: "White", r: 255, g: 255, b: 255 },
@@ -107,6 +108,7 @@ function formatDate(val: string | null | undefined) {
 }
 
 export default function FabricMaster() {
+  const { fmt, currency: dc } = useCurrency();
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -527,7 +529,7 @@ export default function FabricMaster() {
         </div>
       ),
     },
-    { key: "pricePerMeter", label: "Price/Meter", render: (r) => <span className="font-medium">₹{asFab(r).pricePerMeter}</span> },
+    { key: "pricePerMeter", label: "Price/Meter", render: (r) => <span className="font-medium">{fmt(parseFloat(asFab(r).pricePerMeter || "0"))}</span> },
     { key: "unitType", label: "Unit Type", render: (r) => <span className="text-gray-500">{asFab(r).unitType}</span> },
     { key: "hsnCode", label: "HSN Code", render: (r) => <span className="font-mono text-gray-700">{asFab(r).hsnCode}</span> },
     { key: "gstPercent", label: "GST %", render: (r) => <span>{asFab(r).gstPercent}%</span> },
@@ -755,7 +757,7 @@ export default function FabricMaster() {
               <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
                 {sectionLabel("Pricing & Tax")}
                 <div className="grid grid-cols-3 gap-4">
-                  <InputField label="Price Per Meter (₹)" required placeholder="e.g. 350" type="text" value={form.pricePerMeter}
+                  <InputField label="Price Per Meter" required placeholder="e.g. 350" type="text" value={form.pricePerMeter}
                     maxLength={10}
                     onChange={(e) => {
                       const raw = e.target.value.replace(/[^0-9.]/g, "");

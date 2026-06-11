@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import AppLayout from "@/components/layout/AppLayout";
 import InputField from "@/components/ui/InputField";
 import { useOrder, useUpdateOrder, usePatchOrderStatus, type OrderRecord, type OrderFormData } from "@/hooks/useOrders";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 const STATUS_OPTIONS = ["Pending", "In Progress", "Completed", "Cancelled"];
 const COST_STATUS_OPTIONS = ["Pending", "Quoted", "Approved", "Revised"];
@@ -152,6 +153,7 @@ function TextareaField({ label, value, onChange, placeholder }: {
 }
 
 export default function OrderDetails() {
+  const { fmt, currency: dc } = useCurrency();
   const [, setLocation] = useLocation();
   const [, params] = useRoute("/orders/:id");
   const orderId = params?.id ? parseInt(params.id, 10) : null;
@@ -331,7 +333,7 @@ export default function OrderDetails() {
             <Card icon={Palette} title="Artwork" onEdit={() => setEditSection("artwork")}>
               <div className="grid grid-cols-3 gap-x-6 gap-y-4">
                 <InfoRow label="Artwork Hours" value={order.artworkHours} />
-                <InfoRow label="Rate (₹/hr)" value={order.artworkRate} />
+                <InfoRow label="Rate" value={order.artworkRate} />
                 <InfoRow label="Feedback Status" value={order.artworkFeedback} />
               </div>
               {!order.artworkHours && (
@@ -344,15 +346,15 @@ export default function OrderDetails() {
               {(order.materialCost || order.artisanCost || order.outsourceCost) ? (
                 <div className="space-y-3">
                   <div className="grid grid-cols-2 gap-x-6 gap-y-4">
-                    <InfoRow label="Material Cost" value={order.materialCost ? `₹${order.materialCost}` : null} />
-                    <InfoRow label="Artisan Cost" value={order.artisanCost ? `₹${order.artisanCost}` : null} />
-                    <InfoRow label="Outsource Cost" value={order.outsourceCost ? `₹${order.outsourceCost}` : null} />
-                    <InfoRow label="Custom Charges" value={order.customCharges ? `₹${order.customCharges}` : null} />
+                    <InfoRow label="Material Cost" value={order.materialCost ? fmt(parseFloat(order.materialCost||"0")) : null} />
+                    <InfoRow label="Artisan Cost" value={order.artisanCost ? fmt(parseFloat(order.artisanCost||"0")) : null} />
+                    <InfoRow label="Outsource Cost" value={order.outsourceCost ? fmt(parseFloat(order.outsourceCost||"0")) : null} />
+                    <InfoRow label="Custom Charges" value={order.customCharges ? fmt(parseFloat(order.customCharges||"0")) : null} />
                   </div>
                   {order.totalCost && (
                     <div className="mt-4 pt-4 border-t border-gray-100 flex items-center justify-between">
                       <span className="text-sm font-medium text-gray-600">Total Cost</span>
-                      <span className="text-lg font-bold text-gray-900">₹{order.totalCost}</span>
+                      <span className="text-lg font-bold text-gray-900">{fmt(parseFloat(order.totalCost||"0"))}</span>
                     </div>
                   )}
                 </div>
@@ -527,7 +529,7 @@ export default function OrderDetails() {
         <InputField label="Artwork Hours" type="number" value={artworkForm.artworkHours}
           onChange={(e) => setArtworkForm((f) => ({ ...f, artworkHours: e.target.value }))}
           placeholder="e.g. 8" />
-        <InputField label="Rate (₹/hr)" type="number" value={artworkForm.artworkRate}
+        <InputField label="Rate" type="number" value={artworkForm.artworkRate}
           onChange={(e) => setArtworkForm((f) => ({ ...f, artworkRate: e.target.value }))}
           placeholder="e.g. 500" />
         <SelectField label="Feedback Status" value={artworkForm.artworkFeedback || "Pending"}
@@ -543,15 +545,15 @@ export default function OrderDetails() {
         onSave={() => save(costingForm)}
         saving={saving}
       >
-        <InputField label="Material Cost (₹)" type="number" value={costingForm.materialCost}
+        <InputField label="Material Cost" type="number" value={costingForm.materialCost}
           onChange={(e) => setCostingForm((f) => ({ ...f, materialCost: e.target.value }))} placeholder="e.g. 5000" />
-        <InputField label="Artisan Cost (₹)" type="number" value={costingForm.artisanCost}
+        <InputField label="Artisan Cost" type="number" value={costingForm.artisanCost}
           onChange={(e) => setCostingForm((f) => ({ ...f, artisanCost: e.target.value }))} placeholder="e.g. 3000" />
-        <InputField label="Outsource Cost (₹)" type="number" value={costingForm.outsourceCost}
+        <InputField label="Outsource Cost" type="number" value={costingForm.outsourceCost}
           onChange={(e) => setCostingForm((f) => ({ ...f, outsourceCost: e.target.value }))} placeholder="e.g. 2000" />
-        <InputField label="Custom Charges (₹)" type="number" value={costingForm.customCharges}
+        <InputField label="Custom Charges" type="number" value={costingForm.customCharges}
           onChange={(e) => setCostingForm((f) => ({ ...f, customCharges: e.target.value }))} placeholder="e.g. 500" />
-        <InputField label="Total Cost (₹)" type="number" value={costingForm.totalCost}
+        <InputField label="Total Cost" type="number" value={costingForm.totalCost}
           onChange={(e) => setCostingForm((f) => ({ ...f, totalCost: e.target.value }))} placeholder="e.g. 10500" />
       </EditModal>
 

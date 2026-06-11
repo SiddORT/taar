@@ -26,6 +26,7 @@ import {
 import { useAllItemTypes, useCreateItemType } from "@/hooks/useItemTypeMaster";
 import { useUnitTypes } from "@/hooks/useLookups";
 import { useAllVendors, type VendorRecord } from "@/hooks/useVendors";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 const LOCATION_OPTIONS = ["In-house", "Outsource"];
 const STATUS_OPTIONS = [
@@ -130,6 +131,7 @@ function AddItemTypeModal({ open, onClose, onAdd, adding }: AddItemTypeModalProp
 }
 
 export default function PackagingMaterialsMaster() {
+  const { fmt, currency: dc } = useCurrency();
   const [, setLocation] = useLocation();
   const qc = useQueryClient();
   const { toast } = useToast();
@@ -241,7 +243,7 @@ export default function PackagingMaterialsMaster() {
     { key: "department", label: "Department", render: (r) => asPM(r).department || "—" },
     { key: "size", label: "Size", render: (r) => asPM(r).size || "—" },
     { key: "unitType", label: "Unit Type", render: (r) => asPM(r).unitType || "—" },
-    { key: "unitPrice", label: "Unit Price", render: (r) => asPM(r).unitPrice ? `₹${asPM(r).unitPrice}` : "—" },
+    { key: "unitPrice", label: "Unit Price", render: (r) => asPM(r).unitPrice ? fmt(parseFloat(asPM(r).unitPrice!)) : "—" },
     { key: "currentStock", label: "Current Stock", render: (r) => {
       const v = asPM(r).currentStock;
       if (!v || parseFloat(v) === 0) return <span className="text-gray-400">0</span>;

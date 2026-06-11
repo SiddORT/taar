@@ -14,6 +14,7 @@ import { customFetch } from "@workspace/api-client-react";
 import TopNavbar from "@/components/layout/TopNavbar";
 import { useToast } from "@/hooks/use-toast";
 import { SmallSearchSelect } from "@/components/ui/SearchableSelect";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 const G     = "#C6AF4B";
 const CURRENCIES = ["INR", "USD", "EUR", "GBP", "AED", "JPY", "CNY"];
@@ -110,6 +111,7 @@ interface PRDetail {
 }
 
 export default function PurchaseReceiptForm() {
+  const { fmt, currency: dc } = useCurrency();
   const [, navigate] = useLocation();
   const params = useParams<{ id: string }>();
   const isNew = params.id === "new";
@@ -615,7 +617,7 @@ export default function PurchaseReceiptForm() {
                 <thead className="bg-[#F8F6F0]">
                   <tr>
                     {editMode
-                      ? ["#","Item","Code","Unit","Now Receiving","Unit Price (₹)","Location"].map(h => (
+                      ? ["#","Item","Code","Unit","Now Receiving","Unit Price","Location"].map(h => (
                           <th key={h} className="px-3 py-2.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">{h}</th>
                         ))
                       : ["#","Item","Code","Unit","Received Qty","Unit Price","Location"].map(h => (
@@ -670,7 +672,7 @@ export default function PurchaseReceiptForm() {
                           <td className="px-3 py-3 text-xs font-mono text-gray-500">{item.item_code}</td>
                           <td className="px-3 py-3 text-xs text-gray-500">{item.unit_type ?? "—"}</td>
                           <td className="px-3 py-3 text-sm font-mono font-semibold text-green-700">{parseFloat(item.quantity).toFixed(2)}</td>
-                          <td className="px-3 py-3 text-xs font-mono text-gray-500">₹{parseFloat(item.unit_price).toFixed(2)}</td>
+                          <td className="px-3 py-3 text-xs font-mono text-gray-500">{fmt(parseFloat(item.unit_price))}</td>
                           <td className="px-3 py-3 text-xs text-gray-500">{item.warehouse_location ?? "—"}</td>
                         </tr>
                       ))
@@ -737,7 +739,7 @@ export default function PurchaseReceiptForm() {
               const billRate = parseFloat(pr.vendor_invoice_exchange_rate ?? "1") || 1;
               const billAmt = pr.vendor_invoice_amount ? parseFloat(pr.vendor_invoice_amount) : null;
               const amtLabel = billAmt != null
-                ? `${billCcy !== "INR" ? `${billCcy} ` : "₹"}${billAmt.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`
+                ? `${billCcy !== "INR" ? `${billCcy} ` : dc.symbol}${billAmt.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`
                 : "—";
               const inrEquiv = billAmt != null && billCcy !== "INR"
                 ? `≈ ₹${(billAmt * billRate).toLocaleString("en-IN", { minimumFractionDigits: 2 })} (INR)`
@@ -1004,8 +1006,8 @@ export default function PurchaseReceiptForm() {
                       <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-600 w-24">Received</th>
                       <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-600 w-24">Pending</th>
                       <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-600 w-28">Now Receiving</th>
-                      <th className="px-3 py-2.5 text-left text-xs font-semibold text-amber-700 w-28">Target Price (₹)</th>
-                      <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-600 w-28">Received Rate (₹)</th>
+                      <th className="px-3 py-2.5 text-left text-xs font-semibold text-amber-700 w-28">Target Price</th>
+                      <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-600 w-28">Received Rate</th>
                       <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-600 w-28">Location</th>
                       <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-600 w-16">Image</th>
                     </tr>
@@ -1055,7 +1057,7 @@ export default function PurchaseReceiptForm() {
                             {isOver && <p className="text-[10px] text-red-500 mt-0.5">Exceeds pending</p>}
                           </td>
                           <td className="px-3 py-3">
-                            <div className="text-sm font-mono text-amber-700 font-semibold text-right pr-1">₹{targetRate.toFixed(2)}</div>
+                            <div className="text-sm font-mono text-amber-700 font-semibold text-right pr-1">{fmt(targetRate)}</div>
                           </td>
                           <td className="px-3 py-3">
                             <input type="number" min="0" step="0.01"
@@ -1065,7 +1067,7 @@ export default function PurchaseReceiptForm() {
                                 ${variance > 0.005 ? "border-red-300 text-red-700 focus:ring-red-200" : variance < -0.005 ? "border-green-300 text-green-700 focus:ring-green-200" : "border-gray-200 text-gray-900 focus:ring-[#C6AF4B]/30"}`} />
                             {Math.abs(variance) > 0.005 && nowNum > 0 && (
                               <p className={`text-[10px] mt-0.5 text-right ${variance > 0 ? "text-red-500" : "text-green-600"}`}>
-                                {variance > 0 ? `+₹${variance.toFixed(2)}` : `-₹${Math.abs(variance).toFixed(2)}`}
+                                {variance > 0 ? `+${fmt(variance)}` : `-${fmt(Math.abs(variance))}`}
                               </p>
                             )}
                           </td>
@@ -1134,19 +1136,19 @@ export default function PurchaseReceiptForm() {
                   <p className="text-lg font-bold text-gray-900">{validLines.length}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-amber-600 font-medium">Target Value (₹)</p>
-                  <p className="text-lg font-bold text-amber-700">₹{targetTotal.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</p>
+                  <p className="text-xs text-amber-600 font-medium">Target Value</p>
+                  <p className="text-lg font-bold text-amber-700">{fmt(targetTotal+0)}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-600 font-medium">Received Value (₹)</p>
-                  <p className="text-lg font-bold text-gray-900">₹{receivedTotal.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</p>
+                  <p className="text-xs text-gray-600 font-medium">Received Value</p>
+                  <p className="text-lg font-bold text-gray-900">{fmt(receivedTotal+0)}</p>
                 </div>
                 <div>
                   <p className={`text-xs font-medium ${Math.abs(variance) < 0.01 ? "text-gray-500" : variance > 0 ? "text-red-600" : "text-green-600"}`}>
-                    Price Variance (₹)
+                    Price Variance
                   </p>
                   <p className={`text-lg font-bold ${Math.abs(variance) < 0.01 ? "text-gray-500" : variance > 0 ? "text-red-600" : "text-green-600"}`}>
-                    {variance >= 0 ? "+" : ""}₹{variance.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                    {variance >= 0 ? "+" : ""}{fmt(variance)}
                   </p>
                 </div>
               </div>

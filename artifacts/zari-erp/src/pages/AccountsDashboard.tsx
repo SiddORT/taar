@@ -9,6 +9,7 @@ import {
   ArrowDownRight, ChevronRight, Activity, Wallet, FileText,
 } from "lucide-react";
 import TopNavbar from "../components/layout/TopNavbar";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 /* ── theme ─────────────────────────────────────────────── */
 const G       = "#C6AF4B";
@@ -37,25 +38,12 @@ function toNum(n: any): number {
   const v = typeof n === "number" ? n : parseFloat(String(n ?? 0));
   return Number.isFinite(v) ? v : 0;
 }
-function fmtCrLk(raw: any): string {
-  const n = toNum(raw);
-  if (n >= 1_00_00_000) return `₹${(n / 1_00_00_000).toFixed(2)} Cr`;
-  if (n >= 1_00_000)    return `₹${(n / 1_00_000).toFixed(2)} L`;
-  if (n >= 1_000)       return `₹${(n / 1_000).toFixed(1)} K`;
-  return new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(n);
-}
-function fmtFull(raw: any): string {
-  return new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(toNum(raw));
-}
+// fmtCrLk and fmtFull are replaced at runtime by useCurrency — see component body
 function pct(a: any, b: any): string {
   const na = toNum(a), nb = toNum(b);
   return nb === 0 ? "—" : `${((na / nb) * 100).toFixed(1)}%`;
 }
-function yAxis(v: number): string {
-  if (v >= 1_00_000) return `₹${(v / 1_00_000).toFixed(1)}L`;
-  if (v >= 1_000)    return `₹${(v / 1_000).toFixed(0)}K`;
-  return `₹${v}`;
-}
+// yAxis replaced at runtime by useCurrency — see component body
 
 /* ── gold-bar top stripe ────────────────────────────────── */
 const GoldBar = () => (
@@ -63,7 +51,7 @@ const GoldBar = () => (
 );
 
 /* ── tooltip ────────────────────────────────────────────── */
-function GoldTooltip({ active, payload, label }: any) {
+function GoldTooltip({ active, payload, label, fmtFull }: any) {
   if (!active || !payload?.length) return null;
   return (
     <div className="rounded-xl px-4 py-3 text-xs bg-white"
@@ -71,7 +59,7 @@ function GoldTooltip({ active, payload, label }: any) {
       <p className="font-bold mb-2" style={{ color: G }}>{label}</p>
       {payload.map((p: any, i: number) => (
         <p key={i} className="text-gray-500">
-          {p.name}: <span className="font-bold text-gray-800">{fmtFull(p.value)}</span>
+          {p.name}: <span className="font-bold text-gray-800">{fmtFull ? fmtFull(p.value) : p.value}</span>
         </p>
       ))}
     </div>
@@ -126,6 +114,10 @@ function Section({ eyebrow, title, delay = "0ms" }: { eyebrow: string; title: st
 
 /* ── main ───────────────────────────────────────────────── */
 export default function AccountsDashboard() {
+  const { fmt: dcFmt, fmtAbbr: dcAbbr } = useCurrency();
+  const fmtCrLk = (v: any) => dcAbbr(parseFloat(v ?? 0));
+  const fmtFull = (v: any) => dcFmt(parseFloat(v ?? 0));
+  const yAxis = (v: number) => dcAbbr(v);
   const [fromDate,  setFromDate]  = useState("");
   const [toDate,    setToDate]    = useState("");
   const [vendorId,  setVendorId]  = useState("");
@@ -494,7 +486,7 @@ export default function AccountsDashboard() {
                     <XAxis dataKey="month" tick={{ fontSize: 11, fill: "#9CA3AF", fontWeight: 700 }} axisLine={false} tickLine={false} />
                     <YAxis tick={{ fontSize: 10, fill: "#D1D5DB" }} axisLine={false} tickLine={false} tickFormatter={yAxis} />
                     <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" vertical={false} />
-                    <ReTooltip content={<GoldTooltip />} cursor={{ fill: `${G}08`, radius: 6 }} />
+                    <ReTooltip content={<GoldTooltip fmtFull={fmtFull} />} cursor={{ fill: `${G}08`, radius: 6 }} />
                     <Bar dataKey="sales"     name="Sales"     fill={G}     radius={[5,5,0,0]} animationBegin={300} animationDuration={800} />
                     <Bar dataKey="purchases" name="Purchases" fill={SLATE} radius={[5,5,0,0]} animationBegin={400} animationDuration={800} />
                   </BarChart>

@@ -9,6 +9,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import AppLayout from "@/components/layout/AppLayout";
 import { customFetch } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 const G     = "#C6AF4B";
 const G_DIM = "#A8943E";
@@ -34,16 +35,14 @@ interface VendorSummary {
   total_entries: string;
 }
 
-function fmt(n: string | number) {
-  const val = typeof n === "string" ? parseFloat(n) : n;
-  return "₹" + val.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
+// fmt replaced at runtime by useCurrency — see component body
 
 function initials(name: string) {
   return name.split(" ").map(w => w[0]).filter(Boolean).join("").toUpperCase().slice(0, 2);
 }
 
 export default function VendorLedgers() {
+  const { fmt } = useCurrency();
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
   const { toast } = useToast();

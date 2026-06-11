@@ -13,6 +13,7 @@ import { customFetch } from "@workspace/api-client-react";
 import AppLayout from "@/components/layout/AppLayout";
 import { useToast } from "@/hooks/use-toast";
 import { useAllClients } from "@/hooks/useClients";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 const G = "#C6AF4B";
 const card = "rounded-2xl bg-white border border-[#C6AF4B]/15 shadow-[0_2px_16px_rgba(198,175,75,0.12),0_1px_3px_rgba(0,0,0,0.06)]";
@@ -168,10 +169,8 @@ export default function QuotationList() {
 
   const totalPages = Math.max(1, Math.ceil(total / limit));
 
-  const fmt = (v: string | number | null) => {
-    const n = parseFloat(String(v ?? 0));
-    return isNaN(n) ? "₹0.00" : `₹${n.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
-  };
+  const { fmt: dcFmt } = useCurrency();
+  const fmt = (v: string | number | null) => dcFmt(parseFloat(String(v ?? 0)));
   const fmtDate = (d: string) => new Date(d).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
 
   return (
@@ -284,7 +283,7 @@ export default function QuotationList() {
                         <p className="text-sm font-semibold text-gray-900 mb-1 line-clamp-2">{row.requirement_summary || "—"}</p>
                         <p className="text-xs text-gray-500 mb-3">{row.client_name || "—"}</p>
                         <div className="flex items-center justify-between mb-4">
-                          <span className="text-base font-black text-gray-900">₹{parseFloat(row.total_amount || "0").toLocaleString("en-IN", { minimumFractionDigits: 2 })}</span>
+                          <span className="text-base font-black text-gray-900">{fmt(row.total_amount)}</span>
                           <span className="text-[10px] text-gray-400">{row.revision_count} rev{row.revision_count !== 1 ? "s" : ""}</span>
                         </div>
                         <div className="flex gap-2 pt-3 border-t border-gray-100">

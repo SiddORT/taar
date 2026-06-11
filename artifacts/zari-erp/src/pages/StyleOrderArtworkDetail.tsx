@@ -18,6 +18,7 @@ import { useUnitTypes, useCreateUnitType, type LookupRecord } from "@/hooks/useL
 import { useAllVendors, type VendorRecord } from "@/hooks/useVendors";
 import AddableSelect from "@/components/ui/AddableSelect";
 import ImageLightbox from "@/components/ui/ImageLightbox";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 const FEEDBACK_STATUSES = ["Pending", "In Review", "Approved", "Revision Required", "Rejected"];
@@ -171,6 +172,7 @@ const EMPTY_FORM: FormState = {
 
 // ── Page ───────────────────────────────────────────────────────────────────────
 export default function StyleOrderArtworkDetail() {
+  const { fmt, currency: dc } = useCurrency();
   const { styleOrderId, id } = useParams<{ styleOrderId: string; id: string }>();
   const search = useSearch();
   const searchParams = new URLSearchParams(search);
@@ -559,7 +561,7 @@ export default function StyleOrderArtworkDetail() {
 
                 <Field label="Total Cost" hint={form.artworkCreated === "Inhouse" ? "Auto-computed: rate × hours" : "Vendor invoice amount"}>
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">₹</span>
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">{dc.symbol}</span>
                     <input className={`${inputCls} pl-7 ${isViewMode ? "bg-gray-50 text-gray-500 cursor-default" : ""}`}
                       type="number" min="0" step="0.01" placeholder="0.00" readOnly={isViewMode}
                       value={form.totalCost} onChange={e => set("totalCost", e.target.value)} />

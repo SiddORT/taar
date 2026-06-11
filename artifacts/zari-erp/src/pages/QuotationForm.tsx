@@ -9,6 +9,7 @@ import AppLayout from "@/components/layout/AppLayout";
 import { useAllClients } from "@/hooks/useClients";
 import { useUnitTypes } from "@/hooks/useLookups";
 import { useToast } from "@/hooks/use-toast";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 const G = "#C6AF4B";
 const card = "rounded-2xl bg-white border border-[#C6AF4B]/15 shadow-[0_2px_16px_rgba(198,175,75,0.12),0_1px_3px_rgba(0,0,0,0.06)]";
@@ -120,7 +121,8 @@ export default function QuotationForm() {
   const shipping = estimatedShippingCharges;
   const gstAmount = parseFloat((subtotal * (parseFloat(gstRate) || 0) / 100).toFixed(2));
   const total = subtotal + gstAmount + shipping;
-  const fmt = (n: number) => `₹${n.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
+  const { fmt: dcFmt } = useCurrency();
+  const fmt = (n: number) => dcFmt(n);
 
   // ── Load Existing Quotation (edit mode) ────────────────────────────────────
   useEffect(() => {
@@ -506,7 +508,7 @@ export default function QuotationForm() {
                   <th className="text-left text-xs font-semibold text-gray-500 pb-2 pr-2 w-44">HSN Code</th>
                   <th className="text-left text-xs font-semibold text-gray-500 pb-2 pr-2 w-24">Unit</th>
                   <th className="text-left text-xs font-semibold text-gray-500 pb-2 pr-2 w-20">Qty</th>
-                  <th className="text-left text-xs font-semibold text-gray-500 pb-2 pr-2 w-28">Price (₹)</th>
+                  <th className="text-left text-xs font-semibold text-gray-500 pb-2 pr-2 w-28">Price</th>
                   <th className="text-right text-xs font-semibold text-gray-500 pb-2 w-24">Amount</th>
                   <th className="w-8" />
                 </tr>
@@ -584,7 +586,7 @@ export default function QuotationForm() {
                   value={estimatedWeight} onChange={numChange(setEstimatedWeight)} />
               </div>
               <div className="w-36">
-                <label className={labelCls}>Rate / kg (₹)</label>
+                <label className={labelCls}>Rate / kg</label>
                 <input type="number" min="0" step="0.01" className={inputCls}
                   onKeyDown={(e) => { if (e.key === "-" || e.key === "e") e.preventDefault(); }}
                   value={shippingRatePerKg} onChange={numChange(setShippingRatePerKg)} />

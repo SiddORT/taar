@@ -37,6 +37,7 @@ import { useUnitTypes, useCreateUnitType } from "@/hooks/useLookups";
 import { useHSNList, useCreateHSN, type HsnFormData } from "@/hooks/useHSN";
 import { useAllVendors } from "@/hooks/useVendors";
 import { useWarehouseLocations } from "@/hooks/useWarehouseLocations";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 const NAME_REGEX = /^[A-Za-z]+( [A-Za-z]+)*$/;
 const NUMERIC_REGEX = /^[0-9]+(\.[0-9]{1,2})?$/;
@@ -101,6 +102,7 @@ function hexToColorName(hex: string): string {
 }
 
 export default function MaterialsMaster() {
+  const { fmt, currency: dc } = useCurrency();
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -522,7 +524,7 @@ export default function MaterialsMaster() {
       ),
     },
     { key: "size", label: "Size", render: (r) => <span className="text-gray-700">{asMat(r).size}</span> },
-    { key: "unitPrice", label: "Unit Price", render: (r) => <span className="font-medium">₹{asMat(r).unitPrice}</span> },
+    { key: "unitPrice", label: "Unit Price", render: (r) => <span className="font-medium">{fmt(parseFloat(asMat(r).unitPrice || "0"))}</span> },
     { key: "unitType", label: "Unit Type", render: (r) => <span className="text-gray-500">{asMat(r).unitType}</span> },
     { key: "currentStock", label: "Stock", render: (r) => <span className="font-medium">{asMat(r).currentStock}</span> },
     { key: "hsnCode", label: "HSN Code", render: (r) => <span className="font-mono text-gray-700">{asMat(r).hsnCode}</span> },
@@ -755,7 +757,7 @@ export default function MaterialsMaster() {
                     options={unitTypeOptions} placeholder="Select Unit Type" error={errors.unitType}
                   />
                   <div className="flex flex-col gap-1">
-                    <label className="text-sm font-medium text-gray-700">Unit Price (₹)<span className="text-red-500 ml-0.5">*</span></label>
+                    <label className="text-sm font-medium text-gray-700">Unit Price<span className="text-red-500 ml-0.5">*</span></label>
                     <input value={form.unitPrice} maxLength={10}
                       onKeyDown={(e) => { if (e.key === "e" || e.key === "E" || e.key === "-" || e.key === "+") e.preventDefault(); }}
                       onChange={(e) => setForm((f) => ({ ...f, unitPrice: e.target.value }))}

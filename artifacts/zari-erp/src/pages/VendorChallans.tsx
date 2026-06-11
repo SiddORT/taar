@@ -8,6 +8,7 @@ import {
 import { useGetMe, useLogout, getGetMeQueryKey } from "@workspace/api-client-react";
 import TopNavbar from "@/components/layout/TopNavbar";
 import { useMyPermissions } from "@/hooks/useMyPermissions";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 const BASE = (import.meta.env.BASE_URL ?? "/").replace(/\/$/, "");
 
@@ -61,6 +62,7 @@ async function apiFetch(path: string, opts?: RequestInit) {
 }
 
 export default function VendorChallans() {
+  const { fmt, currency: dc } = useCurrency();
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
   const { data: user } = useGetMe();
@@ -394,7 +396,7 @@ export default function VendorChallans() {
                         </td>
                         <td className="px-4 py-3 text-xs text-gray-600 max-w-48 truncate">{ch.description ?? "—"}</td>
                         <td className="px-4 py-3 text-xs font-semibold text-gray-900 whitespace-nowrap">
-                          {ch.amount ? `₹${parseFloat(ch.amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}` : "—"}
+                          {ch.amount ? `${fmt(parseFloat(ch.amount))}` : "—"}
                         </td>
                         <td className="px-4 py-3">
                           <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[ch.status] ?? "bg-gray-100 text-gray-600"}`}>
@@ -471,7 +473,7 @@ export default function VendorChallans() {
               {selectedIds.size} challan{selectedIds.size !== 1 ? "s" : ""} selected
               {selectedTotal > 0 && (
                 <span className="ml-2 text-[#C9B45C] font-semibold">
-                  ₹{selectedTotal.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                  {fmt(selectedTotal)}
                 </span>
               )}
             </span>
@@ -535,7 +537,7 @@ export default function VendorChallans() {
                               </span>
                             </td>
                             <td className="px-3 py-2 font-semibold text-gray-900 text-right">
-                              {c.amount ? `₹${parseFloat(c.amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}` : "—"}
+                              {c.amount ? `${fmt(parseFloat(c.amount))}` : "—"}
                             </td>
                           </tr>
                         ))}
@@ -544,7 +546,7 @@ export default function VendorChallans() {
                         <tr>
                           <td colSpan={3} className="px-3 py-2 text-xs font-bold text-gray-700 text-right">Total</td>
                           <td className="px-3 py-2 text-xs font-bold text-gray-900 text-right">
-                            ₹{selectedTotal.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                            {fmt(selectedTotal)}
                           </td>
                         </tr>
                       </tfoot>
@@ -644,7 +646,7 @@ export default function VendorChallans() {
                             <td className="px-3 py-2 text-gray-600">{c.quantity ?? "—"}</td>
                             <td className="px-3 py-2 text-gray-600">{c.rate ?? "—"}</td>
                             <td className="px-3 py-2 font-semibold text-gray-900">
-                              {c.amount ? `₹${parseFloat(c.amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}` : "—"}
+                              {c.amount ? `${fmt(parseFloat(c.amount))}` : "—"}
                             </td>
                           </tr>
                         ))}
@@ -653,7 +655,7 @@ export default function VendorChallans() {
                         <tr>
                           <td colSpan={5} className="px-3 py-2 text-xs font-bold text-gray-700 text-right">Total</td>
                           <td className="px-3 py-2 text-xs font-bold text-gray-900">
-                            ₹{cvPreview.reduce((s, c: any) => s + parseFloat(c.amount ?? "0"), 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                            {fmt(cvPreview.reduce((s, c: any) => s + parseFloat(c.amount ?? "0"), 0))}
                           </td>
                         </tr>
                       </tfoot>

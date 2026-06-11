@@ -13,6 +13,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { customFetch } from "@workspace/api-client-react";
 import AppLayout from "@/components/layout/AppLayout";
 import { useToast } from "@/hooks/use-toast";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 const G = "#C6AF4B";
 const card = "rounded-2xl bg-white border border-[#C6AF4B]/15 shadow-[0_2px_16px_rgba(198,175,75,0.12),0_1px_3px_rgba(0,0,0,0.06)]";
@@ -220,10 +221,8 @@ export default function QuotationDetail() {
     });
   }
 
-  const fmt = (v: string | number | null) => {
-    const n = parseFloat(String(v ?? 0));
-    return isNaN(n) ? "₹0.00" : `₹${n.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
-  };
+  const { fmt: dcFmt } = useCurrency();
+  const fmt = (v: string | number | null) => dcFmt(parseFloat(String(v ?? 0)));
   const fmtDate = (d: string) => new Date(d).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
   const fmtDateTime = (d: string) => new Date(d).toLocaleString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
 

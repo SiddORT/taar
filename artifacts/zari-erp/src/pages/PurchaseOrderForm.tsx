@@ -14,6 +14,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { customFetch } from "@workspace/api-client-react";
 import TopNavbar from "@/components/layout/TopNavbar";
 import { useToast } from "@/hooks/use-toast";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 const G     = "#C6AF4B";
 const G_DIM = "#A8943E";
@@ -122,11 +123,8 @@ interface PODetail {
 
 function mkKey() { return Math.random().toString(36).slice(2); }
 
-function fmt(n: number) {
-  return n.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
-
 export default function PurchaseOrderForm() {
+  const { fmt, currency: dc } = useCurrency();
   const [, navigate] = useLocation();
   const params = useParams<{ id: string }>();
   const isNew = params.id === "new";
@@ -512,7 +510,7 @@ export default function PurchaseOrderForm() {
                             {Math.max(0, parseFloat(item.pending_quantity)).toFixed(2)}
                           </span>
                         </td>
-                        <td className="px-3 py-3 text-xs font-mono text-gray-500">₹{parseFloat(item.unit_price).toFixed(2)}</td>
+                        <td className="px-3 py-3 text-xs font-mono text-gray-500">{fmt(parseFloat(item.unit_price))}</td>
                       </tr>
                     );
                   })}
@@ -546,7 +544,7 @@ export default function PurchaseOrderForm() {
                         </div>
                         <div className="flex items-center gap-4 text-xs text-gray-500">
                           <span>{new Date(pr.received_date).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}</span>
-                          <span className="font-mono font-semibold text-gray-700">₹{prTotal.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</span>
+                          <span className="font-mono font-semibold text-gray-700">{fmt(prTotal)}</span>
                           <span>{pr.items.length} item{pr.items.length !== 1 ? "s" : ""}</span>
                         </div>
                       </div>
@@ -785,8 +783,8 @@ export default function PurchaseOrderForm() {
                   <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-600 min-w-[200px]">Item</th>
                   <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-600 w-20">Unit</th>
                   <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-600 w-28">Ordered Qty</th>
-                  <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-600 w-32">Target Price / Unit (₹)</th>
-                  <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-600 w-28">Total (₹)</th>
+                  <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-600 w-32">Target Price / Unit</th>
+                  <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-600 w-28">Total</th>
                   {includeGst && <>
                     <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-600 w-24">HSN Code</th>
                     <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-600 w-20">GST %</th>
@@ -869,7 +867,7 @@ export default function PurchaseOrderForm() {
                         </div>
                       </td>
                       <td className="px-3 py-2 text-sm font-mono font-semibold text-gray-900 text-right pr-4">
-                        {lineAmt > 0 ? `₹${fmt(lineAmt)}` : "—"}
+                        {lineAmt > 0 ? `${fmt(lineAmt)}` : "—"}
                       </td>
                       {includeGst && <>
                         <td className="px-3 py-2">
@@ -886,10 +884,10 @@ export default function PurchaseOrderForm() {
                             className={`${inputCls} text-right`} />
                         </td>
                         <td className="px-3 py-2 text-xs font-mono text-amber-600 text-right pr-4">
-                          {gstAmt > 0 ? `₹${fmt(gstAmt)}` : "—"}
+                          {gstAmt > 0 ? `${fmt(gstAmt)}` : "—"}
                         </td>
                         <td className="px-3 py-2 text-xs font-mono font-semibold text-gray-900 text-right pr-4">
-                          {lineTotal > 0 ? `₹${fmt(lineTotal)}` : "—"}
+                          {lineTotal > 0 ? `${fmt(lineTotal)}` : "—"}
                         </td>
                       </>}
                       {/* Image picker */}
@@ -1008,18 +1006,18 @@ export default function PurchaseOrderForm() {
                 <div className="flex flex-col items-end gap-1 text-sm min-w-[200px]">
                   <div className="flex items-center justify-between w-full gap-6">
                     <span className="text-gray-500">Subtotal</span>
-                    <span className="font-mono font-semibold text-gray-900">₹{fmt(totals.subtotal)}</span>
+                    <span className="font-mono font-semibold text-gray-900">{fmt(totals.subtotal+0)}</span>
                   </div>
                   {includeGst && totals.totalGst > 0 && (
                     <div className="flex items-center justify-between w-full gap-6">
                       <span className="text-amber-600">Total GST</span>
-                      <span className="font-mono font-semibold text-amber-600">₹{fmt(totals.totalGst)}</span>
+                      <span className="font-mono font-semibold text-amber-600">{fmt(totals.totalGst+0)}</span>
                     </div>
                   )}
                   {includeGst && (
                     <div className="flex items-center justify-between w-full gap-6 pt-1 border-t border-gray-200">
                       <span className="text-gray-900 font-semibold">Grand Total</span>
-                      <span className="font-mono font-bold text-gray-900 text-base">₹{fmt(totals.grand)}</span>
+                      <span className="font-mono font-bold text-gray-900 text-base">{fmt(totals.grand+0)}</span>
                     </div>
                   )}
                 </div>

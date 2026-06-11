@@ -6,11 +6,9 @@ import {
   useStyleArtisanTimesheets, useStyleOutsourceJobs, useStyleCustomCharges,
 } from "@/hooks/useCosting";
 import { useToast } from "@/hooks/use-toast";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 // ── helpers ──────────────────────────────────────────────────────────────────
-function rupee(n: number) {
-  return `₹${n.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
 function uid() { return Math.random().toString(36).slice(2, 10); }
 function pf(v: unknown) { return parseFloat(String(v)) || 0; }
 
@@ -92,6 +90,8 @@ export default function StyleInvoiceTab({
   styleName?: string;
   clientName?: string;
 }) {
+  const { fmt, currency: dc } = useCurrency();
+  const rupee = fmt;
   const { toast } = useToast();
 
   const { data: invoice, isLoading: loadingInvoice } = useStyleInvoice(styleOrderId);
@@ -387,8 +387,8 @@ export default function StyleInvoiceTab({
                   <th className="text-left px-3 py-2 font-semibold">Description</th>
                   <th className="text-left px-3 py-2 font-semibold w-28">Category</th>
                   <th className="text-right px-3 py-2 font-semibold w-20">Qty</th>
-                  <th className="text-right px-3 py-2 font-semibold w-28">Unit Price ₹</th>
-                  <th className="text-right px-3 py-2 font-semibold w-28">Total ₹</th>
+                  <th className="text-right px-3 py-2 font-semibold w-28">Unit Price</th>
+                  <th className="text-right px-3 py-2 font-semibold w-28">Total</th>
                   <th className="w-8 rounded-tr-lg no-print" />
                 </tr>
               </thead>
@@ -469,7 +469,7 @@ export default function StyleInvoiceTab({
                             {(["flat", "percent"] as const).map(t => (
                               <button key={t} onClick={() => setField("discountType", t)}
                                 className={`px-2 py-0.5 transition-colors ${form.discountType === t ? "bg-gray-900 text-[#C9B45C]" : "bg-white text-gray-500 hover:bg-gray-50"}`}>
-                                {t === "flat" ? "₹" : "%"}
+                                {t === "flat" ? dc.symbol : "%"}
                               </button>
                             ))}
                           </div>

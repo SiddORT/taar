@@ -14,6 +14,7 @@ import { customFetch } from "@workspace/api-client-react";
 import TopNavbar from "@/components/layout/TopNavbar";
 import { useToast } from "@/hooks/use-toast";
 import { fileSrc } from "@/utils/mediaUrl";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 const G       = "#C6AF4B";
 const G_DIM   = "#A8943E";
@@ -117,7 +118,7 @@ const LOG_META: Record<string, { label: string; color: string; icon: React.Eleme
   manual:         { label: "Manual Adjust",   color: "#6B7280", icon: MinusCircle },
 };
 
-function fmt(val: string | null | undefined, decimals = 2) {
+function fmtN(val: string | null | undefined, decimals = 2) {
   const n = parseFloat(val ?? "0");
   if (isNaN(n)) return "0";
   return n.toLocaleString("en-IN", { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
@@ -263,6 +264,7 @@ function StatusPill({ status }: { status: string }) {
 }
 
 export default function InventoryStockList() {
+  const { fmt, currency: dc } = useCurrency();
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -745,10 +747,10 @@ export default function InventoryStockList() {
                         )}
                       </td>
                       <td className={`${tdCls} text-right`}>
-                        <span className="text-sm text-gray-900">₹{fmt(item.average_price)}</span>
+                        <span className="text-sm text-gray-900">{fmt(item.average_price)}</span>
                       </td>
                       <td className={`${tdCls} text-right`}>
-                        <span className="text-sm text-gray-900">₹{fmt(item.last_purchase_price)}</span>
+                        <span className="text-sm text-gray-900">{fmt(item.last_purchase_price)}</span>
                       </td>
                       <td className={tdCls}>
                         <div className="flex flex-col items-start gap-1">
@@ -899,8 +901,8 @@ export default function InventoryStockList() {
               {/* Other fields grid */}
               <div className="grid grid-cols-2 gap-4">
                 {[
-                  { label: "Average Price (₹)", key: "averagePrice", placeholder: "0.00" },
-                  { label: "Last Purchase Price (₹)", key: "lastPurchasePrice", placeholder: "0.00" },
+                  { label: "Average Price", key: "averagePrice", placeholder: "0.00" },
+                  { label: "Last Purchase Price", key: "lastPurchasePrice", placeholder: "0.00" },
                   { label: "Warehouse Location", key: "warehouseLocation", placeholder: "e.g. Rack A-12" },
                   { label: "Department", key: "department", placeholder: "e.g. Embroidery" },
                 ].map(({ label, key, placeholder }) => (

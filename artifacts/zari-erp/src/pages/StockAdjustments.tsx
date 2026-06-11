@@ -10,6 +10,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { customFetch } from "@workspace/api-client-react";
 import TopNavbar from "@/components/layout/TopNavbar";
 import { useToast } from "@/hooks/use-toast";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 const G    = "#C6AF4B";
 const card = "rounded-2xl bg-white border border-[#C6AF4B]/15 shadow-[0_2px_16px_rgba(198,175,75,0.12),0_1px_3px_rgba(0,0,0,0.06)]";
@@ -105,6 +106,7 @@ function fmt3(n: string | number) { return parseFloat(String(n)).toFixed(2); }
 function fmtDate(s: string) { return new Date(s).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }); }
 
 export default function StockAdjustments() {
+  const { fmt: dcFmt, currency: dc } = useCurrency();
   const [, navigate] = useLocation();
   const { data: me, isError } = useGetMe();
   const isAdmin = (me as { role?: string } | undefined)?.role === "admin";
@@ -369,10 +371,10 @@ export default function StockAdjustments() {
         {summary && (
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {[
-              { label: "Damage Loss (Month)", value: `₹${fmt2(summary.damage_loss_month)}`, sub: `${summary.damage_count_month} entries`, icon: PackageX, color: "text-red-600", bg: "bg-red-50" },
-              { label: "Loss Amount (Month)", value: `₹${fmt2(summary.loss_amount_month)}`, sub: `${summary.loss_count_month} entries`, icon: TrendingDown, color: "text-orange-600", bg: "bg-orange-50" },
+              { label: "Damage Loss (Month)", value: `${dcFmt(parseFloat(String(summary.damage_loss_month)))}`, sub: `${summary.damage_count_month} entries`, icon: PackageX, color: "text-red-600", bg: "bg-red-50" },
+              { label: "Loss Amount (Month)", value: `${dcFmt(parseFloat(String(summary.loss_amount_month)))}`, sub: `${summary.loss_count_month} entries`, icon: TrendingDown, color: "text-orange-600", bg: "bg-orange-50" },
               { label: "Audit Corrections", value: String(summary.audit_count_month), sub: "This month", icon: ClipboardList, color: "text-purple-600", bg: "bg-purple-50" },
-              { label: "Total Revenue Loss", value: `₹${fmt2(summary.total_revenue_loss)}`, sub: `${summary.manual_count_total} manual · ${summary.opening_count_total} opening`, icon: BarChart2, color: "text-gray-700", bg: "bg-gray-50" },
+              { label: "Total Revenue Loss", value: `${dcFmt(parseFloat(String(summary.total_revenue_loss)))}`, sub: `${summary.manual_count_total} manual · ${summary.opening_count_total} opening`, icon: BarChart2, color: "text-gray-700", bg: "bg-gray-50" },
             ].map(s => (
               <div key={s.label} className={`${card} p-4 flex items-start gap-3`}>
                 <div className={`p-2 rounded-xl ${s.bg} flex-shrink-0`}>
@@ -456,7 +458,7 @@ export default function StockAdjustments() {
             </div>
 
             <div className="flex items-center gap-1 border border-gray-200 rounded-xl px-2 py-1.5 bg-white">
-              <span className="text-xs text-gray-400">Loss ₹</span>
+              <span className="text-xs text-gray-400">Loss {dc.symbol}</span>
               <input type="number" min="0" placeholder="Min" value={minLoss}
                 onChange={e => {
                   const v = e.target.value;
@@ -551,10 +553,10 @@ export default function StockAdjustments() {
                           {fmt3(row.adjustment_quantity)} <span className="text-xs text-gray-400 font-normal">{row.unit_type ?? ""}</span>
                         </span>
                       </td>
-                      <td className={tdCls}><span className="text-xs text-gray-700">₹{fmt2(row.average_price_at_adjustment)}</span></td>
+                      <td className={tdCls}><span className="text-xs text-gray-700">{dcFmt(parseFloat(String(row.average_price_at_adjustment)))}</span></td>
                       <td className={tdCls}>
                         {loss > 0 ? (
-                          <span className="text-sm font-semibold text-red-600">₹{fmt2(row.revenue_loss_amount)}</span>
+                          <span className="text-sm font-semibold text-red-600">{dcFmt(parseFloat(String(row.revenue_loss_amount)))}</span>
                         ) : (
                           <span className="text-xs text-gray-300">—</span>
                         )}
@@ -679,7 +681,7 @@ export default function StockAdjustments() {
                   <div className="mt-2 p-3 rounded-xl bg-[#C6AF4B]/8 border border-[#C6AF4B]/20 flex gap-4 text-xs">
                     <div><span className="text-gray-500">Current Stock:</span> <span className="font-semibold text-gray-900">{fmt3(selItem.current_stock)} {selItem.unit_type}</span></div>
                     <div><span className="text-gray-500">Available:</span> <span className="font-semibold text-emerald-700">{fmt3(selItem.available_stock)} {selItem.unit_type}</span></div>
-                    <div><span className="text-gray-500">Avg Price:</span> <span className="font-semibold text-gray-900">₹{fmt2(selItem.average_price)}</span></div>
+                    <div><span className="text-gray-500">Avg Price:</span> <span className="font-semibold text-gray-900">{dcFmt(parseFloat(String(selItem.average_price)))}</span></div>
                   </div>
                 )}
               </div>
@@ -727,8 +729,8 @@ export default function StockAdjustments() {
                     <p className="font-semibold text-red-700">Estimated Revenue Loss</p>
                     <div className="text-xs text-red-600 mt-1 space-y-0.5">
                       <p>{form.adjustmentType} of <strong>{fmt3(previewLoss.qty)} {selItem?.unit_type ?? "units"}</strong></p>
-                      <p>× Avg Price <strong>₹{fmt2(previewLoss.avg)}</strong></p>
-                      <p className="text-base font-bold text-red-700 mt-1">= ₹{fmt2(previewLoss.loss)}</p>
+                      <p>× Avg Price <strong>{dcFmt(parseFloat(String(previewLoss.avg)))}</strong></p>
+                      <p className="text-base font-bold text-red-700 mt-1">= {dcFmt(parseFloat(String(previewLoss.loss)))}</p>
                     </div>
                   </div>
                 </div>

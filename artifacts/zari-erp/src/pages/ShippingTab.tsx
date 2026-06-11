@@ -4,6 +4,7 @@ import { customFetch } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
 import ZariButton from "@/components/ui/ZariButton";
 import ConfirmModal from "@/components/ui/ConfirmModal";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 const G = "#C6AF4B";
 
@@ -67,6 +68,7 @@ interface Props {
 }
 
 export default function ShippingTab({ referenceType, referenceId, clientName, orderStatus, isAdmin }: Props) {
+  const { fmt, currency: dc } = useCurrency();
   const { toast } = useToast();
   const [records, setRecords] = useState<ShippingRecord[]>([]);
   const [vendors, setVendors] = useState<Vendor[]>([]);
@@ -195,7 +197,6 @@ export default function ShippingTab({ referenceType, referenceId, clientName, or
     }
   }
 
-  const fmt = (n: string | number) => parseFloat(String(n)).toLocaleString("en-IN", { minimumFractionDigits: 2 });
   const fmtDate = (d: string | null) => d ? new Date(d).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—";
 
   const card = "rounded-2xl bg-white border border-[#C6AF4B]/15 shadow-[0_2px_16px_rgba(198,175,75,0.12),0_1px_3px_rgba(0,0,0,0.06)]";
@@ -279,13 +280,13 @@ export default function ShippingTab({ referenceType, referenceId, clientName, or
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
                 {[
                   { label: "Weight", value: `${parseFloat(r.shipment_weight).toFixed(3)} kg` },
-                  { label: "Rate/KG", value: `₹${fmt(r.rate_per_kg)}` },
-                  { label: "Calculated Cost", value: `₹${fmt(r.calculated_shipping_amount)}` },
-                  { label: "Final Cost", value: `₹${fmt(r.final_shipping_amount)}`, highlight: true },
+                  { label: "Rate/KG", value: fmt(r.rate_per_kg) },
+                  { label: "Calculated Cost", value: fmt(r.calculated_shipping_amount) },
+                  { label: "Final Cost", value: fmt(r.final_shipping_amount), highlight: true },
                   { label: "Shipment Date", value: fmtDate(r.shipment_date) },
                   { label: "Expected Delivery", value: fmtDate(r.expected_delivery_date) },
                   { label: "Actual Delivery", value: fmtDate(r.actual_delivery_date) },
-                  ...(r.manual_shipping_amount_override ? [{ label: "Override Amount", value: `₹${fmt(r.manual_shipping_amount_override)}` }] : []),
+                  ...(r.manual_shipping_amount_override ? [{ label: "Override Amount", value: fmt(r.manual_shipping_amount_override) }] : []),
                 ].map(({ label, value, highlight }) => (
                   <div key={label}>
                     <p className="text-xs text-gray-400 font-semibold uppercase tracking-wide">{label}</p>
@@ -327,7 +328,7 @@ export default function ShippingTab({ referenceType, referenceId, clientName, or
                 <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Shipping Vendor <span className="text-red-500 ml-0.5">*</span></label>
                 <select value={form.shipping_vendor_id} onChange={e => setForm(f => ({ ...f, shipping_vendor_id: e.target.value }))} className={sel}>
                   <option value="">Select vendor…</option>
-                  {vendors.map(v => <option key={v.id} value={v.id}>{v.vendor_name} (₹{parseFloat(v.weight_rate_per_kg).toFixed(2)}/kg)</option>)}
+                  {vendors.map(v => <option key={v.id} value={v.id}>{v.vendor_name} ({fmt(parseFloat(v.weight_rate_per_kg))}/kg)</option>)}
                 </select>
                 {errors.shipping_vendor_id && <p className="text-red-500 text-xs mt-1">{errors.shipping_vendor_id}</p>}
               </div>
@@ -352,7 +353,7 @@ export default function ShippingTab({ referenceType, referenceId, clientName, or
                   {errors.shipment_weight && <p className="text-red-500 text-xs mt-1">{errors.shipment_weight}</p>}
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Manual Override (₹)</label>
+                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Manual Override ({dc.symbol})</label>
                   <input value={form.manual_shipping_amount_override} onChange={e => setForm(f => ({ ...f, manual_shipping_amount_override: e.target.value }))} className={inp} type="number" step="0.01" placeholder="Leave blank to auto-calculate" />
                 </div>
               </div>
@@ -362,11 +363,11 @@ export default function ShippingTab({ referenceType, referenceId, clientName, or
                 <div className="rounded-xl bg-[#C6AF4B]/8 border border-[#C6AF4B]/20 px-4 py-3">
                   <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Cost Calculation</p>
                   <div className="grid grid-cols-3 gap-3 text-sm">
-                    <div><p className="text-xs text-gray-400">Calculated</p><p className="font-medium text-gray-700">₹{calcAmount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</p></div>
-                    <div><p className="text-xs text-gray-400">Override</p><p className="font-medium text-gray-700">{override > 0 ? `₹${override.toLocaleString("en-IN", { minimumFractionDigits: 2 })}` : "—"}</p></div>
-                    <div><p className="text-xs text-gray-400">Final Amount</p><p className="font-bold" style={{ color: G }}>₹{finalAmount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</p></div>
+                    <div><p className="text-xs text-gray-400">Calculated</p><p className="font-medium text-gray-700">{fmt(calcAmount)}</p></div>
+                    <div><p className="text-xs text-gray-400">Override</p><p className="font-medium text-gray-700">{override > 0 ? fmt(override) : "—"}</p></div>
+                    <div><p className="text-xs text-gray-400">Final Amount</p><p className="font-bold" style={{ color: G }}>{fmt(finalAmount)}</p></div>
                   </div>
-                  {minCharge > 0 && calcAmount === minCharge && <p className="text-xs text-amber-600 mt-1">Minimum charge of ₹{minCharge.toLocaleString("en-IN")} applied</p>}
+                  {minCharge > 0 && calcAmount === minCharge && <p className="text-xs text-amber-600 mt-1">Minimum charge of {fmt(minCharge)} applied</p>}
                 </div>
               )}
 

@@ -9,6 +9,7 @@ import {
 } from "@/hooks/useStyleOrderArtworks";
 import { useAllVendors, type VendorRecord } from "@/hooks/useVendors";
 import { useToast } from "@/hooks/use-toast";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 const inputCls  = "w-full px-3 py-2.5 text-sm text-gray-900 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-gray-900/10 placeholder:text-gray-400";
 const selectCls = "w-full px-3 py-2.5 text-sm text-gray-900 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-gray-900/10 appearance-none";
@@ -126,6 +127,7 @@ function ArtworkToileRow({
   vendors: VendorRecord[];
   vendorOptions: { value: string; label: string }[];
 }) {
+  const { fmt, currency: dc } = useCurrency();
   const { toast } = useToast();
   const updateArtwork = useUpdateStyleOrderArtwork();
 
@@ -184,7 +186,7 @@ function ArtworkToileRow({
         <div className="flex items-center gap-3 shrink-0">
           {hasCost && (
             <span className="text-xs bg-amber-50 text-amber-700 border border-amber-200 rounded-full px-2 py-0.5">
-              ₹{parseFloat(artwork.toileMakingCost!).toLocaleString("en-IN")}
+              {fmt(parseFloat(artwork.toileMakingCost!))}
             </span>
           )}
           {artwork.toilePaymentStatus && (
@@ -208,7 +210,7 @@ function ArtworkToileRow({
           <div className="grid grid-cols-2 gap-4">
             <Field label="Toile Making Cost">
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">₹</span>
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">{dc.symbol}</span>
                 <input type="number" min="0" step="0.01" placeholder="0.00"
                   className={`${inputCls} pl-7`}
                   value={form.toileMakingCost}
@@ -235,7 +237,7 @@ function ArtworkToileRow({
             </Field>
             <Field label="Payment Amount">
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">₹</span>
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">{dc.symbol}</span>
                 <input type="number" min="0" step="0.01" placeholder="0.00"
                   className={`${inputCls} pl-7`}
                   value={form.toilePaymentAmount}
@@ -318,6 +320,7 @@ export default function StyleOrderToileTab({
   styleOrderId: number | null;
   isNew: boolean;
 }) {
+  const { fmt, currency: dc } = useCurrency();
   const { data: artworksData, isLoading } = useStyleOrderArtworks(styleOrderId);
   const { data: vendorData } = useAllVendors();
 
