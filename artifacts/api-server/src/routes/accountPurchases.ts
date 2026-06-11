@@ -104,6 +104,8 @@ router.post("/vendor-bills/:id/payment", requireAuth, async (req: AuthRequest, r
       return res.status(404).json({ error: "Bill not found" });
     }
     const bill = rows[0];
+    if (bill.status === "Paid") throw new Error("Cannot record payment: bill is already fully paid");
+    if (bill.status === "Cancelled") throw new Error("Cannot record payment: bill has been cancelled");
     // Convert the payment into the bill's currency via the INR anchor and guard against overpayment.
     const payRate      = parseFloat(String(exchange_rate_snapshot ?? "1")) || 1;  // pay ccy -> INR
     const baseAmt      = amt * payRate;                                           // INR anchor

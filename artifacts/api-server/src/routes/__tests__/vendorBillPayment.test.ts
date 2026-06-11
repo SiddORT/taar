@@ -374,6 +374,46 @@ describe("POST /vendor-bills/:id/payment", () => {
     expect(mockRelease).toHaveBeenCalledOnce();
   });
 
+  // ── 16. Paid bill → 400 ──────────────────────────────────────────────────
+  it("rejects payment on an already-Paid bill with 400", async () => {
+    const paidBill: Record<string, string> = {
+      ...inrBill(1000, 1000),
+      status: "Paid",
+    };
+    mockClientQuery
+      .mockResolvedValueOnce({ rows: [] })           // BEGIN
+      .mockResolvedValueOnce({ rows: [paidBill] })   // SELECT bill FOR UPDATE
+      .mockResolvedValueOnce({ rows: [] });           // ROLLBACK
+
+    const res = await request(makeApp())
+      .post("/vendor-bills/1/payment")
+      .send({ payment_amount: "100", currency_code: "INR", exchange_rate_snapshot: "1" });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/already fully paid/i);
+    expect(mockRecompute).not.toHaveBeenCalled();
+  });
+
+  // ── 17. Cancelled bill → 400 ─────────────────────────────────────────────
+  it("rejects payment on a Cancelled bill with 400", async () => {
+    const cancelledBill: Record<string, string> = {
+      ...inrBill(1000, 0),
+      status: "Cancelled",
+    };
+    mockClientQuery
+      .mockResolvedValueOnce({ rows: [] })                // BEGIN
+      .mockResolvedValueOnce({ rows: [cancelledBill] })   // SELECT bill FOR UPDATE
+      .mockResolvedValueOnce({ rows: [] });                // ROLLBACK
+
+    const res = await request(makeApp())
+      .post("/vendor-bills/1/payment")
+      .send({ payment_amount: "100", currency_code: "INR", exchange_rate_snapshot: "1" });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/cancelled/i);
+    expect(mockRecompute).not.toHaveBeenCalled();
+  });
+
   // ── 15. Floating-point tolerance: payment ≤ 0.01 above remaining allowed ──
   it("floating-point tolerance: ≤ 0.01 overage is accepted (not a real overpayment)", async () => {
     // Bill: 1000 total, 0 paid. Pay 1000.005 — within the 0.01 tolerance.
