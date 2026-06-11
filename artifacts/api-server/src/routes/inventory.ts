@@ -1118,7 +1118,7 @@ router.post("/inventory/adjustments", requireAuth, async (req: AuthRequest, res)
 
       await client.query(
         `UPDATE inventory_items
-         SET current_stock = $1, available_stock = GREATEST(0, $2), last_updated_at = NOW()
+         SET current_stock = $1, available_stock = GREATEST(0.0, $2), last_updated_at = NOW()
          WHERE id = $3`,
         [newStock, newAvailable, inventoryId]
       );

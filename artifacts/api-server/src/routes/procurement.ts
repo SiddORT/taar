@@ -877,10 +877,9 @@ async function applyInventoryUpdate(
     const newAvailable = newStock
       - parseFloat(row.style_reserved_qty)
       - parseFloat(row.swatch_reserved_qty);
-
     await client.query(
       `UPDATE inventory_items
-       SET current_stock = $1, average_price = $2, available_stock = GREATEST(0,$3),
+       SET current_stock = $1, average_price = $2, available_stock = GREATEST(0.0,$3),
            last_purchase_price = $4, last_updated_at = NOW()
        WHERE id = $5`,
       [newStock, newAvg, newAvailable, price, item.inventoryItemId]
