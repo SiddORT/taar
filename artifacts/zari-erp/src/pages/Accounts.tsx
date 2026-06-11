@@ -443,6 +443,60 @@ export default function Accounts() {
 
   const TABLE_HEADERS = ["#", "Invoice", "Party", "Type", "Total", "Received", "Pending", "Progress", "Status", "Date", "Due", "Pmts", "Action"];
 
+  if (isLoading) return (
+    <div className="min-h-screen" style={{ background: "#F8F6F0" }}>
+      <TopNavbar username="" role="" onLogout={() => {}} isLoggingOut={false} />
+      <div className="py-6 px-6 max-w-screen-2xl mx-auto space-y-5 animate-pulse">
+        {/* Header */}
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <div className="space-y-2">
+            <div className="h-7 w-36 bg-gray-200 rounded-lg" />
+            <div className="h-4 w-80 bg-gray-100 rounded" />
+          </div>
+          <div className="h-9 w-24 bg-gray-200 rounded-xl" />
+        </div>
+        {/* KPI cards */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="bg-white rounded-2xl shadow-sm p-5 flex items-center gap-4">
+              <div className="h-11 w-11 bg-gray-100 rounded-xl flex-shrink-0" />
+              <div className="space-y-2 flex-1">
+                <div className="h-3 bg-gray-100 rounded w-3/4" />
+                <div className="h-6 bg-gray-200 rounded-lg w-full" />
+              </div>
+            </div>
+          ))}
+        </div>
+        {/* Filter bar */}
+        <div className="bg-white rounded-2xl shadow-sm px-4 py-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="h-9 flex-1 min-w-[220px] bg-gray-100 rounded-xl" />
+            <div className="h-9 w-52 bg-gray-100 rounded-xl" />
+            <div className="h-9 w-32 bg-gray-100 rounded-xl" />
+          </div>
+        </div>
+        {/* Table */}
+        <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+          <div className="h-11 bg-gray-50 border-b border-gray-100" />
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className="h-14 border-t border-gray-50 px-4 flex items-center gap-4">
+              <div className="h-3.5 bg-gray-100 rounded w-6" />
+              <div className="h-3.5 bg-gray-100 rounded w-28" />
+              <div className="h-3.5 bg-gray-100 rounded w-20" />
+              <div className="h-3.5 bg-gray-100 rounded w-16" />
+              <div className="h-3.5 bg-gray-100 rounded w-20" />
+              <div className="h-3.5 bg-gray-100 rounded w-20" />
+              <div className="h-3.5 bg-gray-100 rounded w-16" />
+              <div className="h-3 bg-gray-100 rounded-full w-24" />
+              <div className="h-5 bg-gray-100 rounded-full w-20" />
+              <div className="h-3.5 bg-gray-100 rounded w-16 ml-auto" />
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div className="min-h-screen" style={{ background: "#F8F6F0" }}>
       <TopNavbar
