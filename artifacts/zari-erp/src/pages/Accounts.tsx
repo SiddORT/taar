@@ -305,6 +305,7 @@ function PaymentsHistory({ invoiceId }: { invoiceId: number }) {
 function InvoiceRow({
   inv, index, expanded, onToggle, onPay,
 }: { inv: AccountInvoice; index: number; expanded: boolean; onToggle: () => void; onPay: () => void }) {
+  const { baseCurrencySymbol } = useBaseCurrency();
   const { fmt } = useCurrency();
   const direction = inv.invoice_direction;
   const pct = inv.total_amount > 0 ? Math.min(100, (inv.received_amount / inv.total_amount) * 100) : 0;
