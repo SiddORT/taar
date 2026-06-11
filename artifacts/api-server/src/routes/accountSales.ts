@@ -32,11 +32,19 @@ router.get("/unified-summary", requireAuth, async (req, res) => {
           COALESCE(SUM(pending_amount * exchange_rate_snapshot),0)  AS total_pending
         FROM invoices
         WHERE invoice_direction = 'Client' ${df("invoice_date")}
+        AND (
+          COALESCE(invoices.is_deleted, false) = false
+          OR invoices.is_deleted = 'false'  -- handle string 'false'
+        )
       `),
       pool.query(`
         SELECT COALESCE(SUM(base_currency_amount),0) AS total_payments
         FROM invoice_payments
         WHERE payment_direction = 'Received' ${df("payment_date")}
+        AND (
+          COALESCE(invoice_payments.is_deleted, false) = false
+          OR invoice_payments.is_deleted = 'false'  -- handle string 'false'
+        )
       `),
       pool.query(`
         SELECT COALESCE(SUM(pending_amount * exchange_rate_snapshot),0) AS overdue_amount
@@ -47,6 +55,10 @@ router.get("/unified-summary", requireAuth, async (req, res) => {
           AND due_date < CURRENT_DATE::text
           ${from_date ? `AND invoice_date >= '${from_date}'` : ''}
           ${to_date   ? `AND invoice_date <= '${to_date}'`   : ''}
+          AND (
+            COALESCE(invoices.is_deleted, false) = false
+            OR invoices.is_deleted = 'false'  -- handle string 'false'
+          )
       `),
       pool.query(`
         SELECT COALESCE(SUM(base_currency_amount),0) AS advance_total
@@ -54,6 +66,10 @@ router.get("/unified-summary", requireAuth, async (req, res) => {
         WHERE invoice_direction = 'Client'
           AND invoice_type = 'Advance'
           ${df("invoice_date")}
+          AND (
+            COALESCE(invoices.is_deleted, false) = false
+            OR invoices.is_deleted = 'false'  -- handle string 'false'
+          )
       `),
     ]);
 
@@ -71,6 +87,10 @@ router.get("/unified-summary", requireAuth, async (req, res) => {
           END AS status
         FROM invoices inv
         WHERE inv.invoice_direction = 'Client'
+        AND (
+          COALESCE(inv.is_deleted, false) = false
+          OR inv.is_deleted = 'false'  -- handle string 'false'
+        )
         UNION ALL
         SELECT
           COALESCE(cdn.note_date, cdn.created_at::date::text) AS date,
@@ -224,7 +244,10 @@ router.get("/unified-receivables", requireAuth, async (req, res) => {
         FROM invoices inv
         LEFT JOIN clients c ON c.id = inv.client_id
         WHERE inv.invoice_direction = 'Client'
-
+        AND (
+            COALESCE(inv.is_deleted, false) = false
+            OR inv.is_deleted = 'false'  -- handle string 'false'
+          )
         UNION ALL
 
         /* 2. Credit / Debit Note Adjustments (Client) */
@@ -248,6 +271,10 @@ router.get("/unified-receivables", requireAuth, async (req, res) => {
           cdn.note_id::text                                  AS orig_id
         FROM credit_debit_notes cdn
         WHERE cdn.party_type = 'Client'
+        AND (
+          COALESCE(cdn.is_deleted, false) = false
+          OR cdn.is_deleted = 'false'  -- handle string 'false'
+        )
 
       )
       SELECT *, COUNT(*) OVER () AS total_count
@@ -289,7 +316,7 @@ router.post("/record-payment", requireAuth, async (req, res) => {
       payment_date, currency_code, exchange_rate_snapshot, remarks,
     } = req.body;
 
-    const amt = parseFloat(payment_amount);
+    const amt = parseFloat(payment_amount) * (parseFloat(exchange_rate_snapshot ?? "1"));
     if (!Number.isFinite(amt) || amt <= 0) {
       return res.status(400).json({ error: "Invalid payment amount" });
     }
