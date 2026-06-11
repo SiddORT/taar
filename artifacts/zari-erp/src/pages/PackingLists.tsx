@@ -142,7 +142,83 @@ export default function PackingLists() {
 
   const totalPages = Math.max(1, Math.ceil(total / LIMIT));
 
-  if (!user && !isError) return null;
+  if (!user && !isError) return (
+    <div className="min-h-screen" style={{ background: "#F8F6F0" }}>
+      <div className="h-14 bg-white border-b border-gray-100" />
+      <div className="max-w-screen-xl mx-auto px-4 sm:px-6 py-8 space-y-5 animate-pulse">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 bg-gray-200 rounded-xl flex-shrink-0" />
+            <div className="space-y-2">
+              <div className="h-6 w-36 bg-gray-200 rounded-lg" />
+              <div className="h-4 w-64 bg-gray-100 rounded" />
+            </div>
+          </div>
+          <div className="h-9 w-36 bg-gray-200 rounded-xl" />
+        </div>
+        <div className="bg-white rounded-2xl shadow-sm p-4">
+          <div className="flex flex-wrap gap-3">
+            <div className="h-9 w-52 bg-gray-100 rounded-xl flex-1 min-w-[220px] max-w-xs" />
+            <div className="h-9 w-36 bg-gray-100 rounded-xl" />
+            <div className="h-9 w-32 bg-gray-100 rounded-xl" />
+          </div>
+        </div>
+        <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+          <div className="h-11 bg-gray-50 border-b border-gray-100" />
+          {[...Array(7)].map((_, i) => (
+            <div key={i} className="h-14 border-t border-gray-50 px-5 flex items-center gap-6">
+              <div className="h-3.5 bg-gray-100 rounded w-28" />
+              <div className="h-3.5 bg-gray-100 rounded w-32" />
+              <div className="h-3.5 bg-gray-100 rounded w-20" />
+              <div className="h-5 bg-gray-100 rounded-full w-16 ml-auto" />
+            </div>
+          ))}
+          <div className="h-12 border-t border-gray-100" />
+        </div>
+      </div>
+    </div>
+  );
+
+  if (loading) return (
+    <AppLayout
+      username={user?.username ?? ""}
+      role={user?.role ?? ""}
+      onLogout={handleLogout}
+      isLoggingOut={logoutMutation.isPending}
+    >
+      <div className="max-w-screen-xl mx-auto px-4 sm:px-6 py-8 space-y-5 animate-pulse">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 bg-gray-200 rounded-xl flex-shrink-0" />
+            <div className="space-y-2">
+              <div className="h-6 w-36 bg-gray-200 rounded-lg" />
+              <div className="h-4 w-64 bg-gray-100 rounded" />
+            </div>
+          </div>
+          <div className="h-9 w-36 bg-gray-200 rounded-xl" />
+        </div>
+        <div className="bg-white rounded-2xl shadow-sm p-4">
+          <div className="flex flex-wrap gap-3">
+            <div className="h-9 w-52 bg-gray-100 rounded-xl flex-1 min-w-[220px] max-w-xs" />
+            <div className="h-9 w-36 bg-gray-100 rounded-xl" />
+            <div className="h-9 w-32 bg-gray-100 rounded-xl" />
+          </div>
+        </div>
+        <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+          <div className="h-11 bg-gray-50 border-b border-gray-100" />
+          {[...Array(7)].map((_, i) => (
+            <div key={i} className="h-14 border-t border-gray-50 px-5 flex items-center gap-6">
+              <div className="h-3.5 bg-gray-100 rounded w-28" />
+              <div className="h-3.5 bg-gray-100 rounded w-32" />
+              <div className="h-3.5 bg-gray-100 rounded w-20" />
+              <div className="h-5 bg-gray-100 rounded-full w-16 ml-auto" />
+            </div>
+          ))}
+          <div className="h-12 border-t border-gray-100" />
+        </div>
+      </div>
+    </AppLayout>
+  );
 
   return (
     <AppLayout

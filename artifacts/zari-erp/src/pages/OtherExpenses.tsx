@@ -426,7 +426,47 @@ export default function OtherExpenses() {
   }
 
   if (meLoading) {
-    return <div className="flex items-center justify-center h-screen text-gray-400">Loading…</div>;
+    return (
+      <div className="min-h-screen" style={{ background: "#F8F6F0" }}>
+        <TopNavbar username="" role="" onLogout={() => {}} isLoggingOut={false} />
+        <div className="max-w-7xl mx-auto px-4 py-6 space-y-5 animate-pulse">
+          <div className="flex items-center justify-between">
+            <div className="space-y-2">
+              <div className="h-6 w-40 bg-gray-200 rounded-lg" />
+              <div className="h-4 w-28 bg-gray-100 rounded" />
+            </div>
+            <div className="h-9 w-32 bg-gray-200 rounded-xl" />
+          </div>
+          <div className="grid grid-cols-3 gap-4">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="bg-white rounded-2xl shadow-sm p-5">
+                <div className="h-3.5 w-24 bg-gray-100 rounded mb-3" />
+                <div className="h-7 w-32 bg-gray-200 rounded-lg" />
+              </div>
+            ))}
+          </div>
+          <div className="bg-white rounded-2xl shadow-sm p-4">
+            <div className="flex flex-wrap gap-3">
+              <div className="h-9 w-52 bg-gray-100 rounded-xl" />
+              <div className="h-9 w-36 bg-gray-100 rounded-xl" />
+              <div className="h-9 w-36 bg-gray-100 rounded-xl" />
+            </div>
+          </div>
+          <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+            <div className="h-11 bg-gray-50 border-b border-gray-100" />
+            {[...Array(7)].map((_, i) => (
+              <div key={i} className="h-14 border-t border-gray-50 px-5 flex items-center gap-6">
+                <div className="h-3.5 bg-gray-100 rounded w-28" />
+                <div className="h-3.5 bg-gray-100 rounded w-36" />
+                <div className="h-3.5 bg-gray-100 rounded w-20" />
+                <div className="h-5 bg-gray-100 rounded-full w-16 ml-auto" />
+              </div>
+            ))}
+            <div className="h-12 border-t border-gray-100" />
+          </div>
+        </div>
+      </div>
+    );
   }
   if (isError || !(me as any)?.id) {
     return <div className="flex items-center justify-center h-screen text-gray-400">Please log in.</div>;

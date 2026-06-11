@@ -300,6 +300,57 @@ export default function VendorLedgerDetail() {
     );
   }
 
+  if (loading) return (
+    <AppLayout username={user.username} role={user.role} onLogout={handleLogout} isLoggingOut={logoutMutation.isPending}>
+      <div className="space-y-5 pb-10 animate-pulse">
+        <div className="flex items-start justify-between">
+          <div className="space-y-2">
+            <div className="h-3 w-32 bg-gray-200 rounded" />
+            <div className="h-3 w-48 bg-gray-200 rounded mt-3" />
+            <div className="flex items-center gap-3 mt-2">
+              <div className="h-10 w-10 bg-gray-200 rounded-xl flex-shrink-0" />
+              <div className="space-y-1.5">
+                <div className="h-6 w-48 bg-gray-200 rounded-lg" />
+                <div className="h-3 w-36 bg-gray-100 rounded" />
+              </div>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <div className="h-10 w-28 bg-gray-200 rounded-xl" />
+            <div className="h-10 w-36 bg-gray-200 rounded-xl" />
+          </div>
+        </div>
+        <div className="grid grid-cols-3 gap-4">
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="bg-white rounded-2xl shadow-sm p-5 flex items-center gap-4">
+              <div className="h-11 w-11 bg-gray-100 rounded-xl flex-shrink-0" />
+              <div className="space-y-1.5">
+                <div className="h-3 w-20 bg-gray-100 rounded" />
+                <div className="h-6 w-28 bg-gray-200 rounded-lg" />
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="bg-white rounded-2xl shadow-sm p-4 flex gap-3">
+          <div className="h-9 w-32 bg-gray-100 rounded-xl" />
+          <div className="h-9 w-32 bg-gray-100 rounded-xl" />
+          <div className="h-9 w-36 bg-gray-100 rounded-xl" />
+        </div>
+        <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+          <div className="h-11 bg-gray-50 border-b border-gray-100" />
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className="h-14 border-t border-gray-50 px-5 flex items-center gap-6">
+              <div className="h-3.5 bg-gray-100 rounded w-24" />
+              <div className="h-3.5 bg-gray-100 rounded w-32" />
+              <div className="h-3.5 bg-gray-100 rounded w-20" />
+              <div className="h-3.5 bg-gray-100 rounded w-20 ml-auto" />
+            </div>
+          ))}
+        </div>
+      </div>
+    </AppLayout>
+  );
+
   return (
     <AppLayout username={user.username} role={user.role} onLogout={handleLogout} isLoggingOut={logoutMutation.isPending}>
       <style>{`

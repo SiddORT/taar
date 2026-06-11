@@ -160,6 +160,42 @@ export default function PurchaseReceipts() {
     );
   };
 
+  if (loading) return (
+    <div className="min-h-screen" style={{ background: "#F8F6F0" }}>
+      <TopNavbar username="" role="" onLogout={() => {}} isLoggingOut={false} />
+      <div className="py-6 px-6 max-w-screen-2xl mx-auto space-y-5 animate-pulse">
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <div className="space-y-2">
+            <div className="h-6 w-44 bg-gray-200 rounded-lg" />
+            <div className="h-4 w-72 bg-gray-100 rounded" />
+          </div>
+          <div className="h-9 w-32 bg-gray-200 rounded-xl" />
+        </div>
+        <div className="bg-white rounded-2xl shadow-sm p-4">
+          <div className="flex flex-wrap gap-3">
+            <div className="h-9 w-52 bg-gray-100 rounded-xl" />
+            <div className="h-9 w-44 bg-gray-100 rounded-xl" />
+            <div className="h-9 w-36 bg-gray-100 rounded-xl" />
+          </div>
+        </div>
+        <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+          <div className="h-11 bg-gray-50 border-b border-gray-100" />
+          {[...Array(7)].map((_, i) => (
+            <div key={i} className="h-14 border-t border-gray-50 px-5 flex items-center gap-6">
+              <div className="h-3.5 bg-gray-100 rounded w-28" />
+              <div className="h-3.5 bg-gray-100 rounded w-36" />
+              <div className="h-3.5 bg-gray-100 rounded w-20" />
+              <div className="h-3.5 bg-gray-100 rounded w-20" />
+              <div className="h-5 bg-gray-100 rounded-full w-16" />
+              <div className="h-3.5 bg-gray-100 rounded w-16 ml-auto" />
+            </div>
+          ))}
+          <div className="h-12 border-t border-gray-100" />
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div className="min-h-screen" style={{ background: "#F8F6F0" }}>
       <TopNavbar

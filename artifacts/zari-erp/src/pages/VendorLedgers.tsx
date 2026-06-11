@@ -97,6 +97,50 @@ export default function VendorLedgers() {
   const totalBalance = totalDebit - totalCredit;
   const vendorsWithBalance = vendors.filter(v => parseFloat(v.total_debits || "0") - parseFloat(v.total_credits || "0") > 0).length;
 
+  if (loading) return (
+    <AppLayout username={user.username} role={user.role} onLogout={handleLogout} isLoggingOut={logoutMutation.isPending}>
+      <div className="space-y-6 pb-10 animate-pulse">
+        <div className="flex items-end justify-between">
+          <div className="space-y-2">
+            <div className="h-3 w-48 bg-gray-200 rounded" />
+            <div className="h-7 w-40 bg-gray-200 rounded-lg" />
+            <div className="h-4 w-56 bg-gray-100 rounded" />
+          </div>
+          <div className="h-9 w-20 bg-gray-200 rounded-xl" />
+        </div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="bg-white rounded-2xl shadow-sm p-5">
+              <div className="h-3.5 w-28 bg-gray-100 rounded mb-3" />
+              <div className="h-7 w-32 bg-gray-200 rounded-lg" />
+            </div>
+          ))}
+        </div>
+        <div className="bg-white rounded-2xl shadow-sm p-4">
+          <div className="h-9 w-56 bg-gray-100 rounded-xl" />
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {[...Array(8)].map((_, i) => (
+            <div key={i} className="bg-white rounded-2xl shadow-sm p-5 space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 bg-gray-200 rounded-xl flex-shrink-0" />
+                <div className="space-y-1.5 flex-1">
+                  <div className="h-4 bg-gray-200 rounded w-3/4" />
+                  <div className="h-3 bg-gray-100 rounded w-1/2" />
+                </div>
+              </div>
+              <div className="h-px bg-gray-100" />
+              <div className="space-y-1.5">
+                <div className="h-3 bg-gray-100 rounded w-full" />
+                <div className="h-3 bg-gray-100 rounded w-2/3" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </AppLayout>
+  );
+
   return (
     <AppLayout username={user.username} role={user.role} onLogout={handleLogout} isLoggingOut={logoutMutation.isPending}>
       <style>{`
