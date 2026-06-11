@@ -892,6 +892,7 @@ export default function PurchaseOrderForm() {
                       </>}
                       {/* Image picker */}
                       <td className="px-3 py-2">
+                        <div className="relative">
                         <div className="flex flex-col gap-1">
                           {line.itemImage ? (
                             <div className="relative group w-10 h-10 rounded-lg overflow-hidden border border-gray-200">
@@ -917,6 +918,7 @@ export default function PurchaseOrderForm() {
                               )}
                             </button>
                           )}
+                          
                           {/* Image picker dropdown */}
                           {imagePickerKey === line.key && (() => {
                             const masterImgs = inventoryItems.find(i => i.id === line.inventoryItemId)?.images ?? [];
@@ -976,6 +978,7 @@ export default function PurchaseOrderForm() {
                               </div>
                             );
                           })()}
+                        </div>
                         </div>
                       </td>
                       <td className="px-3 py-2">

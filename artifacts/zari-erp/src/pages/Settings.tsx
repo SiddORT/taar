@@ -582,15 +582,16 @@ function CurrencyTab({ card, inp, label, toast }: any) {
           <div className="flex items-center gap-3">
             <div className="flex-1">
               <select
-                value={baseCurrency?.code ?? ""}
-                onChange={e => handleSetBase(e.target.value)}
-                disabled={baseSaving || loading}
-                className="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-sm text-gray-900 focus:outline-none focus:border-[#C6AF4B] bg-white disabled:opacity-60"
-              >
-                {currencies.filter(c => c.is_active || c.is_base).map(c => (
-                  <option key={c.code} value={c.code}>{c.code} — {c.name} ({c.symbol})</option>
-                ))}
-              </select>
+                  value={baseCurrency?.code ?? ""}
+                  disabled
+                  className="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-sm text-gray-500 bg-gray-100 cursor-not-allowed"
+                >
+                  {baseCurrency && (
+                    <option value={baseCurrency.code}>
+                      {baseCurrency.code} — {baseCurrency.name} ({baseCurrency.symbol})
+                    </option>
+                  )}
+                </select>
             </div>
             {baseCurrency && (
               <div className="px-4 py-2 rounded-xl border border-[#C6AF4B]/30 bg-[#C6AF4B]/8 text-center min-w-[60px]">

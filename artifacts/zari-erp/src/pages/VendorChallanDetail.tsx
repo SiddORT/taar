@@ -11,7 +11,6 @@ import { useCurrency } from "@/contexts/CurrencyContext";
 
 const G = "#C6AF4B";
 const BASE = (import.meta.env.BASE_URL ?? "/").replace(/\/$/, "");
-
 const CHALLAN_TYPES = [
   "Material", "Artwork", "Outsource",
   "Toile Artisan", "Pattern Artisan", "Custom Artisan",
@@ -244,7 +243,7 @@ function AttachmentSection({ challanId, attachments, pendingFiles, onPendingFile
       })}
 
       {/* Pending (not yet saved) files */}
-      {pendingFiles.map((file, i) => (
+      {/* {pendingFiles.map((file, i) => (
         <div key={`${file.name}-${i}`} className="flex items-center gap-3 p-3 bg-amber-50 rounded-xl border border-amber-200">
           <Paperclip className="h-4 w-4 text-amber-500 shrink-0" />
           <div className="min-w-0 flex-1">
@@ -256,7 +255,63 @@ function AttachmentSection({ challanId, attachments, pendingFiles, onPendingFile
               className="text-xs px-2.5 py-1.5 rounded-lg border border-amber-200 text-amber-600 hover:bg-amber-100 transition-colors shrink-0">Remove</button>
           )}
         </div>
-      ))}
+      ))} */}
+
+      {pendingFiles.map((file, i) => {
+        const { isImage, isPdf } = meta(file.name, file.type);
+
+        return (
+          <div
+            key={`${file.name}-${i}`}
+            className="flex items-center gap-3 p-3 bg-amber-50 rounded-xl border border-amber-200"
+          >
+            {isImage ? ( 
+              <img src={URL.createObjectURL(file)} alt={file.name} className="h-12 w-12 rounded-lg object-cover border"/>
+            ) : (
+              <Paperclip className="h-4 w-4 text-amber-500 shrink-0" />
+            )}
+
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium text-gray-800 truncate">
+                {file.name}
+              </p>
+              <p className="text-xs text-amber-600">
+                Will be uploaded when challan is saved
+              </p>
+            </div>
+
+            {(isImage || isPdf) && (
+              <button
+                type="button"
+                onClick={() =>
+                  setPreview({
+                    url: URL.createObjectURL(file),
+                    name: file.name,
+                    isImage,
+                    isPdf,
+                  })
+                }
+                className="text-black text-xs px-2.5 py-1.5 rounded-lg border"
+              >
+                Preview
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={() =>
+                onPendingFiles(
+                  pendingFiles.filter((_, idx) => idx !== i)
+                )
+              }
+              className="text-xs px-2.5 py-1.5 rounded-lg border border-amber-200 text-amber-600"
+            >
+              Remove
+            </button>
+          </div>
+        );
+      })}
+
 
       {/* Add files */}
       {!disabled && (

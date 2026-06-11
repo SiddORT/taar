@@ -15,6 +15,9 @@ import {
   type AccountInvoice, type InvoicePayment,
 } from "../hooks/useInvoicePayments";
 
+import { useBaseCurrency } from "../hooks/useBaseCurrency";
+
+
 const G = "#C9B45C";
 const card = "rounded-2xl bg-white border border-[#C6AF4B]/15 shadow-[0_2px_16px_rgba(198,175,75,0.12),0_1px_3px_rgba(0,0,0,0.06)]";
 
@@ -302,6 +305,7 @@ function PaymentsHistory({ invoiceId }: { invoiceId: number }) {
 function InvoiceRow({
   inv, index, expanded, onToggle, onPay,
 }: { inv: AccountInvoice; index: number; expanded: boolean; onToggle: () => void; onPay: () => void }) {
+  const { baseCurrencySymbol } = useBaseCurrency();
   const { fmt } = useCurrency();
   const direction = inv.invoice_direction;
   const pct = inv.total_amount > 0 ? Math.min(100, (inv.received_amount / inv.total_amount) * 100) : 0;
@@ -334,7 +338,7 @@ function InvoiceRow({
           </span>
         </td>
         <td className="px-4 py-3 text-right tabular-nums text-sm font-medium text-gray-900">
-          {inv.currency_code} {fmt(inv.total_amount)}
+          {baseCurrencySymbol} {fmt(inv.total_amount)}
         </td>
         <td className="px-4 py-3 text-right tabular-nums text-sm text-emerald-600 font-medium">
           {fmt(inv.received_amount)}
