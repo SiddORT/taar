@@ -50,6 +50,12 @@ function fmtAmt(n: number | string | null) {
   const v = parseFloat(String(n ?? 0));
   return isNaN(v) ? "₹0.00" : `₹${v.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
+function fmtFx(n: number | string | null, ccy: string) {
+  const v = parseFloat(String(n ?? 0));
+  if (isNaN(v)) return ccy === "INR" ? "₹0.00" : `${ccy} 0.00`;
+  if (ccy === "INR") return `₹${v.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  return `${ccy} ${v.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
 function fmtCrLk(n: number | string | null) {
   const v = parseFloat(String(n ?? 0));
   if (isNaN(v)) return "₹0";
@@ -181,7 +187,12 @@ function PaymentModal({ row, onClose, onSuccess }: {
           <div className="mx-5 mt-4 px-3 py-2.5 rounded-xl bg-amber-50 border border-amber-200 flex items-center gap-2">
             <AlertTriangle size={14} className="text-amber-600 shrink-0" />
             <p className="text-sm text-amber-700">
-              Pending: <strong>{fmtAmt(pendingAmt)}</strong> of {fmtAmt(row.amount)}
+              Pending: <strong>{fmtFx(pendingAmt, billCcy)}</strong> of {fmtFx(row.amount, billCcy)}
+              {billCcy !== "INR" && (
+                <span className="ml-1 text-xs text-amber-500">
+                  (≈ {fmtAmt(pendingAmt * billRate)} INR)
+                </span>
+              )}
             </p>
           </div>
         )}
@@ -638,15 +649,30 @@ export default function AccountPurchases() {
                               </span>
                             </td>
                             <td className={`${TD} text-right font-semibold`} style={{ color: SL }}>
-                              {fmtAmt(row.amount)}
+                              {fmtFx(row.amount, row.currency_code || "INR")}
+                              {row.currency_code && row.currency_code !== "INR" && (
+                                <div className="text-[10px] font-normal text-gray-400 mt-0.5">
+                                  ≈ {fmtAmt(parseFloat(row.amount ?? 0) * (parseFloat(row.exchange_rate_snapshot ?? 1) || 1))} INR
+                                </div>
+                              )}
                             </td>
                             <td className={`${TD} text-right font-medium text-emerald-600`}>
-                              {fmtAmt(row.paid_amount)}
+                              {fmtFx(row.paid_amount, row.currency_code || "INR")}
+                              {row.currency_code && row.currency_code !== "INR" && (
+                                <div className="text-[10px] font-normal text-emerald-400 mt-0.5">
+                                  ≈ {fmtAmt(parseFloat(row.paid_amount ?? 0) * (parseFloat(row.exchange_rate_snapshot ?? 1) || 1))} INR
+                                </div>
+                              )}
                             </td>
                             <td className={`${TD} text-right font-semibold ${
                               parseFloat(row.pending_amount) > 0 ? "text-red-600" : "text-gray-400"
                             }`}>
-                              {fmtAmt(row.pending_amount)}
+                              {fmtFx(row.pending_amount, row.currency_code || "INR")}
+                              {row.currency_code && row.currency_code !== "INR" && (
+                                <div className="text-[10px] font-normal text-red-300 mt-0.5">
+                                  ≈ {fmtAmt(parseFloat(row.pending_amount ?? 0) * (parseFloat(row.exchange_rate_snapshot ?? 1) || 1))} INR
+                                </div>
+                              )}
                             </td>
                             <td className={TD}>{statusBadge(row.status)}</td>
                             <td className={TD}>

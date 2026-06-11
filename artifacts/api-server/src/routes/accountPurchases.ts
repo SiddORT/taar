@@ -285,7 +285,9 @@ router.get("/unified-liabilities", requireAuth, async (req, res) => {
           vil.vendor_invoice_amount::numeric  AS amount,
           vil.paid_amount::numeric            AS paid_amount,
           vil.pending_amount::numeric         AS pending_amount,
-          vil.status                          AS status
+          vil.status                          AS status,
+          COALESCE(vil.currency_code, 'INR')  AS currency_code,
+          COALESCE(vil.exchange_rate_snapshot, 1)::numeric AS exchange_rate_snapshot
         FROM vendor_invoice_ledger vil
         WHERE 1=1
           ${df("COALESCE(vil.vendor_invoice_date, vil.created_at::date)", from_date, to_date)}
@@ -309,7 +311,9 @@ router.get("/unified-liabilities", requireAuth, async (req, res) => {
             WHEN COALESCE(cp.paid, 0) >= oj.total_cost::numeric THEN 'Paid'
             WHEN COALESCE(cp.paid, 0) > 0                       THEN 'Partially Paid'
             ELSE 'Unpaid'
-          END AS status
+          END AS status,
+          'INR'::text AS currency_code,
+          1::numeric  AS exchange_rate_snapshot
         FROM outsource_jobs oj
         LEFT JOIN swatch_orders sw ON sw.id = oj.swatch_order_id
         LEFT JOIN style_orders  st ON st.id = oj.style_order_id
@@ -340,7 +344,9 @@ router.get("/unified-liabilities", requireAuth, async (req, res) => {
             WHEN oe.payment_status = 'Paid' THEN 'Paid'
             WHEN COALESCE(oe.paid_amount, 0) > 0 THEN 'Partially Paid'
             ELSE 'Unpaid'
-          END AS status
+          END AS status,
+          'INR'::text AS currency_code,
+          1::numeric  AS exchange_rate_snapshot
         FROM other_expenses oe
         WHERE 1=1
           ${df("oe.expense_date", from_date, to_date)}
@@ -360,7 +366,9 @@ router.get("/unified-liabilities", requireAuth, async (req, res) => {
           at.total_rate::numeric              AS amount,
           0::numeric                          AS paid_amount,
           at.total_rate::numeric              AS pending_amount,
-          'Pending'                           AS status
+          'Pending'                           AS status,
+          'INR'::text AS currency_code,
+          1::numeric  AS exchange_rate_snapshot
         FROM artisan_timesheets at
         LEFT JOIN swatch_orders sw2 ON sw2.id = at.swatch_order_id
         LEFT JOIN style_orders  st2 ON st2.id = at.style_order_id
@@ -382,7 +390,9 @@ router.get("/unified-liabilities", requireAuth, async (req, res) => {
           COALESCE(osd.final_shipping_amount, 0)::numeric AS amount,
           0::numeric                          AS paid_amount,
           COALESCE(osd.final_shipping_amount, 0)::numeric AS pending_amount,
-          'Pending'                           AS status
+          'Pending'                           AS status,
+          'INR'::text AS currency_code,
+          1::numeric  AS exchange_rate_snapshot
         FROM order_shipping_details osd
         LEFT JOIN shipping_vendors sv ON sv.id = osd.shipping_vendor_id
         WHERE osd.final_shipping_amount IS NOT NULL AND osd.final_shipping_amount > 0
