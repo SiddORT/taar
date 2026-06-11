@@ -531,6 +531,8 @@ router.post("/record-payment", requireAuth, async (req: AuthRequest, res) => {
       const { rows } = await client.query(`SELECT * FROM vendor_invoice_ledger WHERE id = $1 FOR UPDATE`, [id]);
       if (!rows.length) throw new Error("Bill not found");
       const bill = rows[0];
+      if (bill.status === "Cancelled") throw new Error("Cannot record payment on a Cancelled bill");
+      if (bill.status === "Paid") throw new Error("Cannot record payment on a Paid bill");
       const billCcyCode = bill.currency_code || "INR";
       const billRate = parseFloat(bill.exchange_rate_snapshot ?? "1") || 1;   // bill ccy -> INR
       const amtInBillCcy = baseAmt / billRate;                                // bill currency

@@ -469,3 +469,97 @@ describe("POST /record-payment — Other Expense", () => {
     expect(updateIdx).toBeLessThan(commitIdx);
   });
 });
+
+// ═════════════════════════════════════════════════════════════════════════════
+// Purchase Receipt branch — status guard (Cancelled / Paid)
+// ═════════════════════════════════════════════════════════════════════════════
+describe("POST /record-payment — Purchase Receipt status guard", () => {
+
+  function prBillRow(status: string): Record<string, string> {
+    return {
+      id: "1",
+      vendor_id: "10",
+      vendor_name: "Test Vendor",
+      vendor_invoice_amount: "5000",
+      paid_amount: status === "Paid" ? "5000" : "0",
+      exchange_rate_snapshot: "1",
+      currency_code: "INR",
+      status,
+    };
+  }
+
+  const validPayload = {
+    ref_type: "Purchase Receipt",
+    source_id: "1",
+    vendor_id: 10,
+    vendor_name: "Test Vendor",
+    payment_amount: "500",
+    payment_date: "2026-06-01",
+    payment_type: "Bank Transfer",
+    currency_code: "INR",
+    exchange_rate_snapshot: "1",
+  };
+
+  // ── 1. Cancelled bill → 400 with descriptive error ────────────────────────
+  it("returns 400 with descriptive error when the bill is Cancelled", async () => {
+    mockClientQuery
+      .mockResolvedValueOnce({ rows: [] })                         // BEGIN
+      .mockResolvedValueOnce({ rows: [prBillRow("Cancelled")] })  // SELECT … FOR UPDATE
+      .mockResolvedValueOnce({ rows: [] });                        // ROLLBACK
+
+    const res = await request(makeApp())
+      .post("/record-payment")
+      .send(validPayload);
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/cancelled/i);
+    // Payment INSERT must NOT have been attempted
+    const sqls: string[] = mockClientQuery.mock.calls.map((args: unknown[]) => String(args[0]));
+    expect(sqls.some((s) => /INSERT/i.test(s))).toBe(false);
+  });
+
+  // ── 2. Paid bill → 400 with descriptive error ─────────────────────────────
+  it("returns 400 with descriptive error when the bill is already Paid", async () => {
+    mockClientQuery
+      .mockResolvedValueOnce({ rows: [] })                     // BEGIN
+      .mockResolvedValueOnce({ rows: [prBillRow("Paid")] })   // SELECT … FOR UPDATE
+      .mockResolvedValueOnce({ rows: [] });                    // ROLLBACK
+
+    const res = await request(makeApp())
+      .post("/record-payment")
+      .send(validPayload);
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/paid/i);
+    // Payment INSERT must NOT have been attempted
+    const sqls: string[] = mockClientQuery.mock.calls.map((args: unknown[]) => String(args[0]));
+    expect(sqls.some((s) => /INSERT/i.test(s))).toBe(false);
+  });
+
+  // ── 3. Pool client is released even when the guard rejects ────────────────
+  it("releases the pool client when the Cancelled guard fires", async () => {
+    mockClientQuery
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [prBillRow("Cancelled")] })
+      .mockResolvedValueOnce({ rows: [] });
+
+    await request(makeApp()).post("/record-payment").send(validPayload);
+
+    expect(mockRelease).toHaveBeenCalledOnce();
+  });
+
+  // ── 4. Bill not found → 400 ───────────────────────────────────────────────
+  it("returns 400 when the bill is not found", async () => {
+    mockClientQuery
+      .mockResolvedValueOnce({ rows: [] })  // BEGIN
+      .mockResolvedValueOnce({ rows: [] })  // SELECT → not found
+      .mockResolvedValueOnce({ rows: [] }); // ROLLBACK
+
+    const res = await request(makeApp())
+      .post("/record-payment")
+      .send(validPayload);
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/bill not found/i);
+  });
+});
