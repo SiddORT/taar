@@ -3,26 +3,38 @@ import { db, usersTable } from "@workspace/db";
 import { hashPassword } from "./auth";
 import { logger } from "./logger";
 
-const ADMIN_EMAIL = "admin@zarierp.com";
-const ADMIN_PASSWORD = "Admin@123";
+const USERS = [
+  {
+    username: "admin",
+    email: "admin@zarierp.com",
+    password: "Admin@123",
+    role: "admin",
+  },
+  {
+    username: "root",
+    email: "root@zarierp.com",
+    password: "Root@123",
+    role: "admin",
+  },
+];
 
 export async function seedAdminUser(): Promise<void> {
-  const [existing] = await db
-    .select()
-    .from(usersTable)
-    .where(eq(usersTable.email, ADMIN_EMAIL));
+  for (const u of USERS) {
+    const [existing] = await db
+      .select()
+      .from(usersTable)
+      .where(eq(usersTable.email, u.email));
 
-  if (existing) {
-    return;
+    if (existing) continue;
+
+    await db.insert(usersTable).values({
+      username: u.username,
+      email: u.email,
+      hashedPassword: hashPassword(u.password),
+      role: u.role,
+      isActive: true,
+    });
+
+    logger.info(`Default user created: ${u.email}`);
   }
-
-  await db.insert(usersTable).values({
-    username: "admin",
-    email: ADMIN_EMAIL,
-    hashedPassword: hashPassword(ADMIN_PASSWORD),
-    role: "admin",
-    isActive: true,
-  });
-
-  logger.info("Default admin user created: admin@zarierp.com");
 }
