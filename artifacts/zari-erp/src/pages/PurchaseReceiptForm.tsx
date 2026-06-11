@@ -5,6 +5,7 @@ import {
   AlertTriangle, Save, ChevronDown, Edit2, X, FileDown, TrendingUp,
   Camera, FileText, Trash2,
 } from "lucide-react";
+
 import { downloadPrPdf } from "@/utils/pdfExport";
 import { logActivity } from "@/utils/logActivity";
 import { useGetMe, getGetMeQueryKey, useLogout } from "@workspace/api-client-react";
@@ -15,6 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 import { SmallSearchSelect } from "@/components/ui/SearchableSelect";
 
 const G     = "#C6AF4B";
+const CURRENCIES = ["INR", "USD", "EUR", "GBP", "AED", "JPY", "CNY"];
 const G_DIM = "#A8943E";
 const card  = "rounded-2xl bg-white border border-[#C6AF4B]/15 shadow-[0_2px_16px_rgba(198,175,75,0.12),0_1px_3px_rgba(0,0,0,0.06)]";
 
@@ -102,6 +104,8 @@ interface PRDetail {
   vendor_invoice_amount: string | null;
   vendor_invoice_file: string | null;
   vendor_invoice_uploaded_at: string | null;
+  vendor_invoice_currency_code: string | null;
+  vendor_invoice_exchange_rate: string | null;
   items: PRItem[];
 }
 
@@ -156,6 +160,8 @@ export default function PurchaseReceiptForm() {
   const [invNumber, setInvNumber] = useState("");
   const [invDate, setInvDate] = useState("");
   const [invAmount, setInvAmount] = useState("");
+  const [invCurrency, setInvCurrency] = useState("INR");
+  const [invRate, setInvRate] = useState("1");
   const [invFile, setInvFile] = useState<File | null>(null);
   const [invUploading, setInvUploading] = useState(false);
   const [invDeleteConfirm, setInvDeleteConfirm] = useState(false);
@@ -270,11 +276,19 @@ export default function PurchaseReceiptForm() {
       const newPrId = r.data.id;
 
       if (invNumber.trim() && invAmount && !isNaN(parseFloat(invAmount)) && parseFloat(invAmount) > 0) {
+        const rateNum = parseFloat(invRate);
+        if (invCurrency !== "INR" && (!isFinite(rateNum) || rateNum <= 0)) {
+          toast({ title: `A positive exchange rate is required for ${invCurrency} invoices`, variant: "destructive" });
+          navigate(`/procurement/purchase-receipts/${newPrId}`);
+          return;
+        }
         try {
           const fd = new FormData();
           fd.append("invoice_number", invNumber.trim());
           fd.append("invoice_date", invDate || "");
           fd.append("invoice_amount", invAmount);
+          fd.append("currency_code", invCurrency);
+          fd.append("exchange_rate_snapshot", invCurrency === "INR" ? "1" : String(rateNum));
           if (invFile) fd.append("invoice_file", invFile);
           const tkn = localStorage.getItem("zarierp_token");
           await fetch(`/api/procurement/purchase-receipts/${newPrId}/vendor-invoice`, {
@@ -384,11 +398,20 @@ export default function PurchaseReceiptForm() {
     }
   };
 
+  const resetInvoiceForm = () => {
+    setShowInvoiceForm(false);
+    setInvNumber(""); setInvDate(""); setInvAmount("");
+    setInvCurrency("INR"); setInvRate("1"); setInvFile(null);
+  };
+
   const handleInvoiceUpload = async () => {
     if (!pr) return;
     if (!invNumber.trim()) { toast({ title: "Invoice number is required", variant: "destructive" }); return; }
     if (!invAmount || isNaN(parseFloat(invAmount)) || parseFloat(invAmount) <= 0) {
       toast({ title: "Valid invoice amount is required", variant: "destructive" }); return;
+    }
+    if (invCurrency !== "INR" && (isNaN(parseFloat(invRate)) || parseFloat(invRate) <= 0)) {
+      toast({ title: "A positive exchange rate is required for foreign currency invoices", variant: "destructive" }); return;
     }
     setInvUploading(true);
     try {
@@ -396,6 +419,8 @@ export default function PurchaseReceiptForm() {
       fd.append("invoice_number", invNumber.trim());
       fd.append("invoice_date", invDate || "");
       fd.append("invoice_amount", invAmount);
+      fd.append("currency_code", invCurrency);
+      fd.append("exchange_rate_snapshot", invCurrency === "INR" ? "1" : invRate);
       if (invFile) fd.append("invoice_file", invFile);
       const tkn = localStorage.getItem("zarierp_token");
       const res = await fetch(`/api/procurement/purchase-receipts/${pr.id}/vendor-invoice`, {
@@ -405,8 +430,7 @@ export default function PurchaseReceiptForm() {
       });
       if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error((e as any).error || "Upload failed"); }
       toast({ title: "Vendor invoice uploaded successfully" });
-      setShowInvoiceForm(false);
-      setInvNumber(""); setInvDate(""); setInvAmount(""); setInvFile(null);
+      resetInvoiceForm();
       loadPr();
     } catch (e: unknown) {
       toast({ title: (e as Error)?.message ?? "Failed to upload", variant: "destructive" });
@@ -686,7 +710,14 @@ export default function PurchaseReceiptForm() {
                       </a>
                     )}
                     <button
-                      onClick={() => { setInvNumber(pr.vendor_invoice_number!); setInvDate(pr.vendor_invoice_date ? new Date(pr.vendor_invoice_date).toISOString().slice(0,10) : ""); setInvAmount(pr.vendor_invoice_amount ?? ""); setShowInvoiceForm(true); }}
+                      onClick={() => {
+                        setInvNumber(pr.vendor_invoice_number!);
+                        setInvDate(pr.vendor_invoice_date ? new Date(pr.vendor_invoice_date).toISOString().slice(0,10) : "");
+                        setInvAmount(pr.vendor_invoice_amount ?? "");
+                        setInvCurrency(pr.vendor_invoice_currency_code ?? "INR");
+                        setInvRate(pr.vendor_invoice_exchange_rate ?? "1");
+                        setShowInvoiceForm(true);
+                      }}
                       className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-gray-700 border border-gray-200 hover:bg-gray-50">
                       <Edit2 className="h-3.5 w-3.5" /> Replace
                     </button>
@@ -701,21 +732,38 @@ export default function PurchaseReceiptForm() {
               </div>
             </div>
 
-            {pr.vendor_invoice_number && !showInvoiceForm && (
-              <div className="p-5 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                {[
-                  ["Invoice No.", pr.vendor_invoice_number],
-                  ["Invoice Date", pr.vendor_invoice_date ? new Date(pr.vendor_invoice_date).toLocaleDateString("en-IN") : "—"],
-                  ["Invoice Amount", pr.vendor_invoice_amount ? `₹${parseFloat(pr.vendor_invoice_amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}` : "—"],
-                  ["Uploaded On", pr.vendor_invoice_uploaded_at ? new Date(pr.vendor_invoice_uploaded_at).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—"],
-                ].map(([label, value]) => (
-                  <div key={label}>
-                    <p className="text-xs text-gray-400 font-medium">{label}</p>
-                    <p className="text-gray-900 mt-0.5 font-medium">{value}</p>
-                  </div>
-                ))}
-              </div>
-            )}
+            {pr.vendor_invoice_number && !showInvoiceForm && (() => {
+              const billCcy = pr.vendor_invoice_currency_code ?? "INR";
+              const billRate = parseFloat(pr.vendor_invoice_exchange_rate ?? "1") || 1;
+              const billAmt = pr.vendor_invoice_amount ? parseFloat(pr.vendor_invoice_amount) : null;
+              const amtLabel = billAmt != null
+                ? `${billCcy !== "INR" ? `${billCcy} ` : "₹"}${billAmt.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`
+                : "—";
+              const inrEquiv = billAmt != null && billCcy !== "INR"
+                ? `≈ ₹${(billAmt * billRate).toLocaleString("en-IN", { minimumFractionDigits: 2 })} (INR)`
+                : null;
+              return (
+                <div className="p-5 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                  {[
+                    ["Invoice No.", pr.vendor_invoice_number],
+                    ["Invoice Date", pr.vendor_invoice_date ? new Date(pr.vendor_invoice_date).toLocaleDateString("en-IN") : "—"],
+                    ["Invoice Amount", amtLabel],
+                    ["Uploaded On", pr.vendor_invoice_uploaded_at ? new Date(pr.vendor_invoice_uploaded_at).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—"],
+                  ].map(([label, value]) => (
+                    <div key={label}>
+                      <p className="text-xs text-gray-400 font-medium">{label}</p>
+                      <p className="text-gray-900 mt-0.5 font-medium">{value}</p>
+                      {label === "Invoice Amount" && inrEquiv && (
+                        <p className="text-[11px] text-gray-400 mt-0.5">{inrEquiv}</p>
+                      )}
+                      {label === "Invoice Amount" && billCcy !== "INR" && (
+                        <p className="text-[11px] text-amber-600 font-medium mt-0.5">Rate: 1 {billCcy} = ₹{billRate.toFixed(4)}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
 
             {showInvoiceForm && (
               <div className="p-5 space-y-4">
@@ -732,11 +780,40 @@ export default function PurchaseReceiptForm() {
                       className="w-full px-3 py-2 text-sm text-gray-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30" />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Invoice Amount (₹) <span className="text-red-500">*</span></label>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Currency</label>
+                    <select value={invCurrency}
+                      onChange={e => { setInvCurrency(e.target.value); setInvRate(e.target.value === "INR" ? "1" : invRate === "1" ? "" : invRate); }}
+                      className="w-full px-3 py-2 text-sm text-gray-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30">
+                      {CURRENCIES.map(c => <option key={c}>{c}</option>)}
+                    </select>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">
+                      Invoice Amount ({invCurrency}) <span className="text-red-500">*</span>
+                    </label>
                     <input type="number" min="0" step="0.01" value={invAmount} onChange={e => setInvAmount(e.target.value)}
                       placeholder="0.00"
                       className="w-full px-3 py-2 text-sm text-gray-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30" />
                   </div>
+                  {invCurrency !== "INR" && (
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">
+                        Exchange Rate (1 {invCurrency} = ? INR) <span className="text-red-500">*</span>
+                      </label>
+                      <input type="number" min="0.000001" step="0.0001" value={invRate} onChange={e => setInvRate(e.target.value)}
+                        placeholder="e.g. 83.50"
+                        className="w-full px-3 py-2 text-sm text-gray-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30" />
+                    </div>
+                  )}
+                  {invCurrency !== "INR" && parseFloat(invAmount) > 0 && parseFloat(invRate) > 0 && (
+                    <div className="flex items-end pb-2">
+                      <p className="text-sm text-amber-700 font-medium">
+                        ≈ ₹{(parseFloat(invAmount) * parseFloat(invRate)).toLocaleString("en-IN", { minimumFractionDigits: 2 })} (INR)
+                      </p>
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">Invoice File (PDF or Image, max 20MB)</label>
@@ -756,7 +833,7 @@ export default function PurchaseReceiptForm() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <button onClick={() => { setShowInvoiceForm(false); setInvNumber(""); setInvDate(""); setInvAmount(""); setInvFile(null); }}
+                  <button onClick={resetInvoiceForm}
                     className="px-4 py-2 rounded-xl text-sm font-medium text-gray-700 border border-gray-200 hover:bg-gray-50">
                     Cancel
                   </button>
@@ -1117,11 +1194,38 @@ export default function PurchaseReceiptForm() {
                       className="w-full px-3 py-2 text-sm text-gray-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30" />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Invoice Amount (₹)</label>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Currency</label>
+                    <select value={invCurrency}
+                      onChange={e => { setInvCurrency(e.target.value); setInvRate(e.target.value === "INR" ? "1" : invRate === "1" ? "" : invRate); }}
+                      className="w-full px-3 py-2 text-sm text-gray-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30">
+                      {CURRENCIES.map(c => <option key={c}>{c}</option>)}
+                    </select>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Invoice Amount ({invCurrency})</label>
                     <input type="number" min="0" step="0.01" value={invAmount} onChange={e => setInvAmount(e.target.value)}
                       placeholder="0.00"
                       className="w-full px-3 py-2 text-sm text-gray-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30" />
                   </div>
+                  {invCurrency !== "INR" && (
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">
+                        Exchange Rate (1 {invCurrency} = ? INR) <span className="text-red-500">*</span>
+                      </label>
+                      <input type="number" min="0.000001" step="0.0001" value={invRate} onChange={e => setInvRate(e.target.value)}
+                        placeholder="e.g. 83.50"
+                        className="w-full px-3 py-2 text-sm text-gray-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30" />
+                    </div>
+                  )}
+                  {invCurrency !== "INR" && parseFloat(invAmount) > 0 && parseFloat(invRate) > 0 && (
+                    <div className="flex items-end pb-2">
+                      <p className="text-sm text-amber-700 font-medium">
+                        ≈ ₹{(parseFloat(invAmount) * parseFloat(invRate)).toLocaleString("en-IN", { minimumFractionDigits: 2 })} (INR)
+                      </p>
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">Invoice File (PDF or Image, max 20MB)</label>
@@ -1138,8 +1242,7 @@ export default function PurchaseReceiptForm() {
                         <X className="h-3.5 w-3.5" />
                       </button>
                     )}
-                    <button type="button"
-                      onClick={() => { setShowInvoiceForm(false); setInvNumber(""); setInvDate(""); setInvAmount(""); setInvFile(null); }}
+                    <button type="button" onClick={resetInvoiceForm}
                       className="text-xs text-gray-400 hover:text-red-500 underline underline-offset-2">
                       Clear
                     </button>

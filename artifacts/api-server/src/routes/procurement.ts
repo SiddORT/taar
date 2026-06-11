@@ -352,9 +352,12 @@ router.get("/procurement/purchase-receipts/:id", requireAuth, async (req, res) =
     const id = parseInt(String(req.params.id));
     const [prRes, itemsRes] = await Promise.all([
       pool.query(
-        `SELECT pr.*, po.po_number, po.reference_type, po.vendor_name AS po_vendor_name
+        `SELECT pr.*, po.po_number, po.reference_type, po.vendor_name AS po_vendor_name,
+                vil.currency_code AS vendor_invoice_currency_code,
+                vil.exchange_rate_snapshot AS vendor_invoice_exchange_rate
          FROM purchase_receipts pr
          LEFT JOIN purchase_orders po ON po.id = pr.po_id AND po.is_deleted = false
+         LEFT JOIN vendor_invoice_ledger vil ON vil.purchase_receipt_id = pr.id AND vil.is_deleted = false
          WHERE pr.id = $1 AND pr.is_deleted = false`,
         [id]
       ),
@@ -903,9 +906,19 @@ router.post(
     const prId = parseInt(String(req.params.id));
     if (isNaN(prId)) { res.status(400).json({ error: "Invalid PR id" }); return; }
 
-    const { invoice_number, invoice_date, invoice_amount } = req.body as Record<string, string>;
+    const { invoice_number, invoice_date, invoice_amount, currency_code, exchange_rate_snapshot } = req.body as Record<string, string>;
     if (!invoice_number?.trim()) { res.status(400).json({ error: "Invoice number is required" }); return; }
     if (!invoice_amount || isNaN(parseFloat(invoice_amount))) { res.status(400).json({ error: "Invoice amount is required" }); return; }
+    const billCurrency = currency_code?.trim().toUpperCase() || "INR";
+    let billRate: number;
+    if (billCurrency === "INR") {
+      billRate = 1;
+    } else {
+      billRate = Number(exchange_rate_snapshot);
+      if (!isFinite(billRate) || billRate <= 0) {
+        res.status(400).json({ error: `A positive exchange rate is required for ${billCurrency} invoices` }); return;
+      }
+    }
 
     const userName = (req.user as any)?.name || (req.user as any)?.email || "Admin";
 
@@ -952,15 +965,18 @@ router.post(
       const vendorName: string = pr.vendor_name || pr.po_vendor_name || "";
 
       if (vendorId) {
+        const billAmount = parseFloat(invoice_amount);
+        const billBase = parseFloat((billAmount * billRate).toFixed(2));
         await client.query(
           `INSERT INTO vendor_invoice_ledger
              (vendor_id, vendor_name, purchase_receipt_id, pr_number,
               vendor_invoice_number, vendor_invoice_date, vendor_invoice_amount,
               currency_code, exchange_rate_snapshot, base_currency_amount,
               entry_type, status, created_by)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,'INR',1,$7,'Vendor Invoice','Unpaid',$8)`,
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'Vendor Invoice','Unpaid',$11)`,
           [vendorId, vendorName, prId, pr.pr_number,
-           invoice_number.trim(), invoice_date || null, parseFloat(invoice_amount), userName]
+           invoice_number.trim(), invoice_date || null, billAmount,
+           billCurrency, billRate, billBase, userName]
         );
       }
 
