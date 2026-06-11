@@ -257,4 +257,87 @@ describe("POST /record-payment", () => {
     expect(calls.some((sql: string) => sql.includes("ROLLBACK"))).toBe(true);
     expect(mockRelease).toHaveBeenCalledOnce();
   });
+
+  // ── 12. Over-payment guard: exact match → accepted (200) ─────────────────
+  it("accepts a payment exactly equal to the pending balance", async () => {
+    // Invoice: pending = 5000 INR, rate = 1
+    // Payment: 5000 INR @ rate 1 → amtInInvoiceCcy = 5000 = pending → allowed
+    mockClientQuery
+      .mockResolvedValueOnce({ rows: [] })                                                          // BEGIN
+      .mockResolvedValueOnce({ rows: [{ pending_amount: "5000", exchange_rate_snapshot: "1" }] })  // SELECT invoices
+      .mockResolvedValueOnce({ rows: [] })                                                          // INSERT invoice_payments
+      .mockResolvedValueOnce({ rows: [] })                                                          // INSERT client_invoice_ledger
+      .mockResolvedValueOnce({ rows: [] });                                                         // COMMIT
+
+    const res = await request(makeApp())
+      .post("/record-payment")
+      .send(validInvoicePayload({ payment_amount: 5000, exchange_rate_snapshot: "1" }));
+
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({ success: true });
+    expect(mockRecompute).toHaveBeenCalledOnce();
+  });
+
+  // ── 13. Over-payment guard: amount > pending + 0.01 → 400 ────────────────
+  it("rejects a payment that exceeds the pending balance by more than 0.01", async () => {
+    // Invoice: pending = 5000 INR, rate = 1
+    // Payment: 5001.02 INR → amtInInvoiceCcy = 5001.02 > 5000 + 0.01 → rejected
+    mockClientQuery
+      .mockResolvedValueOnce({ rows: [] })                                                          // BEGIN
+      .mockResolvedValueOnce({ rows: [{ pending_amount: "5000", exchange_rate_snapshot: "1" }] })  // SELECT invoices
+      .mockResolvedValueOnce({ rows: [] });                                                         // ROLLBACK
+
+    const res = await request(makeApp())
+      .post("/record-payment")
+      .send(validInvoicePayload({ payment_amount: 5001.02, exchange_rate_snapshot: "1" }));
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/exceeds pending balance/i);
+    expect(mockRecompute).not.toHaveBeenCalled();
+  });
+
+  // ── 14. Multi-currency: USD payment on INR invoice respects INR anchor ────
+  it("multi-currency: accepts USD payment whose INR anchor equals the pending balance", async () => {
+    // Invoice: pending = 8300 INR, invRate = 1
+    // Payment: 100 USD @ payRate = 83 → base = 8300 INR → amtInInvoiceCcy = 8300 / 1 = 8300 = pending → allowed
+    mockClientQuery
+      .mockResolvedValueOnce({ rows: [] })                                                          // BEGIN
+      .mockResolvedValueOnce({ rows: [{ pending_amount: "8300", exchange_rate_snapshot: "1" }] })  // SELECT invoices
+      .mockResolvedValueOnce({ rows: [] })                                                          // INSERT invoice_payments
+      .mockResolvedValueOnce({ rows: [] })                                                          // INSERT client_invoice_ledger
+      .mockResolvedValueOnce({ rows: [] });                                                         // COMMIT
+
+    const res = await request(makeApp())
+      .post("/record-payment")
+      .send(validInvoicePayload({
+        payment_amount: 100,
+        currency_code: "USD",
+        exchange_rate_snapshot: "83",
+      }));
+
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({ success: true });
+    expect(mockRecompute).toHaveBeenCalledOnce();
+  });
+
+  it("multi-currency: rejects USD payment whose INR anchor exceeds the pending balance", async () => {
+    // Invoice: pending = 8300 INR, invRate = 1
+    // Payment: 101 USD @ payRate = 83 → base = 8383 INR → amtInInvoiceCcy = 8383 / 1 = 8383 > 8301 → rejected
+    mockClientQuery
+      .mockResolvedValueOnce({ rows: [] })                                                          // BEGIN
+      .mockResolvedValueOnce({ rows: [{ pending_amount: "8300", exchange_rate_snapshot: "1" }] })  // SELECT invoices
+      .mockResolvedValueOnce({ rows: [] });                                                         // ROLLBACK
+
+    const res = await request(makeApp())
+      .post("/record-payment")
+      .send(validInvoicePayload({
+        payment_amount: 101,
+        currency_code: "USD",
+        exchange_rate_snapshot: "83",
+      }));
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/exceeds pending balance/i);
+    expect(mockRecompute).not.toHaveBeenCalled();
+  });
 });
