@@ -133,6 +133,38 @@ export default function CreditDebitNotes() {
     customFetch<any>("/api/vendor-ledger/summary").then(j => setVendorBills(j.data ?? [])).catch(() => {});
   }, []);
 
+  const normalizeClients = (data: any[]) =>
+  data.map(c => ({
+    id: c.id,
+    name: c.contactName ?? c.brandName ?? "Unknown",
+    code: c.clientCode,
+    email: c.email,
+    type: "Client",
+  }));
+
+  const normalizeVendors = (data: any[]) =>
+  data.map(v => ({
+    id: v.id,
+    name: v.contactName ?? v.brandName ?? "Unknown",
+    code: v.vendorCode,
+    email: v.email,
+    type: "Vendor",
+  }));
+
+  useEffect(() => {
+    customFetch<any>("/api/clients")
+      .then(j => {
+        const data = j.data ?? j ?? [];
+        setClients(normalizeClients(data));
+      });
+
+    customFetch<any>("/api/vendors")
+      .then(j => {
+        const data = j.data ?? j ?? [];
+        setVendors(normalizeVendors(data));
+      });
+  }, []);
+
   /* ── close dropdown on outside click ─────────────────── */
   useEffect(() => {
     function h(e: MouseEvent) {
