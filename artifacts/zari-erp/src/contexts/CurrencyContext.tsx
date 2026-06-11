@@ -35,8 +35,9 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
   const load = useCallback(() => {
     const token = localStorage.getItem("zarierp_token");
     if (!token) return;
-    customFetch<any[]>("/api/settings/currencies")
-      .then((all) => {
+    customFetch<any>("/api/settings/currencies")
+      .then((res) => {
+        const all: any[] = res.data ?? [];
         const base = all.find((c: any) => c.is_base) ?? all.find((c: any) => c.code === "INR");
         if (!base) return;
         const baseCode = base.code as string;
@@ -44,8 +45,9 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
           setCurrency({ code: "INR", symbol: "₹", decimal_places: base.decimal_places ?? 2, rate: 1 });
           return;
         }
-        customFetch<any[]>("/api/settings/exchange-rates")
-          .then((rates) => {
+        customFetch<any>("/api/settings/exchange-rates")
+          .then((ratesRes) => {
+            const rates: any[] = ratesRes.data ?? [];
             const row = rates.find((r: any) => r.currency_code === baseCode);
             const ratePerInr = row ? parseFloat(row.rate) : 1;
             setCurrency({
