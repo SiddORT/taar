@@ -130,6 +130,48 @@ router.post("/vendor-bills/:id/payment", requireAuth, async (req: AuthRequest, r
   } finally { client.release(); }
 });
 
+/* ══════════════════════════════════════════════════════════
+   VENDOR BILL STATUS CHANGE (e.g. cancel)
+══════════════════════════════════════════════════════════ */
+router.patch("/vendor-bills/:id/status", requireAuth, async (req: AuthRequest, res) => {
+  try {
+    const id = parseInt(String(req.params.id));
+    const { status } = req.body as { status?: string };
+
+    const allowed = ["Unpaid", "Partially Paid", "Paid", "Cancelled"];
+    if (!status || !allowed.includes(status)) {
+      return res.status(400).json({ error: `Invalid status. Allowed values: ${allowed.join(", ")}` });
+    }
+
+    const { rows: billRows } = await pool.query(
+      `SELECT id, status FROM vendor_invoice_ledger WHERE id = $1 AND is_deleted = false`,
+      [id]
+    );
+    if (!billRows.length) return res.status(404).json({ error: "Bill not found" });
+
+    if (status === "Cancelled") {
+      const { rows: payRows } = await pool.query(
+        `SELECT COUNT(*) AS cnt FROM vendor_payments WHERE vendor_invoice_ledger_id = $1 AND is_deleted = false`,
+        [id]
+      );
+      const payCount = parseInt(payRows[0]?.cnt ?? "0");
+      if (payCount > 0) {
+        return res.status(400).json({
+          error: "Cannot cancel bill: payments have been recorded against it. Reverse all payments before cancelling.",
+        });
+      }
+    }
+
+    const { rows: updated } = await pool.query(
+      `UPDATE vendor_invoice_ledger SET status = $1, updated_at = NOW() WHERE id = $2 AND is_deleted = false RETURNING *`,
+      [status, id]
+    );
+    return res.json({ data: updated[0] });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
 /* Legacy summary */
 router.get("/summary", requireAuth, async (req, res) => {
   try {

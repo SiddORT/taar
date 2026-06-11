@@ -15,16 +15,17 @@ import request from "supertest";
 import express from "express";
 
 // ─── Hoisted mocks ────────────────────────────────────────────────────────────
-const { mockClientQuery, mockRelease, mockConnect, mockRecompute } = vi.hoisted(() => ({
+const { mockClientQuery, mockRelease, mockConnect, mockRecompute, mockPoolQuery } = vi.hoisted(() => ({
   mockClientQuery: vi.fn(),
   mockRelease: vi.fn(),
   mockConnect: vi.fn(),
   mockRecompute: vi.fn(),
+  mockPoolQuery: vi.fn(),
 }));
 
 // ─── Mock @workspace/db ───────────────────────────────────────────────────────
 vi.mock("@workspace/db", () => ({
-  pool: { connect: mockConnect, query: vi.fn() },
+  pool: { connect: mockConnect, query: mockPoolQuery },
   db: {
     select: vi.fn().mockReturnThis(),
     from: vi.fn().mockReturnThis(),
@@ -431,7 +432,7 @@ describe("POST /vendor-bills/:id/payment", () => {
     expect(res.status).toBe(200);
   });
 
-  // ── 16. TOCTOU race safety: FOR UPDATE lock precedes the balance check ────
+  // ── 16. TOCTOU race safety: FOR UPDATE lock precedes the balance check ─────
   //
   // Scenario: two requests arrive simultaneously for the same bill. Each reads
   // the pending balance independently and both appear to pass the overpayment
@@ -482,5 +483,80 @@ describe("POST /vendor-bills/:id/payment", () => {
 
     // And the INSERT must be before the COMMIT (write is inside the transaction).
     expect(insertIdx).toBeLessThan(commitIdx);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PATCH /vendor-bills/:id/status — cancellation guard
+// ─────────────────────────────────────────────────────────────────────────────
+describe("PATCH /vendor-bills/:id/status", () => {
+
+  // ── 1. Cancel blocked when payments exist ────────────────────────────────
+  it("returns 400 when attempting to cancel a bill that has recorded payments", async () => {
+    mockPoolQuery
+      .mockResolvedValueOnce({ rows: [{ id: 1, status: "Partially Paid" }] })  // SELECT bill
+      .mockResolvedValueOnce({ rows: [{ cnt: "2" }] });                         // COUNT payments
+
+    const res = await request(makeApp())
+      .patch("/vendor-bills/1/status")
+      .send({ status: "Cancelled" });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/cannot cancel bill/i);
+    expect(res.body.error).toMatch(/payment/i);
+  });
+
+  // ── 2. Cancel succeeds when no payments exist ─────────────────────────────
+  it("returns 200 and updates status when no payments exist", async () => {
+    const updatedBill = { id: 1, status: "Cancelled", vendor_invoice_amount: "1000" };
+    mockPoolQuery
+      .mockResolvedValueOnce({ rows: [{ id: 1, status: "Unpaid" }] })  // SELECT bill
+      .mockResolvedValueOnce({ rows: [{ cnt: "0" }] })                  // COUNT payments → 0
+      .mockResolvedValueOnce({ rows: [updatedBill] });                   // UPDATE returning
+
+    const res = await request(makeApp())
+      .patch("/vendor-bills/1/status")
+      .send({ status: "Cancelled" });
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.status).toBe("Cancelled");
+  });
+
+  // ── 3. Bill not found → 404 ───────────────────────────────────────────────
+  it("returns 404 when the bill does not exist", async () => {
+    mockPoolQuery.mockResolvedValueOnce({ rows: [] }); // SELECT → not found
+
+    const res = await request(makeApp())
+      .patch("/vendor-bills/999/status")
+      .send({ status: "Cancelled" });
+
+    expect(res.status).toBe(404);
+    expect(res.body.error).toMatch(/bill not found/i);
+  });
+
+  // ── 4. Invalid status → 400 ───────────────────────────────────────────────
+  it("returns 400 for an unrecognised status value", async () => {
+    const res = await request(makeApp())
+      .patch("/vendor-bills/1/status")
+      .send({ status: "Bogus" });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/invalid status/i);
+  });
+
+  // ── 5. Non-cancel status change skips the payment check ──────────────────
+  it("allows a non-cancel status change without checking payments", async () => {
+    const updatedBill = { id: 1, status: "Unpaid" };
+    mockPoolQuery
+      .mockResolvedValueOnce({ rows: [{ id: 1, status: "Partially Paid" }] })  // SELECT bill
+      .mockResolvedValueOnce({ rows: [updatedBill] });                           // UPDATE returning
+
+    const res = await request(makeApp())
+      .patch("/vendor-bills/1/status")
+      .send({ status: "Unpaid" });
+
+    // Should succeed without a payment count query in between
+    expect(res.status).toBe(200);
+    expect(mockPoolQuery).toHaveBeenCalledTimes(2); // SELECT + UPDATE only
   });
 });
