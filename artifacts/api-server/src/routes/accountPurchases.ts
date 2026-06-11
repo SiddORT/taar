@@ -286,7 +286,7 @@ router.get("/unified-liabilities", requireAuth, async (req, res) => {
           vil.paid_amount::numeric            AS paid_amount,
           vil.pending_amount::numeric         AS pending_amount,
           vil.status                          AS status,
-          COALESCE(vil.currency_code, 'INR')  AS currency_code,
+          COALESCE(vil.currency_code, 'INR')::text AS currency_code,
           COALESCE(vil.exchange_rate_snapshot, 1)::numeric AS exchange_rate_snapshot
         FROM vendor_invoice_ledger vil
         WHERE 1=1
@@ -475,12 +475,16 @@ router.post("/record-payment", requireAuth, async (req: AuthRequest, res) => {
       const { rows } = await client.query(`SELECT * FROM vendor_invoice_ledger WHERE id = $1 FOR UPDATE`, [id]);
       if (!rows.length) throw new Error("Bill not found");
       const bill = rows[0];
+      const billCcyCode = bill.currency_code || "INR";
       const billRate = parseFloat(bill.exchange_rate_snapshot ?? "1") || 1;   // bill ccy -> INR
       const amtInBillCcy = baseAmt / billRate;                                // bill currency
       const prevPaid = parseFloat(bill.paid_amount ?? "0");                   // bill currency
       const totalBill = parseFloat(bill.vendor_invoice_amount);              // bill currency
-      if (amtInBillCcy > (totalBill - prevPaid) + 0.01) {
-        throw new Error(`Payment amount (${amtInBillCcy.toFixed(2)} in bill currency) exceeds pending balance (${(totalBill - prevPaid).toFixed(2)})`);
+      const pendingInBillCcy = totalBill - prevPaid;
+      if (amtInBillCcy > pendingInBillCcy + 0.01) {
+        throw new Error(
+          `Payment (${amtInBillCcy.toFixed(2)} ${billCcyCode}) exceeds pending balance (${pendingInBillCcy.toFixed(2)} ${billCcyCode})`
+        );
       }
       await client.query(
         `INSERT INTO vendor_payments (vendor_id,vendor_name,payment_date,amount,currency_code,exchange_rate_snapshot,base_currency_amount,payment_mode,reference_no,notes,order_type,vendor_invoice_ledger_id,created_by)

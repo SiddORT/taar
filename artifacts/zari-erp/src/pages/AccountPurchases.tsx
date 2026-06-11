@@ -127,15 +127,36 @@ function PaymentModal({ row, onClose, onSuccess }: {
   });
   const [saving, setSaving] = useState(false);
 
+  const pendingAmt = parseFloat(row.pending_amount ?? row.amount ?? 0);
+
+  /* Overpayment guard — convert entered amount to bill currency via INR anchor */
+  const payAmt  = parseFloat(form.payment_amount) || 0;
+  const payRate = parseFloat(form.exchange_rate_snapshot) || 1;
+  const amtInBillCcy = payAmt > 0 ? (payAmt * payRate) / billRate : 0;
+  const isOverpayment = payAmt > 0 && amtInBillCcy > pendingAmt + 0.01;
+
+  function fmtBillAmt(n: number) {
+    if (billCcy === "INR") return fmtAmt(n);
+    return `${billCcy} ${n.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  }
+
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     const amt = parseFloat(form.payment_amount);
     if (!amt || amt <= 0) {
       toast({ title: "Enter a valid payment amount", variant: "destructive" }); return;
     }
-    const payRate = parseFloat(form.exchange_rate_snapshot) || 1;
-    if (form.currency_code !== "INR" && payRate <= 0) {
+    const payRate2 = parseFloat(form.exchange_rate_snapshot) || 1;
+    if (form.currency_code !== "INR" && payRate2 <= 0) {
       toast({ title: "Enter a valid exchange rate", variant: "destructive" }); return;
+    }
+    if (isOverpayment) {
+      toast({
+        title: "Overpayment not allowed",
+        description: `Payment (${fmtBillAmt(amtInBillCcy)}) would exceed pending balance (${fmtBillAmt(pendingAmt)})`,
+        variant: "destructive",
+      });
+      return;
     }
     setSaving(true);
     try {
@@ -159,8 +180,6 @@ function PaymentModal({ row, onClose, onSuccess }: {
       toast({ title: "Payment Error", description: msg, variant: "destructive" });
     } finally { setSaving(false); }
   }
-
-  const pendingAmt = parseFloat(row.pending_amount ?? row.amount ?? 0);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -192,13 +211,22 @@ function PaymentModal({ row, onClose, onSuccess }: {
           </div>
         )}
 
+        {isOverpayment && (
+          <div className="mx-5 mt-2 px-3 py-2.5 rounded-xl bg-red-50 border border-red-300 flex items-center gap-2">
+            <AlertTriangle size={14} className="text-red-600 shrink-0" />
+            <p className="text-sm text-red-700">
+              Exceeds pending balance — max <strong>{fmtBillAmt(pendingAmt)}</strong>
+            </p>
+          </div>
+        )}
+
         <form onSubmit={submit} className="p-5 space-y-4">
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className={LBL}>Amount <span className="text-red-500 ml-0.5">*</span></label>
               <input
                 type="number" min="0.01" step="0.01" required className={INP}
-                placeholder={`Max ${fmtAmt(pendingAmt)}`} value={form.payment_amount}
+                placeholder={`Max ${fmtBillAmt(pendingAmt)}`} value={form.payment_amount}
                 onChange={e => setForm(p => ({ ...p, payment_amount: e.target.value }))} />
             </div>
             <div>
@@ -227,6 +255,7 @@ function PaymentModal({ row, onClose, onSuccess }: {
           {form.currency_code !== "INR" && parseFloat(form.payment_amount) > 0 && (
             <p className="text-xs text-gray-500 -mt-1">
               ≈ {fmtAmt(parseFloat(form.payment_amount) * (parseFloat(form.exchange_rate_snapshot) || 1))} (INR)
+              {billCcy !== "INR" && amtInBillCcy > 0 && ` · ${fmtBillAmt(amtInBillCcy)} in bill currency`}
             </p>
           )}
           <div>
@@ -253,7 +282,7 @@ function PaymentModal({ row, onClose, onSuccess }: {
               className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors">
               Cancel
             </button>
-            <button type="submit" disabled={saving}
+            <button type="submit" disabled={saving || isOverpayment}
               className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white shadow-sm hover:opacity-90 active:scale-95 transition-all disabled:opacity-60"
               style={{ background: G }}>
               {saving ? "Saving…" : "Record Payment"}
