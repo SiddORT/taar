@@ -89,9 +89,20 @@ router.post("/vendor-bills/:id/payment", requireAuth, async (req: AuthRequest, r
     const id = parseInt(String(req.params.id));
     const { payment_amount, payment_date, payment_type, transaction_reference, remarks, currency_code, exchange_rate_snapshot } = req.body as any;
     const amt = parseFloat(payment_amount ?? "0");                          // pay currency
-    if (amt <= 0) throw new Error("payment_amount must be > 0");
+    if (!Number.isFinite(amt) || amt <= 0) throw new Error("Invalid payment amount");
+
+    // No future-dated payments — compare YYYY-MM-DD strings to avoid timezone drift
+    if (payment_date) {
+      const dateStr = String(payment_date).slice(0, 10);
+      const todayStr = new Date().toISOString().slice(0, 10);
+      if (dateStr > todayStr) throw new Error("Payment date cannot be in the future");
+    }
+
     const { rows } = await client.query(`SELECT * FROM vendor_invoice_ledger WHERE id = $1 FOR UPDATE`, [id]);
-    if (!rows.length) throw new Error("Bill not found");
+    if (!rows.length) {
+      await client.query("ROLLBACK");
+      return res.status(404).json({ error: "Bill not found" });
+    }
     const bill = rows[0];
     // Convert the payment into the bill's currency via the INR anchor and guard against overpayment.
     const payRate      = parseFloat(String(exchange_rate_snapshot ?? "1")) || 1;  // pay ccy -> INR
@@ -110,10 +121,10 @@ router.post("/vendor-bills/:id/payment", requireAuth, async (req: AuthRequest, r
     );
     const bal = await recomputeVendorBillBalances(client, id);
     await client.query("COMMIT");
-    res.json({ message: "Payment recorded", paid: bal?.paidAmount ?? 0, pending: bal?.pendingAmount ?? 0, status: bal?.status ?? "Partially Paid" });
+    return res.json({ message: "Payment recorded", paid: bal?.paidAmount ?? 0, pending: bal?.pendingAmount ?? 0, status: bal?.status ?? "Partially Paid" });
   } catch (err: any) {
     await client.query("ROLLBACK");
-    res.status(400).json({ error: err.message });
+    return res.status(400).json({ error: err.message });
   } finally { client.release(); }
 });
 

@@ -167,14 +167,13 @@ describe("POST /vendor-bills/:id/payment", () => {
   // ── 3. Zero payment is rejected ───────────────────────────────────────────
   it("rejects payment_amount = 0 with 400", async () => {
     mockClientQuery.mockResolvedValueOnce({ rows: [] }); // BEGIN
-    // The route should throw before the SELECT, but the mock still needs BEGIN
 
     const res = await request(makeApp())
       .post("/vendor-bills/1/payment")
       .send({ payment_amount: "0" });
 
     expect(res.status).toBe(400);
-    expect(res.body.error).toMatch(/must be > 0/i);
+    expect(res.body.error).toMatch(/invalid payment amount/i);
   });
 
   // ── 4. Negative payment is rejected ──────────────────────────────────────
@@ -186,7 +185,7 @@ describe("POST /vendor-bills/:id/payment", () => {
       .send({ payment_amount: "-100" });
 
     expect(res.status).toBe(400);
-    expect(res.body.error).toMatch(/must be > 0/i);
+    expect(res.body.error).toMatch(/invalid payment amount/i);
   });
 
   // ── 5. Missing payment_amount treated as 0 → rejected ────────────────────
@@ -198,7 +197,26 @@ describe("POST /vendor-bills/:id/payment", () => {
       .send({ payment_type: "Cash" });
 
     expect(res.status).toBe(400);
-    expect(res.body.error).toMatch(/must be > 0/i);
+    expect(res.body.error).toMatch(/invalid payment amount/i);
+  });
+
+  // ── 5b. Future payment date → 400 ─────────────────────────────────────────
+  it("rejects a future payment_date with 400", async () => {
+    const tomorrow = new Date(Date.now() + 86_400_000).toISOString().split("T")[0];
+    mockClientQuery.mockResolvedValueOnce({ rows: [] }); // BEGIN
+
+    const res = await request(makeApp())
+      .post("/vendor-bills/1/payment")
+      .send({
+        payment_amount: "500",
+        payment_date: tomorrow,
+        currency_code: "INR",
+        exchange_rate_snapshot: "1",
+      });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/future/i);
+    expect(mockRecompute).not.toHaveBeenCalled();
   });
 
   // ── 6. Over-payment guard — INR bill ──────────────────────────────────────
@@ -300,8 +318,8 @@ describe("POST /vendor-bills/:id/payment", () => {
     expect(mockRecompute).not.toHaveBeenCalled();
   });
 
-  // ── 11. Bill not found → error ────────────────────────────────────────────
-  it("returns 400 when the bill is not found", async () => {
+  // ── 11. Bill not found → 404 ──────────────────────────────────────────────
+  it("returns 404 when the bill is not found", async () => {
     mockClientQuery
       .mockResolvedValueOnce({ rows: [] })  // BEGIN
       .mockResolvedValueOnce({ rows: [] })  // SELECT → not found
@@ -311,7 +329,7 @@ describe("POST /vendor-bills/:id/payment", () => {
       .post("/vendor-bills/999/payment")
       .send({ payment_amount: "100" });
 
-    expect(res.status).toBe(400);
+    expect(res.status).toBe(404);
     expect(res.body.error).toMatch(/bill not found/i);
   });
 
