@@ -3,6 +3,7 @@ import { pool } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
 import type { AuthRequest } from "../middlewares/requireAuth";
 import { nextSequenceNumber } from "../utils/sequence";
+import { computeNewAveragePrice, computeAvailableStock } from "../lib/procurementMath";
 
 const router = Router();
 
@@ -36,13 +37,11 @@ async function applyInventoryUpdate(
     const prevAvg   = parseFloat(row.average_price ?? "0");
     const newStock  = prevStock + item.quantity;
 
-    const newAvg = newStock > 0
-      ? ((prevStock * prevAvg) + (item.quantity * item.unit_price)) / newStock
-      : item.unit_price;
+    const newAvg    = computeNewAveragePrice(prevStock, prevAvg, item.quantity, item.unit_price);
 
     const styleRes  = parseFloat(row.style_reserved_qty ?? "0");
     const swatchRes = parseFloat(row.swatch_reserved_qty ?? "0");
-    const newAvail  = Math.max(0, newStock - styleRes - swatchRes);
+    const newAvail  = computeAvailableStock(newStock, styleRes, swatchRes);
 
     await client.query(
       `UPDATE inventory_items SET

@@ -3,6 +3,7 @@ import { pool } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
 import type { AuthRequest } from "../middlewares/requireAuth";
 import { recomputeVendorBillBalances } from "../lib/vendorBillBalances";
+import { convertPaymentToBillCcy, isOverpayment } from "../lib/procurementMath";
 
 const router = Router();
 
@@ -92,14 +93,14 @@ router.post("/vendor-bills/:id/payment", requireAuth, async (req: AuthRequest, r
     const { rows } = await client.query(`SELECT * FROM vendor_invoice_ledger WHERE id = $1 FOR UPDATE`, [id]);
     if (!rows.length) throw new Error("Bill not found");
     const bill = rows[0];
-    // Convert the payment into the bill's currency via the INR anchor.
-    const payRate  = parseFloat(String(exchange_rate_snapshot ?? "1")) || 1;     // pay ccy -> INR
-    const baseAmt  = amt * payRate;                                              // INR anchor
-    const billRate = parseFloat(bill.exchange_rate_snapshot ?? "1") || 1;        // bill ccy -> INR
-    const amtInBillCcy = baseAmt / billRate;                                     // bill currency
-    const prevPaid   = parseFloat(bill.paid_amount ?? "0");                      // bill currency
-    const billTotal  = parseFloat(bill.vendor_invoice_amount);                   // bill currency
-    if (amtInBillCcy > (billTotal - prevPaid) + 0.01) throw new Error("Payment exceeds pending balance");
+    // Convert the payment into the bill's currency via the INR anchor and guard against overpayment.
+    const payRate      = parseFloat(String(exchange_rate_snapshot ?? "1")) || 1;  // pay ccy -> INR
+    const baseAmt      = amt * payRate;                                           // INR anchor
+    const billRate     = parseFloat(bill.exchange_rate_snapshot ?? "1") || 1;     // bill ccy -> INR
+    const amtInBillCcy = convertPaymentToBillCcy(amt, payRate, billRate);         // bill currency
+    const prevPaid     = parseFloat(bill.paid_amount ?? "0");                     // bill currency
+    const billTotal    = parseFloat(bill.vendor_invoice_amount);                  // bill currency
+    if (isOverpayment(amtInBillCcy, billTotal, prevPaid)) throw new Error("Payment exceeds pending balance");
     await client.query(
       `INSERT INTO vendor_payments (vendor_id, vendor_name, payment_date, amount, currency_code, exchange_rate_snapshot, base_currency_amount, payment_mode, reference_no, notes, order_type, vendor_invoice_ledger_id, created_by)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'general',$11,$12)`,
