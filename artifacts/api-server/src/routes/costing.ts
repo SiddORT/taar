@@ -1095,14 +1095,19 @@ router.get("/payments/:prId", requireAuth, async (req, res) => {
 
 router.post("/payments", requireAuth, async (req, res) => {
   const user = (req as any).user;
-  const { prId, paymentType, paymentDate, paymentMode, amount, transactionStatus, paymentStatus, attachment } = req.body as Record<string, unknown>;
+  const { prId, paymentType, paymentDate, paymentMode, amount, currencyCode, exchangeRateSnapshot, transactionStatus, paymentStatus, attachment } = req.body as Record<string, unknown>;
   const savedAttachment = await persistAttachmentObject(attachment, { entity: "procurement", category: "pr-payments" });
+  const payRate = parseFloat(String(exchangeRateSnapshot ?? "1")) || 1;        // pay ccy -> INR
+  const baseAmt = (parseFloat(String(amount ?? "0")) * payRate).toFixed(2);    // INR anchor
   const [row] = await db.insert(prPaymentsTable).values({
     prId: Number(prId),
     paymentType: String(paymentType),
     paymentDate: paymentDate ? new Date(String(paymentDate)) : new Date(),
     paymentMode: String(paymentMode ?? ""),
     amount: String(amount),
+    currencyCode: String(currencyCode ?? "INR"),
+    exchangeRateSnapshot: String(payRate),
+    baseCurrencyAmount: baseAmt,
     transactionStatus: String(transactionStatus ?? ""),
     paymentStatus: String(paymentStatus ?? "Pending"),
     attachment: savedAttachment,
@@ -2202,7 +2207,7 @@ router.get("/costing-payments-totals", requireAuth, async (req, res) => {
     if (swatchOrderId) { params.push(parseInt(swatchOrderId)); where += ` AND swatch_order_id = $${params.length}`; }
     if (styleOrderId)  { params.push(parseInt(styleOrderId));  where += ` AND style_order_id = $${params.length}`; }
     const { rows } = await pool.query(
-      `SELECT reference_id, COALESCE(SUM(payment_amount), 0) AS total_paid
+      `SELECT reference_id, COALESCE(SUM(base_currency_amount), 0) AS total_paid
        FROM costing_payments WHERE ${where}
        GROUP BY reference_id`,
       params
@@ -2241,11 +2246,16 @@ router.post("/costing-payments", requireAuth, async (req, res) => {
       swatchOrderId, styleOrderId,
       paymentType, paymentMode, paymentAmount, paymentStatus,
       transactionId, paymentDate, remarks,
+      currencyCode, exchangeRateSnapshot,
     } = req.body;
 
     if (!vendorId || !referenceType || !referenceId || !paymentAmount) {
       return res.status(400).json({ error: "vendorId, referenceType, referenceId, paymentAmount are required" });
     }
+
+    const payCcy  = currencyCode || "INR";
+    const payRate = parseFloat(String(exchangeRateSnapshot ?? "1")) || 1;       // pay ccy -> INR
+    const baseAmt = (parseFloat(String(paymentAmount)) * payRate).toFixed(2);   // INR anchor
 
     // Upsert: if transaction_id is provided and a matching record exists, update it
     if (transactionId) {
@@ -2259,7 +2269,8 @@ router.post("/costing-payments", requireAuth, async (req, res) => {
         const { rows } = await pool.query(
           `UPDATE costing_payments SET
              vendor_id = $1, vendor_name = $2, payment_type = $3, payment_mode = $4,
-             payment_amount = $5, payment_status = $6, payment_date = $7, remarks = $8
+             payment_amount = $5, payment_status = $6, payment_date = $7, remarks = $8,
+             currency_code = $10, exchange_rate_snapshot = $11, base_currency_amount = $12
            WHERE id = $9
            RETURNING *`,
           [
@@ -2267,6 +2278,7 @@ router.post("/costing-payments", requireAuth, async (req, res) => {
             parseFloat(paymentAmount), paymentStatus,
             paymentDate ? new Date(paymentDate) : null,
             remarks, existing.rows[0].id,
+            payCcy, payRate, baseAmt,
           ]
         );
         return res.json({ data: rows[0], updated: true });
@@ -2277,15 +2289,17 @@ router.post("/costing-payments", requireAuth, async (req, res) => {
     const { rows } = await pool.query(
       `INSERT INTO costing_payments
          (vendor_id, vendor_name, reference_type, reference_id, swatch_order_id, style_order_id,
-          payment_type, payment_mode, payment_amount, payment_status, transaction_id, payment_date, remarks, created_by)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
+          payment_type, payment_mode, payment_amount, currency_code, exchange_rate_snapshot, base_currency_amount,
+          payment_status, transaction_id, payment_date, remarks, created_by)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
        RETURNING *`,
       [
         parseInt(vendorId), vendorName, referenceType, parseInt(referenceId),
         swatchOrderId ? parseInt(swatchOrderId) : null,
         styleOrderId ? parseInt(styleOrderId) : null,
         paymentType, paymentMode,
-        parseFloat(paymentAmount), paymentStatus || "Pending",
+        parseFloat(paymentAmount), payCcy, payRate, baseAmt,
+        paymentStatus || "Pending",
         transactionId || null,
         paymentDate ? new Date(paymentDate) : null,
         remarks || null,
@@ -2302,7 +2316,22 @@ router.post("/costing-payments", requireAuth, async (req, res) => {
 router.patch("/costing-payments/:id", requireAuth, async (req, res) => {
   try {
     const id = parseInt(String(req.params.id));
-    const { paymentType, paymentMode, paymentAmount, paymentStatus, transactionId, paymentDate, remarks } = req.body;
+    const { paymentType, paymentMode, paymentAmount, paymentStatus, transactionId, paymentDate, remarks, currencyCode, exchangeRateSnapshot } = req.body;
+    // Recompute the INR base anchor whenever EITHER amount or rate changes, deriving the
+    // missing side from the existing row so base never goes stale on a partial update.
+    const payRate = exchangeRateSnapshot != null ? (parseFloat(String(exchangeRateSnapshot)) || 1) : null;
+    let baseAmt: string | null = null;
+    if (paymentAmount != null || payRate != null) {
+      const cur = await pool.query(
+        `SELECT payment_amount, exchange_rate_snapshot FROM costing_payments WHERE id = $1`,
+        [id],
+      );
+      if (cur.rows.length) {
+        const effAmt = paymentAmount != null ? parseFloat(String(paymentAmount)) : parseFloat(cur.rows[0].payment_amount ?? "0");
+        const effRate = payRate != null ? payRate : (parseFloat(cur.rows[0].exchange_rate_snapshot ?? "1") || 1);
+        baseAmt = (effAmt * effRate).toFixed(2);
+      }
+    }
     const { rows } = await pool.query(
       `UPDATE costing_payments SET
          payment_type = COALESCE($1, payment_type),
@@ -2311,7 +2340,10 @@ router.patch("/costing-payments/:id", requireAuth, async (req, res) => {
          payment_status = COALESCE($4, payment_status),
          transaction_id = COALESCE($5, transaction_id),
          payment_date = COALESCE($6, payment_date),
-         remarks = COALESCE($7, remarks)
+         remarks = COALESCE($7, remarks),
+         currency_code = COALESCE($9, currency_code),
+         exchange_rate_snapshot = COALESCE($10, exchange_rate_snapshot),
+         base_currency_amount = COALESCE($11, base_currency_amount)
        WHERE id = $8
        RETURNING *`,
       [
@@ -2322,6 +2354,9 @@ router.patch("/costing-payments/:id", requireAuth, async (req, res) => {
         paymentDate ? new Date(paymentDate) : null,
         remarks ?? null,
         id,
+        currencyCode ?? null,
+        payRate,
+        baseAmt,
       ]
     );
     if (!rows.length) return res.status(404).json({ error: "Not found" });

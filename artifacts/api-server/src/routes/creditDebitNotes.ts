@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { pool } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
+import { recomputeInvoiceBalances } from "../lib/invoiceBalances";
 
 const router = Router();
 
@@ -22,18 +23,13 @@ async function nextNoteNumber(client: any, type: string): Promise<string> {
   return `${prefix}-${year}-${String(seq).padStart(5, "0")}`;
 }
 
+/* Apply a note's effects. The note row must already be persisted with status='Applied'
+   before calling, because recomputeInvoiceBalances sums applied notes straight from the DB.
+   Credit notes adjust the invoice balance in the invoice's own currency via the INR anchor. */
 async function applyNoteEffects(client: any, note: any) {
   if (note.status !== "Applied") return;
 
   if (note.note_type === "Credit Note" && note.reference_type === "Client Invoice" && note.invoice_id) {
-    await client.query(
-      `UPDATE invoices
-         SET pending_amount  = GREATEST(0, COALESCE(pending_amount,0) - $1),
-             received_amount = COALESCE(received_amount,0) + $1,
-             updated_at      = NOW()
-       WHERE id = $2`,
-      [note.note_amount, note.invoice_id]
-    );
     await client.query(
       `INSERT INTO client_invoice_ledger
          (client_id, invoice_id, entry_type, payment_amount, payment_date, transaction_reference, status, created_by)
@@ -43,6 +39,7 @@ async function applyNoteEffects(client: any, note: any) {
         note.note_date, note.note_number, note.created_by ?? "",
       ]
     );
+    await recomputeInvoiceBalances(client, note.invoice_id);
   }
 
   if (note.note_type === "Debit Note" && note.reference_type === "Vendor Bill" && note.vendor_bill_id) {
@@ -55,23 +52,16 @@ async function applyNoteEffects(client: any, note: any) {
   }
 }
 
+/* Reverse a note's effects. Call AFTER the note's DB status has been flipped away from
+   'Applied' so the balance recompute no longer counts it. */
 async function reverseNoteEffects(client: any, note: any, deletedBy: string) {
-  if (note.status !== "Applied") return;
-
   if (note.note_type === "Credit Note" && note.reference_type === "Client Invoice" && note.invoice_id) {
-    await client.query(
-      `UPDATE invoices
-         SET pending_amount  = COALESCE(pending_amount,0) + $1,
-             received_amount = GREATEST(0, COALESCE(received_amount,0) - $1),
-             updated_at      = NOW()
-       WHERE id = $2`,
-      [note.note_amount, note.invoice_id]
-    );
     await client.query(
       `UPDATE client_invoice_ledger SET is_deleted = true, deleted_by = $3, deleted_at = now()
        WHERE invoice_id = $1 AND entry_type = 'Credit Note' AND transaction_reference = $2 AND is_deleted = false`,
       [note.invoice_id, note.note_number, deletedBy]
     );
+    await recomputeInvoiceBalances(client, note.invoice_id);
   }
 }
 
@@ -152,17 +142,22 @@ router.post("/", requireAuth, async (req, res) => {
     if (reference_type === "Vendor Bill" && !vendor_bill_id)
       throw new Error("vendor_bill_id is required for Vendor Bill");
 
-    // Server-side cap: note_amount must not exceed source document outstanding/total
+    // Server-side cap: note_amount must not exceed source document outstanding/total.
+    // Credit notes are compared in the invoice's currency (convert the note via the INR anchor).
     const amtNum = parseFloat(note_amount);
     if (note_type === "Credit Note" && reference_type === "Client Invoice" && invoice_id) {
       const { rows: invRows } = await client.query(
-        `SELECT COALESCE(pending_amount, total_amount, 0) AS cap FROM invoices WHERE id = $1 AND is_deleted = false`,
+        `SELECT COALESCE(pending_amount, total_amount, 0) AS cap, exchange_rate_snapshot
+           FROM invoices WHERE id = $1 AND is_deleted = false`,
         [invoice_id]
       );
       if (!invRows.length) throw new Error("Linked invoice not found");
-      const cap = parseFloat(invRows[0].cap);
-      if (amtNum > cap + 0.001)
-        throw new Error(`Credit Note amount (₹${amtNum.toFixed(2)}) cannot exceed invoice pending amount (₹${cap.toFixed(2)})`);
+      const cap = parseFloat(invRows[0].cap);                                  // invoice currency
+      const invRate = parseFloat(invRows[0].exchange_rate_snapshot ?? "1") || 1;
+      const noteRate = parseFloat(exchange_rate_snapshot ?? "1") || 1;
+      const noteInInvoiceCcy = (amtNum * noteRate) / invRate;                  // invoice currency
+      if (noteInInvoiceCcy > cap + 0.01)
+        throw new Error(`Credit Note amount (${noteInInvoiceCcy.toFixed(2)} in invoice currency) cannot exceed invoice pending amount (${cap.toFixed(2)})`);
     }
     if (note_type === "Debit Note" && reference_type === "Vendor Bill" && vendor_bill_id) {
       const { rows: vbRows } = await client.query(
@@ -248,11 +243,13 @@ router.put("/:id/cancel", requireAuth, async (req, res) => {
     if (note.status === "Cancelled") throw new Error("Already cancelled");
 
     const deletedByUser = (req as any).user?.username ?? (req as any).user?.name ?? "system";
-    await reverseNoteEffects(client, note, deletedByUser);
+    const wasApplied = note.status === "Applied";
+    // Flip status first so the balance recompute inside reverseNoteEffects no longer counts this note
     await client.query(
       "UPDATE credit_debit_notes SET status='Cancelled', updated_at=NOW() WHERE note_id=$1",
       [note.note_id]
     );
+    if (wasApplied) await reverseNoteEffects(client, note, deletedByUser);
     await client.query("COMMIT");
     return res.json({ data: { ...note, status: "Cancelled" }, message: "Note cancelled and balances reversed" });
   } catch (err: any) {

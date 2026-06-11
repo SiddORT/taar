@@ -28,6 +28,8 @@ const PAYMENT_STATUS_COLORS: Record<string, string> = {
   Failed:     "bg-red-100 text-red-700 border-red-200",
 };
 
+const CURRENCIES = ["INR", "USD", "EUR", "GBP", "AED", "JPY", "CNY"];
+
 const DEFAULT_FORM = {
   paymentType:   "Partial",
   paymentMode:   "",
@@ -36,6 +38,8 @@ const DEFAULT_FORM = {
   transactionId: "",
   paymentDate:   new Date().toISOString().slice(0, 10),
   remarks:       "",
+  currencyCode:  "INR",
+  exchangeRateSnapshot: "1",
 };
 
 interface Props {
@@ -75,7 +79,7 @@ export default function CostingPaymentsPanel({
     },
   });
 
-  const totalPaid = payments.reduce((s, p) => s + parseFloat(p.payment_amount || "0"), 0);
+  const totalPaid = payments.reduce((s, p) => s + parseFloat((p as any).base_currency_amount || p.payment_amount || "0"), 0);
   const hasCompleted = payments.some(p => p.payment_status === "Completed");
 
   async function handleSave() {
@@ -97,6 +101,8 @@ export default function CostingPaymentsPanel({
           transactionId: form.transactionId || null,
           paymentDate:   form.paymentDate   || null,
           remarks:       form.remarks       || null,
+          currencyCode:  form.currencyCode  || "INR",
+          exchangeRateSnapshot: form.currencyCode === "INR" ? "1" : (form.exchangeRateSnapshot || "1"),
         }),
       });
       qc.invalidateQueries({ queryKey });
@@ -119,6 +125,8 @@ export default function CostingPaymentsPanel({
       transactionId: p.transaction_id ?? "",
       paymentDate:   p.payment_date   ? p.payment_date.slice(0, 10) : new Date().toISOString().slice(0, 10),
       remarks:       p.remarks        ?? "",
+      currencyCode:  (p as any).currency_code ?? "INR",
+      exchangeRateSnapshot: String((p as any).exchange_rate_snapshot ?? "1"),
     });
   }
 
@@ -136,6 +144,8 @@ export default function CostingPaymentsPanel({
           transactionId: editForm.transactionId || null,
           paymentDate:   editForm.paymentDate   || null,
           remarks:       editForm.remarks       || null,
+          currencyCode:  editForm.currencyCode  || "INR",
+          exchangeRateSnapshot: editForm.currencyCode === "INR" ? "1" : (editForm.exchangeRateSnapshot || "1"),
         }),
       });
       qc.invalidateQueries({ queryKey });
@@ -214,11 +224,27 @@ export default function CostingPaymentsPanel({
               </select>
             </div>
             <div>
-              <label className={lblCls}>Amount (₹) *</label>
+              <label className={lblCls}>Amount ({form.currencyCode}) *</label>
               <input type="number" min="0" step="0.01" value={form.paymentAmount}
                 onChange={e => setForm(f => ({ ...f, paymentAmount: e.target.value }))}
                 className={inpCls} placeholder="0.00" />
             </div>
+            <div>
+              <label className={lblCls}>Currency</label>
+              <select value={form.currencyCode}
+                onChange={e => setForm(f => ({ ...f, currencyCode: e.target.value, exchangeRateSnapshot: e.target.value === "INR" ? "1" : f.exchangeRateSnapshot }))}
+                className={inpCls}>
+                {CURRENCIES.map(c => <option key={c}>{c}</option>)}
+              </select>
+            </div>
+            {form.currencyCode !== "INR" && (
+              <div>
+                <label className={lblCls}>Rate (1 {form.currencyCode} = ₹)</label>
+                <input type="number" min="0.0001" step="0.0001" value={form.exchangeRateSnapshot}
+                  onChange={e => setForm(f => ({ ...f, exchangeRateSnapshot: e.target.value }))}
+                  className={inpCls} placeholder="1.0000" />
+              </div>
+            )}
             <div>
               <label className={lblCls}>Status</label>
               <select value={form.paymentStatus} onChange={e => setForm(f => ({ ...f, paymentStatus: e.target.value }))} className={inpCls}>
@@ -288,10 +314,25 @@ export default function CostingPaymentsPanel({
                     </select>
                   </div>
                   <div>
-                    <label className={lblCls}>Amount (₹)</label>
+                    <label className={lblCls}>Amount ({editForm.currencyCode})</label>
                     <input type="number" min="0" step="0.01" value={editForm.paymentAmount}
                       onChange={e => setEditForm(f => ({ ...f, paymentAmount: e.target.value }))} className={inpCls} />
                   </div>
+                  <div>
+                    <label className={lblCls}>Currency</label>
+                    <select value={editForm.currencyCode}
+                      onChange={e => setEditForm(f => ({ ...f, currencyCode: e.target.value, exchangeRateSnapshot: e.target.value === "INR" ? "1" : f.exchangeRateSnapshot }))}
+                      className={inpCls}>
+                      {CURRENCIES.map(c => <option key={c}>{c}</option>)}
+                    </select>
+                  </div>
+                  {editForm.currencyCode !== "INR" && (
+                    <div>
+                      <label className={lblCls}>Rate (1 {editForm.currencyCode} = ₹)</label>
+                      <input type="number" min="0.0001" step="0.0001" value={editForm.exchangeRateSnapshot}
+                        onChange={e => setEditForm(f => ({ ...f, exchangeRateSnapshot: e.target.value }))} className={inpCls} />
+                    </div>
+                  )}
                   <div>
                     <label className={lblCls}>Status</label>
                     <select value={editForm.paymentStatus} onChange={e => setEditForm(f => ({ ...f, paymentStatus: e.target.value }))} className={inpCls}>
@@ -332,7 +373,13 @@ export default function CostingPaymentsPanel({
                   </div>
                   <div>
                     <p className="text-[9px] text-gray-400 uppercase tracking-wide font-semibold">Amount</p>
-                    <p className="text-[10px] font-bold text-amber-700">₹{parseFloat(p.payment_amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}</p>
+                    <p className="text-[10px] font-bold text-amber-700">
+                      {((p as any).currency_code && (p as any).currency_code !== "INR") ? `${(p as any).currency_code} ` : "₹"}
+                      {parseFloat(p.payment_amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                    </p>
+                    {(p as any).currency_code && (p as any).currency_code !== "INR" && (
+                      <p className="text-[9px] text-gray-400">≈ ₹{parseFloat((p as any).base_currency_amount ?? "0").toLocaleString("en-IN", { minimumFractionDigits: 2 })}</p>
+                    )}
                   </div>
                   <div>
                     <p className="text-[9px] text-gray-400 uppercase tracking-wide font-semibold">Status</p>

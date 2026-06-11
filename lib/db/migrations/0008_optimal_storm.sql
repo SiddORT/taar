@@ -1,0 +1,1 @@
+ALTER TABLE "vendor_payments" ADD COLUMN "vendor_invoice_ledger_id" integer;

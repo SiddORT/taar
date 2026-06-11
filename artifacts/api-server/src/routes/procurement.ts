@@ -956,8 +956,9 @@ router.post(
           `INSERT INTO vendor_invoice_ledger
              (vendor_id, vendor_name, purchase_receipt_id, pr_number,
               vendor_invoice_number, vendor_invoice_date, vendor_invoice_amount,
+              currency_code, exchange_rate_snapshot, base_currency_amount,
               entry_type, status, created_by)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,'Vendor Invoice','Unpaid',$8)`,
+           VALUES ($1,$2,$3,$4,$5,$6,$7,'INR',1,$7,'Vendor Invoice','Unpaid',$8)`,
           [vendorId, vendorName, prId, pr.pr_number,
            invoice_number.trim(), invoice_date || null, parseFloat(invoice_amount), userName]
         );

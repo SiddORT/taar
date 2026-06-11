@@ -1,4 +1,4 @@
-import { pgTable, serial, integer, text, timestamp, boolean } from "drizzle-orm/pg-core";
+import { pgTable, serial, integer, text, timestamp, boolean, numeric } from "drizzle-orm/pg-core";
 import { z } from "zod/v4";
 
 export const vendorPaymentsTable = pgTable("vendor_payments", {
@@ -7,9 +7,13 @@ export const vendorPaymentsTable = pgTable("vendor_payments", {
   vendorName: text("vendor_name").notNull(),
   paymentDate: timestamp("payment_date", { withTimezone: true }).notNull().defaultNow(),
   amount: text("amount").notNull(),
+  currencyCode: text("currency_code").notNull().default("INR"),
+  exchangeRateSnapshot: numeric("exchange_rate_snapshot", { precision: 18, scale: 6 }).notNull().default("1"),
+  baseCurrencyAmount: numeric("base_currency_amount", { precision: 18, scale: 2 }).notNull().default("0"),
   paymentMode: text("payment_mode").notNull().default("Bank Transfer"),
   referenceNo: text("reference_no"),
   notes: text("notes"),
+  vendorInvoiceLedgerId: integer("vendor_invoice_ledger_id"),
   orderType: text("order_type").notNull().default("general"),
   styleOrderId: integer("style_order_id"),
   styleOrderCode: text("style_order_code"),

@@ -2,6 +2,7 @@ import { Router } from "express";
 import { pool } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
 import type { AuthRequest } from "../middlewares/requireAuth";
+import { recomputeVendorBillBalances } from "../lib/vendorBillBalances";
 
 const router = Router();
 
@@ -85,27 +86,30 @@ router.post("/vendor-bills/:id/payment", requireAuth, async (req: AuthRequest, r
   try {
     await client.query("BEGIN");
     const id = parseInt(String(req.params.id));
-    const { payment_amount, payment_date, payment_type, transaction_reference, remarks } = req.body as any;
-    const amt = parseFloat(payment_amount ?? "0");
+    const { payment_amount, payment_date, payment_type, transaction_reference, remarks, currency_code, exchange_rate_snapshot } = req.body as any;
+    const amt = parseFloat(payment_amount ?? "0");                          // pay currency
     if (amt <= 0) throw new Error("payment_amount must be > 0");
-    const { rows } = await client.query(`SELECT * FROM vendor_invoice_ledger WHERE id = $1`, [id]);
+    const { rows } = await client.query(`SELECT * FROM vendor_invoice_ledger WHERE id = $1 FOR UPDATE`, [id]);
     if (!rows.length) throw new Error("Bill not found");
     const bill = rows[0];
-    const newPaid    = parseFloat(bill.paid_amount ?? "0") + amt;
-    const newPending = parseFloat(bill.vendor_invoice_amount) - newPaid;
-    const newStatus  = newPending <= 0.005 ? "Paid" : "Partially Paid";
+    // Convert the payment into the bill's currency via the INR anchor.
+    const payRate  = parseFloat(String(exchange_rate_snapshot ?? "1")) || 1;     // pay ccy -> INR
+    const baseAmt  = amt * payRate;                                              // INR anchor
+    const billRate = parseFloat(bill.exchange_rate_snapshot ?? "1") || 1;        // bill ccy -> INR
+    const amtInBillCcy = baseAmt / billRate;                                     // bill currency
+    const prevPaid   = parseFloat(bill.paid_amount ?? "0");                      // bill currency
+    const billTotal  = parseFloat(bill.vendor_invoice_amount);                   // bill currency
+    if (amtInBillCcy > (billTotal - prevPaid) + 0.01) throw new Error("Payment exceeds pending balance");
     await client.query(
-      `UPDATE vendor_invoice_ledger SET paid_amount=$1, status=$2, updated_at=NOW() WHERE id=$3`,
-      [newPaid, newStatus, id]
+      `INSERT INTO vendor_payments (vendor_id, vendor_name, payment_date, amount, currency_code, exchange_rate_snapshot, base_currency_amount, payment_mode, reference_no, notes, order_type, vendor_invoice_ledger_id, created_by)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'general',$11,$12)`,
+      [bill.vendor_id, bill.vendor_name, payment_date || new Date().toISOString(), String(amt),
+       String(currency_code ?? "INR"), String(payRate), baseAmt.toFixed(2),
+       payment_type || "Bank Transfer", transaction_reference || "", remarks || "", id, req.user?.email ?? ""]
     );
-    await client.query(
-      `INSERT INTO vendor_payments (vendor_id, vendor_name, payment_date, amount, payment_mode, reference_no, notes, order_type, created_by)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,'general',$8)`,
-      [bill.vendor_id, bill.vendor_name, payment_date || new Date().toISOString(), amt,
-       payment_type || "Bank Transfer", transaction_reference || "", remarks || "", req.user?.email ?? ""]
-    );
+    const bal = await recomputeVendorBillBalances(client, id);
     await client.query("COMMIT");
-    res.json({ message: "Payment recorded", paid: newPaid, pending: Math.max(0, newPending), status: newStatus });
+    res.json({ message: "Payment recorded", paid: bal?.paidAmount ?? 0, pending: bal?.pendingAmount ?? 0, status: bal?.status ?? "Partially Paid" });
   } catch (err: any) {
     await client.query("ROLLBACK");
     res.status(400).json({ error: err.message });
@@ -133,14 +137,14 @@ router.get("/summary", requireAuth, async (req, res) => {
         COALESCE(SUM(pri.quantity * pri.unit_price),0)::numeric(18,2) AS received_value
         FROM purchase_receipts pr LEFT JOIN purchase_receipt_items pri ON pri.pr_id = pr.id WHERE 1=1 ${prDF} ${vPR}`),
       pool.query(`SELECT COUNT(*) AS total_count,
-        COALESCE(SUM(vil.vendor_invoice_amount),0)::numeric(18,2) AS total_amount,
-        COALESCE(SUM(vil.paid_amount),0)::numeric(18,2) AS paid_amount,
-        COALESCE(SUM(vil.pending_amount),0)::numeric(18,2) AS pending_amount
+        COALESCE(SUM(vil.base_currency_amount),0)::numeric(18,2) AS total_amount,
+        COALESCE(SUM(vil.paid_amount * vil.exchange_rate_snapshot),0)::numeric(18,2) AS paid_amount,
+        COALESCE(SUM(vil.pending_amount * vil.exchange_rate_snapshot),0)::numeric(18,2) AS pending_amount
         FROM vendor_invoice_ledger vil WHERE 1=1 ${bilDF} ${vBil}`),
       pool.query(`SELECT COUNT(*) AS total_count,
-        COALESCE(SUM(vp.amount::numeric),0)::numeric(18,2) AS total_paid
+        COALESCE(SUM(vp.base_currency_amount::numeric),0)::numeric(18,2) AS total_paid
         FROM vendor_payments vp WHERE 1=1 ${payDF} ${vPay}`),
-      pool.query(`SELECT COALESCE(SUM(vil.pending_amount),0)::numeric(18,2) AS bill_pending
+      pool.query(`SELECT COALESCE(SUM(vil.pending_amount * vil.exchange_rate_snapshot),0)::numeric(18,2) AS bill_pending
         FROM vendor_invoice_ledger vil WHERE vil.status != 'Paid' ${bilDF} ${vBil}`),
     ]);
     res.json({ data: {
@@ -168,18 +172,18 @@ router.get("/unified-summary", requireAuth, async (req, res) => {
         FROM purchase_orders po LEFT JOIN purchase_order_items poi ON poi.po_id = po.id
         WHERE 1=1 ${df("po.po_date", from_date, to_date)} ${vid ? `AND po.vendor_id=${vid}` : ""}`),
 
-      /* PR Vendor Bills */
-      pool.query(`SELECT COALESCE(SUM(vendor_invoice_amount),0)::numeric(18,2) AS amt,
-        COALESCE(SUM(paid_amount),0)::numeric(18,2) AS paid,
-        COALESCE(SUM(pending_amount),0)::numeric(18,2) AS pending
+      /* PR Vendor Bills (INR anchor for cross-currency consistency) */
+      pool.query(`SELECT COALESCE(SUM(base_currency_amount),0)::numeric(18,2) AS amt,
+        COALESCE(SUM(paid_amount * exchange_rate_snapshot),0)::numeric(18,2) AS paid,
+        COALESCE(SUM(pending_amount * exchange_rate_snapshot),0)::numeric(18,2) AS pending
         FROM vendor_invoice_ledger
         WHERE 1=1 ${df("vendor_invoice_date", from_date, to_date)} ${vid ? `AND vendor_id=${vid}` : ""}`),
 
-      /* Outsource Jobs (total_cost is text in DB) */
+      /* Outsource Jobs (total_cost is text in DB; paid summed in INR anchor) */
       pool.query(`SELECT COALESCE(SUM(oj.total_cost::numeric),0)::numeric(18,2) AS amt,
         COALESCE(SUM(COALESCE(cp.paid,0)),0)::numeric(18,2) AS paid
         FROM outsource_jobs oj
-        LEFT JOIN (SELECT reference_id, SUM(payment_amount) AS paid FROM costing_payments
+        LEFT JOIN (SELECT reference_id, SUM(base_currency_amount) AS paid FROM costing_payments
           WHERE reference_type='outsource_job' GROUP BY reference_id) cp ON cp.reference_id = oj.id
         WHERE 1=1 ${df("oj.issue_date", from_date, to_date)} ${vid ? `AND oj.vendor_id=${vid}` : ""}`),
 
@@ -200,13 +204,13 @@ router.get("/unified-summary", requireAuth, async (req, res) => {
         WHERE final_shipping_amount IS NOT NULL ${df("shipment_date", from_date, to_date)}
         ${vid ? `AND shipping_vendor_id=${vid}` : ""}`),
 
-      /* Total paid to vendors */
-      pool.query(`SELECT COALESCE(SUM(amount::numeric),0)::numeric(18,2) AS paid
+      /* Total paid to vendors (INR anchor) */
+      pool.query(`SELECT COALESCE(SUM(base_currency_amount::numeric),0)::numeric(18,2) AS paid
         FROM vendor_payments
         WHERE 1=1 ${df("payment_date", from_date, to_date)} ${vid ? `AND vendor_id=${vid}` : ""}`),
 
-      /* Total pending (vendor bills only — authoritative) */
-      pool.query(`SELECT COALESCE(SUM(pending_amount),0)::numeric(18,2) AS pending
+      /* Total pending (vendor bills only — authoritative; INR anchor) */
+      pool.query(`SELECT COALESCE(SUM(pending_amount * exchange_rate_snapshot),0)::numeric(18,2) AS pending
         FROM vendor_invoice_ledger
         WHERE status != 'Paid' ${df("vendor_invoice_date", from_date, to_date)} ${vid ? `AND vendor_id=${vid}` : ""}`),
     ]);
@@ -310,7 +314,7 @@ router.get("/unified-liabilities", requireAuth, async (req, res) => {
         LEFT JOIN swatch_orders sw ON sw.id = oj.swatch_order_id
         LEFT JOIN style_orders  st ON st.id = oj.style_order_id
         LEFT JOIN (
-          SELECT reference_id, SUM(payment_amount) AS paid
+          SELECT reference_id, SUM(base_currency_amount) AS paid
           FROM costing_payments WHERE reference_type = 'outsource_job'
           GROUP BY reference_id
         ) cp ON cp.reference_id = oj.id
@@ -419,7 +423,7 @@ router.get("/top-vendors-pending", requireAuth, async (req, res) => {
   try {
     const { rows } = await pool.query(`
       SELECT vendor_id, vendor_name,
-             SUM(pending_amount)::numeric(18,2) AS total_pending,
+             SUM(pending_amount * exchange_rate_snapshot)::numeric(18,2) AS total_pending,
              COUNT(*)::int AS bill_count
       FROM vendor_invoice_ledger
       WHERE status != 'Paid' AND vendor_name IS NOT NULL
@@ -443,40 +447,45 @@ router.post("/record-payment", requireAuth, async (req: AuthRequest, res) => {
       vendor_name, vendor_id,
       payment_amount, payment_date, payment_type,
       transaction_reference, remarks,
+      currency_code, exchange_rate_snapshot,
     } = req.body as any;
 
     const amt = parseFloat(payment_amount ?? "0");
     if (amt <= 0) throw new Error("payment_amount must be > 0");
     const pDate = payment_date || new Date().toISOString().slice(0, 10);
     const pMode = payment_type || "Bank Transfer";
+    const payCcy  = currency_code || "INR";
+    const payRate = parseFloat(exchange_rate_snapshot ?? "1") || 1;     // pay ccy -> INR
+    const baseAmt = parseFloat((amt * payRate).toFixed(2));             // INR anchor
 
     if (ref_type === "Purchase Receipt") {
       /* Update vendor_invoice_ledger + insert vendor_payments */
       /* Note: pending_amount is a generated column (vendor_invoice_amount - paid_amount) — do NOT update it */
       const id = parseInt(source_id);
-      const { rows } = await client.query(`SELECT * FROM vendor_invoice_ledger WHERE id = $1`, [id]);
+      const { rows } = await client.query(`SELECT * FROM vendor_invoice_ledger WHERE id = $1 FOR UPDATE`, [id]);
       if (!rows.length) throw new Error("Bill not found");
       const bill = rows[0];
-      const newPaid    = parseFloat(bill.paid_amount ?? "0") + amt;
-      const newPending = Math.max(0, parseFloat(bill.vendor_invoice_amount) - newPaid);
-      const newStatus  = newPending <= 0.005 ? "Paid" : "Partially Paid";
+      const billRate = parseFloat(bill.exchange_rate_snapshot ?? "1") || 1;   // bill ccy -> INR
+      const amtInBillCcy = baseAmt / billRate;                                // bill currency
+      const prevPaid = parseFloat(bill.paid_amount ?? "0");                   // bill currency
+      const totalBill = parseFloat(bill.vendor_invoice_amount);              // bill currency
+      if (amtInBillCcy > (totalBill - prevPaid) + 0.01) {
+        throw new Error(`Payment amount (${amtInBillCcy.toFixed(2)} in bill currency) exceeds pending balance (${(totalBill - prevPaid).toFixed(2)})`);
+      }
       await client.query(
-        `UPDATE vendor_invoice_ledger SET paid_amount=$1, status=$2, updated_at=NOW() WHERE id=$3`,
-        [newPaid, newStatus, id]
+        `INSERT INTO vendor_payments (vendor_id,vendor_name,payment_date,amount,currency_code,exchange_rate_snapshot,base_currency_amount,payment_mode,reference_no,notes,order_type,vendor_invoice_ledger_id,created_by)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'general',$11,$12)`,
+        [bill.vendor_id, bill.vendor_name, pDate, amt, payCcy, payRate, baseAmt, pMode, transaction_reference || "", remarks || "", id, req.user?.email ?? ""]
       );
-      await client.query(
-        `INSERT INTO vendor_payments (vendor_id,vendor_name,payment_date,amount,payment_mode,reference_no,notes,order_type,created_by)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,'general',$8)`,
-        [bill.vendor_id, bill.vendor_name, pDate, amt, pMode, transaction_reference || "", remarks || "", req.user?.email ?? ""]
-      );
+      await recomputeVendorBillBalances(client, id);
 
     } else if (ref_type === "Costing Outsource") {
       /* Insert into costing_payments */
       const id = parseInt(source_id);
       await client.query(
-        `INSERT INTO costing_payments (vendor_id,vendor_name,reference_type,reference_id,payment_type,payment_mode,payment_amount,payment_status,transaction_id,payment_date,remarks,created_by)
-         VALUES ($1,$2,'outsource_job',$3,'outsource',$4,$5,'Completed',$6,$7,$8,$9)`,
-        [vendor_id || null, vendor_name || "", id, pMode, amt, transaction_reference || "", pDate, remarks || "", req.user?.email ?? ""]
+        `INSERT INTO costing_payments (vendor_id,vendor_name,reference_type,reference_id,payment_type,payment_mode,payment_amount,currency_code,exchange_rate_snapshot,base_currency_amount,payment_status,transaction_id,payment_date,remarks,created_by)
+         VALUES ($1,$2,'outsource_job',$3,'outsource',$4,$5,$6,$7,$8,'Completed',$9,$10,$11,$12)`,
+        [vendor_id || null, vendor_name || "", id, pMode, amt, payCcy, payRate, baseAmt, transaction_reference || "", pDate, remarks || "", req.user?.email ?? ""]
       );
 
     } else if (ref_type === "Other Expense") {
@@ -492,17 +501,17 @@ router.post("/record-payment", requireAuth, async (req: AuthRequest, res) => {
         [newPaid, newStatus, id]
       );
       await client.query(
-        `INSERT INTO vendor_payments (vendor_id,vendor_name,payment_date,amount,payment_mode,reference_no,notes,order_type,created_by)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,'general',$8)`,
-        [vendor_id || null, vendor_name || "", pDate, amt, pMode, transaction_reference || "", remarks || "", req.user?.email ?? ""]
+        `INSERT INTO vendor_payments (vendor_id,vendor_name,payment_date,amount,currency_code,exchange_rate_snapshot,base_currency_amount,payment_mode,reference_no,notes,order_type,created_by)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'general',$11)`,
+        [vendor_id || null, vendor_name || "", pDate, amt, payCcy, payRate, baseAmt, pMode, transaction_reference || "", remarks || "", req.user?.email ?? ""]
       );
 
     } else {
       /* Artisan / Shipping / other — just log in vendor_payments */
       await client.query(
-        `INSERT INTO vendor_payments (vendor_id,vendor_name,payment_date,amount,payment_mode,reference_no,notes,order_type,created_by)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,'general',$8)`,
-        [vendor_id || null, vendor_name || "", pDate, amt, pMode, transaction_reference || "", remarks || "", req.user?.email ?? ""]
+        `INSERT INTO vendor_payments (vendor_id,vendor_name,payment_date,amount,currency_code,exchange_rate_snapshot,base_currency_amount,payment_mode,reference_no,notes,order_type,created_by)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'general',$11)`,
+        [vendor_id || null, vendor_name || "", pDate, amt, payCcy, payRate, baseAmt, pMode, transaction_reference || "", remarks || "", req.user?.email ?? ""]
       );
     }
 

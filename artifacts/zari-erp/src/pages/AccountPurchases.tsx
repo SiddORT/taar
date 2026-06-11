@@ -22,6 +22,7 @@ const LBL  = "block text-xs font-semibold text-gray-500 uppercase tracking-wide 
 const PAGE_SIZE = 10;
 
 const PAYMENT_TYPES = ["Bank Transfer", "UPI", "NEFT", "RTGS", "Cash", "Cheque", "Other"];
+const CURRENCIES = ["INR", "USD", "EUR", "GBP", "AED", "JPY", "CNY"];
 const REF_TYPES = [
   { value: "", label: "All Types" },
   { value: "Purchase Receipt", label: "Purchase Receipt" },
@@ -112,12 +113,16 @@ function PaymentModal({ row, onClose, onSuccess }: {
   row: any; onClose: () => void; onSuccess: () => void;
 }) {
   const { toast } = useToast();
+  const billCcy = row.currency_code || "INR";
+  const billRate = parseFloat(row.exchange_rate_snapshot ?? "1") || 1;
   const [form, setForm] = useState({
     payment_amount: "",
     payment_type: "Bank Transfer",
     transaction_reference: "",
     payment_date: new Date().toISOString().slice(0, 10),
     remarks: "",
+    currency_code: billCcy,
+    exchange_rate_snapshot: String(billRate),
   });
   const [saving, setSaving] = useState(false);
 
@@ -126,6 +131,10 @@ function PaymentModal({ row, onClose, onSuccess }: {
     const amt = parseFloat(form.payment_amount);
     if (!amt || amt <= 0) {
       toast({ title: "Enter a valid payment amount", variant: "destructive" }); return;
+    }
+    const payRate = parseFloat(form.exchange_rate_snapshot) || 1;
+    if (form.currency_code !== "INR" && payRate <= 0) {
+      toast({ title: "Enter a valid exchange rate", variant: "destructive" }); return;
     }
     setSaving(true);
     try {
@@ -192,6 +201,28 @@ function PaymentModal({ row, onClose, onSuccess }: {
                 onChange={e => setForm(p => ({ ...p, payment_date: e.target.value }))} />
             </div>
           </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className={LBL}>Currency</label>
+              <select className={INP} value={form.currency_code}
+                onChange={e => setForm(p => ({ ...p, currency_code: e.target.value, exchange_rate_snapshot: e.target.value === "INR" ? "1" : p.exchange_rate_snapshot }))}>
+                {CURRENCIES.map(c => <option key={c}>{c}</option>)}
+              </select>
+            </div>
+            {form.currency_code !== "INR" && (
+              <div>
+                <label className={LBL}>Exchange Rate (1 {form.currency_code} = ? INR)</label>
+                <input type="number" min="0.0001" step="0.0001" className={INP}
+                  value={form.exchange_rate_snapshot}
+                  onChange={e => setForm(p => ({ ...p, exchange_rate_snapshot: e.target.value }))} />
+              </div>
+            )}
+          </div>
+          {form.currency_code !== "INR" && parseFloat(form.payment_amount) > 0 && (
+            <p className="text-xs text-gray-500 -mt-1">
+              ≈ {fmtAmt(parseFloat(form.payment_amount) * (parseFloat(form.exchange_rate_snapshot) || 1))} (INR)
+            </p>
+          )}
           <div>
             <label className={LBL}>Payment Mode</label>
             <select className={INP} value={form.payment_type}

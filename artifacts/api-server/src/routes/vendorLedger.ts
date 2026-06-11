@@ -4,6 +4,7 @@ import { pool } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
 import { requireAuth } from "../middlewares/requireAuth";
 import { insertVendorPaymentSchema, insertVendorLedgerChargeSchema } from "@workspace/db";
+import { recomputeVendorBillBalances } from "../lib/vendorBillBalances";
 
 const router = Router();
 
@@ -115,21 +116,21 @@ router.get("/vendor-ledger/summary", requireAuth, async (req, res) => {
         GROUP BY pattern_vendor_id::integer
       ) pat_sum ON pat_sum.vendor_id = v.id
 
-      /* vendor invoice ledger entries (debits) */
+      /* vendor invoice ledger entries (debits) — INR anchor */
       LEFT JOIN (
-        SELECT vendor_id, SUM(vendor_invoice_amount::numeric) AS total, COUNT(*) AS cnt
+        SELECT vendor_id, SUM(base_currency_amount::numeric) AS total, COUNT(*) AS cnt
         FROM vendor_invoice_ledger WHERE is_deleted = false GROUP BY vendor_id
       ) vil_sum ON vil_sum.vendor_id = v.id
 
-      /* vendor payments (credits) */
+      /* vendor payments (credits) — INR anchor */
       LEFT JOIN (
-        SELECT vendor_id, SUM(amount::numeric) AS total, COUNT(*) AS cnt
+        SELECT vendor_id, SUM(base_currency_amount::numeric) AS total, COUNT(*) AS cnt
         FROM vendor_payments WHERE is_deleted = false GROUP BY vendor_id
       ) vp_sum ON vp_sum.vendor_id = v.id
 
-      /* costing payments — outsource jobs / custom charges / artwork (credits) */
+      /* costing payments — outsource jobs / custom charges / artwork (credits) — INR anchor */
       LEFT JOIN (
-        SELECT vendor_id, SUM(payment_amount::numeric) AS total, COUNT(*) AS cnt
+        SELECT vendor_id, SUM(base_currency_amount::numeric) AS total, COUNT(*) AS cnt
         FROM costing_payments WHERE is_deleted = false GROUP BY vendor_id
       ) cp_sum ON cp_sum.vendor_id = v.id
 
@@ -314,7 +315,7 @@ router.get("/vendor-ledger/:vendorId/entries", requireAuth, async (req, res) => 
             ' (PR: ', vil.pr_number, ')') AS description,
           'procurement'                  AS order_type,
           vil.pr_number                  AS order_code,
-          vil.vendor_invoice_amount      AS debit,
+          vil.base_currency_amount       AS debit,
           0::numeric                     AS credit
         FROM vendor_invoice_ledger vil
         WHERE vil.vendor_id = $1 AND vil.is_deleted = false
@@ -330,8 +331,8 @@ router.get("/vendor-ledger/:vendorId/entries", requireAuth, async (req, res) => 
             COALESCE(' (' || vp.reference_no || ')', '')) AS description,
           vp.order_type,
           COALESCE(vp.style_order_code, vp.swatch_order_code) AS order_code,
-          0::numeric         AS debit,
-          vp.amount::numeric AS credit
+          0::numeric                  AS debit,
+          vp.base_currency_amount     AS credit
         FROM vendor_payments vp
         WHERE vp.vendor_id = $1 AND vp.is_deleted = false
 
@@ -359,8 +360,8 @@ router.get("/vendor-ledger/:vendorId/entries", requireAuth, async (req, res) => 
             ELSE 'general'
           END AS order_type,
           COALESCE(so.order_code, sw.order_code) AS order_code,
-          0::numeric            AS debit,
-          cp.payment_amount     AS credit
+          0::numeric                  AS debit,
+          cp.base_currency_amount     AS credit
         FROM costing_payments cp
         LEFT JOIN style_orders  so ON cp.style_order_id  = so.id AND so.is_deleted = false
         LEFT JOIN swatch_orders sw ON cp.swatch_order_id = sw.id AND sw.is_deleted = false
@@ -451,9 +452,9 @@ router.post("/vendor-ledger/:vendorId/pay", requireAuth, async (req, res) => {
                     WHERE pattern_vendor_id IS NOT NULL AND pattern_vendor_id <> ''
                       AND pattern_payment_amount IS NOT NULL AND pattern_payment_amount <> ''
                       AND pattern_vendor_id::integer = $1 AND is_deleted = false), 0)
-      + COALESCE((SELECT SUM(vendor_invoice_amount::numeric)   FROM vendor_invoice_ledger    WHERE vendor_id = $1 AND is_deleted = false), 0)
-      - COALESCE((SELECT SUM(amount::numeric)                  FROM vendor_payments          WHERE vendor_id = $1 AND is_deleted = false), 0)
-      - COALESCE((SELECT SUM(payment_amount::numeric)          FROM costing_payments         WHERE vendor_id = $1 AND is_deleted = false), 0)
+      + COALESCE((SELECT SUM(base_currency_amount::numeric)   FROM vendor_invoice_ledger    WHERE vendor_id = $1 AND is_deleted = false), 0)
+      - COALESCE((SELECT SUM(base_currency_amount::numeric)   FROM vendor_payments          WHERE vendor_id = $1 AND is_deleted = false), 0)
+      - COALESCE((SELECT SUM(base_currency_amount::numeric)   FROM costing_payments         WHERE vendor_id = $1 AND is_deleted = false), 0)
         AS outstanding`,
       [vendorId]
     );
@@ -470,6 +471,11 @@ router.post("/vendor-ledger/:vendorId/pay", requireAuth, async (req, res) => {
         vendorName: data.vendorName,
         paymentDate: data.paymentDate ? new Date(data.paymentDate) : new Date(),
         amount: data.amount,
+        // Vendor-ledger payments are INR-domestic (outstanding is shown/capped in ₹),
+        // so anchor at rate 1 with base = amount to keep INR aggregates correct.
+        currencyCode: "INR",
+        exchangeRateSnapshot: "1",
+        baseCurrencyAmount: String(amt),
         paymentMode: data.paymentMode,
         referenceNo: data.referenceNo,
         notes: data.notes,
@@ -535,16 +541,35 @@ router.post("/vendor-ledger/:vendorId/charge", requireAuth, async (req, res) => 
 });
 
 router.delete("/vendor-ledger/payments/:id", requireAuth, async (req, res) => {
+  const client = await pool.connect();
   try {
     const id = parseInt(String(req.params.id));
-    const [row] = await db.update(vendorPaymentsTable)
-      .set({ isDeleted: true, deletedBy: (req.user as any)?.email ?? "system", deletedAt: new Date() })
-      .where(and(eq(vendorPaymentsTable.id, id), eq(vendorPaymentsTable.isDeleted, false)))
-      .returning();
-    if (!row) return res.status(404).json({ error: "Not found" });
+    await client.query("BEGIN");
+    const del = await client.query(
+      `UPDATE vendor_payments
+          SET is_deleted = true, deleted_by = $2, deleted_at = NOW()
+        WHERE id = $1 AND is_deleted = false
+        RETURNING vendor_invoice_ledger_id`,
+      [id, (req.user as { email?: string } | undefined)?.email ?? "system"]
+    );
+    if (!del.rows.length) {
+      await client.query("ROLLBACK");
+      return res.status(404).json({ error: "Not found" });
+    }
+    // If the payment was applied to a vendor bill, recompute that bill's
+    // paid/pending/status from the remaining non-deleted linked payments.
+    const billId = del.rows[0].vendor_invoice_ledger_id as number | null;
+    if (billId) {
+      await recomputeVendorBillBalances(client, billId);
+    }
+    await client.query("COMMIT");
     return res.json({ success: true });
   } catch (err) {
+    await client.query("ROLLBACK");
+    console.error(err);
     return res.status(500).json({ error: "Failed to delete payment" });
+  } finally {
+    client.release();
   }
 });
 

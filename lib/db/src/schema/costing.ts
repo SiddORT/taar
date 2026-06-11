@@ -102,6 +102,9 @@ export const prPaymentsTable = pgTable("pr_payments", {
   paymentDate: timestamp("payment_date", { withTimezone: true }).notNull().defaultNow(),
   paymentMode: text("payment_mode").notNull().default(""),
   amount: text("amount").notNull(),
+  currencyCode: text("currency_code").notNull().default("INR"),
+  exchangeRateSnapshot: numeric("exchange_rate_snapshot", { precision: 18, scale: 6 }).notNull().default("1"),
+  baseCurrencyAmount: numeric("base_currency_amount", { precision: 18, scale: 2 }).notNull().default("0"),
   transactionStatus: text("transaction_status").notNull().default(""),
   paymentStatus: text("payment_status").notNull().default("Pending"),
   attachment: jsonb("attachment").$type<PaymentAttachmentFile | null>().default(null),
@@ -229,6 +232,9 @@ export const costingPaymentsTable = pgTable("costing_payments", {
   paymentType: text("payment_type"),   // Advance | Partial | Full
   paymentMode: text("payment_mode"),   // Cash | Bank Transfer | UPI | Cheque | Other
   paymentAmount: numeric("payment_amount", { precision: 12, scale: 2 }).notNull(),
+  currencyCode: text("currency_code").notNull().default("INR"),
+  exchangeRateSnapshot: numeric("exchange_rate_snapshot", { precision: 18, scale: 6 }).notNull().default("1"),
+  baseCurrencyAmount: numeric("base_currency_amount", { precision: 18, scale: 2 }).notNull().default("0"),
   paymentStatus: text("payment_status").default("Pending"), // Pending | Processing | Completed | Failed
   transactionId: text("transaction_id"),
   paymentDate: timestamp("payment_date", { withTimezone: true }),

@@ -108,7 +108,10 @@ function PaymentModal({ row, onClose, onSuccess }: { row: any; onClose: () => vo
   const { toast } = useToast();
 
   const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }));
-  const pendingAmt = parseFloat(row.pending_amount ?? row.amount ?? 0);
+  const pendingAmt = parseFloat(row.pending_amount ?? row.amount ?? 0);     // invoice currency
+  const invRate = parseFloat(row.exchange_rate_snapshot ?? "1") || 1;        // invoice ccy -> INR
+  // Convert the entered payment (its own currency) into the invoice currency via the INR anchor
+  const amtInInvoiceCcy = (parseFloat(form.payment_amount || "0") * (parseFloat(form.exchange_rate_snapshot) || 1)) / invRate;
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -116,7 +119,7 @@ function PaymentModal({ row, onClose, onSuccess }: { row: any; onClose: () => vo
     if (!Number.isFinite(amt) || amt <= 0) {
       toast({ title: "Enter a payment amount greater than 0", variant: "destructive" }); return;
     }
-    if (amt > pendingAmt + 0.001) {
+    if (amtInInvoiceCcy > pendingAmt + 0.01) {
       toast({ title: `Amount exceeds pending balance of ${fmtAmt(pendingAmt, rowCurrency)}`, variant: "destructive" }); return;
     }
     if (form.payment_date && form.payment_date > today) {
@@ -182,8 +185,11 @@ function PaymentModal({ row, onClose, onSuccess }: { row: any; onClose: () => vo
                     if (!Number.isFinite(n) || n < 0) return;
                     set("payment_amount", v);
                   }} />
-                {form.payment_amount && parseFloat(form.payment_amount) > pendingAmt && (
+                {form.payment_amount && amtInInvoiceCcy > pendingAmt + 0.01 && (
                   <p className="text-[10px] text-red-600 mt-1">Exceeds pending balance</p>
+                )}
+                {form.currency_code !== rowCurrency && parseFloat(form.payment_amount) > 0 && (
+                  <p className="text-[10px] text-gray-500 mt-1">≈ {fmtAmt(amtInInvoiceCcy, rowCurrency)} in invoice currency</p>
                 )}
               </div>
               <div>

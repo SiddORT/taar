@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { pool } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
+import { recomputeInvoiceBalances } from "../lib/invoiceBalances";
 
 const router = Router();
 
@@ -26,19 +27,19 @@ router.get("/unified-summary", requireAuth, async (req, res) => {
     ] = await Promise.all([
       pool.query(`
         SELECT
-          COALESCE(SUM(total_amount),0)    AS total_invoice_amount,
-          COALESCE(SUM(received_amount),0) AS total_received,
-          COALESCE(SUM(pending_amount),0)  AS total_pending
+          COALESCE(SUM(base_currency_amount),0)                    AS total_invoice_amount,
+          COALESCE(SUM(received_amount * exchange_rate_snapshot),0) AS total_received,
+          COALESCE(SUM(pending_amount * exchange_rate_snapshot),0)  AS total_pending
         FROM invoices
         WHERE invoice_direction = 'Client' ${df("invoice_date")}
       `),
       pool.query(`
-        SELECT COALESCE(SUM(payment_amount),0) AS total_payments
+        SELECT COALESCE(SUM(base_currency_amount),0) AS total_payments
         FROM invoice_payments
         WHERE payment_direction = 'Received' ${df("payment_date")}
       `),
       pool.query(`
-        SELECT COALESCE(SUM(pending_amount),0) AS overdue_amount
+        SELECT COALESCE(SUM(pending_amount * exchange_rate_snapshot),0) AS overdue_amount
         FROM invoices
         WHERE invoice_direction = 'Client'
           AND pending_amount > 0
@@ -48,7 +49,7 @@ router.get("/unified-summary", requireAuth, async (req, res) => {
           ${to_date   ? `AND invoice_date <= '${to_date}'`   : ''}
       `),
       pool.query(`
-        SELECT COALESCE(SUM(total_amount),0) AS advance_total
+        SELECT COALESCE(SUM(base_currency_amount),0) AS advance_total
         FROM invoices
         WHERE invoice_direction = 'Client'
           AND invoice_type = 'Advance'
@@ -132,7 +133,7 @@ router.get("/top-clients-pending", requireAuth, async (req, res) => {
         SELECT
           inv.client_id                                       AS client_id,
           COALESCE(c.brand_name, inv.client_name, 'Unknown')  AS client_name,
-          inv.pending_amount                                  AS pending
+          inv.pending_amount * inv.exchange_rate_snapshot     AS pending
         FROM invoices inv
         LEFT JOIN clients c ON c.id = inv.client_id
         WHERE inv.invoice_direction = 'Client'
@@ -142,7 +143,7 @@ router.get("/top-clients-pending", requireAuth, async (req, res) => {
         SELECT
           cdn.party_id                                        AS client_id,
           COALESCE(c.brand_name, cdn.party_name, 'Unknown')   AS client_name,
-          cdn.note_amount                                     AS pending
+          cdn.base_currency_amount                            AS pending
         FROM credit_debit_notes cdn
         LEFT JOIN clients c ON c.id = cdn.party_id
         WHERE cdn.party_type = 'Client'
@@ -305,23 +306,29 @@ router.post("/record-payment", requireAuth, async (req, res) => {
     const invoiceId = isInvoice ? parseInt(source_id.replace("inv-", "")) : null;
 
     if (isInvoice && invoiceId) {
-      /* Server-side cap: amount must not exceed current pending */
+      /* Server-side cap: amount must not exceed current pending — compared in the INVOICE's
+         currency. The payment is entered in its own currency, so convert it via the INR anchor:
+         amount_in_invoice_ccy = (payment_amount × payment_rate) ÷ invoice_rate. */
       const { rows: invRows } = await client.query(
-        `SELECT pending_amount FROM invoices WHERE id = $1 FOR UPDATE`,
+        `SELECT pending_amount, exchange_rate_snapshot FROM invoices WHERE id = $1 AND is_deleted = false FOR UPDATE`,
         [invoiceId],
       );
       if (invRows.length === 0) {
         await client.query("ROLLBACK");
         return res.status(404).json({ error: "Invoice not found" });
       }
-      const pending = parseFloat(invRows[0].pending_amount ?? "0");
-      if (amt > pending + 0.001) {
+      const pending = parseFloat(invRows[0].pending_amount ?? "0");          // invoice currency
+      const invRate = parseFloat(invRows[0].exchange_rate_snapshot ?? "1") || 1;
+      const payRate = parseFloat(exchange_rate_snapshot ?? "1") || 1;
+      const baseAmt = parseFloat((amt * payRate).toFixed(2));                 // INR anchor
+      const amtInInvoiceCcy = baseAmt / invRate;                             // invoice currency
+      if (amtInInvoiceCcy > pending + 0.01) {
         await client.query("ROLLBACK");
         return res.status(400).json({
-          error: `Payment amount (${amt.toFixed(2)}) exceeds pending balance (${pending.toFixed(2)})`,
+          error: `Payment amount (${amtInInvoiceCcy.toFixed(2)} in invoice currency) exceeds pending balance (${pending.toFixed(2)})`,
         });
       }
-      /* 1. Insert into invoice_payments */
+      /* 1. Insert into invoice_payments (store the INR base anchor) */
       await client.query(`
         INSERT INTO invoice_payments
           (invoice_id, payment_direction, party_id, payment_type, payment_amount,
@@ -332,26 +339,15 @@ router.post("/record-payment", requireAuth, async (req, res) => {
         invoiceId, "Received", client_id ?? null,
         payment_type ?? "Bank Transfer", amt,
         currency_code ?? "INR",
-        parseFloat(exchange_rate_snapshot ?? "1"),
-        amt * parseFloat(exchange_rate_snapshot ?? "1"),
+        payRate,
+        baseAmt,
         transaction_id ?? "",
         payment_date ?? new Date().toISOString().split("T")[0],
         remarks ?? "",
       ]);
 
-      /* 2. Update invoice received_amount / pending_amount */
-      await client.query(`
-        UPDATE invoices
-        SET
-          received_amount = LEAST(total_amount, received_amount + $1),
-          pending_amount  = GREATEST(0, pending_amount - $1),
-          invoice_status  = CASE
-            WHEN GREATEST(0, pending_amount - $1) = 0 THEN 'Paid'
-            WHEN received_amount + $1 > 0             THEN 'Partially Paid'
-            ELSE invoice_status
-          END
-        WHERE id = $2
-      `, [amt, invoiceId]);
+      /* 2. Recompute received/pending from the full payment set (single source of truth) */
+      await recomputeInvoiceBalances(client, invoiceId);
 
       /* 3. Insert into client_invoice_ledger */
       await client.query(`

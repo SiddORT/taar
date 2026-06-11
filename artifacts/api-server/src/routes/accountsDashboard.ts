@@ -64,10 +64,10 @@ router.get("/accounts/dashboard", requireAuth, async (req, res) => {
           ${client_id ? `AND i.client_id = ${parseInt(client_id)}` : ""}
       `),
 
-      /* ── PURCHASES: vendor bills ─────────────────────── */
+      /* ── PURCHASES: vendor bills (INR anchor for cross-currency consistency) ─ */
       pool.query(`
         SELECT
-          COALESCE(SUM(vendor_invoice_amount), 0)::numeric(18,2) AS total_bills,
+          COALESCE(SUM(base_currency_amount), 0)::numeric(18,2) AS total_bills,
           COUNT(*)::int                                           AS bill_count
         FROM vendor_invoice_ledger
         WHERE 1=1
@@ -79,7 +79,7 @@ router.get("/accounts/dashboard", requireAuth, async (req, res) => {
       /* ── PURCHASES: paid to vendors ──────────────────── */
       pool.query(`
         SELECT
-          COALESCE(SUM(amount::numeric), 0)::numeric(18,2) AS total_paid_vendors,
+          COALESCE(SUM(base_currency_amount::numeric), 0)::numeric(18,2) AS total_paid_vendors,
           COUNT(*)::int                                     AS payment_count
         FROM vendor_payments
         WHERE 1=1
@@ -138,7 +138,7 @@ router.get("/accounts/dashboard", requireAuth, async (req, res) => {
 
       /* ── COSTING PAYMENTS (for Net Revenue) ──────────── */
       pool.query(`
-        SELECT COALESCE(SUM(payment_amount::numeric), 0)::numeric(18,2) AS total_costing_paid
+        SELECT COALESCE(SUM(base_currency_amount::numeric), 0)::numeric(18,2) AS total_costing_paid
         FROM costing_payments
         WHERE 1=1
           ${from_date ? `AND payment_date::date >= '${from_date}'::date` : ""}
@@ -159,11 +159,11 @@ router.get("/accounts/dashboard", requireAuth, async (req, res) => {
         ORDER BY 1
       `),
 
-      /* ── TREND: monthly purchases (vendor bills) ─────── */
+      /* ── TREND: monthly purchases (vendor bills, INR anchor) ─────── */
       pool.query(`
         SELECT
           to_char(vendor_invoice_date, 'YYYY-MM') AS month,
-          COALESCE(SUM(vendor_invoice_amount), 0)::numeric(18,2) AS purchases
+          COALESCE(SUM(base_currency_amount), 0)::numeric(18,2) AS purchases
         FROM vendor_invoice_ledger
         WHERE 1=1
           ${from_date ? `AND vendor_invoice_date >= '${from_date}'::date` : ""}
@@ -211,7 +211,7 @@ router.get("/accounts/dashboard", requireAuth, async (req, res) => {
           vendor_name,
           vendor_id,
           COUNT(*)::int    AS bill_count,
-          COALESCE(SUM(pending_amount), 0)::numeric(18,2) AS pending_amount
+          COALESCE(SUM(pending_amount * exchange_rate_snapshot), 0)::numeric(18,2) AS pending_amount
         FROM vendor_invoice_ledger
         WHERE status != 'Paid'
           ${from_date ? `AND vendor_invoice_date >= '${from_date}'::date` : ""}

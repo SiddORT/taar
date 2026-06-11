@@ -1,20 +1,12 @@
 import { Router } from "express";
 import { pool } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
+import { recomputeInvoiceBalances } from "../lib/invoiceBalances";
 
 const router = Router();
 
 const PAYMENT_TYPES   = ["Cash", "Bank Transfer", "UPI", "Cheque", "Online Gateway", "Adjustment", "Other"] as const;
 const PAYMENT_STATUSES = ["Processing", "Completed", "Failed"] as const;
-
-function computeAutoStatus(totalAmt: number, pendingAmt: number, dueDate: string, currentStatus: string): string {
-  if (currentStatus === "Draft" || currentStatus === "Sent" || currentStatus === "Cancelled") return currentStatus;
-  const today = new Date().toISOString().slice(0, 10);
-  if (pendingAmt <= 0)                        return "Paid";
-  if (pendingAmt < totalAmt && pendingAmt > 0) return "Partially Paid";
-  if (dueDate && dueDate < today)              return "Overdue";
-  return "Generated";
-}
 
 // ── GET /api/invoice-payments/accounts ──────────────────────────────────────
 // Returns all client + vendor invoices enriched with payment summary
@@ -115,10 +107,23 @@ router.post("/invoice-payments", requireAuth, async (req: any, res) => {
 
     const payAmt   = parseFloat(payment_amount);
     const exRate   = parseFloat(exchange_rate_snapshot) || 1;
-    const baseAmt  = parseFloat((payAmt * exRate).toFixed(2));
+    const baseAmt  = parseFloat((payAmt * exRate).toFixed(2));               // INR anchor
     const direction = inv.invoice_direction === "Vendor" ? "Paid" : "Received";
     const partyId   = inv.invoice_direction === "Vendor" ? inv.vendor_id : inv.client_id;
     const createdBy = req.user?.email ?? "";
+
+    // Over-payment guard, compared in the invoice's own currency
+    if (payment_status === "Completed") {
+      const invRate = parseFloat(inv.exchange_rate_snapshot ?? "1") || 1;
+      const pendingNow = parseFloat(inv.pending_amount ?? "0");
+      const amtInInvoiceCcy = baseAmt / invRate;
+      if (amtInInvoiceCcy > pendingNow + 0.01) {
+        await client.query("ROLLBACK");
+        return res.status(400).json({
+          error: `Payment amount (${amtInInvoiceCcy.toFixed(2)} in invoice currency) exceeds pending balance (${pendingNow.toFixed(2)})`,
+        });
+      }
+    }
 
     // Insert payment record
     const pmtRes = await client.query(`
@@ -131,22 +136,11 @@ router.post("/invoice-payments", requireAuth, async (req: any, res) => {
     `, [invoice_id, direction, partyId, payment_type, payAmt, currency_code,
         exRate, baseAmt, transaction_reference, payment_status, payment_date, remarks, createdBy]);
 
-    // Recompute totals from all completed payments
-    const totRes = await client.query(`
-      SELECT COALESCE(SUM(base_currency_amount),0) AS total_received
-      FROM invoice_payments
-      WHERE invoice_id = $1 AND is_deleted = false AND payment_status = 'Completed'
-    `, [invoice_id]);
-
-    const totalReceived = parseFloat(totRes.rows[0].total_received);
-    const totalAmt       = parseFloat(inv.total_amount ?? "0");
-    const pendingAmt     = parseFloat(Math.max(0, totalAmt - totalReceived).toFixed(2));
-    const newStatus      = computeAutoStatus(totalAmt, pendingAmt, inv.due_date ?? "", inv.invoice_status ?? "Generated");
-
-    await client.query(`
-      UPDATE invoices SET received_amount=$1, pending_amount=$2, invoice_status=$3, status=$3, updated_at=NOW()
-      WHERE id=$4
-    `, [totalReceived.toFixed(2), pendingAmt.toFixed(2), newStatus, invoice_id]);
+    // Recompute received/pending in the invoice's currency from the full payment set
+    const bal = await recomputeInvoiceBalances(client, invoice_id);
+    const totalReceived = bal?.receivedAmount ?? 0;
+    const pendingAmt    = bal?.pendingAmount ?? 0;
+    const newStatus     = bal?.status ?? (inv.invoice_status ?? "Generated");
 
     // Ledger entry
     if (direction === "Received" && inv.client_id) {
@@ -158,10 +152,10 @@ router.post("/invoice-payments", requireAuth, async (req: any, res) => {
     } else if (direction === "Paid" && inv.vendor_id) {
       await client.query(`
         INSERT INTO vendor_payments
-          (vendor_id, vendor_name, payment_date, amount, payment_mode, reference_no, notes, order_type, created_by)
-        SELECT $1, v.brand_name, $2::timestamptz, $3, $4, $5, $6, 'invoice', $7
+          (vendor_id, vendor_name, payment_date, amount, currency_code, exchange_rate_snapshot, base_currency_amount, payment_mode, reference_no, notes, order_type, created_by)
+        SELECT $1, v.brand_name, $2::timestamptz, $3, $4, $5, $6, $7, $8, $9, 'invoice', $10
         FROM vendors v WHERE v.id = $1
-      `, [inv.vendor_id, payment_date + "T00:00:00Z", payAmt.toFixed(2), payment_type, transaction_reference, remarks, createdBy]);
+      `, [inv.vendor_id, payment_date + "T00:00:00Z", payAmt.toFixed(2), currency_code, String(exRate), baseAmt, payment_type, transaction_reference, remarks, createdBy]);
     }
 
     await client.query("COMMIT");
@@ -190,27 +184,16 @@ router.delete("/invoice-payments/:id", requireAuth, async (req, res) => {
     const deletedByUser = req.user?.email ?? "system";
     await client.query("UPDATE invoice_payments SET is_deleted = true, updated_at = NOW(), deleted_by = $2, deleted_at = now() WHERE payment_id=$1 AND is_deleted = false", [id, deletedByUser]);
 
-    // Recompute invoice totals
-    const totRes = await client.query(`
-      SELECT COALESCE(SUM(base_currency_amount),0) AS total_received
-      FROM invoice_payments WHERE invoice_id=$1 AND is_deleted = false AND payment_status='Completed'
-    `, [pmt.invoice_id]);
-
-    const invRes = await client.query("SELECT * FROM invoices WHERE id=$1 AND is_deleted = false", [pmt.invoice_id]);
-    if (invRes.rows.length) {
-      const inv = invRes.rows[0];
-      const totalReceived = parseFloat(totRes.rows[0].total_received);
-      const totalAmt       = parseFloat(inv.total_amount ?? "0");
-      const pendingAmt     = parseFloat(Math.max(0, totalAmt - totalReceived).toFixed(2));
-      const newStatus      = computeAutoStatus(totalAmt, pendingAmt, inv.due_date ?? "", inv.invoice_status ?? "Generated");
-      await client.query(`
-        UPDATE invoices SET received_amount=$1, pending_amount=$2, invoice_status=$3, status=$3, updated_at=NOW()
-        WHERE id=$4
-      `, [totalReceived.toFixed(2), pendingAmt.toFixed(2), newStatus, pmt.invoice_id]);
-    }
+    // Recompute invoice totals in the invoice's currency from the remaining payments
+    const bal = await recomputeInvoiceBalances(client, pmt.invoice_id);
 
     await client.query("COMMIT");
-    return res.json({ success: true });
+    return res.json({
+      success: true,
+      invoice_status: bal?.status,
+      received_amount: bal?.receivedAmount ?? 0,
+      pending_amount: bal?.pendingAmount ?? 0,
+    });
   } catch (err: any) {
     await client.query("ROLLBACK");
     return res.status(500).json({ error: err.message });
