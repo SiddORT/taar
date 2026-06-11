@@ -33,7 +33,7 @@ vi.mock("@workspace/db", () => ({
 // Bypass JWT auth — sets req.user so downstream code can read .email
 vi.mock("../../middlewares/requireAuth", () => ({
   requireAuth: (req: express.Request, _res: express.Response, next: express.NextFunction) => {
-    (req as express.Request & { user: unknown }).user = { email: "tester@example.com" };
+    req.user = { userId: 1, email: "tester@example.com", role: "admin" };
     next();
   },
 }));
