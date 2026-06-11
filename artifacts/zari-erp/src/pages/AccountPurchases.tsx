@@ -3,7 +3,7 @@ import {
   Search, CreditCard, X, CheckCircle2, Clock, AlertTriangle,
   Package, Wallet, RefreshCw, ArrowRight, Filter,
   ShoppingCart, Truck, Wrench, Receipt, ChevronLeft, ChevronRight, Building2,
-  PanelRightClose, PanelRightOpen,
+  PanelRightClose, PanelRightOpen, Ban,
 } from "lucide-react";
 import { useGetMe } from "@workspace/api-client-react";
 import { customFetch } from "@workspace/api-client-react";
@@ -295,6 +295,89 @@ function PaymentModal({ row, onClose, onSuccess }: {
   );
 }
 
+/* ── CancelBillModal ─────────────────────────────────── */
+function CancelBillModal({ row, onClose, onSuccess }: {
+  row: any; onClose: () => void; onSuccess: () => void;
+}) {
+  const { toast } = useToast();
+  const [loading, setLoading] = useState(false);
+
+  async function handleConfirm() {
+    setLoading(true);
+    try {
+      await customFetch<any>(`/api/account-purchases/vendor-bills/${row.source_id}/status`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "Cancelled" }),
+      });
+      toast({ title: "Bill cancelled", description: `${row.vendor_name} — bill marked as Cancelled.` });
+      onSuccess();
+      onClose();
+    } catch (err: any) {
+      const msg = err?.data?.error ?? err?.message ?? "Could not cancel bill";
+      toast({ title: "Cancellation failed", description: msg, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/45 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative w-full max-w-sm bg-white rounded-2xl shadow-2xl border border-red-200 overflow-hidden">
+        <div className="h-0.5 bg-red-400" />
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-xl bg-red-50 flex items-center justify-center">
+              <Ban size={16} className="text-red-500" />
+            </div>
+            <h2 className="text-base font-bold text-gray-800">Cancel Vendor Bill</h2>
+          </div>
+          <button onClick={onClose}
+            className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-gray-100 transition-colors">
+            <X size={16} className="text-gray-500" />
+          </button>
+        </div>
+        <div className="px-5 py-5 space-y-3">
+          <p className="text-sm text-gray-600">
+            Are you sure you want to cancel this vendor bill? This action cannot be undone.
+          </p>
+          <div className="rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 space-y-1 text-sm">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-gray-500 text-xs font-semibold uppercase tracking-wide">Vendor</span>
+              <span className="font-semibold text-gray-800 truncate max-w-[180px]">{row.vendor_name}</span>
+            </div>
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-gray-500 text-xs font-semibold uppercase tracking-wide">Ref No.</span>
+              <span className="font-mono text-xs text-gray-600">{row.ref_number || "—"}</span>
+            </div>
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-gray-500 text-xs font-semibold uppercase tracking-wide">Status</span>
+              <span className="text-gray-700">{row.status}</span>
+            </div>
+          </div>
+          <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 flex items-start gap-2">
+            <AlertTriangle size={14} className="text-amber-600 shrink-0 mt-0.5" />
+            <p className="text-xs text-amber-700">
+              If payments have been recorded against this bill, you must reverse them first before cancelling.
+            </p>
+          </div>
+        </div>
+        <div className="flex gap-2 px-5 pb-5">
+          <button type="button" onClick={onClose} disabled={loading}
+            className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors disabled:opacity-60">
+            Keep Bill
+          </button>
+          <button type="button" onClick={handleConfirm} disabled={loading}
+            className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white bg-red-500 hover:bg-red-600 active:scale-95 transition-all shadow-sm disabled:opacity-60">
+            {loading ? "Cancelling…" : "Yes, Cancel Bill"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ══════════════════════════════════════════════════════
    MAIN PAGE
 ══════════════════════════════════════════════════════ */
@@ -331,6 +414,7 @@ export default function AccountPurchases() {
   const [loadingSummary, setLoadingSummary] = useState(true);
   const [loadingTable, setLoadingTable]     = useState(true);
   const [paymentRow, setPaymentRow]         = useState<any>(null);
+  const [cancelRow, setCancelRow]           = useState<any>(null);
   const [sidebarOpen, setSidebarOpen]       = useState(true);
   const [refreshKey, setRefreshKey]         = useState(0);
   const [pendingSearch, setPendingSearch]   = useState("");
@@ -723,12 +807,22 @@ export default function AccountPurchases() {
                                   <CheckCircle2 size={12}/> Settled
                                 </span>
                               ) : (
-                                <button
-                                  onClick={() => setPaymentRow(row)}
-                                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-white shadow-sm hover:opacity-90 active:scale-95 transition-all"
-                                  style={{ background: G }}>
-                                  <CreditCard size={11}/> Pay
-                                </button>
+                                <div className="flex items-center gap-1.5">
+                                  <button
+                                    onClick={() => setPaymentRow(row)}
+                                    className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-white shadow-sm hover:opacity-90 active:scale-95 transition-all"
+                                    style={{ background: G }}>
+                                    <CreditCard size={11}/> Pay
+                                  </button>
+                                  {row.ref_type === "Purchase Receipt" && (
+                                    <button
+                                      onClick={() => setCancelRow(row)}
+                                      title="Cancel this vendor bill"
+                                      className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-red-600 border border-red-200 bg-red-50 hover:bg-red-100 active:scale-95 transition-all">
+                                      <Ban size={11}/> Cancel
+                                    </button>
+                                  )}
+                                </div>
                               )}
                             </td>
                           </tr>
@@ -835,6 +929,13 @@ export default function AccountPurchases() {
         <PaymentModal
           row={paymentRow}
           onClose={() => setPaymentRow(null)}
+          onSuccess={() => setRefreshKey(k => k + 1)}
+        />
+      )}
+      {cancelRow && (
+        <CancelBillModal
+          row={cancelRow}
+          onClose={() => setCancelRow(null)}
           onSuccess={() => setRefreshKey(k => k + 1)}
         />
       )}
