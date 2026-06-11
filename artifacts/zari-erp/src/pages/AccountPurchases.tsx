@@ -55,6 +55,7 @@ function statusBadge(status: string) {
     "Partially Paid": "bg-amber-100 text-amber-700",
     Unpaid:           "bg-red-100 text-red-700",
     Pending:          "bg-blue-100 text-blue-700",
+    Cancelled:        "bg-gray-100 text-gray-500",
   };
   return (
     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${map[status] ?? "bg-gray-100 text-gray-700"}`}>
@@ -671,6 +672,7 @@ export default function AccountPurchases() {
                     ) : (
                       liabilities.map((row, i) => {
                         const settled = row.status === "Paid" || row.status === "Completed";
+                        const cancelled = row.status === "Cancelled";
                         const srNo = (page - 1) * PAGE_SIZE + i + 1;
                         return (
                           <tr key={`${row.ref_type}-${row.source_id}-${i}`}
@@ -712,7 +714,11 @@ export default function AccountPurchases() {
                             </td>
                             <td className={TD}>{statusBadge(row.status)}</td>
                             <td className={TD}>
-                              {settled ? (
+                              {cancelled ? (
+                                <span className="inline-flex items-center gap-1 text-xs text-gray-400 font-medium">
+                                  <X size={12}/> Cancelled
+                                </span>
+                              ) : settled ? (
                                 <span className="inline-flex items-center gap-1 text-xs text-emerald-600 font-medium">
                                   <CheckCircle2 size={12}/> Settled
                                 </span>
