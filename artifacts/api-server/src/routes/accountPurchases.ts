@@ -508,8 +508,13 @@ router.post("/record-payment", requireAuth, async (req: AuthRequest, res) => {
       await recomputeVendorBillBalances(client, id);
 
     } else if (ref_type === "Costing Outsource") {
-      /* Insert into costing_payments */
+      /* Insert into costing_payments — lock the job row first to serialize concurrent payments */
       const id = parseInt(source_id);
+      const { rows: jobRows } = await client.query(
+        `SELECT * FROM outsource_jobs WHERE id = $1 AND is_deleted = false FOR UPDATE`,
+        [id]
+      );
+      if (!jobRows.length) throw new Error("Outsource job not found");
       await client.query(
         `INSERT INTO costing_payments (vendor_id,vendor_name,reference_type,reference_id,payment_type,payment_mode,payment_amount,currency_code,exchange_rate_snapshot,base_currency_amount,payment_status,transaction_id,payment_date,remarks,created_by)
          VALUES ($1,$2,'outsource_job',$3,'outsource',$4,$5,$6,$7,$8,'Completed',$9,$10,$11,$12)`,
@@ -517,9 +522,9 @@ router.post("/record-payment", requireAuth, async (req: AuthRequest, res) => {
       );
 
     } else if (ref_type === "Other Expense") {
-      /* Update other_expenses */
+      /* Update other_expenses — lock the row first to serialize concurrent payments */
       const id = parseInt(source_id);
-      const { rows } = await client.query(`SELECT * FROM other_expenses WHERE expense_id = $1`, [id]);
+      const { rows } = await client.query(`SELECT * FROM other_expenses WHERE expense_id = $1 FOR UPDATE`, [id]);
       if (!rows.length) throw new Error("Expense not found");
       const exp = rows[0];
       const newPaid   = parseFloat(exp.paid_amount ?? "0") + amt;
