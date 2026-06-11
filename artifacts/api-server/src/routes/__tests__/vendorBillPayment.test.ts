@@ -35,7 +35,7 @@ vi.mock("@workspace/db", () => ({
 // ─── Bypass JWT auth ──────────────────────────────────────────────────────────
 vi.mock("../../middlewares/requireAuth", () => ({
   requireAuth: (req: express.Request, _res: express.Response, next: express.NextFunction) => {
-    (req as express.Request & { user: unknown }).user = { email: "tester@example.com" };
+    (req as express.Request & { user: unknown }).user = { userId: 1, email: "tester@example.com", role: "admin" };
     next();
   },
 }));
@@ -371,5 +371,58 @@ describe("POST /vendor-bills/:id/payment", () => {
       });
 
     expect(res.status).toBe(200);
+  });
+
+  // ── 16. TOCTOU race safety: FOR UPDATE lock precedes the balance check ────
+  //
+  // Scenario: two requests arrive simultaneously for the same bill. Each reads
+  // the pending balance independently and both appear to pass the overpayment
+  // check — a classic Time-Of-Check / Time-Of-Use (TOCTOU) race that could
+  // result in the bill being overpaid.
+  //
+  // Why this is safe in practice:
+  //   The route opens a transaction (BEGIN) and immediately executes
+  //     SELECT * FROM vendor_invoice_ledger WHERE id = $1 FOR UPDATE
+  //   `FOR UPDATE` places an exclusive row-level lock on the bill record for
+  //   the duration of the transaction. PostgreSQL serializes concurrent
+  //   requests: the second caller blocks on the SELECT until the first
+  //   transaction COMMITs or ROLLBACKs, at which point it re-reads the
+  //   freshly updated paid_amount. The balance comparison is therefore always
+  //   performed against committed, up-to-date data — there is no window in
+  //   which both requests can simultaneously observe the pre-payment balance.
+  //
+  // This test verifies the structural guarantee: the `FOR UPDATE` clause is
+  // emitted by the route *before* the INSERT (i.e. before any state mutation),
+  // so the lock is always held across the full check-then-act sequence.
+  //
+  it("FOR UPDATE lock is issued before the balance check and INSERT (TOCTOU guard)", async () => {
+    configureSuccessfulClient(inrBill(1000, 0));
+    mockRecompute.mockResolvedValue(recomputeResult(1000, 500));
+
+    await request(makeApp())
+      .post("/vendor-bills/1/payment")
+      .send({
+        payment_amount: "500",
+        currency_code: "INR",
+        exchange_rate_snapshot: "1",
+      });
+
+    // Extract the SQL strings from every client.query() call.
+    const sqls: string[] = mockClientQuery.mock.calls.map(
+      (args: unknown[]) => String(args[0])
+    );
+
+    const selectIdx  = sqls.findIndex((s) => /FOR UPDATE/i.test(s));
+    const insertIdx  = sqls.findIndex((s) => /INSERT/i.test(s));
+    const commitIdx  = sqls.findIndex((s) => /COMMIT/i.test(s));
+
+    // The SELECT … FOR UPDATE must be present.
+    expect(selectIdx).toBeGreaterThanOrEqual(0);
+
+    // The lock must be acquired before the INSERT (balance check precedes write).
+    expect(selectIdx).toBeLessThan(insertIdx);
+
+    // And the INSERT must be before the COMMIT (write is inside the transaction).
+    expect(insertIdx).toBeLessThan(commitIdx);
   });
 });
