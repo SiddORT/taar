@@ -12,6 +12,7 @@ import { customFetch } from "@workspace/api-client-react";
 import TopNavbar from "@/components/layout/TopNavbar";
 import { useToast } from "@/hooks/use-toast";
 import { useCurrency } from "@/contexts/CurrencyContext";
+import { useBaseCurrency } from "@/hooks/useBaseCurrency";
 
 /* ── theme ─────────────────────────────────────────── */
 const G    = "#C6AF4B";
@@ -93,7 +94,9 @@ function PaymentModal({ row, onClose, onSuccess }: { row: any; onClose: () => vo
     return dcFmt(n);
   };
   const today = new Date().toISOString().split("T")[0];
-  const rowCurrency = row.currency_code ?? "INR";
+  const { baseCurrencySymbol, baseCurrencyCode  } = useBaseCurrency();
+  const rowCurrency = baseCurrencyCode ?? "INR";
+  
   const [form, setForm] = useState({
     payment_amount:        String(parseFloat(row.pending_amount ?? 0)),
     payment_type:          "Bank Transfer",
@@ -680,15 +683,15 @@ export default function AccountSales() {
                           </td>
                           <td className={`${TD} text-xs text-gray-400`}>{row.order_ref || "—"}</td>
                           <td className={`${TD} text-right font-semibold`} style={{ color: SL }}>
-                            {fmtAmt(row.amount, row.currency_code)}
+                            {fmtAmt(row.amount)}
                           </td>
                           <td className={`${TD} text-right font-medium text-emerald-600`}>
-                            {fmtAmt(row.received_amount, row.currency_code)}
+                            {fmtAmt(row.received_amount)}
                           </td>
                           <td className={`${TD} text-right font-semibold ${
                             parseFloat(row.pending_amount) > 0 ? (isOverdue ? "text-red-600" : "text-amber-600") : "text-gray-400"
                           }`}>
-                            {fmtAmt(row.pending_amount, row.currency_code)}
+                            {fmtAmt(row.pending_amount)}
                           </td>
                           <td className={`${TD} text-xs font-medium text-gray-500`}>{row.currency_code || "INR"}</td>
                           <td className={TD}>{statusBadge(row.status)}</td>
