@@ -39,7 +39,7 @@ const DEPARTMENTS = [
   { value: "Artisan Labor", label: "Artisan Labor" },
   { value: "Shipping Vendor", label: "Shipping Vendor" },
 ];
-const STATUS_TABS = ["All", "Unpaid", "Partially Paid", "Paid", "Pending"];
+const STATUS_TABS = ["All", "Unpaid", "Partially Paid", "Paid", "Pending", "Cancelled"];
 
 /* ── helpers ─────────────────────────────────────────── */
 function fmtDate(s: string | null) {
