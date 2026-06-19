@@ -12,7 +12,7 @@ import { customFetch } from "@workspace/api-client-react";
 import TopNavbar from "@/components/layout/TopNavbar";
 import { useToast } from "@/hooks/use-toast";
 import { useCurrency } from "@/contexts/CurrencyContext";
-import { useBaseCurrency } from "@/hooks/useBaseCurrency";
+import { useExchangeRates } from "@/hooks/useExchangeRates";
 
 /* ── theme ─────────────────────────────────────────── */
 const G    = "#C6AF4B";
@@ -84,6 +84,8 @@ function refTypeBadge(t: string) {
 ══════════════════════════════════════════════════════ */
 function PaymentModal({ row, onClose, onSuccess }: { row: any; onClose: () => void; onSuccess: () => void }) {
   const { fmt: dcFmt } = useCurrency();
+  const { rates, inverseRates, loading: ratesLoading } = useExchangeRates();
+  
   const fmtAmt = (v: any, currency?: string) => {
     const n = parseFloat(v ?? 0);
     if (currency && currency !== "INR") {
@@ -94,8 +96,8 @@ function PaymentModal({ row, onClose, onSuccess }: { row: any; onClose: () => vo
     return dcFmt(n);
   };
   const today = new Date().toISOString().split("T")[0];
-  const { baseCurrencySymbol, baseCurrencyCode  } = useBaseCurrency();
-  const rowCurrency = baseCurrencyCode ?? "INR";
+  const { currency } = useCurrency();
+  const rowCurrency = currency.code ?? "INR";
   
   const [form, setForm] = useState({
     payment_amount:        String(parseFloat(row.pending_amount ?? 0)),
@@ -108,6 +110,14 @@ function PaymentModal({ row, onClose, onSuccess }: { row: any; onClose: () => vo
   });
   const [saving, setSaving] = useState(false);
   const { toast } = useToast();
+
+  // ── auto-populate exchange rate (inverse) when currency changes ──
+  useEffect(() => {
+    const invRate = inverseRates[form.currency_code];
+    if (invRate) {
+      setForm(f => ({ ...f, exchange_rate_snapshot: invRate }));
+    }
+  }, [form.currency_code, inverseRates]);
 
   const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }));
   const pendingAmt = parseFloat(row.pending_amount ?? row.amount ?? 0);     // invoice currency
@@ -202,18 +212,35 @@ function PaymentModal({ row, onClose, onSuccess }: { row: any; onClose: () => vo
               </div>
               <div>
                 <label className={LBL}>Currency</label>
-                <select className={INP} value={form.currency_code} onChange={e => set("currency_code", e.target.value)}>
-                  {CURRENCIES.map(c => <option key={c}>{c}</option>)}
+                <select 
+                  className={INP} 
+                  value={form.currency_code} 
+                  onChange={e => set("currency_code", e.target.value)}
+                  disabled={ratesLoading}
+                >
+                  {CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
+                {ratesLoading && <p className="text-[10px] text-gray-400 mt-1">Loading rates…</p>}
               </div>
               <div>
                 <label className={LBL}>Payment Date</label>
                 <input type="date" max={today} className={INP} value={form.payment_date} onChange={e => set("payment_date", e.target.value)} />
               </div>
               <div>
-                <label className={LBL}>Exchange Rate</label>
-                <input type="number" step="0.0001" min="0.0001" className={INP}
-                  value={form.exchange_rate_snapshot} onChange={e => set("exchange_rate_snapshot", e.target.value)} />
+                <label className={LBL}>
+                  Exchange Rate
+                  <span className="ml-1.5 text-[10px] font-normal text-gray-400 normal-case tracking-normal">
+                    (1 {form.currency_code} = X INR)
+                  </span>
+                </label>
+                <input 
+                  type="number" 
+                  step="any" 
+                  min="0.0001"
+                  className={INP}
+                  value={form.exchange_rate_snapshot} 
+                  onChange={e => set("exchange_rate_snapshot", e.target.value)} 
+                />
               </div>
               <div className="col-span-2">
                 <label className={LBL}>Transaction ID / Reference</label>
@@ -231,7 +258,7 @@ function PaymentModal({ row, onClose, onSuccess }: { row: any; onClose: () => vo
                 className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors">
                 Cancel
               </button>
-              <button type="submit" disabled={saving}
+              <button type="submit" disabled={saving || ratesLoading}
                 className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white shadow-sm hover:opacity-90 disabled:opacity-60 transition-all"
                 style={{ background: `linear-gradient(135deg, ${G}, ${G_DIM})` }}>
                 {saving ? "Saving…" : "Record Payment"}
