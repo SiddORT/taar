@@ -69,6 +69,7 @@ export function useAccountInvoices(filters: AccountsFilters = {}) {
   return useQuery<{ data: AccountInvoice[]; total: number; page: number; limit: number }>({
     queryKey: ["account-invoices", filters],
     queryFn: () => apiFetch(`/invoice-payments/accounts?${params}`),
+    refetchOnWindowFocus: false,
   });
 }
 

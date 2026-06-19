@@ -316,7 +316,7 @@ router.post("/record-payment", requireAuth, async (req, res) => {
       payment_date, currency_code, exchange_rate_snapshot, remarks,
     } = req.body;
 
-    const amt = parseFloat(payment_amount) * (parseFloat(exchange_rate_snapshot ?? "1"));
+    const amt = parseFloat(payment_amount);
     if (!Number.isFinite(amt) || amt <= 0) {
       return res.status(400).json({ error: "Invalid payment amount" });
     }

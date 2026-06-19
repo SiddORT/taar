@@ -73,7 +73,7 @@ export async function recomputeInvoiceBalances(
   );
 
   const baseReceivedInr = parseFloat(payRes.rows[0].base_sum) + parseFloat(cnRes.rows[0].base_sum);
-  const received = parseFloat((baseReceivedInr / invRate).toFixed(2));
+  const received = parseFloat((baseReceivedInr).toFixed(2));
   const pending = parseFloat(Math.max(0, totalAmt - received).toFixed(2));
   const status = computeAutoStatus(totalAmt, pending, inv.due_date ?? "", inv.invoice_status ?? "Generated");
 

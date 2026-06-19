@@ -1,4 +1,4 @@
-import { useState, type ReactElement } from "react";
+import { useState, useEffect, type ReactElement } from "react";
 import { useLocation } from "wouter";
 import {
   Wallet, ChevronDown, ChevronRight, Plus, Trash2, Loader2,
@@ -15,7 +15,7 @@ import {
   type AccountInvoice, type InvoicePayment,
 } from "../hooks/useInvoicePayments";
 
-import { useBaseCurrency } from "../hooks/useBaseCurrency";
+import { useExchangeRates } from "@/hooks/useExchangeRates";
 
 
 const G = "#C9B45C";
@@ -63,6 +63,7 @@ function useMe() {
 
 /* ─── Payment Modal ───────────────────────────────────────────────────────── */
 function PaymentModal({ invoice, onClose }: { invoice: AccountInvoice; onClose: () => void }) {
+  const { inverseRates } = useExchangeRates();
   const { fmt: dcFmt } = useCurrency();
   const fmt = (n: number | string | undefined | null) => dcFmt(parseFloat(String(n ?? 0)));
   const { toast } = useToast();
@@ -80,6 +81,25 @@ function PaymentModal({ invoice, onClose }: { invoice: AccountInvoice; onClose: 
     payment_date:          today,
     remarks:               "",
   });
+
+  useEffect(() => {
+  if (form.currency_code === "INR") {
+    setForm(prev => ({
+      ...prev,
+      exchange_rate_snapshot: "1",
+    }));
+    return;
+  }
+
+  const rate = inverseRates[form.currency_code];
+
+  if (rate) {
+    setForm(prev => ({
+      ...prev,
+      exchange_rate_snapshot: rate,
+    }));
+  }
+}, [form.currency_code, inverseRates]);
 
   const baseAmt = parseFloat(form.payment_amount || "0") * parseFloat(form.exchange_rate_snapshot || "1");
 
@@ -117,7 +137,7 @@ function PaymentModal({ invoice, onClose }: { invoice: AccountInvoice; onClose: 
               Record {direction === "Received" ? "Payment Received" : "Payment Made"}
             </h2>
             <p className="text-xs text-gray-400 mt-0.5">
-              {invoice.invoice_no} · {invoice.party_name || invoice.vendor_name} · Pending: {invoice.currency_code} {fmt(invoice.pending_amount)}
+              {invoice.invoice_no} · {invoice.party_name || invoice.vendor_name} · Pending: {fmt(invoice.pending_amount)}
             </p>
           </div>
           <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400"><X size={16} /></button>
@@ -149,7 +169,7 @@ function PaymentModal({ invoice, onClose }: { invoice: AccountInvoice; onClose: 
               </div>
               <div>
                 <label className={labelCls}>INR Equivalent</label>
-                <div className={`${inputCls} bg-gray-50 text-gray-500 cursor-default`}>₹ {fmt(baseAmt)}</div>
+                <div className={`${inputCls} bg-gray-50 text-gray-500 cursor-default`}>{fmt(baseAmt)}</div>
               </div>
             </div>
           )}
@@ -194,8 +214,8 @@ function PaymentModal({ invoice, onClose }: { invoice: AccountInvoice; onClose: 
           {/* Summary strip */}
           <div className="rounded-xl bg-gray-50 border border-gray-100 px-4 py-3 text-xs flex items-center justify-between">
             <span className="text-gray-500">After this payment, pending will be:</span>
-            <span className={`font-bold ${Math.max(0, parseFloat(String(invoice.pending_amount)) - parseFloat(form.payment_amount || "0")) <= 0 ? "text-emerald-600" : "text-amber-600"}`}>
-              {invoice.currency_code} {fmt(Math.max(0, parseFloat(String(invoice.pending_amount)) - parseFloat(form.payment_amount || "0")))}
+            <span className={`font-bold ${Math.max(0, parseFloat(String(invoice.pending_amount)) - (parseFloat(form.payment_amount || "0") * parseFloat(form.exchange_rate_snapshot || "0"))) <= 0 ? "text-emerald-600" : "text-amber-600"}`}>
+              {fmt(Math.max(0, parseFloat(String(invoice.pending_amount)) - (parseFloat(form.payment_amount || "0") * parseFloat(form.exchange_rate_snapshot || "0"))))}
             </span>
           </div>
 
@@ -273,7 +293,7 @@ function PaymentsHistory({ invoiceId }: { invoiceId: number }) {
               <td className="py-2 text-gray-700">{fmtDate(p.payment_date)}</td>
               <td className="py-2 text-gray-700">{p.payment_type}</td>
               <td className="py-2 text-right font-medium text-gray-900 tabular-nums">
-                {p.currency_code} {fmt(p.payment_amount)}
+                {p.currency_code} {(p.payment_amount)}
               </td>
               <td className="py-2 text-right text-gray-600 tabular-nums">{fmtH(p.base_currency_amount)}</td>
               <td className="py-2 text-gray-500 max-w-[120px] truncate" title={p.transaction_reference}>
@@ -305,7 +325,6 @@ function PaymentsHistory({ invoiceId }: { invoiceId: number }) {
 function InvoiceRow({
   inv, index, expanded, onToggle, onPay,
 }: { inv: AccountInvoice; index: number; expanded: boolean; onToggle: () => void; onPay: () => void }) {
-  const { baseCurrencySymbol } = useBaseCurrency();
   const { fmt } = useCurrency();
   const direction = inv.invoice_direction;
   const pct = inv.total_amount > 0 ? Math.min(100, (inv.received_amount / inv.total_amount) * 100) : 0;
@@ -338,7 +357,7 @@ function InvoiceRow({
           </span>
         </td>
         <td className="px-4 py-3 text-right tabular-nums text-sm font-medium text-gray-900">
-          {baseCurrencySymbol} {fmt(inv.total_amount)}
+          {fmt(inv.total_amount)}
         </td>
         <td className="px-4 py-3 text-right tabular-nums text-sm text-emerald-600 font-medium">
           {fmt(inv.received_amount)}
@@ -420,7 +439,7 @@ export default function Accounts() {
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [payModal, setPayModal] = useState<AccountInvoice | null>(null);
 
-  const { data, isLoading, refetch } = useAccountInvoices({ direction, status, search, page });
+  const { data, isLoading, isFetching, refetch } = useAccountInvoices({ direction, status, search, page });
   const invoices = data?.data ?? [];
   const total = data?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / 30));
@@ -443,7 +462,7 @@ export default function Accounts() {
 
   const TABLE_HEADERS = ["#", "Invoice", "Party", "Type", "Total", "Received", "Pending", "Progress", "Status", "Date", "Due", "Pmts", "Action"];
 
-  if (isLoading) return (
+  if (isLoading || isFetching) return (
     <div className="min-h-screen" style={{ background: "#F8F6F0" }}>
       <TopNavbar username="" role="" onLogout={() => {}} isLoggingOut={false} />
       <div className="py-6 px-6 max-w-screen-2xl mx-auto space-y-5 animate-pulse">
