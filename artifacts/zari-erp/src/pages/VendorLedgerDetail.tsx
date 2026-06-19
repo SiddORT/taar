@@ -12,6 +12,7 @@ import AppLayout from "@/components/layout/AppLayout";
 import { customFetch } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
 import { useCurrency } from "@/contexts/CurrencyContext";
+import ConfirmModal from "@/components/ui/ConfirmModal";
 
 const G     = "#C6AF4B";
 const G_DIM = "#A8943E";
@@ -102,6 +103,10 @@ export default function VendorLedgerDetail() {
   // ── Selection state ──────────────────────────────────────────────────
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
   const [payFromSelection, setPayFromSelection] = useState(false);
+
+  // Delete Ledger Usestate
+  const [deleteEntry, setDeleteEntry] = useState<LedgerEntry | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     if (!token || isError) { localStorage.removeItem("zarierp_token"); setLocation("/login"); }
@@ -272,23 +277,42 @@ export default function VendorLedgerDetail() {
       toast({ title: "Failed to add charge", variant: "destructive" });
     } finally { setSubmitting(false); }
   };
-
+  
   const handleDelete = async (entry: LedgerEntry) => {
     if (!["payment", "ledger_charge"].includes(entry.entry_type)) {
       toast({ title: "Cannot delete order-linked entries", variant: "destructive" }); return;
     }
-    const label = entry.entry_type === "payment" ? "payment" : "manual charge";
-    const amount = parseFloat(entry.debit || entry.credit || "0").toLocaleString("en-IN", { minimumFractionDigits: 2 });
-    if (!confirm(`Delete this ${label} of ${fmt(parseFloat(String(amount ?? 0)))} dated ${fmtDate(entry.entry_date)}?\n\nThis will adjust the vendor balance and cannot be undone.`)) return;
-    const path = entry.entry_type === "payment"
-      ? `/api/vendor-ledger/payments/${entry.entry_id}`
-      : `/api/vendor-ledger/charges/${entry.entry_id}`;
+    setDeleteEntry(entry);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteEntry) return;
+
+    const path =
+      deleteEntry.entry_type === "payment"
+        ? `/api/vendor-ledger/payments/${deleteEntry.entry_id}`
+        : `/api/vendor-ledger/charges/${deleteEntry.entry_id}`;
+
     try {
-      await customFetch(path, { method: "DELETE" });
-      toast({ title: "Entry deleted" });
+      setIsDeleting(true);
+
+      await customFetch(path, {
+        method: "DELETE",
+      });
+
+      toast({
+        title: "Entry deleted",
+      });
+
+      setDeleteEntry(null);
       loadData();
     } catch {
-      toast({ title: "Failed to delete entry", variant: "destructive" });
+      toast({
+        title: "Failed to delete entry",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -902,6 +926,31 @@ export default function VendorLedgerDetail() {
           </div>
         </div>
       )}
+
+      <ConfirmModal
+      open={!!deleteEntry}
+      title="Delete Entry"
+      message={
+        deleteEntry
+          ? `Delete this ${
+              deleteEntry.entry_type === "payment"
+                ? "payment"
+                : "manual charge"
+            } of ${fmt(
+              Number(deleteEntry.debit || deleteEntry.credit || 0)
+            )} dated ${fmtDate(deleteEntry.entry_date)}?
+
+    This will adjust the vendor balance and cannot be undone.`
+          : ""
+      }
+      confirmLabel="Delete"
+      cancelLabel="Cancel"
+      loading={isDeleting}
+      danger={true}
+      onCancel={() => setDeleteEntry(null)}
+      onConfirm={confirmDelete}
+    />
+
     </AppLayout>
   );
 }
