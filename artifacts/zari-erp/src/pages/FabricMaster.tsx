@@ -165,10 +165,7 @@ export default function FabricMaster() {
   const { data: rawWarehouses } = useWarehouseLocations();
   const warehouseLocations = Array.isArray(rawWarehouses) ? rawWarehouses : [];
   const hsnOptions = hsnData?.data ?? [];
-  const locationOptions = [
-    "Out-house",
-    ...warehouseLocations.filter(w => w.isActive).map(w => w.name),
-  ];
+  const locationOptions = warehouseLocations.filter(w => w.isActive).map(w => w.name);
 
   const [viewMode, setViewMode] = useState<"list" | "form">("list");
   const [editRecord, setEditRecord] = useState<FabricRecord | null>(null);
@@ -316,7 +313,6 @@ export default function FabricMaster() {
 
   const handleSubmit = async () => {
     if (!validate()) return;
-    const computedStock = String(totalStock);
     const computedLocation = form.locationStocks.map(ls => ls.location).filter(Boolean).join(", ") || undefined;
     const submitData: FabricFormData = {
       ...form,
@@ -326,7 +322,7 @@ export default function FabricMaster() {
       width: form.width.trim(),
       pricePerMeter: form.pricePerMeter.trim(),
       unitType: (form.unitType ?? "").trim(),
-      currentStock: computedStock || "0",
+      currentStock: form.locationStocks.length > 0 ? String(totalStock) : form.currentStock.trim(),
       location: computedLocation,
     };
     try {
