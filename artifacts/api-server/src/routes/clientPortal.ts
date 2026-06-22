@@ -1,8 +1,8 @@
 import { Router, type IRouter } from "express";
-import { eq, and, asc } from "drizzle-orm";
+// import { eq, and, asc } from "drizzle-orm";
 import {
   db, clientLinksTable, clientMessagesTable, clientFeedbackTable,
-  artworksTable, swatchOrdersTable,
+  artworksTable, swatchOrdersTable,eq, and, asc 
 } from "@workspace/db";
 
 const SWATCH_REWORK_REVERT_STATUSES = ["Pending Approval", "Completed"];

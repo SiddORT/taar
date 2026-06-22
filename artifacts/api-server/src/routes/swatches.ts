@@ -1,8 +1,8 @@
 import { Router, type IRouter } from "express";
-import { eq, ilike, or, and, desc, ne } from "drizzle-orm";
+// import { eq, ilike, or, and, desc, ne } from "drizzle-orm";
 import { mediaUploadMiddleware, uploadFile, deleteUpload } from "../utils/uploadHelper";
 import { db, pool, swatchesTable } from "@workspace/db";
-import { insertSwatchSchema, updateSwatchSchema } from "@workspace/db";
+import { insertSwatchSchema, updateSwatchSchema, eq, ilike, or, and, desc, ne } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
 import { logger } from "../lib/logger";
 import { zodFieldErrorsToHuman } from "../lib/importHelpers";

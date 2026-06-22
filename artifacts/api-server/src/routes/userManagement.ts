@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
-import { eq, and } from "drizzle-orm";
+// import { eq, and } from "drizzle-orm";
 import crypto from "crypto";
-import { db, usersTable, rolesTable, rolePermissionsTable } from "@workspace/db";
+import { db, usersTable, rolesTable, rolePermissionsTable, eq, and } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
 import { hashPassword } from "../lib/auth";
 import { logger } from "../lib/logger";

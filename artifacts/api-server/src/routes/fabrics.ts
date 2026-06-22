@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
-import { eq, ilike, or, and, desc, count, asc, ne } from "drizzle-orm";
-import { db, fabricsTable } from "@workspace/db";
+// import { eq, ilike, or, and, desc, count, asc, ne } from "drizzle-orm";
+import { db, fabricsTable , eq, ilike, or, and, desc, count, asc, ne} from "@workspace/db";
 import { insertFabricSchema, updateFabricSchema } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
 import { logger } from "../lib/logger";
@@ -193,6 +193,14 @@ router.post("/fabrics", requireAuth, async (req: AuthRequest, res): Promise<void
   const [{ total }] = await db.select({ total: count() }).from(fabricsTable);
   const fabricCode = `FAB${String(total + 1).padStart(4, "0")}`;
 
+  const ls = parsed.data.locationStocks ?? [];
+  if (ls.length === 0) {
+    ls.push({
+      location: "Unallocated",
+      stock: parsed.data.currentStock,
+    });
+  }
+  
   const images = await persistImageArray(parsed.data.images, { entity: "fabrics", category: "images" });
   const [record] = await db.insert(fabricsTable).values({ ...parsed.data, images, fabricCode, createdBy }).returning();
   logger.info({ id: record.id, fabricCode }, "Fabric created");
@@ -205,6 +213,10 @@ router.post("/fabrics", requireAuth, async (req: AuthRequest, res): Promise<void
     averagePrice: record.pricePerMeter,
     preferredVendor: record.vendor ?? undefined,
     images: (record.images as { id: string; name: string; url: string; size: number }[]) ?? [],
+    currentStock: record.currentStock,
+    reorderLevel: record.reorderLevel,
+    minimumLevel: record.minimumLevel,
+    maximumLevel: record.maximumLevel,
   });
   res.status(201).json(record);
 });

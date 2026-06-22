@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
-import { eq, ilike, and, desc, sql, ne } from "drizzle-orm";
+// import { eq, ilike, and, desc, sql, ne } from "drizzle-orm";
 import { diceSimilarity } from "../lib/importHelpers";
-import { db, itemsTable, insertItemSchema, updateItemSchema } from "@workspace/db";
+import { db, itemsTable, insertItemSchema, updateItemSchema , eq, ilike, and, desc, sql, ne} from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
 import { logger } from "../lib/logger";
 import { nextSequenceNumber } from "../utils/sequence";

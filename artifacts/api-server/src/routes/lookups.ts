@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
-import { eq } from "drizzle-orm";
-import { db, itemTypesTable, unitTypesTable, fabricTypesTable, swatchCategoriesTable, departmentsTable } from "@workspace/db";
+// import { eq } from "drizzle-orm";
+import { db, itemTypesTable, unitTypesTable, fabricTypesTable, swatchCategoriesTable, departmentsTable , eq} from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
 import { logger } from "../lib/logger";
 

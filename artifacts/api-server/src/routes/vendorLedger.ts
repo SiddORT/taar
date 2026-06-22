@@ -1,9 +1,9 @@
 import { Router } from "express";
 import { db, vendorPaymentsTable, vendorLedgerChargesTable, vendorsTable } from "@workspace/db";
 import { pool } from "@workspace/db";
-import { eq, and } from "drizzle-orm";
+// import { eq, and } from "drizzle-orm";
 import { requireAuth } from "../middlewares/requireAuth";
-import { insertVendorPaymentSchema, insertVendorLedgerChargeSchema } from "@workspace/db";
+import { insertVendorPaymentSchema, insertVendorLedgerChargeSchema ,  eq, and } from "@workspace/db";
 import { recomputeVendorBillBalances } from "../lib/vendorBillBalances";
 
 const router = Router();

@@ -6,8 +6,8 @@ import {
   materialsTable, fabricsTable, vendorsTable, hsnTable, inventoryItemsTable,
   bomChangeLogTable,
 } from "@workspace/db/schema";
-import { usersTable } from "@workspace/db";
-import { eq, ilike, or, desc, and } from "drizzle-orm";
+import { usersTable, eq, ilike, or, desc, and } from "@workspace/db";
+// import { eq, ilike, or, desc, and } from "drizzle-orm";
 import { requireAuth } from "../middlewares/requireAuth";
 import { sendPoApprovalRequestEmail } from "../lib/mailer";
 import { persistAttachmentObject } from "../utils/uploadHelper";
@@ -292,12 +292,13 @@ async function applyCostingInventoryUpdate(opts: {
   if (masterRes.rows.length) {
     const masterRow = masterRes.rows[0] as { current_stock: string; location_stocks: Array<{location: string; stock: string}> };
     const masterNewStock = parseFloat(masterRow.current_stock ?? "0") + receivedQty;
+    const resolvedLocation = warehouseLocation?.trim() || "Unallocated";
     const locStocks: Array<{location: string; stock: string}> = masterRow.location_stocks ?? [];
-    const locIdx = locStocks.findIndex(l => l.location === warehouseLocation);
+    const locIdx = locStocks.findIndex(l => l.location === resolvedLocation);
     if (locIdx >= 0) {
       locStocks[locIdx].stock = (parseFloat(locStocks[locIdx].stock ?? "0") + receivedQty).toFixed(3);
-    } else if (warehouseLocation) {
-      locStocks.push({ location: warehouseLocation, stock: receivedQty.toFixed(3) });
+    } else {
+      locStocks.push({ location: resolvedLocation, stock: receivedQty.toFixed(3) });
     }
     await pool.query(
       `UPDATE ${masterTable} SET current_stock = $1, location_stocks = $2 WHERE id = $3`,
