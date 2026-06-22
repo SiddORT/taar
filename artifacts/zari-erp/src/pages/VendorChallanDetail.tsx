@@ -8,6 +8,7 @@ import { SmallSearchSelect } from "@/components/ui/SearchableSelect";
 import { useToast } from "@/hooks/use-toast";
 import { useMyPermissions } from "@/hooks/useMyPermissions";
 import { useCurrency } from "@/contexts/CurrencyContext";
+import { mediaUrl } from "@/utils/mediaUrl";
 
 const G = "#C6AF4B";
 const BASE = (import.meta.env.BASE_URL ?? "/").replace(/\/$/, "");
@@ -207,7 +208,7 @@ function AttachmentSection({ challanId, attachments, pendingFiles, onPendingFile
     <div className="space-y-2">
       {/* Saved attachments */}
       {attachments.map((att) => {
-        const fileUrl = `${BASE}${att.url}`;
+        const fileUrl = mediaUrl(att.url);
         const name = att.originalName ?? "";
         const size = att.size ? ` (${(att.size / 1024).toFixed(1)} KB)` : "";
         const { isImage, isPdf } = meta(name, att.mimeType);

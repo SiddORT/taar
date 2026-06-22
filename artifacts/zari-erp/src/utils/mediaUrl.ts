@@ -2,9 +2,13 @@
  * Resolve a stored upload path ("/uploads/...") to a URL the browser can fetch
  * through the API proxy. Pass-through for absolute URLs and data URIs.
  */
+const API_ORIGIN = import.meta.env.VITE_BASE_URL ?? ""; 
 export function mediaUrl(url?: string | null): string {
   if (!url) return "";
-  if (url.startsWith("/uploads/")) return `/api${url}`;
+  // if (url.startsWith("/uploads/")) return `/api${url}`;
+  if (url.startsWith("/uploads/")) {
+    return `${API_ORIGIN}${url}`;
+  }
   return url;
 }
 
