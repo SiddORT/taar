@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { db, styleOrderProductsTable } from "@workspace/db";
-import { eq, and } from "drizzle-orm";
+import { db, styleOrderProductsTable, eq, and } from "@workspace/db";
+// import { eq, and } from "drizzle-orm";
 import { requireAuth } from "../middlewares/requireAuth";
 import { insertStyleOrderProductSchema, updateStyleOrderProductSchema } from "@workspace/db";
 

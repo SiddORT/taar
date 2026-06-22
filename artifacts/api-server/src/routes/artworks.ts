@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
-import { eq, and, desc, ilike } from "drizzle-orm";
-import { db, artworksTable, swatchOrdersTable, pool } from "@workspace/db";
+// import { eq, and, desc, ilike } from "drizzle-orm";
+import { db, artworksTable, swatchOrdersTable, pool , eq, and, desc, ilike } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
 import { logger } from "../lib/logger";
 

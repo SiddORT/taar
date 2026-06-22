@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
-import { and, eq } from "drizzle-orm";
-import { db, usersTable, rolesTable, rolePermissionsTable } from "@workspace/db";
+// import { and, eq } from "drizzle-orm";
+import { db, usersTable, rolesTable, rolePermissionsTable , and, eq } from "@workspace/db";
 import {
   LoginBody,
   LoginResponse,

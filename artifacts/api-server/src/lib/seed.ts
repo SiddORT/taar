@@ -1,5 +1,5 @@
-import { eq } from "drizzle-orm";
-import { db, usersTable } from "@workspace/db";
+// import { eq } from "drizzle-orm";
+import { db, usersTable, eq} from "@workspace/db";
 import { hashPassword } from "./auth";
 import { logger } from "./logger";
 

@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
-import { eq, ilike, or, and, desc, count, ne } from "drizzle-orm";
-import { db, materialsTable } from "@workspace/db";
-import { insertMaterialSchema, updateMaterialSchema } from "@workspace/db";
+// import { eq, ilike, or, and, desc, count, ne } from "drizzle-orm";
+import { db, materialsTable , insertMaterialSchema, updateMaterialSchema,  eq, ilike, or, and, desc, count, ne } from "@workspace/db";
+// import { insertMaterialSchema, updateMaterialSchema } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
 import { logger } from "../lib/logger";
 import { ensureInventoryRecord, updateInventoryImages, updateInventoryStockLevels } from "../services/inventoryService";
@@ -216,6 +216,13 @@ router.post("/materials", requireAuth, async (req: AuthRequest, res): Promise<vo
   const materialCode = `MAT${String(total + 1).padStart(4, "0")}`;
 
   const ls = parsed.data.locationStocks ?? [];
+  if (ls.length === 0) {
+    ls.push({
+      location: "Unallocated",
+      stock: parsed.data.currentStock,
+    });
+  }
+
   const totalStock = ls.reduce((sum, s) => sum + (parseFloat(s.stock) || 0), 0);
   const currentStock = ls.length > 0 ? String(totalStock) : parsed.data.currentStock;
 
@@ -238,6 +245,10 @@ router.post("/materials", requireAuth, async (req: AuthRequest, res): Promise<vo
     averagePrice: record.unitPrice,
     preferredVendor: record.vendor ?? undefined,
     images: (record.images as { id: string; name: string; url: string; size: number }[]) ?? [],
+    currentStock: record.currentStock,
+    reorderLevel: record.reorderLevel,
+    minimumLevel: record.minimumLevel,
+    maximumLevel: record.maximumLevel,
   });
   res.status(201).json(record);
 });

@@ -12,6 +12,10 @@ export interface InventoryAutoCreateData {
   averagePrice?: string | number | null;
   preferredVendor?: string | null;
   images?: { id: string; name: string; url: string; size: number }[] | null;
+  currentStock?: string | number | null;
+  reorderLevel?: string | number | null;
+  minimumLevel?: string | number | null;
+  maximumLevel?: string | number | null;
 }
 
 export async function ensureInventoryRecord(
@@ -22,26 +26,38 @@ export async function ensureInventoryRecord(
   try {
     const avgPrice = data.averagePrice ? (parseFloat(String(data.averagePrice)) || 0) : 0;
     const images = JSON.stringify(data.images ?? []);
+    const currentStock = data.currentStock !== undefined ? parseFloat(String(data.currentStock)) || 0 : 0;
+    const reorderLevel = data.reorderLevel !== undefined ? parseFloat(String(data.reorderLevel)) || 0 : 0;
+    const minimumLevel = data.minimumLevel !== undefined ? parseFloat(String(data.minimumLevel)) || 0 : 0;
+    const maximumLevel = data.maximumLevel !== undefined ? parseFloat(String(data.maximumLevel)) || 0 : 0;
+
     await pool.query(
       `INSERT INTO inventory_items (
-         source_type, source_id, item_name, item_code, category, department,
-         warehouse_location, unit_type, current_stock, style_reserved_qty,
-         swatch_reserved_qty, available_stock, average_price, last_purchase_price,
-         preferred_vendor, images, last_updated_at, created_at
-       ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,0,0,0,0,$9,0,$10,$11,NOW(),NOW())
-       ON CONFLICT (source_type, source_id) DO UPDATE SET images = EXCLUDED.images, last_updated_at = NOW()`,
+        source_type, source_id, item_name, item_code, category, department,
+        warehouse_location, unit_type, current_stock, style_reserved_qty,
+        swatch_reserved_qty, available_stock, average_price, last_purchase_price,
+        minimum_level, reorder_level, maximum_level, preferred_vendor, images,
+        last_updated_at, created_at
+      )
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,0,0,$9,$10,0,$11,$12,$13,$14,$15,NOW(),NOW())
+      ON CONFLICT (source_type, source_id)
+      DO UPDATE SET
+        images = EXCLUDED.images,
+        last_updated_at = NOW()`,
       [
-        sourceType,
-        sourceId,
-        data.itemName,
-        data.itemCode,
-        data.category ?? null,
-        data.department ?? null,
-        data.warehouseLocation ?? null,
-        data.unitType ?? null,
-        avgPrice,
-        data.preferredVendor ?? null,
-        images,
+        sourceType, 
+        sourceId, data.itemName, 
+        data.itemCode, data.category ?? null, 
+        data.department ?? null, 
+        data.warehouseLocation ?? null, 
+        data.unitType ?? null, 
+        currentStock, 
+        avgPrice, 
+        minimumLevel, 
+        reorderLevel, 
+        maximumLevel, 
+        data.preferredVendor ?? null, 
+        images
       ]
     );
   } catch (err) {
