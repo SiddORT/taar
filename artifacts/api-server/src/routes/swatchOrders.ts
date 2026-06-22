@@ -215,11 +215,9 @@ router.delete("/swatch-orders/:id", requireAuth, async (req, res): Promise<void>
   }
 
   const linked = await db.execute(sql`
-    SELECT (
-      SELECT COUNT(*) FROM swatch_order_artworks WHERE swatch_order_id = ${id}
-    ) + (
-      SELECT COUNT(*) FROM consumption_log WHERE swatch_order_id = ${id}
-    ) AS total
+    SELECT COUNT(*) AS total
+    FROM consumption_log
+    WHERE swatch_order_id = ${id}
   `);
   if (Number((linked.rows?.[0] as Record<string, unknown>)?.total ?? 0) > 0) {
     res.status(409).json({ error: "This order has linked artworks or stock consumptions. Use 'Cancel Order' to deactivate it instead." });
