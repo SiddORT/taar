@@ -390,7 +390,7 @@ function BomSection({ swatchOrderId, orderCode, swatchName, clientName }: {
     if (!m) return;
     setForm(f => ({
       ...f, materialType: "material", materialId: m.id, materialCode: m.materialCode,
-      materialName: [m.itemType, m.quality].filter(Boolean).join(" – "),
+      materialName: m.materialName  || [m.itemType, m.quality].filter(Boolean).join(" – "),
       currentStock: m.currentStock, avgUnitPrice: m.unitPrice, unitType: m.unitType, warehouseLocation: m.location ?? "",
     }));
   }

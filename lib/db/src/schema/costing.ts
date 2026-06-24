@@ -51,6 +51,7 @@ export const purchaseOrdersTable = pgTable("purchase_orders", {
   styleOrderId: integer("style_order_id"),
   referenceType: text("reference_type").notNull().default("Manual"),
   referenceId: integer("reference_id"),
+  vendorMode: text("vendor_mode").notNull().default("header"),
   vendorId: integer("vendor_id"),
   vendorName: text("vendor_name"),
   poDate: timestamp("po_date", { withTimezone: true }).notNull().defaultNow(),

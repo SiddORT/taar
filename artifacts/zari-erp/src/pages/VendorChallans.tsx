@@ -9,6 +9,8 @@ import { useGetMe, useLogout, getGetMeQueryKey } from "@workspace/api-client-rea
 import TopNavbar from "@/components/layout/TopNavbar";
 import { useMyPermissions } from "@/hooks/useMyPermissions";
 import { useCurrency } from "@/contexts/CurrencyContext";
+import ConfirmModal from "@/components/ui/ConfirmModal";
+import { useToast } from "@/hooks/use-toast";
 
 const BASE = (import.meta.env.BASE_URL ?? "/").replace(/\/$/, "");
 
@@ -68,6 +70,7 @@ export default function VendorChallans() {
   const { data: user } = useGetMe();
   const logoutMutation = useLogout();
   const { can } = useMyPermissions();
+  const { toast } = useToast();
 
   async function handleLogout() {
     await logoutMutation.mutateAsync();
@@ -113,6 +116,10 @@ export default function VendorChallans() {
   const [cvSuccess, setCvSuccess]       = useState("");
   const [cvError, setCvError]           = useState("");
 
+  // Challan Deletion States
+  const [deleteChallan, setDeleteChallan] = useState<{ id: number; number: string } | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
   const LIMIT = 20;
 
   const fetchVendors = useCallback(async () => {
@@ -157,14 +164,25 @@ export default function VendorChallans() {
     setCancelTarget(null);
   }
 
-  async function handleDelete(id: number) {
-    if (!confirm("Delete this challan? This cannot be undone.")) return;
-    setActionId(id);
-    const r = await apiFetch(`/api/vendor-challans/${id}`, { method: "DELETE" });
-    if (r.ok) void fetchChallans();
-    else { const e = await r.json(); alert(e.error ?? "Failed to delete"); }
-    setActionId(null);
-  }
+  const handleDelete = (id: number, number: string) => {
+    setDeleteChallan({ id, number });
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteChallan) return;
+    setIsDeleting(true);
+
+    try {
+      await apiFetch(`/api/vendor-challans/${deleteChallan.id}`, { method: "DELETE" });
+      toast({ title: "Challan deleted" });
+      setDeleteChallan(null);
+      void fetchChallans();
+    } catch {
+      toast({ title: "Failed to delete challan", variant: "destructive" });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   // Selection helpers
   function toggleRow(id: number) {
@@ -429,7 +447,7 @@ export default function VendorChallans() {
                               </button>
                             )}
                             {["Draft", "Cancelled"].includes(ch.status) && (
-                              <button onClick={() => handleDelete(ch.id)} disabled={actionId === ch.id}
+                              <button onClick={() => handleDelete(ch.id, ch.challan_number ?? `#${ch.id}`)} disabled={actionId === ch.id}
                                 title="Delete"
                                 className="p-1.5 rounded-lg text-red-500 hover:bg-red-50 transition-colors disabled:opacity-40">
                                 <X className="h-3.5 w-3.5" />
@@ -444,6 +462,18 @@ export default function VendorChallans() {
               </table>
             </div>
           )}
+          {/* Delete Conform for Chalan */}
+          <ConfirmModal
+            open={!!deleteChallan}
+            title="Delete Challan"
+            message={ deleteChallan ? `Delete challan ${deleteChallan.number}?\n\nThis cannot be undone.` : ""}
+            confirmLabel="Delete"
+            cancelLabel="Keep"
+            loading={isDeleting}
+            danger={true}
+            onCancel={() => setDeleteChallan(null)}
+            onConfirm={confirmDelete}
+          />
 
           {/* Pagination */}
           {totalPages > 1 && (
