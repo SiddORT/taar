@@ -170,17 +170,18 @@ router.post("/procurement/purchase-orders", requireAuth, async (req: AuthRequest
 
     if (!vendorId) { res.status(400).json({ error: "Vendor is required" }); return; }
     if (!items.length) { res.status(400).json({ error: "At least one item is required" }); return; }
+    const vendorMode = "header";
 
     const poNumber = await nextPoNumber(client);
     const poRes = await client.query(
       `INSERT INTO purchase_orders
-         (po_number, vendor_id, vendor_name, po_date, status, notes,
+         (po_number, vendor_id, vendor_name, vendor_mode, po_date, status, notes,
           reference_type, reference_id, swatch_order_id, style_order_id,
           bom_row_ids, bom_items, created_by, created_at)
-       VALUES ($1,$2,$3,$4,'Draft',$5,$6,$7,$8,$9,'[]','[]',$10,NOW())
+       VALUES ($1,$2,$3,$4,'Draft',$5,$6,$7,$8,$9,'[]','[]',$10, $11, NOW())
        RETURNING *`,
       [
-        poNumber, vendorId, vendorName,
+        poNumber, vendorId, vendorName,vendorMode,
         poDate ? new Date(poDate).toISOString() : new Date().toISOString(),
         notes ?? null, referenceType, referenceId ?? null,
         referenceType === "Swatch" ? referenceId : null,

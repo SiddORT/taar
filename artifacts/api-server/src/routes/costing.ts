@@ -1,5 +1,5 @@
 import { Router, type Request, type Response } from "express";
-import { db, pool } from "@workspace/db";
+import { db, pool, inArray  } from "@workspace/db";
 import {
   swatchBomTable, purchaseOrdersTable, purchaseReceiptsTable, prPaymentsTable,
   consumptionLogTable, artisanTimesheetsTable, outsourceJobsTable, customChargesTable,
@@ -906,50 +906,159 @@ router.post("/po", requireAuth, async (req, res) => {
     swatchOrderId: number;
     vendorId?: number;
     notes?: string;
-    bomItems?: { bomRowId: number; materialCode: string; materialName: string; unitType: string; targetPrice: string; quantity: string }[];
+    bomItems?: {
+      bomRowId: number;
+      materialCode: string;
+      materialName: string;
+      unitType: string;
+      targetPrice: string;
+      quantity: string;
+      targetVendorId?: number;
+      targetVendorName?: string;
+    }[];
   };
+
+  // ─── DETERMINE VENDOR MODE ──────────────────────────────────────────────
   let vendorName: string | null = null;
+  let vendorMode: "header" | "item";
+
   if (vendorId) {
-    const [vendor] = await db.select().from(vendorsTable).where(and(eq(vendorsTable.id, vendorId), eq(vendorsTable.isDeleted, false)));
-    if (!vendor) { res.status(404).json({ error: "Vendor not found" }); return; }
+    const [vendor] = await db.select().from(vendorsTable).where(
+      and(eq(vendorsTable.id, vendorId), eq(vendorsTable.isDeleted, false))
+    );
     vendorName = vendor.brandName;
+    vendorMode = "header";
+  } else {
+    vendorMode = "item";
   }
-  const poNumber = await nextPoNumber();
+
   const items = bomItems ?? [];
-  const [row] = await db.insert(purchaseOrdersTable).values({
-    poNumber,
-    swatchOrderId: Number(swatchOrderId),
-    referenceType: "Swatch",
-    referenceId: Number(swatchOrderId),
-    vendorId: (vendorId ?? null) as unknown as number,
-    vendorName: vendorName ?? "",
-    status: "Draft",
-    notes: notes ?? null,
-    bomRowIds: items.map(i => i.bomRowId),
-    bomItems: items,
-    createdBy: user.email,
-  }).returning();
-  const adminUsers = await db.select({ email: usersTable.email }).from(usersTable).where(and(eq(usersTable.role, "admin"), eq(usersTable.isDeleted, false)));
-  const adminEmails = adminUsers.map(u => u.email).filter(Boolean) as string[];
-  if (adminEmails.length > 0) {
-    const apiBase = process.env.API_BASE_URL ?? `https://${process.env.REPLIT_DEV_DOMAIN ?? "zari-erp.replit.app"}`;
-    const erpUrl = `${apiBase}/costing`;
-    const approveToken = jwt.sign({ poId: row.id, action: "approve" }, process.env.SESSION_SECRET ?? "secret", { expiresIn: "7d" });
-    const rejectToken = jwt.sign({ poId: row.id, action: "reject" }, process.env.SESSION_SECRET ?? "secret", { expiresIn: "7d" });
-    sendPoApprovalRequestEmail({
-      adminEmails,
-      poNumber,
-      vendorName: vendorName ?? "—",
-      createdBy: user.email,
-      referenceType: "Swatch",
-      referenceId: swatchOrderId,
-      itemCount: items.length,
-      erpUrl,
-      approveUrl: `${apiBase}/api/costing/po-action?token=${approveToken}`,
-      rejectUrl: `${apiBase}/api/costing/po-action?token=${rejectToken}`,
-    }).catch(() => {});
+
+  // ─── FETCH INVENTORY ITEM IDs BY MATERIAL CODE ───────────────────────────
+  const materialCodes = [...new Set(items.map(i => i.materialCode))];
+  const inventoryItems = materialCodes.length > 0
+    ? await db.select({ id: inventoryItemsTable.id, code: inventoryItemsTable.itemCode })
+        .from(inventoryItemsTable)
+        .where(and(inArray(inventoryItemsTable.itemCode, materialCodes), eq(inventoryItemsTable.isDeleted, false)))
+    : [];
+
+  const inventoryMap = new Map(inventoryItems.map(i => [i.code, i.id]));
+
+  const poNumber = await nextPoNumber();
+
+  // ─── START TRANSACTION ───────────────────────────────────────────────────
+  const client = await (pool as any).connect();
+
+  try {
+    await client.query("BEGIN");
+
+    // ─── INSERT PO HEADER ──────────────────────────────────────────────────
+    const poResult = await client.query(
+      `INSERT INTO purchase_orders
+        (po_number, swatch_order_id, reference_type, reference_id, vendor_mode,
+          vendor_id, vendor_name, status, notes, bom_row_ids, bom_items, created_by)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+      RETURNING id, po_number, swatch_order_id, reference_type, reference_id, vendor_mode,
+                vendor_id, vendor_name, status, notes, bom_row_ids, bom_items, created_by,
+                created_at`,
+      [
+        poNumber,
+        Number(swatchOrderId),
+        "Swatch",
+        Number(swatchOrderId),
+        vendorMode,
+        vendorMode === "header" ? vendorId : null,
+        vendorMode === "header" ? vendorName : null,
+        "Draft",
+        notes ?? null,
+        JSON.stringify(items.map(i => i.bomRowId)),
+        JSON.stringify(items),
+        user.email,
+      ]
+    );
+    const po = poResult.rows[0];
+
+    // ─── INSERT PO ITEMS ───────────────────────────────────────────────────
+    if (items.length > 0) {
+      for (const item of items) {
+        const inventoryItemId = inventoryMap.get(item.materialCode) ?? null;
+
+        await client.query(
+          `INSERT INTO purchase_order_items
+             (po_id, inventory_item_id, item_name, item_code,
+              ordered_quantity, received_quantity, unit_price,
+              warehouse_location, remarks, item_image,
+              vendor_id, vendor_name)
+           VALUES ($1,$2,$3,$4,$5,0,$6,$7,$8,$9,$10,$11)`,
+          [
+            po.id,
+            inventoryItemId,
+            item.materialName || item.materialCode,
+            item.materialCode,
+            item.quantity,
+            item.targetPrice,
+            "",
+            null,
+            null,
+            vendorMode === "item" ? item.targetVendorId : null,
+            vendorMode === "item" ? (item.targetVendorName ?? null) : null,
+          ]
+        );
+      }
+    }
+
+    await client.query("COMMIT");
+
+    // ─── EMAIL NOTIFICATION (outside transaction) ──────────────────────────
+    const adminUsers = await db.select({ email: usersTable.email }).from(usersTable).where(
+      and(eq(usersTable.role, "admin"), eq(usersTable.isDeleted, false))
+    );
+    const adminEmails = adminUsers.map(u => u.email).filter(Boolean) as string[];
+
+    if (adminEmails.length > 0) {
+      const apiBase = process.env.API_BASE_URL ?? `https://${process.env.REPLIT_DEV_DOMAIN ?? "zari-erp.replit.app"}`;
+      const erpUrl = `${apiBase}/costing`;
+      const approveToken = jwt.sign(
+        { poId: po.id, action: "approve" },
+        process.env.SESSION_SECRET ?? "secret",
+        { expiresIn: "7d" }
+      );
+      const rejectToken = jwt.sign(
+        { poId: po.id, action: "reject" },
+        process.env.SESSION_SECRET ?? "secret",
+        { expiresIn: "7d" }
+      );
+
+      const emailVendorName = vendorMode === "item"
+        ? [...new Set(items.map(i => i.targetVendorName ?? `Vendor ${i.targetVendorId}`))].join(", ")
+        : (vendorName ?? "—");
+
+      sendPoApprovalRequestEmail({
+        adminEmails,
+        poNumber,
+        vendorName: emailVendorName,
+        createdBy: user.email,
+        referenceType: "Swatch",
+        referenceId: swatchOrderId,
+        itemCount: items.length,
+        erpUrl,
+        approveUrl: `${apiBase}/api/costing/po-action?token=${approveToken}`,
+        rejectUrl: `${apiBase}/api/costing/po-action?token=${rejectToken}`,
+      }).catch(() => {});
+    }
+
+    return res.status(201).json({ data: po });
+
+  } catch (error) {
+    // ─── ROLLBACK ON ANY ERROR ─────────────────────────────────────────────
+    await client.query("ROLLBACK").catch(() => {});
+    console.error("PO creation failed:", error);
+    return res.status(500).json({ error: "Failed to create purchase order", detail: (error as Error).message });
+
+  } finally {
+    // ─── ALWAYS RELEASE CLIENT ───────────────────────────────────────────────
+    client.release();
   }
-  return res.status(201).json({ data: row });
 });
 
 router.patch("/po/:id", requireAuth, async (req, res) => {

@@ -375,6 +375,8 @@ export const creditDebitNotes = pgTable("credit_debit_notes", {
 export const purchaseOrderItems = pgTable("purchase_order_items", {
         id: serial().primaryKey().notNull(),
         poId: integer("po_id").notNull(),
+        vendorId: integer("vendor_id"),
+        vendorName: text("vendor_name"),
         inventoryItemId: integer("inventory_item_id"),
         itemName: text("item_name").notNull(),
         itemCode: text("item_code").default('').notNull(),

@@ -46,6 +46,7 @@ interface PO {
   id: number;
   po_number: string;
   vendor_name: string;
+  vendor_mode: "header" | "item";
   status: string;
   reference_type: string;
   reference_id: number | null;
@@ -57,6 +58,7 @@ interface PO {
   total_received_qty: string;
   created_by: string;
   created_at: string;
+  bom_items: any[]; // or define a proper type
 }
 
 interface POItem {
@@ -256,6 +258,34 @@ export default function PurchaseOrderList() {
     }
   };
 
+  // Add this helper function near your other utilities
+  function getVendorDisplay(po: PO): { primary: string; suffix: string } {
+    if (po.vendor_mode === "item") {
+      // Extract unique vendors from bom_items
+      const vendors = new Map<number, string>();
+      (po.bom_items ?? []).forEach((item: any) => {
+        if (item.targetVendorId) {
+          vendors.set(item.targetVendorId, item.targetVendorName || `Vendor ${item.targetVendorId}`);
+        }
+      });
+      
+      const vendorList = Array.from(vendors.entries());
+      if (vendorList.length === 0) return { primary: "—", suffix: "" };
+      if (vendorList.length === 1) return { primary: vendorList[0][1], suffix: "" };
+      
+      return { 
+        primary: vendorList[0][1], 
+        suffix: ` +${vendorList.length - 1}` 
+      };
+    }
+  
+  // header mode — single vendor
+  return { 
+    primary: po.vendor_name || "—", 
+    suffix: "" 
+  };
+}
+
   const StatusBadge = ({ s }: { s: string }) => {
     const info = STATUS_MAP[s] ?? STATUS_MAP.Draft;
     return (
@@ -445,7 +475,63 @@ export default function PurchaseOrderList() {
                           </div>
                         )}
                       </td>
-                      <td className={tdCls}><span className="text-xs">{po.vendor_name}</span></td>
+                      <td className={tdCls}>
+                        {(() => {
+                          const { primary, suffix } = getVendorDisplay(po);
+                          const allVendors = po.vendor_mode === "item" 
+                            ? [...new Map((po.bom_items ?? []).map((i: any) => [i.targetVendorId, i.targetVendorName])).values()].filter(Boolean)
+                            : [po.vendor_name].filter(Boolean);
+                          
+                          return (
+                            <div className="relative group/vendor">
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-xs font-medium text-gray-900 truncate max-w-[120px]">
+                                  {primary}
+                                </span>
+                                {suffix && (
+                                  <span className="text-[10px] font-bold text-white bg-[#C6AF4B] px-1.5 py-0.5 rounded-full flex-shrink-0">
+                                    {suffix}
+                                  </span>
+                                )}
+                              </div>
+                              
+                              {/* Vendor tooltip — matches items popover style */}
+                              {allVendors.length > 1 && (
+                                <div className="absolute left-0 top-full mt-1 z-40 hidden group-hover/vendor:block">
+                                  <div className="bg-white rounded-xl border border-gray-200 shadow-xl min-w-[260px] max-w-[320px]">
+                                    {/* Header — matches items popover header */}
+                                    <div className="px-3 py-2 border-b border-gray-100 flex items-center justify-between">
+                                      <span className="text-xs font-semibold text-gray-700">Vendors in {po.po_number}</span>
+                                      <span className="text-[10px] font-mono text-gray-400 bg-gray-50 px-1.5 py-0.5 rounded">
+                                        {allVendors.length}
+                                      </span>
+                                    </div>
+                                    
+                                    {/* Vendor list — matches items list style */}
+                                    <div className="divide-y divide-gray-50 max-h-48 overflow-y-auto">
+                                      {allVendors.map((name, i) => (
+                                        <div key={i} className="px-3 py-2.5 flex items-start justify-between gap-2">
+                                          <div className="min-w-0 flex items-center gap-2">
+                                            <span className="text-[10px] text-gray-400 mr-0.5">{i+1}.</span>
+                                            <span className="text-xs font-medium text-gray-900">{name}</span>
+                                          </div>
+                                          <div className="text-right flex-shrink-0">
+                                            <span className="text-[10px] font-mono text-gray-400">
+                                              {po.vendor_mode === "item" 
+                                                ? (po.bom_items ?? []).filter((item: any) => item.targetVendorName === name).length 
+                                                : po.item_count} items
+                                            </span>
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })()}
+                      </td>
 
                       {/* Items column — clickable to show popover */}
                       <td className={tdCls}>

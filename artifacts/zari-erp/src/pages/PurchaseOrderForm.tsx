@@ -90,6 +90,8 @@ interface POItem {
   unit_price: string;
   unit_type: string | null;
   warehouse_location: string | null;
+  vendor_id: number | null;
+  vendor_name: string | null;
 }
 
 interface POReceipt {
@@ -106,6 +108,7 @@ interface PODetail {
   po_number: string;
   vendor_id: number;
   vendor_name: string;
+  vendor_mode: "header" | "item";
   po_date: string;
   status: string;
   reference_type: string;
@@ -388,6 +391,7 @@ export default function PurchaseOrderForm() {
                     po_number: po.po_number,
                     status: po.status,
                     vendor_name: po.vendor_name,
+                    vendor_mode: po.vendor_mode,
                     po_date: po.po_date,
                     reference_type: po.reference_type,
                     notes: po.notes,
@@ -399,6 +403,7 @@ export default function PurchaseOrderForm() {
                       received_quantity: i.received_quantity,
                       pending_quantity: i.pending_quantity,
                       unit_price: i.unit_price,
+                      vendor_name: i.vendor_name, 
                     })),
                     receipts: po.receipts,
                   });
@@ -440,18 +445,25 @@ export default function PurchaseOrderForm() {
           <div className={`${card} p-5`}>
             <h3 className="text-sm font-semibold text-gray-700 mb-3">Order Details</h3>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-              {[
-                ["PO Number", po.po_number],
-                ["Vendor", po.vendor_name],
-                ["Source", po.reference_type],
-                ["Date", new Date(po.po_date).toLocaleDateString("en-IN")],
-                ["Notes", po.notes ?? "—"],
-              ].map(([label, value]) => (
-                <div key={label}>
-                  <p className="text-xs text-gray-400 font-medium">{label}</p>
-                  <p className="text-gray-900 mt-0.5 font-medium">{value}</p>
-                </div>
-              ))}
+              {(() => {
+                // Build vendor display based on vendor_mode
+                const vendorDisplay = po.vendor_mode === "item" && po.items?.length > 0
+                  ? [...new Map(po.items.map(i => [i.vendor_id, i.vendor_name])).values()].filter(Boolean).join(", ")
+                  : po.vendor_name || "—";
+
+                return [
+                  ["PO Number", po.po_number],
+                  ["Vendor", vendorDisplay],
+                  ["Source", po.reference_type],
+                  ["Date", new Date(po.po_date).toLocaleDateString("en-IN")],
+                  ["Notes", po.notes ?? "—"],
+                ].map(([label, value]) => (
+                  <div key={label}>
+                    <p className="text-xs text-gray-400 font-medium">{label}</p>
+                    <p className="text-gray-900 mt-0.5 font-medium">{value}</p>
+                  </div>
+                ));
+              })()}
             </div>
             <div className="mt-4 pt-4 border-t border-gray-100 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
               {[
@@ -478,7 +490,7 @@ export default function PurchaseOrderForm() {
               <table className="w-full">
                 <thead className="bg-[#F8F6F0]">
                   <tr>
-                    {["#","Item","Code","Unit","Ordered","Received","Pending","Target Price"].map(h => (
+                    {["#","Item","Code","Unit",  ...(po.vendor_mode === "item" ? ["Vendor"] : []), "Ordered","Received","Pending","Target Price"].map(h => (
                       <th key={h} className="px-3 py-2.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide whitespace-nowrap">{h}</th>
                     ))}
                   </tr>
@@ -496,6 +508,11 @@ export default function PurchaseOrderForm() {
                         <td className="px-3 py-3 text-sm font-medium text-gray-900">{item.item_name}</td>
                         <td className="px-3 py-3 text-xs font-mono text-gray-500">{item.item_code}</td>
                         <td className="px-3 py-3 text-xs text-gray-500">{item.unit_type ?? "—"}</td>
+                        {po.vendor_mode === "item" && (
+                          <td className="px-3 py-3 text-xs text-gray-500">
+                            {item.vendor_name ? item.vendor_name : <span className="text-xs text-gray-400">—</span>}
+                          </td>
+                        )}
                         <td className="px-3 py-3 text-sm font-mono text-gray-900">{parseFloat(item.ordered_quantity).toFixed(2)}</td>
                         <td className="px-3 py-3">
                           <div className="flex items-center gap-2">
