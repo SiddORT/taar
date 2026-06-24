@@ -57,6 +57,34 @@ function addInfoGrid(doc: jsPDF, startY: number, fields: [string, string][]) {
   return startY + Math.ceil(fields.length / 2) * 10 + 2;
 }
 
+export async function registerCustomFont(doc: jsPDF): Promise<void> {
+  try {
+    // 1. Fetch the TrueType font asset
+    const fontResponse = await fetch('/fonts/Roboto-Regular.ttf');
+    if (!fontResponse.ok) {
+      throw new Error(`Font fetch failed with status: ${fontResponse.status}`);
+    }
+    const fontBuffer = await fontResponse.arrayBuffer();
+    
+    // 2. Convert buffer to binary string
+    const fontBinary = new Uint8Array(fontBuffer).reduce(
+      (data, byte) => data + String.fromCharCode(byte), 
+      ''
+    );
+
+    // 3. Register font styles to the VFS (Virtual File System)
+    doc.addFileToVFS("Roboto-Regular.ttf", fontBinary);
+    doc.addFont("Roboto-Regular.ttf", "RobotoCustom", "normal");
+    doc.addFont("Roboto-Regular.ttf", "RobotoCustom", "bold");
+    
+    // 4. Set it as the current active font
+    doc.setFont("RobotoCustom");
+  } catch (error) {
+    console.error("Failed to load custom font, falling back to core helvetica:", error);
+    doc.setFont("helvetica"); // Safe fallback fallback
+  }
+}
+
 export interface POItem {
   item_name: string;
   item_code: string;
@@ -65,6 +93,7 @@ export interface POItem {
   received_quantity: string | number;
   pending_quantity: string | number;
   unit_price: string | number;
+  vendor_name?: string | null; 
 }
 
 export interface PRReceipt {
@@ -79,6 +108,7 @@ export interface POPdfData {
   po_number: string;
   status: string;
   vendor_name: string;
+  vendor_mode?: "header" | "item"; 
   po_date: string;
   reference_type: string;
   notes?: string | null;
@@ -86,8 +116,13 @@ export interface POPdfData {
   receipts?: PRReceipt[];
 }
 
-export function downloadPoPdf(po: POPdfData) {
+export async function downloadPoPdf(po: POPdfData) {
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+  await registerCustomFont(doc);
+
+  const headerVendors = po.vendor_mode === "item" && po.items?.length > 0
+    ? [...new Map(po.items.map(i => [i.vendor_name, i.vendor_name])).values()].filter(Boolean).join(", ")
+    : po.vendor_name;
 
   addHeader(doc, "PURCHASE ORDER", po.po_number);
 
@@ -96,12 +131,13 @@ export function downloadPoPdf(po: POPdfData) {
     ["Status",       po.status],
     ["Date",         po.po_date ? fmtDate(po.po_date) : "—"],
     ["Source",       po.reference_type || "Manual"],
+    ["Vendor",       headerVendors || "—"],
     ["Notes",        po.notes || "—"],
   ]);
 
   y += 4;
   doc.setFontSize(9);
-  doc.setFont("helvetica", "bold");
+  doc.setFont("RobotoCustom", "bold"); // Use custom font
   doc.setTextColor(...DARK);
   doc.text("ORDER ITEMS", 14, y);
   y += 2;
@@ -109,37 +145,88 @@ export function downloadPoPdf(po: POPdfData) {
   const totalOrdered = po.items.reduce((s, i) => s + parseFloat(String(i.ordered_quantity)) * parseFloat(String(i.unit_price)), 0);
   const totalReceived = po.items.reduce((s, i) => s + parseFloat(String(i.received_quantity)) * parseFloat(String(i.unit_price)), 0);
 
-  autoTable(doc, {
-    startY: y,
-    head: [["#", "Item Name", "Code", "Unit", "Ordered Qty", "Received Qty", "Pending Qty", "Target Price (₹)", "Ordered Value (₹)"]],
-    body: po.items.map((item, i) => [
+  const isItemMode = po.vendor_mode === "item";
+
+  // Build headers
+  const tableHead = isItemMode
+    ? ["#", "Item Name", "Code", "Unit", "Vendor", "Ordered Qty", "Received Qty", "Pending Qty", "Target Price (₹)", "Ordered Value (₹)"]
+    : ["#", "Item Name", "Code", "Unit", "Ordered Qty", "Received Qty", "Pending Qty", "Target Price (₹)", "Ordered Value (₹)"];
+
+  const tableBody = po.items.map((item, i) => {
+    const base = [
       i + 1,
       item.item_name,
       item.item_code,
       item.unit_type || "—",
+    ];
+    if (isItemMode) {
+      base.push(item.vendor_name || "—");
+    }
+    base.push(
       parseFloat(String(item.ordered_quantity)).toFixed(3),
       parseFloat(String(item.received_quantity)).toFixed(3),
       parseFloat(String(item.pending_quantity)).toFixed(3),
       `₹${parseFloat(String(item.unit_price)).toFixed(2)}`,
       `₹${(parseFloat(String(item.ordered_quantity)) * parseFloat(String(item.unit_price))).toFixed(2)}`,
-    ]),
-    foot: [["", "", "", "", "", "", "TOTAL", "", `₹${totalOrdered.toFixed(2)}`]],
-    styles: { fontSize: 8, cellPadding: 2.5, textColor: DARK },
-    headStyles: { fillColor: GOLD, textColor: [255, 255, 255], fontStyle: "bold", fontSize: 7.5 },
-    footStyles: { fillColor: LGRAY, fontStyle: "bold", fontSize: 8 },
-    alternateRowStyles: { fillColor: [250, 249, 246] },
-    columnStyles: {
-      0: { cellWidth: 12, halign: "center" },
-      4: { halign: "right" }, 5: { halign: "right" }, 6: { halign: "right" },
-      7: { halign: "right" }, 8: { halign: "right" },
+    );
+    return base;
+  });
+
+  // Foot matches layout perfectly (8 empty + 1 title + 1 total)
+  const tableFoot = isItemMode
+    ? [[...Array(8).fill(""), "TOTAL", `₹${totalOrdered.toFixed(2)}`]]
+    : [[...Array(7).fill(""), "TOTAL", `₹${totalOrdered.toFixed(2)}`]];
+
+  const columnStyles: any = {};
+
+  if (isItemMode) {
+    columnStyles[0] = { cellWidth: 8, halign: "center" };   // #
+    columnStyles[1] = { cellWidth: 36 };                    // Item Name
+    columnStyles[2] = { cellWidth: 18 };                    // Code
+    columnStyles[3] = { cellWidth: 10 };                    // Unit
+    columnStyles[4] = { cellWidth: 25 };                    // Vendor
+    columnStyles[5] = { cellWidth: 18, halign: "right" };   // Ordered Qty
+    columnStyles[6] = { cellWidth: 18, halign: "right" };   // Received Qty
+    columnStyles[7] = { cellWidth: 18, halign: "right" };   // Pending Qty
+    columnStyles[8] = { cellWidth: 19, halign: "right" };   // Target Price
+    columnStyles[9] = { cellWidth: 19, halign: "right" };   // Ordered Value
+    // Total column widths equal exactly 189mm (fits printable space perfectly)
+  } else {
+    columnStyles[0] = { cellWidth: 10, halign: "center" };
+    columnStyles[1] = { cellWidth: 44 };
+    columnStyles[2] = { cellWidth: 25 };
+    columnStyles[3] = { cellWidth: 15 };
+    columnStyles[4] = { halign: "right" };
+    columnStyles[5] = { halign: "right" };
+    columnStyles[6] = { halign: "right" };
+    columnStyles[7] = { halign: "right" };
+    columnStyles[8] = { halign: "right" };
+  }
+
+  autoTable(doc, {
+    startY: y,
+    head: [tableHead],
+    body: tableBody,
+    foot: tableFoot,
+    styles: { 
+      font: "RobotoCustom", 
+      fontSize: 7, 
+      cellPadding: 1.5, 
+      textColor: DARK, 
+      overflow: "linebreak" 
     },
+    headStyles: { fillColor: GOLD, textColor: [255, 255, 255], font: "RobotoCustom", fontStyle: "normal", fontSize: 6.5 },
+    footStyles: { fillColor: LGRAY, font: "RobotoCustom", fontStyle: "normal", fontSize: 7.5, textColor: DARK }, 
+    alternateRowStyles: { fillColor: [250, 249, 246] },
+    columnStyles,
+    margin: { left: 13, right: 8 },
   });
 
   y = (doc as any).lastAutoTable.finalY + 8;
 
   if (po.receipts && po.receipts.length > 0) {
     doc.setFontSize(9);
-    doc.setFont("helvetica", "bold");
+    doc.setFont("RobotoCustom", "bold");
     doc.setTextColor(...DARK);
     doc.text("PURCHASE RECEIPTS", 14, y);
     y += 2;
@@ -148,7 +235,7 @@ export function downloadPoPdf(po: POPdfData) {
       if (y > 240) { doc.addPage(); y = 20; }
 
       doc.setFontSize(8);
-      doc.setFont("helvetica", "bold");
+      doc.setFont("RobotoCustom", "bold");
       doc.setTextColor(...DARK);
       doc.text(`${pr.pr_number}  ·  ${fmtDate(pr.received_date)}  ·  ${pr.status.toUpperCase()}`, 14, y + 4);
       y += 2;
@@ -164,7 +251,7 @@ export function downloadPoPdf(po: POPdfData) {
           `₹${(parseFloat(String(item.quantity)) * parseFloat(String(item.unit_price))).toFixed(2)}`,
           item.warehouse_location || "—",
         ]),
-        styles: { fontSize: 7.5, cellPadding: 2 },
+        styles: { font: "RobotoCustom", fontSize: 7.5, cellPadding: 2 },
         headStyles: { fillColor: [80, 100, 60], textColor: [255, 255, 255], fontStyle: "bold", fontSize: 7 },
         alternateRowStyles: { fillColor: [250, 252, 248] },
         margin: { left: 14, right: 14 },
@@ -180,7 +267,7 @@ export function downloadPoPdf(po: POPdfData) {
     doc.setFillColor(...LGRAY);
     doc.rect(14, y, 182, 12, "F");
     doc.setFontSize(8.5);
-    doc.setFont("helvetica", "bold");
+    doc.setFont("RobotoCustom", "bold");
     doc.setTextColor(...DARK);
     doc.text("SUMMARY", 18, y + 5);
     doc.text(`Ordered: ₹${totalOrdered.toFixed(2)}`, 70, y + 5);
@@ -214,8 +301,9 @@ export interface PRPdfData {
   }[];
 }
 
-export function downloadPrPdf(pr: PRPdfData) {
+export async function downloadPrPdf(pr: PRPdfData) {
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+  await registerCustomFont(doc);
 
   addHeader(doc, "PURCHASE RECEIPT", pr.pr_number);
 
@@ -271,9 +359,9 @@ export function downloadPrPdf(pr: PRPdfData) {
       ? ["", "", "", "", "", "", "TOTAL", "", `₹${totalValue.toFixed(2)}`, ""]
       : ["", "", "", "", "TOTAL", "", `₹${totalValue.toFixed(2)}`, ""]
     ],
-    styles: { fontSize: 7.5, cellPadding: 2.5, textColor: DARK },
-    headStyles: { fillColor: [80, 100, 60], textColor: [255, 255, 255], fontStyle: "bold", fontSize: 7 },
-    footStyles: { fillColor: LGRAY, fontStyle: "bold", fontSize: 8 },
+    styles: { font: "RobotoCustom",fontSize: 7.5, cellPadding: 2.5, textColor: DARK },
+    headStyles: { font: "RobotoCustom", fillColor: [80, 100, 60], textColor: [255, 255, 255], fontStyle: "bold", fontSize: 7 },
+    footStyles: { font: "RobotoCustom", fillColor: LGRAY, fontStyle: "bold", fontSize: 8 },
     alternateRowStyles: { fillColor: [250, 252, 248] },
     columnStyles: {
       0: { cellWidth: 12, halign: "center" },
