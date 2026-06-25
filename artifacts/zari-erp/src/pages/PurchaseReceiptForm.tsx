@@ -15,6 +15,7 @@ import TopNavbar from "@/components/layout/TopNavbar";
 import { useToast } from "@/hooks/use-toast";
 import { SmallSearchSelect } from "@/components/ui/SearchableSelect";
 import { useCurrency } from "@/contexts/CurrencyContext";
+import { mediaUrl } from "@/utils/mediaUrl";
 
 const G     = "#C6AF4B";
 const CURRENCIES = ["INR", "USD", "EUR", "GBP", "AED", "JPY", "CNY"];
@@ -47,12 +48,14 @@ interface POItem {
   unit_price: string;
   unit_type: string | null;
   warehouse_location: string | null;
+  vendor_name: string | null;
 }
 
 interface PODetail {
   id: number;
   po_number: string;
   vendor_name: string;
+  vendor_mode: string;
   reference_type: string;
   items: POItem[];
 }
@@ -72,6 +75,7 @@ interface ReceiptLine {
   warehouseLocation: string;
   remarks: string;
   itemImage: string;
+  vendorName: string | null;
 }
 
 interface PRItem {
@@ -86,6 +90,8 @@ interface PRItem {
   warehouse_location: string | null;
   po_ordered_qty: string;
   po_received_qty: string;
+  vendor_id: number | null;
+  vendor_name: string | null;
 }
 
 interface PRDetail {
@@ -201,6 +207,7 @@ export default function PurchaseReceiptForm() {
             warehouseLocation: i.warehouse_location ?? "",
             remarks: "",
             itemImage: "",
+            vendorName:i.vendor_name
           }));
         setLines(ls);
         setMappableItemIds(new Set(ls.filter(l => l.inventoryItemId == null).map(l => l.poItemId)));
@@ -473,6 +480,7 @@ export default function PurchaseReceiptForm() {
 
     const statusInfo = STATUS_MAP[pr.status] ?? STATUS_MAP.Open;
     const isOpen = pr.status === "Open";
+    const invoiceFileUrl = pr?.vendor_invoice_file ? mediaUrl(pr.vendor_invoice_file) : null;
 
     return (
       <div className="min-h-screen" style={{ background: "#F8F6F0" }}>
@@ -517,6 +525,7 @@ export default function PurchaseReceiptForm() {
                       unit_price: item.unit_price,
                       unit_type: item.unit_type,
                       warehouse_location: item.warehouse_location,
+                      vendor_name: item.vendor_name,
                     })),
                   });
                   logActivity(`Downloaded PDF for Purchase Receipt ${pr.pr_number} — ${pr.vendor_name}`);
@@ -574,7 +583,7 @@ export default function PurchaseReceiptForm() {
               {[
                 ["PR Number", pr.pr_number],
                 ["PO Number", pr.po_number ?? "—"],
-                ["Vendor", pr.vendor_name],
+                ["Vendor", pr.vendor_name ?? pr.items.map(i => i.vendor_name).filter(Boolean).join(", ") ?? "Multiple Vendor"],
                 ["Source", pr.reference_type ?? "—"],
                 ["Received Date", editMode
                   ? undefined
@@ -616,11 +625,11 @@ export default function PurchaseReceiptForm() {
               <table className="w-full">
                 <thead className="bg-[#F8F6F0]">
                   <tr>
-                    {editMode
-                      ? ["#","Item","Code","Unit","Now Receiving","Unit Price","Location"].map(h => (
+                   {editMode
+                      ? ["#","Item","Code",!pr.vendor_name ? "Vendor" : null,"Unit","Now Receiving","Unit Price","Location"].filter(Boolean).map(h => (
                           <th key={h} className="px-3 py-2.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">{h}</th>
                         ))
-                      : ["#","Item","Code","Unit","Received Qty","Unit Price","Location"].map(h => (
+                      : ["#","Item","Code",!pr.vendor_name ? "Vendor" : null,"Unit","Received Qty","Unit Price","Location"].filter(Boolean).map(h => (
                           <th key={h} className="px-3 py-2.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">{h}</th>
                         ))
                     }
@@ -640,6 +649,9 @@ export default function PurchaseReceiptForm() {
                               <div className="text-xs text-gray-400">{line.itemCode}</div>
                             </td>
                             <td className="px-3 py-3 text-xs font-mono text-gray-500">{line.itemCode}</td>
+                            {!pr.vendor_name && (
+                              <td className="px-3 py-3 text-xs text-gray-500">{line.vendorName ?? "—"}</td>
+                            )}
                             <td className="px-3 py-3 text-xs text-gray-500">{line.unitType || "—"}</td>
                             <td className="px-3 py-3">
                               <input type="number" min="0.001" step="0.001"
@@ -670,6 +682,9 @@ export default function PurchaseReceiptForm() {
                           <td className="px-3 py-3 text-xs text-gray-400">{i+1}</td>
                           <td className="px-3 py-3 text-sm font-medium text-gray-900">{item.item_name}</td>
                           <td className="px-3 py-3 text-xs font-mono text-gray-500">{item.item_code}</td>
+                          {!pr.vendor_name && (
+                            <td className="px-3 py-3 text-xs text-gray-500">{item.vendor_name ?? "—"}</td>
+                          )}
                           <td className="px-3 py-3 text-xs text-gray-500">{item.unit_type ?? "—"}</td>
                           <td className="px-3 py-3 text-sm font-mono font-semibold text-green-700">{parseFloat(item.quantity).toFixed(2)}</td>
                           <td className="px-3 py-3 text-xs font-mono text-gray-500">{fmt(parseFloat(item.unit_price))}</td>
@@ -705,8 +720,8 @@ export default function PurchaseReceiptForm() {
                 )}
                 {pr.vendor_invoice_number && !showInvoiceForm && (
                   <>
-                    {pr.vendor_invoice_file && (
-                      <a href={pr.vendor_invoice_file} target="_blank" rel="noopener noreferrer"
+                    {invoiceFileUrl && (
+                      <a href={invoiceFileUrl} target="_blank" rel="noopener noreferrer"
                         className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-gray-700 border border-gray-200 hover:bg-gray-50">
                         <FileDown className="h-3.5 w-3.5" /> View File
                       </a>
@@ -966,10 +981,34 @@ export default function PurchaseReceiptForm() {
             </div>
           </div>
 
-          {poDetail && (
+          {/* {poDetail && (
             <div className="mt-3 flex items-center gap-2">
               <span className="text-xs text-gray-500">Vendor:</span>
               <span className="text-xs font-semibold text-gray-900">{poDetail.vendor_name}</span>
+              <span className="text-xs text-gray-400">·</span>
+              <span className="text-xs text-gray-500">Source:</span>
+              <span className="text-xs font-semibold text-gray-900">{poDetail.reference_type}</span>
+            </div>
+          )} */}
+
+          {poDetail && (
+            <div className="mt-3 flex items-center gap-2 flex-wrap">
+              {poDetail.vendor_mode === "item" ? (
+                <>
+                  <span className="text-xs text-gray-500">Vendor Mode:</span>
+                  <span className="text-xs font-semibold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded">Item-Level</span>
+                  <span className="text-xs text-gray-400">·</span>
+                  <span className="text-xs text-gray-500">Vendors:</span>
+                  <span className="text-xs font-semibold text-gray-900">
+                    {Array.from(new Set(poDetail.items.map(i => i.vendor_name).filter(Boolean))).join(", ")}
+                  </span>
+                </>
+              ) : (
+                <>
+                  <span className="text-xs text-gray-500">Vendor:</span>
+                  <span className="text-xs font-semibold text-gray-900">{poDetail.vendor_name ?? "—"}</span>
+                </>
+              )}
               <span className="text-xs text-gray-400">·</span>
               <span className="text-xs text-gray-500">Source:</span>
               <span className="text-xs font-semibold text-gray-900">{poDetail.reference_type}</span>
@@ -1001,6 +1040,9 @@ export default function PurchaseReceiptForm() {
                     <tr>
                       <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-600 w-8">#</th>
                       <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-600">Item</th>
+                      {poDetail?.vendor_mode === "item" && (
+                        <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-600 w-28">Vendor</th>
+                      )}
                       <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-600 w-20">Unit</th>
                       <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-600 w-24">Ordered</th>
                       <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-600 w-24">Received</th>
@@ -1043,6 +1085,11 @@ export default function PurchaseReceiptForm() {
                               </div>
                             )}
                           </td>
+                          {poDetail?.vendor_mode === "item" && (
+                            <td className="px-3 py-3">
+                              <div className="text-xs font-medium text-gray-700">{line.vendorName ?? "—"}</div>
+                            </td>
+                          )}
                           <td className="px-3 py-3 text-xs text-gray-500">{line.unitType || "—"}</td>
                           <td className="px-3 py-3 text-xs font-mono text-gray-600">{parseFloat(line.orderedQty).toFixed(2)}</td>
                           <td className="px-3 py-3 text-xs font-mono text-green-700">{parseFloat(line.receivedSoFar).toFixed(2)}</td>

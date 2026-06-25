@@ -1,0 +1,1 @@
+ALTER TABLE "purchase_receipts" ALTER COLUMN "vendor_name" DROP NOT NULL;

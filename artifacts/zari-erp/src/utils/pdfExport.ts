@@ -287,7 +287,7 @@ export interface PRPdfData {
   pr_number: string;
   po_number?: string | null;
   status: string;
-  vendor_name: string;
+  vendor_name: string | null; 
   received_date: string;
   reference_type?: string | null;
   items: {
@@ -298,6 +298,7 @@ export interface PRPdfData {
     unit_type?: string | null;
     warehouse_location?: string | null;
     po_target_price?: string | number | null;
+    vendor_name: string | null; 
   }[];
 }
 
@@ -307,10 +308,15 @@ export async function downloadPrPdf(pr: PRPdfData) {
 
   addHeader(doc, "PURCHASE RECEIPT", pr.pr_number);
 
+  // Determine vendor display
+  const vendorDisplay = pr.vendor_name ?? 
+    ((vendors) => vendors.length === 0 ? "—" : vendors.length === 1 ? vendors[0] : "Multiple Vendors")
+    ([...new Set(pr.items.map(i => i.vendor_name).filter(Boolean))]);
+
   let y = addInfoGrid(doc, 42, [
     ["PR Number",    pr.pr_number],
     ["Status",       pr.status],
-    ["Vendor",       pr.vendor_name],
+    ["Vendor",       vendorDisplay ?? ""],
     ["Received Date", pr.received_date ? fmtDate(pr.received_date) : "—"],
     ["PO Number",    pr.po_number || "—"],
     ["Source",       pr.reference_type || "—"],
@@ -326,48 +332,69 @@ export async function downloadPrPdf(pr: PRPdfData) {
   const totalValue = pr.items.reduce((s, i) => s + parseFloat(String(i.quantity)) * parseFloat(String(i.unit_price)), 0);
 
   const hasTarget = pr.items.some(i => i.po_target_price != null);
+  const hasPerItemVendor = !pr.vendor_name && pr.items.some(i => i.vendor_name);
+  // Build headers dynamically
+  const baseHeaders = ["#", "Item Name", "Code"];
+  if (hasPerItemVendor) baseHeaders.push("Vendor");
+  baseHeaders.push("Unit", "Received Qty");
+  if (hasTarget) {
+    baseHeaders.push("Target Price (₹)", "Received Rate (₹)", "Variance (₹)");
+  } else {
+    baseHeaders.push("Received Rate (₹)");
+  }
+  baseHeaders.push("Value (₹)", "Location");
 
   autoTable(doc, {
     startY: y,
-    head: [hasTarget
-      ? ["#", "Item Name", "Code", "Unit", "Received Qty", "Target Price (₹)", "Received Rate (₹)", "Variance (₹)", "Value (₹)", "Location"]
-      : ["#", "Item Name", "Code", "Unit", "Received Qty", "Received Rate (₹)", "Value (₹)", "Location"]
-    ],
+    head: [baseHeaders],
     body: pr.items.map((item, i) => {
       const qty   = parseFloat(String(item.quantity));
       const rate  = parseFloat(String(item.unit_price));
       const target = item.po_target_price != null ? parseFloat(String(item.po_target_price)) : null;
       const variance = target != null ? rate - target : null;
+      const row: (string | number)[] = [i + 1, item.item_name, item.item_code];
+      if (hasPerItemVendor) row.push(item.vendor_name || "—");
+      row.push(item.unit_type || "—", qty.toFixed(3));
       if (hasTarget) {
-        return [
-          i + 1, item.item_name, item.item_code, item.unit_type || "—",
-          qty.toFixed(3),
+        row.push(
           target != null ? `₹${target.toFixed(2)}` : "—",
           `₹${rate.toFixed(2)}`,
-          variance != null ? `₹${variance.toFixed(2)}` : "—",
-          `₹${(qty * rate).toFixed(2)}`,
-          item.warehouse_location || "—",
-        ];
+          variance != null ? `₹${variance.toFixed(2)}` : "—"
+        );
+      } else {
+        row.push(`₹${rate.toFixed(2)}`);
       }
-      return [
-        i + 1, item.item_name, item.item_code, item.unit_type || "—",
-        qty.toFixed(3), `₹${rate.toFixed(2)}`, `₹${(qty * rate).toFixed(2)}`,
-        item.warehouse_location || "—",
-      ];
+      row.push(`₹${(qty * rate).toFixed(2)}`, item.warehouse_location || "—");
+      return row;
     }),
-    foot: [hasTarget
-      ? ["", "", "", "", "", "", "TOTAL", "", `₹${totalValue.toFixed(2)}`, ""]
-      : ["", "", "", "", "TOTAL", "", `₹${totalValue.toFixed(2)}`, ""]
-    ],
-    styles: { font: "RobotoCustom",fontSize: 7.5, cellPadding: 2.5, textColor: DARK },
+    foot: [(() => {
+      const footRow: (string | number)[] = ["", "", ""];
+      if (hasPerItemVendor) footRow.push("");
+      footRow.push("", "TOTAL");
+      if (hasTarget) {
+        footRow.push("", "", "");
+      }
+      footRow.push(`₹${totalValue.toFixed(2)}`, "");
+      return footRow;
+    })()],
+    styles: { font: "RobotoCustom", fontSize: 7.5, cellPadding: 2.5, textColor: DARK },
     headStyles: { font: "RobotoCustom", fillColor: [80, 100, 60], textColor: [255, 255, 255], fontStyle: "bold", fontSize: 7 },
     footStyles: { font: "RobotoCustom", fillColor: LGRAY, fontStyle: "bold", fontSize: 8 },
     alternateRowStyles: { fillColor: [250, 252, 248] },
-    columnStyles: {
-      0: { cellWidth: 12, halign: "center" },
-      4: { halign: "right" }, 5: { halign: "right" }, 6: { halign: "right" },
-      7: { halign: "right" }, 8: { halign: "right" },
-    },
+    columnStyles: (() => {
+      const styles: any = { 0: { cellWidth: 12, halign: "center" } };
+      let colIdx = 4;
+      if (hasPerItemVendor) colIdx++;
+      styles[colIdx] = { halign: "right" };
+      styles[colIdx + 1] = { halign: "right" };
+      if (hasTarget) {
+          styles[colIdx + 2] = { halign: "right" };
+          styles[colIdx + 3] = { halign: "right" };
+      } else {
+          styles[colIdx + 2] = { halign: "right" };
+      }
+      return styles;
+    })(),
   });
 
   addFooter(doc);

@@ -412,6 +412,8 @@ export const purchaseReceiptItems = pgTable("purchase_receipt_items", {
         createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
         poItemId: integer("po_item_id"),
         itemImage: text("item_image"),
+        vendorId: integer("vendor_id"),
+        vendorName: text("vendor_name"),
   isDeleted: boolean("is_deleted").notNull().default(false),
   deletedBy: text("deleted_by"),
   deletedAt: timestamp("deleted_at", { withTimezone: true }),
