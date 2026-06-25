@@ -432,6 +432,7 @@ router.post("/procurement/purchase-receipts", requireAuth, async (req: AuthReque
     const status = confirmNow ? "Received" : "Open";
 
     // PR header
+    const headerVendorName = po.vendor_mode === 'header' ? po.vendor_name : null;
     const prRes = await client.query(
       `INSERT INTO purchase_receipts
          (pr_number, po_id, vendor_name, received_date, received_qty, actual_price,
@@ -440,7 +441,7 @@ router.post("/procurement/purchase-receipts", requireAuth, async (req: AuthReque
        VALUES ($1,$2,$3,$4,'0','0','',$5,$6,$7,NULL,$8,NOW())
        RETURNING *`,
       [
-        prNumber, poId, po.vendor_name,
+        prNumber, poId, headerVendorName,
         receivedDate ? new Date(receivedDate).toISOString() : new Date().toISOString(),
         status,
         po.swatch_order_id ?? null, po.style_order_id ?? null,
@@ -449,17 +450,39 @@ router.post("/procurement/purchase-receipts", requireAuth, async (req: AuthReque
     );
     const pr = prRes.rows[0];
 
+    // Fetch all PO item vendors in one query
+    const poItemIds = items.map(i => i.poItemId);
+    const poItemsRes = await client.query(
+      `SELECT id, vendor_id, vendor_name FROM purchase_order_items 
+       WHERE id = ANY($1) AND po_id = $2 AND is_deleted = false`,
+      [poItemIds, poId]
+    );
+    interface VendorInfo {
+      vendorId: number | null;
+      vendorName: string | null;
+    }
+
+    const vendorMap = new Map<number, VendorInfo>(
+        poItemsRes.rows.map((r: { id: number; vendor_id: number | null; vendor_name: string | null }) => [
+            r.id,
+            { vendorId: r.vendor_id, vendorName: r.vendor_name }
+        ])
+    );
+
     // PR items
     for (const item of items) {
+      const vendor = vendorMap.get(item.poItemId);
       await client.query(
         `INSERT INTO purchase_receipt_items
            (pr_id, po_item_id, inventory_item_id, item_name, item_code,
-            quantity, unit_price, warehouse_location, remarks, item_image)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+            quantity, unit_price, warehouse_location, remarks, item_image,vendor_id, vendor_name)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
         [
           pr.id, item.poItemId, item.inventoryItemId,
           item.itemName, item.itemCode, item.quantity, item.unitPrice,
           item.warehouseLocation ?? null, item.remarks ?? null, (item as any).itemImage ?? null,
+          vendor?.vendorId ?? null,
+          vendor?.vendorName ?? null,
         ]
       );
     }
