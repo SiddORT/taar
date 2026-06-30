@@ -4,7 +4,7 @@ import {
   swatchBomTable, purchaseOrdersTable, purchaseReceiptsTable, prPaymentsTable,
   consumptionLogTable, artisanTimesheetsTable, outsourceJobsTable, customChargesTable,
   materialsTable, fabricsTable, vendorsTable, hsnTable, inventoryItemsTable,
-  bomChangeLogTable,
+  bomChangeLogTable,purchaseReceiptItems
 } from "@workspace/db/schema";
 import { usersTable, eq, ilike, or, desc, and } from "@workspace/db";
 // import { eq, ilike, or, desc, and } from "drizzle-orm";
@@ -192,6 +192,7 @@ async function autoCancelReservation(opts: {
 // Called after every costing PR insert (swatch or style) to keep inventory_items,
 // stock_ledger, inventory_stock_logs and the material/fabric master in sync.
 async function applyCostingInventoryUpdate(opts: {
+  client?: any; // <-- MADE OPTIONAL. Transactional pg client. If omitted, uses global pool.
   prId: number;
   prNumber: string;
   bomRowId: number | null;
@@ -200,109 +201,259 @@ async function applyCostingInventoryUpdate(opts: {
   actualPrice: number;
   warehouseLocation: string;
   actor: string;
-}): Promise<void> {
-  const { prId, prNumber, bomRowId, poId, receivedQty, actualPrice, warehouseLocation, actor } = opts;
+}): Promise<{ inventoryItemId: number } | null> {
+  const {
+    client, // May be undefined
+    prId,
+    prNumber,
+    bomRowId,
+    poId,
+    receivedQty,
+    actualPrice,
+    warehouseLocation,
+    actor
+  } = opts;
+
+  // --- DYNAMIC QUERY EXECUTOR (The Backward-Compatibility Engine) ---
+  // If a transaction client is provided, use it. Otherwise, fallback to global pool.
+  const q = async (text: string, params?: any[]) => {
+    if (client) {
+      return client.query(text, params);
+    }
+    // Fallback to your global pool (or 'db' if you use a different ORM)
+    return pool.query(text, params);
+  };
 
   // 1. Resolve materialType + materialId via the swatch_bom row
   let materialType: string | null = null;
   let materialId: number | null = null;
 
-  const effectiveBomRowId = bomRowId != null
-    ? bomRowId
-    : await (async () => {
-        const poRes = await pool.query(`SELECT bom_items FROM purchase_orders WHERE id = $1 AND is_deleted = false`, [poId]);
-        const bomItems: Array<{ bomRowId?: number }> = poRes.rows[0]?.bom_items ?? [];
-        return bomItems.length === 1 ? (bomItems[0].bomRowId ?? null) : null;
-      })();
+  let effectiveBomRowId = bomRowId;
+  if (effectiveBomRowId == null) {
+    const poRes = await q(
+      `SELECT bom_items FROM purchase_orders WHERE id = $1 AND is_deleted = false`,
+      [poId]
+    );
+    const bomItems: Array<{ bomRowId?: number }> = poRes.rows[0]?.bom_items ?? [];
+    if (bomItems.length === 1) {
+      effectiveBomRowId = bomItems[0].bomRowId ?? null;
+    }
+  }
 
   if (effectiveBomRowId != null) {
-    const bomRes = await pool.query(
+    const bomRes = await q(
       `SELECT material_type, material_id FROM swatch_bom WHERE id = $1 AND is_deleted = false`,
       [effectiveBomRowId]
     );
     if (bomRes.rows.length) {
       materialType = bomRes.rows[0].material_type as string;
-      materialId   = parseInt(bomRes.rows[0].material_id as string, 10);
+      materialId = parseInt(bomRes.rows[0].material_id as string, 10);
     }
   }
 
-  if (!materialType || !materialId) return;
+  if (!materialType || !materialId) {
+    return null; // No inventory item to update (existing behavior)
+  }
 
-  // 2. Find the inventory_item row
-  const invRes = await pool.query(
+  // --- Step 2: Lock and fetch inventory_items row (FOR UPDATE) ---
+  const invRes = await q(
     `SELECT id, current_stock, average_price, style_reserved_qty, swatch_reserved_qty
-     FROM inventory_items WHERE source_type = $1 AND source_id = $2 AND is_deleted = false`,
+     FROM inventory_items
+     WHERE source_type = $1 AND source_id = $2 AND is_deleted = false
+     FOR UPDATE`, // Safe in both transactional and auto-commit modes
     [materialType, materialId]
   );
-  if (!invRes.rows.length) return;
 
-  const inv = invRes.rows[0] as {
-    id: number; current_stock: string; average_price: string;
-    style_reserved_qty: string; swatch_reserved_qty: string;
-  };
+  if (invRes.rows.length === 0) {
+    throw new Error(`Inventory item not found for ${materialType}:${materialId}`);
+  }
+
+  const inv = invRes.rows[0];
   const inventoryId = inv.id;
-  const prevStock   = parseFloat(inv.current_stock  ?? "0");
-  const prevAvg     = parseFloat(inv.average_price  ?? "0");
-  const newStock    = prevStock + receivedQty;
-  const newAvg      = newStock > 0
+
+  const prevStock = parseFloat(inv.current_stock ?? "0");
+  const prevAvg = parseFloat(inv.average_price ?? "0");
+  const newStock = prevStock + receivedQty;
+  const newAvg = newStock > 0
     ? ((prevStock * prevAvg) + (receivedQty * actualPrice)) / newStock
     : actualPrice;
-  const styleRes  = parseFloat(inv.style_reserved_qty  ?? "0");
-  const swatchRes = parseFloat(inv.swatch_reserved_qty ?? "0");
-  const newAvail  = Math.max(0, newStock - styleRes - swatchRes);
 
-  // 3. Update inventory_items
-  await pool.query(
-    `UPDATE inventory_items SET
-       current_stock       = $1,
-       available_stock     = $2,
-       average_price       = $3,
-       last_purchase_price = $4,
-       last_updated_at     = NOW()
+  const styleRes = parseFloat(inv.style_reserved_qty ?? "0");
+  const swatchRes = parseFloat(inv.swatch_reserved_qty ?? "0");
+  const newAvail = Math.max(0, newStock - styleRes - swatchRes);
+
+  // --- Step 3: Update inventory_items ---
+  await q(
+    `UPDATE inventory_items
+     SET current_stock = $1,
+         available_stock = $2,
+         average_price = $3,
+         last_purchase_price = $4,
+         last_updated_at = NOW()
      WHERE id = $5`,
-    [newStock.toFixed(3), newAvail.toFixed(3), newAvg.toFixed(2), actualPrice.toFixed(2), inventoryId]
+    [
+      newStock.toFixed(3),
+      newAvail.toFixed(3),
+      newAvg.toFixed(2),
+      actualPrice.toFixed(2),
+      inventoryId
+    ]
   );
 
-  // 4. Insert stock_ledger entry
-  await pool.query(
+  // --- Step 4: Insert stock_ledger entry ---
+  await q(
     `INSERT INTO stock_ledger
        (item_id, transaction_type, reference_number, reference_type,
         in_quantity, out_quantity, balance_quantity, remarks, created_by, created_at)
-     VALUES ($1,'purchase_receipt',$2,'COSTING-PR',$3,0,$4,$5,$6,NOW())`,
-    [inventoryId, prNumber, receivedQty.toFixed(3), newStock.toFixed(3),
-     `Costing PR ${prNumber}`, actor]
+     VALUES ($1, 'purchase_receipt', $2, 'COSTING-PR', $3, 0, $4, $5, $6, NOW())`,
+    [
+      inventoryId,
+      prNumber,
+      receivedQty.toFixed(3),
+      newStock.toFixed(3),
+      `Costing PR ${prNumber}`,
+      actor
+    ]
   );
 
-  // 5. Insert inventory_stock_logs
-  await pool.query(
-    `INSERT INTO inventory_stock_logs
-       (inventory_item_id, action_type, quantity_before, quantity_after, quantity_delta,
-        reference_type, reference_id, notes, created_by_name, created_at)
-     VALUES ($1,'receipt',$2,$3,$4,'COSTING-PR',$5,$6,$7,NOW())`,
-    [inventoryId, prevStock.toFixed(3), newStock.toFixed(3), receivedQty.toFixed(3),
-     prId, `Costing PR ${prNumber}`, actor]
-  ).catch((e: unknown) => console.error("[StockLog] Costing PR log failed:", e));
+  // --- Step 5: Insert inventory_stock_logs (Non-critical - catches error) ---
+  try {
+    await q(
+      `INSERT INTO inventory_stock_logs
+         (inventory_item_id, action_type, quantity_before, quantity_after, quantity_delta,
+          reference_type, reference_id, notes, created_by_name, created_at)
+       VALUES ($1, 'receipt', $2, $3, $4, 'COSTING-PR', $5, $6, $7, NOW())`,
+      [
+        inventoryId,
+        prevStock.toFixed(3),
+        newStock.toFixed(3),
+        receivedQty.toFixed(3),
+        prId,
+        `Costing PR ${prNumber}`,
+        actor
+      ]
+    );
+  } catch (logError) {
+    // Log the error but do NOT throw; this is a non-critical audit log.
+    console.error("[StockLog] Costing PR log failed (non-critical):", logError);
+  }
 
-  // 6. Update material/fabric master: current_stock + location_stocks JSONB
+  // --- Step 6: Lock and update material/fabric master (FOR UPDATE) ---
   const masterTable = materialType === "fabric" ? "fabrics" : "materials";
-  const masterRes = await pool.query(
-    `SELECT current_stock, location_stocks FROM ${masterTable} WHERE id = $1 AND is_deleted = false`,
+
+  const masterRes = await q(
+    `SELECT current_stock, location_stocks
+     FROM ${masterTable}
+     WHERE id = $1 AND is_deleted = false
+     FOR UPDATE`,
     [materialId]
   );
+
   if (masterRes.rows.length) {
-    const masterRow = masterRes.rows[0] as { current_stock: string; location_stocks: Array<{location: string; stock: string}> };
+    const masterRow = masterRes.rows[0];
     const masterNewStock = parseFloat(masterRow.current_stock ?? "0") + receivedQty;
+
     const resolvedLocation = warehouseLocation?.trim() || "Unallocated";
-    const locStocks: Array<{location: string; stock: string}> = masterRow.location_stocks ?? [];
+    const locStocks: Array<{ location: string; stock: string }> = masterRow.location_stocks ?? [];
+
     const locIdx = locStocks.findIndex(l => l.location === resolvedLocation);
     if (locIdx >= 0) {
       locStocks[locIdx].stock = (parseFloat(locStocks[locIdx].stock ?? "0") + receivedQty).toFixed(3);
     } else {
       locStocks.push({ location: resolvedLocation, stock: receivedQty.toFixed(3) });
     }
-    await pool.query(
-      `UPDATE ${masterTable} SET current_stock = $1, location_stocks = $2 WHERE id = $3`,
-      [masterNewStock.toFixed(3), JSON.stringify(locStocks), materialId]
+
+    await q(
+      `UPDATE ${masterTable}
+       SET current_stock = $1,
+           location_stocks = $2
+       WHERE id = $3`,
+      [
+        masterNewStock.toFixed(3),
+        JSON.stringify(locStocks),
+        materialId
+      ]
+    );
+  }
+
+  return { inventoryItemId: inventoryId };
+}
+
+/*
+ * Creates a purchase_receipt_items row after inventory update.
+ * Call this after applyCostingInventoryUpdate returns a result.
+*/
+async function createPurchaseReceiptItem(opts: {
+  client: any; // Transactional pg client
+  poId: number;
+  prId: number;
+  inventoryItemId: number;
+  receivedQty: number;
+  actualPrice: number;
+  warehouseLocation: string;
+  prRow: any;
+}): Promise<void> {
+  const {
+    client,
+    poId,
+    prId,
+    inventoryItemId,
+    receivedQty,
+    actualPrice,
+    warehouseLocation,
+    prRow
+  } = opts;
+
+  // Fetch the purchase_order_item for this inventory_item_id (No lock needed; PO is already locked)
+  const poItemRes = await client.query(
+    `SELECT 
+       poi.id,
+       poi.item_name,
+       poi.item_code,
+       poi.item_image,
+       poi.vendor_id,
+       poi.vendor_name
+     FROM purchase_order_items poi
+     WHERE poi.po_id = $1 AND poi.inventory_item_id = $2 AND poi.is_deleted = false
+     LIMIT 1`,
+    [poId, inventoryItemId]
+  );
+
+  const purchaseOrderItem = poItemRes.rows[0] as {
+    id: number;
+    item_name: string;
+    item_code: string;
+    item_image: string | null;
+    vendor_id: number | null;
+    vendor_name: string | null;
+  } | undefined;
+
+  // Insert into purchase_receipt_items
+  await client.query(
+    `INSERT INTO purchase_receipt_items
+       (pr_id, inventory_item_id, item_name, item_code, quantity, unit_price,
+        warehouse_location, po_item_id, item_image, vendor_id, vendor_name)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+    [
+      prId,
+      inventoryItemId,
+      purchaseOrderItem?.item_name ?? "",
+      purchaseOrderItem?.item_code ?? "",
+      String(receivedQty),
+      String(actualPrice),
+      String(warehouseLocation ?? ""),
+      purchaseOrderItem?.id ?? null,
+      purchaseOrderItem?.item_image ?? null,
+      purchaseOrderItem?.vendor_id ?? null,
+      purchaseOrderItem?.vendor_name ?? null,
+    ]
+  );
+
+  // If we found a vendor_name, update the parent purchase_receipts table
+  if (purchaseOrderItem?.vendor_name && prRow) {
+    await client.query(
+      `UPDATE purchase_receipts SET vendor_name = $1 WHERE id = $2`,
+      [purchaseOrderItem.vendor_name, prRow.id]
     );
   }
 }
@@ -1097,78 +1248,160 @@ router.get("/pr/:swatchOrderId", requireAuth, async (req, res) => {
 router.post("/pr", requireAuth, async (req, res) => {
   const user = (req as any).user;
   const { poId, swatchOrderId, bomRowId, receivedQty, actualPrice, warehouseLocation } = req.body as Record<string, string | number | null>;
-  const [po] = await db.select().from(purchaseOrdersTable).where(and(eq(purchaseOrdersTable.id, Number(poId)), eq(purchaseOrdersTable.isDeleted, false)));
-  if (!po) { res.status(404).json({ error: "PO not found" }); return; }
-  if (!["Approved", "In Process"].includes(po.status)) {
-    return res.status(403).json({ error: `Purchase Receipt cannot be created: PO is currently in "${po.status}" status. An admin must approve it first.` });
-    return;
-  }
 
+  // Parse early for calculations
   const newQty = parseFloat(String(receivedQty)) || 0;
   const resolvedBomRowId = bomRowId != null ? Number(bomRowId) : null;
-  const bomItems = po.bomItems ?? [];
-  const isSingleItem = bomItems.length === 1;
 
-  // Find the relevant BOM item for this PR
-  let orderedQty = 0;
-  if (resolvedBomRowId != null) {
-    const item = bomItems.find(i => i.bomRowId === resolvedBomRowId);
-    orderedQty = parseFloat(item?.quantity ?? "0") || 0;
-  } else if (isSingleItem) {
-    orderedQty = parseFloat(bomItems[0]?.quantity ?? "0") || 0;
-  }
+  // Get a dedicated client from the pool
+  const client = await pool.connect();
 
-  // Get existing PRs for this specific item to check remaining qty
-  const existingPrs = await db.select().from(purchaseReceiptsTable).where(and(eq(purchaseReceiptsTable.poId, Number(poId)), eq(purchaseReceiptsTable.isDeleted, false)));
-  const relevantPrs = resolvedBomRowId != null
-    ? existingPrs.filter(pr => pr.bomRowId === resolvedBomRowId)
-    : (isSingleItem ? existingPrs : existingPrs.filter(pr => pr.bomRowId == null));
-  const alreadyReceived = relevantPrs.reduce((s, pr) => s + (parseFloat(pr.receivedQty) || 0), 0);
+  try {
+    // 1. Start transaction and set timeouts to prevent deadlocks
+    await client.query('BEGIN');
+    await client.query('SET LOCAL lock_timeout = \'2s\'');      // Fail fast if locked
+    await client.query('SET LOCAL statement_timeout = \'5s\''); // Kill slow queries
 
-  if (orderedQty > 0) {
-    if (alreadyReceived >= orderedQty) {
-      return res.status(400).json({ error: `This item is already fully received (${alreadyReceived} / ${orderedQty}). No further PR is allowed.` });
-      return;
+    // 2. Lock the Purchase Order (FOR UPDATE) - This is the critical guard
+    const poResult = await client.query(
+      `SELECT id, status, bom_items
+       FROM purchase_orders
+       WHERE id = $1 AND is_deleted = false
+       FOR UPDATE`,
+      [Number(poId)]
+    );
+
+    if (poResult.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: "PO not found" });
     }
-    const remaining = orderedQty - alreadyReceived;
-    if (newQty > remaining) {
-      return res.status(400).json({ error: `Received quantity (${newQty}) exceeds remaining ordered quantity. Max allowed: ${remaining.toFixed(4)}` });
-      return;
+
+    const po = poResult.rows[0];
+    const bomItems = po.bom_items ?? [];
+    const isSingleItem = bomItems.length === 1;
+
+    // 3. Re-validate PO status inside the transaction
+    if (!["Approved", "In Process"].includes(po.status)) {
+      await client.query('ROLLBACK');
+      return res.status(403).json({
+        error: `Purchase Receipt cannot be created: PO is currently in "${po.status}" status. An admin must approve it first.`
+      });
     }
-  }
 
-  const prNumber = await nextPrNumber();
-  const [row] = await db.insert(purchaseReceiptsTable).values({
-    prNumber,
-    poId: Number(poId),
-    bomRowId: resolvedBomRowId,
-    swatchOrderId: Number(swatchOrderId),
-    vendorName: po.vendorName ?? "",
-    receivedQty: String(receivedQty),
-    actualPrice: String(actualPrice),
-    warehouseLocation: String(warehouseLocation ?? ""),
-    status: "Open",
-    createdBy: user.email,
-  }).returning();
+    // 4. Calculate "orderedQty" based on BOM (same logic as original)
+    let orderedQty = 0;
+    if (resolvedBomRowId != null) {
+      const item = bomItems.find((i: any) => i.bomRowId === resolvedBomRowId);
+      orderedQty = parseFloat(item?.quantity ?? "0") || 0;
+    } else if (isSingleItem) {
+      orderedQty = parseFloat(bomItems[0]?.quantity ?? "0") || 0;
+    }
 
-  // Update inventory and advance PO status in parallel
-  await Promise.all([
-    applyCostingInventoryUpdate({
-      prId: row.id,
-      prNumber: row.prNumber,
+    // 5. Lock existing PRs for this PO and calculate "alreadyReceived" INSIDE the transaction
+    const prResult = await client.query(
+      `SELECT received_qty, bom_row_id
+       FROM purchase_receipts
+       WHERE po_id = $1 AND is_deleted = false
+       FOR UPDATE`, // Prevents concurrent PR creation
+      [Number(poId)]
+    );
+
+    const existingPrs = prResult.rows;
+    const relevantPrs = resolvedBomRowId != null
+      ? existingPrs.filter((pr: any) => pr.bom_row_id === resolvedBomRowId)
+      : (isSingleItem ? existingPrs : existingPrs.filter((pr: any) => pr.bom_row_id == null));
+
+    const alreadyReceived = relevantPrs.reduce((sum: number, pr: any) => sum + (parseFloat(pr.received_qty) || 0), 0);
+
+    // 6. Validate received quantity against remaining (same logic, now race-condition-safe)
+    if (orderedQty > 0) {
+      if (alreadyReceived >= orderedQty) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({
+          error: `This item is already fully received (${alreadyReceived} / ${orderedQty}). No further PR is allowed.`
+        });
+      }
+      const remaining = orderedQty - alreadyReceived;
+      if (newQty > remaining) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({
+          error: `Received quantity (${newQty}) exceeds remaining ordered quantity. Max allowed: ${remaining.toFixed(4)}`
+        });
+      }
+    }
+
+    // 7. Generate PR number and insert the new Purchase Receipt
+    const prNumber = await nextPrNumber(); // Ensure this uses a SEQUENCE to avoid conflicts
+    const insertPrResult = await client.query(
+      `INSERT INTO purchase_receipts
+       (pr_number, po_id, bom_row_id, swatch_order_id, vendor_name, received_qty, actual_price, warehouse_location, status, created_by)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+       RETURNING id, pr_number`,
+      [
+        prNumber,
+        Number(poId),
+        resolvedBomRowId,
+        Number(swatchOrderId),
+        "", // vendorName is updated later by createPurchaseReceiptItem
+        String(receivedQty),
+        String(actualPrice),
+        String(warehouseLocation ?? ""),
+        "Open",
+        user.email
+      ]
+    );
+
+    const newPrRow = insertPrResult.rows[0];
+
+    // 8. Call Inventory Update Helper (passing the transactional client)
+    const inventoryResult = await applyCostingInventoryUpdate({
+      client: client, // <-- Transactional client
+      prId: newPrRow.id,
+      prNumber: newPrRow.pr_number,
       bomRowId: resolvedBomRowId,
       poId: Number(poId),
       receivedQty: newQty,
       actualPrice: parseFloat(String(actualPrice)) || 0,
       warehouseLocation: String(warehouseLocation ?? ""),
       actor: user.email,
-    }),
-    po.status === "Approved"
-      ? db.update(purchaseOrdersTable).set({ status: "In Process" }).where(eq(purchaseOrdersTable.id, Number(poId)))
-      : Promise.resolve(),
-  ]);
+    });
 
-  return res.status(201).json({ data: row });
+    // 9. Call PR Items Helper (passing the transactional client)
+    if (inventoryResult) {
+      await createPurchaseReceiptItem({
+        client: client, // <-- Transactional client
+        poId: Number(poId),
+        prId: newPrRow.id,
+        inventoryItemId: inventoryResult.inventoryItemId,
+        receivedQty: newQty,
+        actualPrice: parseFloat(String(actualPrice)) || 0,
+        warehouseLocation: String(warehouseLocation ?? ""),
+        prRow: newPrRow
+      });
+    }
+
+    // 10. Update PO status if it was "Approved"
+    if (po.status === "Approved") {
+      await client.query(
+        `UPDATE purchase_orders SET status = 'In Process' WHERE id = $1`,
+        [Number(poId)]
+      );
+    }
+
+    // 11. Commit the entire transaction atomically
+    await client.query('COMMIT');
+
+    return res.status(201).json({ data: newPrRow });
+
+  } catch (error) {
+    // Rollback on any exception
+    await client.query('ROLLBACK');
+    console.error("[PR Creation] Transaction failed:", error);
+    return res.status(500).json({ error: "Internal server error during PR creation" });
+  } finally {
+    // Always release the client back to the pool
+    client.release();
+  }
 });
 
 router.patch("/pr/:id", requireAuth, async (req, res) => {
