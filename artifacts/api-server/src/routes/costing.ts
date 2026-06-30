@@ -449,6 +449,15 @@ async function createPurchaseReceiptItem(opts: {
     ]
   );
 
+  if (purchaseOrderItem?.id) {
+    await client.query(
+      `UPDATE purchase_order_items 
+       SET received_quantity = received_quantity + $1, 
+           updated_at = NOW() 
+       WHERE id = $2`,
+      [receivedQty, purchaseOrderItem.id]
+    );
+  }
   // If we found a vendor_name, update the parent purchase_receipts table
   if (purchaseOrderItem?.vendor_name && prRow) {
     await client.query(

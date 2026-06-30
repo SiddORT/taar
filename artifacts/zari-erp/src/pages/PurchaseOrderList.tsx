@@ -25,6 +25,7 @@ const STATUS_MAP: Record<string, { label: string; color: string; Icon: React.Ele
   "Partially Received":{ label: "Partially Received",   color: "bg-amber-100 text-amber-700",  Icon: PackageCheck },
   Closed:              { label: "Closed",               color: "bg-green-100 text-green-700",  Icon: CheckCircle2 },
   Cancelled:           { label: "Cancelled",            color: "bg-red-100 text-red-700",      Icon: XCircle },
+  "In Process":        { label: "Partially Received",   color: "bg-amber-100 text-amber-700",  Icon: PackageCheck },
 };
 
 const ALLOWED_TRANSITIONS: Record<string, string[]> = {
