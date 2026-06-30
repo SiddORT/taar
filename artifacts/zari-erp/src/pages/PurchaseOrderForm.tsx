@@ -305,6 +305,7 @@ export default function PurchaseOrderForm() {
         vendorName: selectedVendor?.brandName ?? "",
         poDate,
         referenceType,
+        referenceId: referenceId ? Number(referenceId) : null,
         notes: referenceType === "Swatch" || referenceType === "Style"
           ? (() => {
               if (referenceType === "Swatch") {
