@@ -1024,7 +1024,7 @@ function PrPaymentsPanel({ prId }: { prId: number }) {
 }
 
 // ─── PR Table Row (flat table view) ───────────────────────────────────────────
-function PrTableRow({ pr, poNumber, bomItems }: { pr: PurchaseReceiptRecord; poNumber: string; bomItems: PoLineItem[] }) {
+function PrTableRow({ pr, poNumber, vendorName, bomItems }: { pr: PurchaseReceiptRecord; poNumber: string; vendorName: string; bomItems: PoLineItem[] }) {
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -1059,7 +1059,7 @@ function PrTableRow({ pr, poNumber, bomItems }: { pr: PurchaseReceiptRecord; poN
       <tr className="border-b border-gray-50 hover:bg-gray-50/50">
         <td className="px-3 py-2.5 font-mono text-[10px] font-bold text-gray-700">{pr.prNumber}</td>
         <td className="px-3 py-2.5 font-mono text-[10px] text-amber-700 font-semibold">{poNumber}</td>
-        <td className="px-3 py-2.5 text-gray-700 text-xs">{pr.vendorName}</td>
+        <td className="px-3 py-2.5 text-gray-700 text-xs">{vendorName}</td>
         <td className="px-3 py-2.5 text-gray-500 whitespace-nowrap text-xs">{new Date(pr.receivedDate).toLocaleDateString()}</td>
         <td className="px-3 py-2.5 font-semibold text-gray-800 text-xs">{pr.receivedQty}</td>
         <td className="px-3 py-2.5 text-gray-700 text-xs">{parseFloat(pr.actualPrice).toFixed(2)}</td>
@@ -1928,10 +1928,9 @@ function PrSection({ swatchOrderId }: { swatchOrderId: number }) {
   const { data: bomRows = [] } = useSwatchBom(swatchOrderId);
   const poMap = Object.fromEntries(pos.map(p => [p.id, p.poNumber]));
   const poItemsMap = Object.fromEntries(pos.map(p => [p.id, p.bomItems ?? []]));
-
+  const poVendorMap = Object.fromEntries(pos.map(p => [p.id, p.vendorName]));
   const [filterPoId, setFilterPoId] = useState<string>("all");
   const [filterBomRowId, setFilterBomRowId] = useState<string>("all");
-
   const filteredPrs = prs.filter(pr => {
     if (filterPoId !== "all" && String(pr.poId) !== filterPoId) return false;
     if (filterBomRowId !== "all") {
@@ -1948,6 +1947,10 @@ function PrSection({ swatchOrderId }: { swatchOrderId: number }) {
 
   const totalValue = filteredPrs.reduce((s, pr) => s + (parseFloat(pr.receivedQty) || 0) * (parseFloat(pr.actualPrice) || 0), 0);
 
+  const getVendorName = (pr: any) => {
+    if (pr.vendorName && pr.vendorName.trim() !== "") return pr.vendorName;
+    return poVendorMap[pr.poId] ?? "—";
+  };
   return (
     <div className="bg-white rounded-2xl border border-gray-200 p-5">
       <SectionHeader icon={<FileText className="h-4 w-4" />} title="Purchase Receipts">
@@ -2007,7 +2010,7 @@ function PrSection({ swatchOrderId }: { swatchOrderId: number }) {
             </thead>
             <tbody>
               {filteredPrs.map(pr => (
-                <PrTableRow key={pr.id} pr={pr} poNumber={poMap[pr.poId] ?? "—"} bomItems={poItemsMap[pr.poId] ?? []} />
+                <PrTableRow key={pr.id} pr={pr} poNumber={poMap[pr.poId] ?? "—"} vendorName={getVendorName(pr)} bomItems={poItemsMap[pr.poId] ?? []} />
               ))}
             </tbody>
             <tfoot>
