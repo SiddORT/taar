@@ -847,7 +847,7 @@ router.get("/procurement/approved-pos", requireAuth, async (req, res) => {
     const { search = "" } = req.query as { search?: string };
     const conditions = [
       "po.is_deleted = false",
-      "po.status IN ('Approved','Partially Received')",
+      "po.status IN ('Approved','Partially Received','In Process')",
       "EXISTS (SELECT 1 FROM purchase_order_items WHERE po_id = po.id AND (ordered_quantity - received_quantity) > 0 AND is_deleted = false)",
     ];
     const params: string[] = [];
