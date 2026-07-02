@@ -402,7 +402,7 @@ router.post("/procurement/purchase-receipts", requireAuth, async (req: AuthReque
     );
     if (!poRes.rows.length) { res.status(400).json({ error: "PO not found" }); return; }
     const po = poRes.rows[0];
-    if (!["Approved", "Partially Received"].includes(po.status)) {
+    if (!["Approved", "Partially Received", "In Process"].includes(po.status)) {
       res.status(400).json({ error: `PO must be Approved before creating a receipt. Current status: ${po.status}` }); return;
     }
 
