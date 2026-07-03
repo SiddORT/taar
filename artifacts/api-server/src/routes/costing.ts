@@ -192,7 +192,7 @@ async function autoCancelReservation(opts: {
 // Called after every costing PR insert (swatch or style) to keep inventory_items,
 // stock_ledger, inventory_stock_logs and the material/fabric master in sync.
 async function applyCostingInventoryUpdate(opts: {
-  client?: any; // <-- MADE OPTIONAL. Transactional pg client. If omitted, uses global pool.
+  client?: any; // <-- MADE OPTIONAL.
   prId: number;
   prNumber: string;
   bomRowId: number | null;
@@ -1035,13 +1035,28 @@ router.delete("/bom/:id", requireAuth, async (req, res) => {
   return res.json({ success: true });
 });
 
-// ─── PO Number Generator ─────────────────────────────────────────────────────
-async function nextPoNumber(): Promise<string> {
+// ─── PO Number Generator (with transaction support) ─────────────────────
+async function nextPoNumber(client?: any): Promise<string> {
   const year = new Date().getFullYear().toString().slice(-2);
-  const all = await db.select({ n: purchaseOrdersTable.poNumber }).from(purchaseOrdersTable);
-  const nums = all.map(r => parseInt(r.n.split("-").pop() ?? "0")).filter(n => !isNaN(n));
-  const next = (nums.length ? Math.max(...nums) : 0) + 1;
-  return `PO-${year}-${String(next).padStart(4, "0")}`;
+  let maxNum: number;
+
+  if (client) {
+    // Use the transaction client – sees uncommitted rows inside the same TX
+    const res = await client.query(
+      `SELECT MAX(CAST(SUBSTRING(po_number FROM '^PO-${year}-([0-9]{4})$') AS INTEGER)) AS max_num
+       FROM purchase_orders
+       WHERE po_number LIKE 'PO-${year}-%' AND is_deleted = false`
+    );
+    maxNum = parseInt(res.rows[0]?.max_num ?? '0');
+  } else {
+    // Fallback: global connection (backward compatibility)
+    const all = await db.select({ n: purchaseOrdersTable.poNumber }).from(purchaseOrdersTable);
+    const nums = all.map(r => parseInt(r.n.split("-").pop() ?? "0")).filter(n => !isNaN(n));
+    maxNum = nums.length ? Math.max(...nums) : 0;
+  }
+
+  const next = maxNum + 1;
+  return `PO-${year}-${String(next).padStart(4, '0')}`;
 }
 
 async function nextPrNumber(): Promise<string> {
@@ -1064,7 +1079,7 @@ router.post("/po", requireAuth, async (req, res) => {
   const user = (req as any).user;
   const { swatchOrderId, vendorId, notes, bomItems } = req.body as {
     swatchOrderId: number;
-    vendorId?: number;
+    vendorId?: number; // Kept for backward compatibility, but now ignored if items have their own vendors
     notes?: string;
     bomItems?: {
       bomRowId: number;
@@ -1078,21 +1093,11 @@ router.post("/po", requireAuth, async (req, res) => {
     }[];
   };
 
-  // ─── DETERMINE VENDOR MODE ──────────────────────────────────────────────
-  let vendorName: string | null = null;
-  let vendorMode: "header" | "item";
-
-  if (vendorId) {
-    const [vendor] = await db.select().from(vendorsTable).where(
-      and(eq(vendorsTable.id, vendorId), eq(vendorsTable.isDeleted, false))
-    );
-    vendorName = vendor.brandName;
-    vendorMode = "header";
-  } else {
-    vendorMode = "item";
-  }
-
   const items = bomItems ?? [];
+
+  if (!items.length) {
+    return res.status(400).json({ error: "At least one material is required" });
+  }
 
   // ─── FETCH INVENTORY ITEM IDs BY MATERIAL CODE ───────────────────────────
   const materialCodes = [...new Set(items.map(i => i.materialCode))];
@@ -1104,116 +1109,161 @@ router.post("/po", requireAuth, async (req, res) => {
 
   const inventoryMap = new Map(inventoryItems.map(i => [i.code, i.id]));
 
-  const poNumber = await nextPoNumber();
-
   // ─── START TRANSACTION ───────────────────────────────────────────────────
   const client = await (pool as any).connect();
 
   try {
     await client.query("BEGIN");
 
-    // ─── INSERT PO HEADER ──────────────────────────────────────────────────
-    const poResult = await client.query(
-      `INSERT INTO purchase_orders
-        (po_number, swatch_order_id, reference_type, reference_id, vendor_mode,
-          vendor_id, vendor_name, status, notes, bom_row_ids, bom_items, created_by)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
-      RETURNING id, po_number, swatch_order_id, reference_type, reference_id, vendor_mode,
-                vendor_id, vendor_name, status, notes, bom_row_ids, bom_items, created_by,
-                created_at`,
-      [
-        poNumber,
-        Number(swatchOrderId),
-        "Swatch",
-        Number(swatchOrderId),
-        vendorMode,
-        vendorMode === "header" ? vendorId : null,
-        vendorMode === "header" ? vendorName : null,
-        "Draft",
-        notes ?? null,
-        JSON.stringify(items.map(i => i.bomRowId)),
-        JSON.stringify(items),
-        user.email,
-      ]
-    );
-    const po = poResult.rows[0];
+    const createdPOs: any[] = [];
 
-    // ─── INSERT PO ITEMS ───────────────────────────────────────────────────
-    if (items.length > 0) {
-      for (const item of items) {
-        const inventoryItemId = inventoryMap.get(item.materialCode) ?? null;
+    // ─── LOOP OVER EACH MATERIAL AND CREATE A SEPARATE PO ──────────────────
+    for (const item of items) {
+      // Determine vendor for this specific item
+      let vendorIdForPO: number | null = null;
+      let vendorNameForPO: string | null = null;
 
-        await client.query(
-          `INSERT INTO purchase_order_items
-             (po_id, inventory_item_id, item_name, item_code,
-              ordered_quantity, received_quantity, unit_price,
-              warehouse_location, remarks, item_image,
-              vendor_id, vendor_name)
-           VALUES ($1,$2,$3,$4,$5,0,$6,$7,$8,$9,$10,$11)`,
-          [
-            po.id,
-            inventoryItemId,
-            item.materialName || item.materialCode,
-            item.materialCode,
-            item.quantity,
-            item.targetPrice,
-            "",
-            null,
-            null,
-            vendorMode === "item" ? item.targetVendorId : null,
-            vendorMode === "item" ? (item.targetVendorName ?? null) : null,
-          ]
-        );
+      if (item.targetVendorId) {
+        // Item has its own vendor
+        const [vendor] = await db
+          .select({ id: vendorsTable.id, brandName: vendorsTable.brandName })
+          .from(vendorsTable)
+          .where(and(eq(vendorsTable.id, item.targetVendorId), eq(vendorsTable.isDeleted, false)));
+
+        if (vendor) {
+          vendorIdForPO = vendor.id;
+          vendorNameForPO = vendor.brandName;
+        } else {
+          // If vendor not found, use the provided name as fallback
+          vendorNameForPO = item.targetVendorName ?? null;
+        }
+      } else if (item.targetVendorName) {
+        // Only vendor name provided (no ID)
+        vendorNameForPO = item.targetVendorName;
+      } else if (vendorId) {
+        // Fallback to header-level vendor (legacy support)
+        const [vendor] = await db
+          .select({ id: vendorsTable.id, brandName: vendorsTable.brandName })
+          .from(vendorsTable)
+          .where(and(eq(vendorsTable.id, vendorId), eq(vendorsTable.isDeleted, false)));
+
+        if (vendor) {
+          vendorIdForPO = vendor.id;
+          vendorNameForPO = vendor.brandName;
+        }
       }
+
+      // If still no vendor, set a placeholder
+      if (!vendorNameForPO) {
+        vendorNameForPO = "Unknown Vendor";
+      }
+
+      const inventoryItemId = inventoryMap.get(item.materialCode) ?? null;
+      const poNumber = await nextPoNumber(client);
+
+      // ─── INSERT PO HEADER (single vendor, single item) ──────────────────
+      const poResult = await client.query(
+        `INSERT INTO purchase_orders
+          (po_number, swatch_order_id, reference_type, reference_id, vendor_mode,
+            vendor_id, vendor_name, status, notes, bom_row_ids, bom_items, created_by)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+        RETURNING id, po_number, swatch_order_id, reference_type, reference_id, vendor_mode,
+                  vendor_id, vendor_name, status, notes, bom_row_ids, bom_items, created_by,
+                  created_at`,
+        [
+          poNumber,
+          Number(swatchOrderId),
+          "Swatch",
+          Number(swatchOrderId),
+          "header", // Each PO has a single vendor (header mode)
+          vendorIdForPO,
+          vendorNameForPO,
+          "Draft",
+          notes ?? null,
+          JSON.stringify([item.bomRowId]), // Single BOM row ID
+          JSON.stringify([item]), // Single BOM item
+          user.email,
+        ]
+      );
+
+      const po = poResult.rows[0];
+      createdPOs.push(po);
+
+      // ─── INSERT PO ITEM (single item per PO) ──────────────────────────
+      await client.query(
+        `INSERT INTO purchase_order_items
+           (po_id, inventory_item_id, item_name, item_code,
+            ordered_quantity, received_quantity, unit_price,
+            warehouse_location, remarks, item_image,
+            vendor_id, vendor_name)
+         VALUES ($1,$2,$3,$4,$5,0,$6,$7,$8,$9,$10,$11)`,
+        [
+          po.id,
+          inventoryItemId,
+          item.materialName || item.materialCode,
+          item.materialCode,
+          item.quantity,
+          item.targetPrice,
+          "",
+          null,
+          null,
+          vendorIdForPO, // Same vendor as header
+          vendorNameForPO, // Same vendor as header
+        ]
+      );
     }
 
     await client.query("COMMIT");
 
     // ─── EMAIL NOTIFICATION (outside transaction) ──────────────────────────
+    // Send one email per created PO
     const adminUsers = await db.select({ email: usersTable.email }).from(usersTable).where(
       and(eq(usersTable.role, "admin"), eq(usersTable.isDeleted, false))
     );
     const adminEmails = adminUsers.map(u => u.email).filter(Boolean) as string[];
 
-    if (adminEmails.length > 0) {
+    if (adminEmails.length > 0 && createdPOs.length > 0) {
       const apiBase = process.env.API_BASE_URL ?? `https://${process.env.REPLIT_DEV_DOMAIN ?? "zari-erp.replit.app"}`;
       const erpUrl = `${apiBase}/costing`;
-      const approveToken = jwt.sign(
-        { poId: po.id, action: "approve" },
-        process.env.SESSION_SECRET ?? "secret",
-        { expiresIn: "7d" }
-      );
-      const rejectToken = jwt.sign(
-        { poId: po.id, action: "reject" },
-        process.env.SESSION_SECRET ?? "secret",
-        { expiresIn: "7d" }
-      );
 
-      const emailVendorName = vendorMode === "item"
-        ? [...new Set(items.map(i => i.targetVendorName ?? `Vendor ${i.targetVendorId}`))].join(", ")
-        : (vendorName ?? "—");
+      // Send email for each PO
+      for (const po of createdPOs) {
+        const approveToken = jwt.sign(
+          { poId: po.id, action: "approve" },
+          process.env.SESSION_SECRET ?? "secret",
+          { expiresIn: "7d" }
+        );
+        const rejectToken = jwt.sign(
+          { poId: po.id, action: "reject" },
+          process.env.SESSION_SECRET ?? "secret",
+          { expiresIn: "7d" }
+        );
 
-      sendPoApprovalRequestEmail({
-        adminEmails,
-        poNumber,
-        vendorName: emailVendorName,
-        createdBy: user.email,
-        referenceType: "Swatch",
-        referenceId: swatchOrderId,
-        itemCount: items.length,
-        erpUrl,
-        approveUrl: `${apiBase}/api/costing/po-action?token=${approveToken}`,
-        rejectUrl: `${apiBase}/api/costing/po-action?token=${rejectToken}`,
-      }).catch(() => {});
+        sendPoApprovalRequestEmail({
+          adminEmails,
+          poNumber: po.po_number,
+          vendorName: po.vendor_name ?? "Unknown Vendor",
+          createdBy: user.email,
+          referenceType: "Swatch",
+          referenceId: swatchOrderId,
+          itemCount: 1, // Each PO has exactly one item
+          erpUrl,
+          approveUrl: `${apiBase}/api/costing/po-action?token=${approveToken}`,
+          rejectUrl: `${apiBase}/api/costing/po-action?token=${rejectToken}`,
+        }).catch(() => {});
+      }
     }
 
-    return res.status(201).json({ data: po });
+    return res.status(201).json({ 
+      data: createdPOs, 
+      message: `${createdPOs.length} purchase order(s) created successfully` 
+    });
 
   } catch (error) {
     // ─── ROLLBACK ON ANY ERROR ─────────────────────────────────────────────
     await client.query("ROLLBACK").catch(() => {});
     console.error("PO creation failed:", error);
-    return res.status(500).json({ error: "Failed to create purchase order", detail: (error as Error).message });
+    return res.status(500).json({ error: "Failed to create purchase order(s)", detail: (error as Error).message });
 
   } finally {
     // ─── ALWAYS RELEASE CLIENT ───────────────────────────────────────────────
@@ -1290,7 +1340,7 @@ router.post("/pr", requireAuth, async (req, res) => {
     const isSingleItem = bomItems.length === 1;
 
     // 3. Re-validate PO status inside the transaction
-    if (!["Approved", "In Process"].includes(po.status)) {
+    if (!["Approved", "In Process", "Partially Received"].includes(po.status)) {
       await client.query('ROLLBACK');
       return res.status(403).json({
         error: `Purchase Receipt cannot be created: PO is currently in "${po.status}" status. An admin must approve it first.`

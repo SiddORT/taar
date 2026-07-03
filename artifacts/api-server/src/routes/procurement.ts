@@ -165,14 +165,89 @@ router.post("/procurement/purchase-orders", requireAuth, async (req: AuthRequest
       referenceType?: string;
       referenceId?: number | null;
       notes?: string;
-      items: { inventoryItemId: number; itemName: string; itemCode: string; orderedQuantity: number; unitPrice: number; warehouseLocation?: string; remarks?: string; itemImage?: string | null }[];
+      items: {
+        inventoryItemId: number;
+        itemName: string;
+        itemCode: string;
+        orderedQuantity: number;
+        unitPrice: number;
+        warehouseLocation?: string;
+        remarks?: string;
+        itemImage?: string | null;
+      }[];
     };
 
     if (!vendorId) { res.status(400).json({ error: "Vendor is required" }); return; }
     if (!items.length) { res.status(400).json({ error: "At least one item is required" }); return; }
+
     const vendorMode = "header";
+    const isSwatchOrStyle = referenceType === "Swatch" || referenceType === "Style";
+    const effectiveReferenceId = referenceId ?? null;
+
+    // ─── RESOLVE BOM ROW IDs for Swatch/Style POs ──────────────────────────
+    let bomRowIds: number[] = [];
+    let bomItems: any[] = [];
+
+    if (isSwatchOrStyle && effectiveReferenceId) {
+      const inventoryItemIds = items.map(i => i.inventoryItemId);
+
+      const invRes = await client.query(
+        `SELECT id, item_code, item_name, source_type, source_id
+         FROM inventory_items
+         WHERE id = ANY($1) AND is_deleted = false`,
+        [inventoryItemIds]
+      );
+
+      const invMap = new Map<number, { source_type: string; source_id: string; item_code: string; item_name: string }>();
+      for (const row of invRes.rows) {
+        invMap.set(row.id, {
+          source_type: row.source_type,
+          source_id: String(row.source_id),
+          item_code: row.item_code,
+          item_name: row.item_name,
+        });
+      }
+
+      const orderIdColumn = referenceType === "Swatch" ? "swatch_order_id" : "style_order_id";
+
+      for (const item of items) {
+        const inv = invMap.get(item.inventoryItemId);
+        if (!inv) continue;
+
+        // Only select columns that exist in swatch_bom table
+        const bomRes = await client.query(
+          `SELECT id, unit_type, avg_unit_price
+           FROM swatch_bom
+           WHERE ${orderIdColumn} = $1
+             AND material_type = $2
+             AND material_id::text = $3
+             AND material_code = $4
+             AND is_deleted = false
+           LIMIT 1`,
+          [effectiveReferenceId, inv.source_type, inv.source_id, item.itemCode]
+        );
+
+        if (bomRes.rows.length) {
+          const bomRow = bomRes.rows[0];
+          const bomRowId = bomRow.id;
+
+          bomRowIds.push(bomRowId);
+          bomItems.push({
+            bomRowId: bomRowId,
+            materialCode: item.itemCode,
+            materialName: item.itemName,
+            unitType: bomRow.unit_type ?? "",
+            targetPrice: String(item.unitPrice ?? bomRow.avg_unit_price),
+            quantity: String(item.orderedQuantity),
+            targetVendorId: vendorId,
+            targetVendorName: vendorName,
+          });
+        }
+      }
+    }
 
     const poNumber = await nextPoNumber(client);
+    // ─── INSERT PO HEADER ──────────────────────────────────────────────────
     const poRes = await client.query(
       `INSERT INTO purchase_orders
          (po_number, vendor_id, vendor_name, vendor_mode, po_date, status, notes,
@@ -181,24 +256,69 @@ router.post("/procurement/purchase-orders", requireAuth, async (req: AuthRequest
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14, NOW())
        RETURNING *`,
       [
-        poNumber, vendorId, vendorName, vendorMode,
+        poNumber,
+        vendorId,
+        vendorName,
+        vendorMode,
         poDate ? new Date(poDate).toISOString() : new Date().toISOString(),
-        "Draft", notes ?? null, referenceType,  referenceId ?? null, referenceType === "Swatch" ? referenceId : null,
-        referenceType === "Style"  ? referenceId : null,  "[]",  "[]", userName,
+        "Draft",
+        notes ?? null,
+        referenceType,
+        effectiveReferenceId,
+        referenceType === "Swatch" ? effectiveReferenceId : null,
+        referenceType === "Style" ? effectiveReferenceId : null,
+        JSON.stringify(bomRowIds),
+        JSON.stringify(bomItems),
+        userName,
       ]
     );
     const po = poRes.rows[0];
 
+    // ─── INSERT PO ITEMS with resolved bomRowId ────────────────────────────
     for (const item of items) {
+      let itemBomRowId: number | null = null;
+
+      if (isSwatchOrStyle && effectiveReferenceId) {
+        const invRes = await client.query(
+          `SELECT source_type, source_id FROM inventory_items WHERE id = $1 AND is_deleted = false`,
+          [item.inventoryItemId]
+        );
+        if (invRes.rows.length) {
+          const inv = invRes.rows[0];
+          const orderIdColumn = referenceType === "Swatch" ? "swatch_order_id" : "style_order_id";
+
+          const bomRes = await client.query(
+            `SELECT id FROM swatch_bom
+             WHERE ${orderIdColumn} = $1
+               AND material_type = $2
+               AND material_id::text = $3
+               AND material_code = $4
+               AND is_deleted = false
+             LIMIT 1`,
+            [effectiveReferenceId, inv.source_type, String(inv.source_id), item.itemCode]
+          );
+          if (bomRes.rows.length) {
+            itemBomRowId = bomRes.rows[0].id;
+          }
+        }
+      }
+
       await client.query(
         `INSERT INTO purchase_order_items
            (po_id, inventory_item_id, item_name, item_code,
-            ordered_quantity, received_quantity, unit_price, warehouse_location, remarks, item_image)
+            ordered_quantity, received_quantity, unit_price,
+            warehouse_location, remarks, item_image)
          VALUES ($1,$2,$3,$4,$5,0,$6,$7,$8,$9)`,
         [
-          po.id, item.inventoryItemId, item.itemName, item.itemCode,
-          item.orderedQuantity, item.unitPrice,
-          item.warehouseLocation ?? null, item.remarks ?? null, item.itemImage ?? null,
+          po.id,
+          item.inventoryItemId,
+          item.itemName,
+          item.itemCode,
+          item.orderedQuantity,
+          item.unitPrice,
+          item.warehouseLocation ?? null,
+          item.remarks ?? null,
+          item.itemImage ?? null,
         ]
       );
     }
@@ -402,10 +522,12 @@ router.post("/procurement/purchase-receipts", requireAuth, async (req: AuthReque
     );
     if (!poRes.rows.length) { res.status(400).json({ error: "PO not found" }); return; }
     const po = poRes.rows[0];
-    if (!["Approved", "Partially Received"].includes(po.status)) {
+    if (!["Approved", "Partially Received", "In Process"].includes(po.status)) {
       res.status(400).json({ error: `PO must be Approved before creating a receipt. Current status: ${po.status}` }); return;
     }
 
+    const isSwatchOrStyle = po.reference_type === 'Swatch' || po.reference_type === 'Style';
+    const bomRowId = po.bom_row_ids && po.bom_row_ids.length === 1 ? po.bom_row_ids[0] : null;
     // Validate quantities against pending on each PO item
     for (const item of items) {
       if (!item.poItemId) { res.status(400).json({ error: "Each item must reference a PO line item" }); return; }
@@ -431,18 +553,30 @@ router.post("/procurement/purchase-receipts", requireAuth, async (req: AuthReque
 
     // PR header
     const headerVendorName = po.vendor_mode === 'header' ? po.vendor_name : null;
+    const totalReceivedQty = items?.reduce((sum, item) => sum + (item.quantity || 0), 0) || 0;
+    const totalActualPrice = items?.reduce((sum, item) => sum + (item.unitPrice || 0), 0) || 0;
+    
     const prRes = await client.query(
       `INSERT INTO purchase_receipts
-         (pr_number, po_id, vendor_name, received_date, received_qty, actual_price,
-          warehouse_location, status, swatch_order_id, style_order_id, bom_row_id,
+        (pr_number, po_id, vendor_name, received_date, 
+          received_qty, actual_price,
+          warehouse_location, status, 
+          swatch_order_id, style_order_id, bom_row_id,
           created_by, created_at)
-       VALUES ($1,$2,$3,$4,'0','0','',$5,$6,$7,NULL,$8,NOW())
-       RETURNING *`,
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,NOW())
+      RETURNING *`,
       [
-        prNumber, poId, headerVendorName,
+        prNumber, 
+        poId, 
+        headerVendorName,
         receivedDate ? new Date(receivedDate).toISOString() : new Date().toISOString(),
+        isSwatchOrStyle ? totalReceivedQty : 0,   // Real qty for Swatch/Style, 0 otherwise
+        isSwatchOrStyle ? totalActualPrice : 0,   // Real price for Swatch/Style, 0 otherwise
+        '',
         status,
-        po.swatch_order_id ?? null, po.style_order_id ?? null,
+        po.swatch_order_id ?? null, 
+        po.style_order_id ?? null,
+        bomRowId || null,
         userName,
       ]
     );
@@ -847,7 +981,7 @@ router.get("/procurement/approved-pos", requireAuth, async (req, res) => {
     const { search = "" } = req.query as { search?: string };
     const conditions = [
       "po.is_deleted = false",
-      "po.status IN ('Approved','Partially Received')",
+      "po.status IN ('Approved','Partially Received','In Process')",
       "EXISTS (SELECT 1 FROM purchase_order_items WHERE po_id = po.id AND (ordered_quantity - received_quantity) > 0 AND is_deleted = false)",
     ];
     const params: string[] = [];
@@ -875,20 +1009,36 @@ async function applyInventoryUpdate(
   client: { query: typeof pool.query },
   prId: number,
   prNumber: string,
-  items: Array<{ inventoryItemId: number; itemName?: string; itemCode?: string; quantity: number; unitPrice: number; poItemId?: number; warehouseLocation?: string }>,
+  items: Array<{
+    inventoryItemId: number;
+    itemName?: string;
+    itemCode?: string;
+    quantity: number;
+    unitPrice: number;
+    poItemId?: number;
+    warehouseLocation?: string;
+  }>,
   userName: string
 ) {
   for (const item of items) {
+    // ── 1. Lock and fetch inventory_items row (FOR UPDATE) ──────────────────
     const inv = await client.query(
       `SELECT id, item_name, item_code, current_stock, average_price,
-              style_reserved_qty, swatch_reserved_qty
-       FROM inventory_items WHERE id = $1 FOR UPDATE`,
+              style_reserved_qty, swatch_reserved_qty,
+              source_type, source_id
+       FROM inventory_items WHERE id = $1 AND is_deleted = false
+       FOR UPDATE`,
       [item.inventoryItemId]
     );
-    if (!inv.rows.length) continue;
+
+    if (!inv.rows.length) {
+      console.warn(`[applyInventoryUpdate] Inventory item ${item.inventoryItemId} not found, skipping.`);
+      continue;
+    }
+
     const row = inv.rows[0];
-    const prevStock = parseFloat(row.current_stock);
-    const prevAvg   = parseFloat(row.average_price);
+    const prevStock = parseFloat(row.current_stock ?? "0");
+    const prevAvg   = parseFloat(row.average_price ?? "0");
     const qty       = item.quantity;
     const price     = item.unitPrice;
 
@@ -896,24 +1046,114 @@ async function applyInventoryUpdate(
     const newAvg   = newStock > 0
       ? (prevStock * prevAvg + qty * price) / newStock
       : price;
-    const newAvailable = newStock
-      - parseFloat(row.style_reserved_qty)
-      - parseFloat(row.swatch_reserved_qty);
+
+    const newAvailable = Math.max(0, newStock
+      - parseFloat(row.style_reserved_qty ?? "0")
+      - parseFloat(row.swatch_reserved_qty ?? "0"));
+
+    // ── 2. Update inventory_items ─────────────────────────────────────────
     await client.query(
       `UPDATE inventory_items
-       SET current_stock = $1, average_price = $2, available_stock = GREATEST(0.0,$3),
-           last_purchase_price = $4, last_updated_at = NOW()
+       SET current_stock = $1,
+           average_price = $2,
+           available_stock = $3,
+           last_purchase_price = $4,
+           last_updated_at = NOW()
        WHERE id = $5`,
-      [newStock, newAvg, newAvailable, price, item.inventoryItemId]
+      [
+        newStock.toFixed(3),
+        newAvg.toFixed(2),
+        newAvailable.toFixed(3),
+        price.toFixed(2),
+        item.inventoryItemId
+      ]
     );
 
+    // ── 3. Insert stock_ledger entry ──────────────────────────────────────
     await client.query(
       `INSERT INTO stock_ledger
          (item_id, transaction_type, reference_number, reference_type,
           in_quantity, out_quantity, balance_quantity, remarks, created_by, created_at)
-       VALUES ($1,'purchase_receipt',$2,'PR',$3,0,$4,$5,$6,NOW())`,
-      [item.inventoryItemId, prNumber, qty, newStock, `PR ${prNumber}`, userName]
+       VALUES ($1, 'purchase_receipt', $2, 'PR', $3, 0, $4, $5, $6, NOW())`,
+      [
+        item.inventoryItemId,
+        prNumber,
+        qty.toFixed(3),
+        newStock.toFixed(3),
+        `PR ${prNumber}${item.itemName ? " - " + item.itemName : ""}`,
+        userName
+      ]
     );
+
+    // ── 4. Insert inventory_stock_logs (non-critical, catch and log) ────────
+    try {
+      await client.query(
+        `INSERT INTO inventory_stock_logs
+           (inventory_item_id, action_type, quantity_before, quantity_after, quantity_delta,
+            reference_type, reference_id, notes, created_by_name, created_at)
+         VALUES ($1, 'receipt', $2, $3, $4, 'PR', $5, $6, $7, NOW())`,
+        [
+          item.inventoryItemId,
+          prevStock.toFixed(3),
+          newStock.toFixed(3),
+          qty.toFixed(3),
+          prId,
+          `PR ${prNumber}${item.itemName ? " - " + item.itemName : ""}`,
+          userName
+        ]
+      );
+    } catch (logError) {
+      console.error(`[StockLog] PR ${prNumber} inventory_stock_logs failed (non-critical):`, logError);
+    }
+
+    // ── 5. Lock and update material/fabric master (FOR UPDATE) ─────────────
+    const materialType = row.source_type;
+    const materialId = row.source_id ? parseInt(row.source_id, 10) : null;
+
+    if (materialType && materialId) {
+      const masterTable = materialType === "fabric" ? "fabrics" : "materials";
+
+      const masterRes = await client.query(
+        `SELECT current_stock, location_stocks
+         FROM ${masterTable}
+         WHERE id = $1 AND is_deleted = false
+         FOR UPDATE`,
+        [materialId]
+      );
+
+      if (masterRes.rows.length) {
+        const masterRow = masterRes.rows[0];
+        const masterNewStock = parseFloat(masterRow.current_stock ?? "0") + qty;
+
+        const resolvedLocation = item.warehouseLocation?.trim() || "Unallocated";
+        const locStocks: Array<{ location: string; stock: string }> =
+          masterRow.location_stocks ?? [];
+
+        const locIdx = locStocks.findIndex((l: any) => l.location === resolvedLocation);
+        if (locIdx >= 0) {
+          locStocks[locIdx].stock = (
+            parseFloat(locStocks[locIdx].stock ?? "0") + qty
+          ).toFixed(3);
+        } else {
+          locStocks.push({
+            location: resolvedLocation,
+            stock: qty.toFixed(3),
+          });
+        }
+
+        await client.query(
+          `UPDATE ${masterTable}
+           SET current_stock = $1,
+               location_stocks = $2
+           WHERE id = $3`,
+          [
+            masterNewStock.toFixed(3),
+            JSON.stringify(locStocks),
+            materialId
+          ]
+        );
+      }
+    }
   }
 }
 

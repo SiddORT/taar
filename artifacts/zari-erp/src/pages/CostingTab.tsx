@@ -1588,7 +1588,7 @@ function PoCard({ po, swatchOrderId, onCreatePR, onExportPdf, vendors }: { po: P
 
   const canAdvance = po.status !== "Closed";
   const nextStatus = PO_STATUSES[PO_STATUSES.indexOf(po.status) + 1];
-  const canCreatePR = ["Approved", "In Process"].includes(po.status);
+  const canCreatePR = ["Approved", "In Process", "Partially Received"].includes(po.status);
 
   async function handleExport() {
     setExporting(true);

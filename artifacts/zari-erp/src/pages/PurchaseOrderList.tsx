@@ -454,7 +454,7 @@ export default function PurchaseOrderList() {
                   const pending  = Math.max(0, ordered - received);
                   const isCosting = po.reference_type === "Swatch" || po.reference_type === "Style";
                   const transitions = ALLOWED_TRANSITIONS[po.status] ?? [];
-                  const canCreatePr = po.status === "Approved" || po.status === "Partially Received";
+                  const canCreatePr = po.status === "Approved" || po.status === "Partially Received" || po.status === "In Process";
                   const isPopoverOpen = itemsPopover?.poId === po.id;
 
                   return (
