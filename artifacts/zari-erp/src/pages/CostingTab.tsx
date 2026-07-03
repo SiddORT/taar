@@ -2194,17 +2194,17 @@ function ConsumptionSection({ swatchOrderId }: { swatchOrderId: number }) {
                         </span>
                       </div>
                     </td>
-                    <td className="px-3 py-2.5 whitespace-nowrap">
+                    {/* <td className="px-3 py-2.5 whitespace-nowrap">
                       <span className="font-semibold text-blue-700">{liveStock.toFixed(2)}</span>
                       <span className="text-gray-400 ml-1 text-[10px]">{r.unitType}</span>
                       {m.prQty > 0 && (
                         <span title={`Base: ${m.stockNum} + PR received: ${m.prQty.toFixed(2)}`} className="ml-1 text-[9px] text-blue-400 cursor-help">+PR</span>
                       )}
-                    </td>
-                    <td className="px-3 py-2.5 whitespace-nowrap">
+                    </td> */}
+                    {/* <td className="px-3 py-2.5 whitespace-nowrap">
                       <span className="font-semibold text-violet-700">{parseFloat(r.requiredQty).toFixed(2)}</span>
                       <span className="text-gray-400 ml-1 text-[10px]">{r.unitType}</span>
-                    </td>
+                    </td> */}
                     <td className="px-3 py-2.5 text-gray-700">{m.weightedAvg.toFixed(2)}</td>
                     <td className="px-3 py-2.5 text-amber-700 font-medium">{m.consumedQtyNum.toFixed(2)} {r.unitType}</td>
                     <td className="px-3 py-2.5 font-semibold text-red-700">{m.consumedTotal.toFixed(2)}</td>
@@ -2232,8 +2232,8 @@ function ConsumptionSection({ swatchOrderId }: { swatchOrderId: number }) {
               <tfoot>
                 <tr className="bg-gray-50 border-t border-gray-200">
                   <td colSpan={2} className="px-3 py-2 text-right text-[10px] font-semibold text-gray-400">Total</td>
-                  <td className="px-3 py-2 font-bold text-blue-700">{totals.stockInclPr.toFixed(2)}</td>
-                  <td className="px-3 py-2" />
+                  {/* <td className="px-3 py-2 font-bold text-blue-700">{totals.stockInclPr.toFixed(2)}</td> */}
+                  {/* <td className="px-3 py-2" /> */}
                   <td className="px-3 py-2" />
                   <td className="px-3 py-2 font-bold text-amber-700">{totals.consumedQty.toFixed(2)}</td>
                   <td className="px-3 py-2 font-bold text-red-700">{totals.consumedTotal.toFixed(2)}</td>
