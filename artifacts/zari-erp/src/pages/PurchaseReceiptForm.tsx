@@ -115,6 +115,11 @@ interface PRDetail {
   vendor_invoice_exchange_rate: string | null;
   items: PRItem[];
 }
+interface Warehouse {
+  id: number;
+  name: string;
+  code: string;
+}
 
 export default function PurchaseReceiptForm() {
   const { fmt, currency: dc } = useCurrency();
@@ -173,6 +178,24 @@ export default function PurchaseReceiptForm() {
   const [invFile, setInvFile] = useState<File | null>(null);
   const [invUploading, setInvUploading] = useState(false);
   const [invDeleteConfirm, setInvDeleteConfirm] = useState(false);
+
+  // WareHous Location state
+  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
+  const [loadingWarehouses, setLoadingWarehouses] = useState(false);
+
+  useEffect(() => {
+    if (!token || !isNew) return;
+    setLoadingWarehouses(true);
+    customFetch(`/api/settings/warehouses?_t=${Date.now()}`)
+      .then((r: unknown) => {
+        const data = (r as { data?: Warehouse[] }).data ?? (Array.isArray(r) ? r as Warehouse[] : []);
+        setWarehouses(data);
+      })
+      .catch(() => {
+        toast({ title: "Failed to load warehouses", variant: "destructive" });
+      })
+      .finally(() => setLoadingWarehouses(false));
+  }, [token, isNew, toast]);
 
   useEffect(() => { if (isError) navigate("/login"); }, [isError, navigate]);
 
@@ -1119,11 +1142,33 @@ export default function PurchaseReceiptForm() {
                             )}
                           </td>
                           <td className="px-3 py-3">
+                            {loadingWarehouses ? (
+                              <div className="w-full px-2 py-1.5 text-sm text-gray-400 border border-gray-200 rounded-lg bg-gray-50">
+                                Loading…
+                              </div>
+                            ) : warehouses.length > 0 ? (
+                              <div className="relative">
+                                <select
+                                  value={line.warehouseLocation}
+                                  onChange={e => updateLine(idx, "warehouseLocation", e.target.value)}
+                                  className="w-full appearance-none pl-2 pr-6 py-1.5 text-sm text-gray-900 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30 bg-white"
+                                >
+                                  <option value="">Select location…</option>
+                                  {warehouses.map(wh => (
+                                    <option key={wh.id} value={wh.name}>
+                                      {wh.name}
+                                    </option>
+                                  ))}
+                                </select>
+                                <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 h-3 w-3 text-gray-400 pointer-events-none" />
+                              </div>
+                            ) : (
                             <input type="text"
-                              value={line.warehouseLocation}
-                              onChange={e => updateLine(idx, "warehouseLocation", e.target.value)}
-                              placeholder="Bin / shelf…"
-                              className="w-full px-2 py-1.5 text-sm text-gray-900 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30" />
+                                  value={line.warehouseLocation}
+                                  onChange={e => updateLine(idx, "warehouseLocation", e.target.value)}
+                                  placeholder="Bin / shelf…"
+                                  className="w-full px-2 py-1.5 text-sm text-gray-900 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30" /> 
+                                  )}
                           </td>
                           <td className="px-3 py-3">
                             {line.itemImage ? (
