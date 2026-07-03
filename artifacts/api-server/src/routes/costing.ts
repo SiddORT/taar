@@ -192,7 +192,7 @@ async function autoCancelReservation(opts: {
 // Called after every costing PR insert (swatch or style) to keep inventory_items,
 // stock_ledger, inventory_stock_logs and the material/fabric master in sync.
 async function applyCostingInventoryUpdate(opts: {
-  client?: any; // <-- MADE OPTIONAL. Transactional pg client. If omitted, uses global pool.
+  client?: any; // <-- MADE OPTIONAL.
   prId: number;
   prNumber: string;
   bomRowId: number | null;
@@ -1340,7 +1340,7 @@ router.post("/pr", requireAuth, async (req, res) => {
     const isSingleItem = bomItems.length === 1;
 
     // 3. Re-validate PO status inside the transaction
-    if (!["Approved", "In Process"].includes(po.status)) {
+    if (!["Approved", "In Process", "Partially Received"].includes(po.status)) {
       await client.query('ROLLBACK');
       return res.status(403).json({
         error: `Purchase Receipt cannot be created: PO is currently in "${po.status}" status. An admin must approve it first.`
