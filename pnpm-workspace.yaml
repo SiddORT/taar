@@ -220,6 +220,6 @@ overrides:
   # No patched version exists on npm; replace with the maintained @e965/xlsx fork
   "xlsx": "npm:@e965/xlsx@^0.20.3"
 
-  allowBuilds:
+allowBuilds:
   core-js: true
   esbuild: true
