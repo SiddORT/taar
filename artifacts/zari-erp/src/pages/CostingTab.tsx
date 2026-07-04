@@ -675,7 +675,7 @@ function BomSection({ swatchOrderId, orderCode, swatchName, clientName }: {
                     {m.poTargetPrice > 0 ? `${m.poTargetPrice.toFixed(2)}` : <span className="text-gray-300">—</span>}
                   </td>
                   <td className="px-3 py-2.5">
-                    <span className="font-semibold text-violet-700">{parseFloat(r.requiredQty).toFixed(2)}</span>
+                    <span className="font-semibold text-violet-700">{parseFloat(r.requiredQty || "0").toFixed(2)}</span>
                     <span className="text-gray-400 ml-1 text-[10px]">{r.unitType}</span>
                   </td>
                   <td className="px-3 py-2.5 font-semibold text-amber-700">
@@ -753,7 +753,7 @@ function BomSection({ swatchOrderId, orderCode, swatchName, clientName }: {
             </div>
             <div className="mb-4 p-3 bg-gray-50 rounded-xl text-sm">
               <div className="font-semibold text-gray-800">[{editRow.materialCode}] {editRow.materialName}</div>
-              <div className="text-xs text-violet-700 mt-1">Current Required Qty: <span className="font-semibold">{editRow.requiredQty} {editRow.unitType}</span></div>
+              <div className="text-xs text-violet-700 mt-1">Current Required Qty: <span className="font-semibold">{editRow?.requiredQty} {editRow?.unitType}</span></div>
             </div>
             <label className="block text-xs font-semibold text-gray-700 mb-1">Adjust Required Qty <span className="text-red-500 ml-0.5">*</span></label>
             <div className="flex gap-2 mb-2">
@@ -771,14 +771,16 @@ function BomSection({ swatchOrderId, orderCode, swatchName, clientName }: {
               placeholder={`Quantity to ${editMode === "add" ? "add" : "subtract"}`}
               className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400 mb-1" />
             {editQty && parseFloat(editQty) > 0 && (() => {
+              const qtyNum = parseFloat(editQty);
+              const currentQty = parseFloat(editRow?.requiredQty || "0");
               const delta = editMode === "add" ? parseFloat(editQty) : -parseFloat(editQty);
-              const newTotal = parseFloat(editRow.requiredQty) + delta;
+              const newTotal = currentQty + delta;
               const sign = delta >= 0 ? "+" : "−";
               const isInvalid = newTotal < 0;
               return (
                 <p className={`text-xs mb-3 ${isInvalid ? "text-red-600" : "text-violet-700"}`}>
-                  New total: <span className="font-bold">{newTotal.toFixed(2)} {editRow.unitType}</span>
-                  <span className="text-gray-400 ml-1">(current {editRow.requiredQty} {sign} {parseFloat(editQty).toFixed(2)})</span>
+                  New total: <span className="font-bold">{newTotal.toFixed(2)} {editRow?.unitType}</span>
+                  <span className="text-gray-400 ml-1">(current {editRow?.requiredQty} {sign} {parseFloat(editQty).toFixed(2)})</span>
                   {isInvalid && <span className="block text-red-600 mt-0.5">Resulting qty cannot be negative.</span>}
                 </p>
               );
@@ -792,8 +794,9 @@ function BomSection({ swatchOrderId, orderCode, swatchName, clientName }: {
               <button onClick={() => setEditRow(null)} className="px-4 py-2 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50">Cancel</button>
               {(() => {
                 const qtyNum = parseFloat(editQty);
+                const currentQty = parseFloat(editRow?.requiredQty || "0");
                 const delta = editMode === "add" ? qtyNum : -qtyNum;
-                const newTotal = parseFloat(editRow!.requiredQty) + delta;
+                const newTotal = currentQty + delta;
                 const disabled = updateBomQty.isPending || !editQty || qtyNum <= 0 || newTotal < 0;
                 return (
                   <button disabled={disabled}
