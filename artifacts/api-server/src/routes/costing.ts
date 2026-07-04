@@ -764,6 +764,11 @@ router.get("/bom/:swatchOrderId", requireAuth, async (req, res) => {
 
     return {
       ...r,
+      requiredQty: r.requiredQty || "0",    
+      consumedQty: r.consumedQty || "0",       
+      currentStock: r.currentStock || "0",     
+      avgUnitPrice: r.avgUnitPrice || "0",     
+      estimatedAmount: r.estimatedAmount || "0", 
       liveCurrentStock: live ? live.currentStock : null,
       liveAvailableStock: live ? live.availableStock : null,
       liveReservedQty,
