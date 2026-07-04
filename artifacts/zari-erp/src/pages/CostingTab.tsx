@@ -2290,18 +2290,12 @@ function ConsumptionSection({ swatchOrderId }: { swatchOrderId: number }) {
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-gray-500">Live stock:</span>
                     <span className="font-semibold text-gray-800">{selectedRowMetrics.stockNum.toFixed(2)}</span>
-                    {selectedRowMetrics.prQty > 0 && (<>
-                      <span className="text-blue-400">+</span>
-                      <span className="text-blue-600 font-semibold">PR: {selectedRowMetrics.prQty.toFixed(2)}</span>
-                      <span className="text-gray-400">=</span>
-                      <span className="font-bold text-gray-900">{(selectedRowMetrics.stockNum + selectedRowMetrics.prQty).toFixed(2)}</span>
-                    </>)}
                     <span className="text-gray-500">{selectedRow.unitType}</span>
                   </div>
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-violet-100 text-violet-700">REQ / RESERVED</span>
+                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-violet-100 text-violet-700">REQUIRED</span>
                     <span className="text-gray-500">For this order:</span>
-                    <span className="font-bold text-violet-700">{reservedQty !== null ? reservedQty.toFixed(2) : "—"} {selectedRow.unitType}</span>
+                    <span className="font-bold text-violet-700">{reservedQty !== null ? reservedQty.toFixed(2) : "0.00"} {selectedRow.unitType}</span>
                     {availableStock !== null && availableStock <= 0 && <span className="text-[10px] font-semibold text-red-600">FULLY CONSUMED</span>}
                   </div>
                   <div className="flex items-center gap-2 flex-wrap">
@@ -2310,7 +2304,7 @@ function ConsumptionSection({ swatchOrderId }: { swatchOrderId: number }) {
                     <span className="mx-1 text-gray-300">|</span>
                     <span className="text-gray-500">Remaining cap:</span>
                     <span className={`font-bold ${availableStock !== null && availableStock <= 0 ? "text-red-600" : "text-violet-700"}`}>
-                      {availableStock !== null ? availableStock.toFixed(2) : "—"} {selectedRow.unitType}
+                      {availableStock !== null ? availableStock.toFixed(2) : "0.00"} {selectedRow.unitType}
                     </span>
                   </div>
                 </div>
