@@ -62,6 +62,7 @@ export const stockLedgerTable = pgTable("stock_ledger", {
   itemId: integer("item_id").notNull(),
   transactionType: text("transaction_type").notNull(),
   referenceNumber: text("reference_number"),
+  consumptionLogId: integer("consumption_log_id"),
   referenceType: text("reference_type"),
   inQuantity: numeric("in_quantity", { precision: 14, scale: 3 }).notNull().default("0"),
   outQuantity: numeric("out_quantity", { precision: 14, scale: 3 }).notNull().default("0"),

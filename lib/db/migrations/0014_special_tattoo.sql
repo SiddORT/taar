@@ -1,0 +1,1 @@
+ALTER TABLE "stock_ledger" ADD COLUMN "consumption_log_id" integer;
