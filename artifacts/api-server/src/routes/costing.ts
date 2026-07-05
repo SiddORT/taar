@@ -1069,7 +1069,7 @@ async function nextPoNumber(client?: any): Promise<string> {
     const res = await client.query(
       `SELECT MAX(CAST(SUBSTRING(po_number FROM '^PO-${year}-([0-9]{4})$') AS INTEGER)) AS max_num
        FROM purchase_orders
-       WHERE po_number LIKE 'PO-${year}-%' AND is_deleted = false`
+       WHERE po_number LIKE 'PO-${year}-%'`
     );
     maxNum = parseInt(res.rows[0]?.max_num ?? '0');
   } else {
@@ -2121,54 +2121,293 @@ router.get("/style-po/:styleOrderId", requireAuth, async (req, res) => {
 
 router.post("/style-po", requireAuth, async (req, res) => {
   const user = (req as any).user;
+
   const { styleOrderId, vendorId, notes, bomItems } = req.body as {
     styleOrderId: number;
     vendorId?: number;
     notes?: string;
-    bomItems?: { bomRowId: number; materialCode: string; materialName: string; unitType: string; targetPrice: string; quantity: string }[];
+    bomItems?: {
+      bomRowId: number;
+      materialCode: string;
+      materialName: string;
+      unitType: string;
+      targetPrice: string;
+      quantity: string;
+      targetVendorId?: number;
+      targetVendorName?: string;
+    }[];
   };
-  let vendor: { brandName: string } | undefined;
-  if (vendorId) {
-    const [v] = await db.select().from(vendorsTable).where(and(eq(vendorsTable.id, vendorId), eq(vendorsTable.isDeleted, false)));
-    if (!v) { res.status(404).json({ error: "Vendor not found" }); return; }
-    vendor = v;
-  }
-  const poNumber = await nextPoNumber();
+
   const items = bomItems ?? [];
-  const [row] = await db.insert(purchaseOrdersTable).values({
-    poNumber,
-    styleOrderId: Number(styleOrderId),
-    referenceType: "Style",
-    referenceId: Number(styleOrderId),
-    vendorId: (vendorId ?? null) as unknown as number,
-    vendorName: (vendor?.brandName ?? null) as unknown as string,
-    status: "Draft",
-    notes: notes ?? null,
-    bomRowIds: items.map(i => i.bomRowId),
-    bomItems: items,
-    createdBy: user.email,
-  }).returning();
-  const adminUsers2 = await db.select({ email: usersTable.email }).from(usersTable).where(and(eq(usersTable.role, "admin"), eq(usersTable.isDeleted, false)));
-  const adminEmails2 = adminUsers2.map(u => u.email).filter(Boolean) as string[];
-  if (adminEmails2.length > 0) {
-    const apiBase2 = process.env.API_BASE_URL ?? `https://${process.env.REPLIT_DEV_DOMAIN ?? "zari-erp.replit.app"}`;
-    const erpUrl2 = `${apiBase2}/costing`;
-    const approveToken2 = jwt.sign({ poId: row.id, action: "approve" }, process.env.SESSION_SECRET ?? "secret", { expiresIn: "7d" });
-    const rejectToken2 = jwt.sign({ poId: row.id, action: "reject" }, process.env.SESSION_SECRET ?? "secret", { expiresIn: "7d" });
-    sendPoApprovalRequestEmail({
-      adminEmails: adminEmails2,
-      poNumber,
-      vendorName: vendor?.brandName ?? "—",
-      createdBy: user.email,
-      referenceType: "Style",
-      referenceId: styleOrderId,
-      itemCount: items.length,
-      erpUrl: erpUrl2,
-      approveUrl: `${apiBase2}/api/costing/po-action?token=${approveToken2}`,
-      rejectUrl: `${apiBase2}/api/costing/po-action?token=${rejectToken2}`,
-    }).catch(() => {});
+
+  if (!items.length) {
+    return res.status(400).json({
+      error: "At least one material is required",
+    });
   }
-  return res.status(201).json({ data: row });
+
+  // Fetch inventory ids
+  const materialCodes = [...new Set(items.map(i => i.materialCode))];
+
+  const inventoryItems =
+    materialCodes.length > 0
+      ? await db
+          .select({
+            id: inventoryItemsTable.id,
+            code: inventoryItemsTable.itemCode,
+          })
+          .from(inventoryItemsTable)
+          .where(
+            and(
+              inArray(inventoryItemsTable.itemCode, materialCodes),
+              eq(inventoryItemsTable.isDeleted, false)
+            )
+          )
+      : [];
+
+  const inventoryMap = new Map(
+    inventoryItems.map(i => [i.code, i.id])
+  );
+
+  const client = await (pool as any).connect();
+
+  try {
+    await client.query("BEGIN");
+
+    const createdPOs: any[] = [];
+
+    for (const item of items) {
+      let vendorIdForPO: number | null = null;
+      let vendorNameForPO: string | null = null;
+
+      // Item level vendor
+      if (item.targetVendorId) {
+        const [vendor] = await db
+          .select({
+            id: vendorsTable.id,
+            brandName: vendorsTable.brandName,
+          })
+          .from(vendorsTable)
+          .where(
+            and(
+              eq(vendorsTable.id, item.targetVendorId),
+              eq(vendorsTable.isDeleted, false)
+            )
+          );
+
+        if (vendor) {
+          vendorIdForPO = vendor.id;
+          vendorNameForPO = vendor.brandName;
+        } else {
+          vendorNameForPO = item.targetVendorName ?? null;
+        }
+      }
+      // Vendor name only
+      else if (item.targetVendorName) {
+        vendorNameForPO = item.targetVendorName;
+      }
+      // Header vendor (legacy)
+      else if (vendorId) {
+        const [vendor] = await db
+          .select({
+            id: vendorsTable.id,
+            brandName: vendorsTable.brandName,
+          })
+          .from(vendorsTable)
+          .where(
+            and(
+              eq(vendorsTable.id, vendorId),
+              eq(vendorsTable.isDeleted, false)
+            )
+          );
+
+        if (vendor) {
+          vendorIdForPO = vendor.id;
+          vendorNameForPO = vendor.brandName;
+        }
+      }
+
+      if (!vendorNameForPO) {
+        vendorNameForPO = "Unknown Vendor";
+      }
+
+      const inventoryItemId =
+        inventoryMap.get(item.materialCode) ?? null;
+
+      const poNumber = await nextPoNumber(client);
+      // PO Header
+      const poResult = await client.query(
+        `INSERT INTO purchase_orders
+          (
+            po_number,
+            style_order_id,
+            reference_type,
+            reference_id,
+            vendor_mode,
+            vendor_id,
+            vendor_name,
+            status,
+            notes,
+            bom_row_ids,
+            bom_items,
+            created_by
+          )
+         VALUES
+          (
+            $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12
+          )
+         RETURNING
+            id,
+            po_number,
+            style_order_id,
+            reference_type,
+            reference_id,
+            vendor_mode,
+            vendor_id,
+            vendor_name,
+            status,
+            notes,
+            bom_row_ids,
+            bom_items,
+            created_by,
+            created_at`,
+        [
+          poNumber,
+          Number(styleOrderId),
+          "Style",
+          Number(styleOrderId),
+          "header",
+          vendorIdForPO,
+          vendorNameForPO,
+          "Draft",
+          notes ?? null,
+          JSON.stringify([item.bomRowId]),
+          JSON.stringify([item]),
+          user.email,
+        ]
+      );
+
+      const po = poResult.rows[0];
+
+      createdPOs.push(po);
+
+      // PO Item
+      await client.query(
+        `INSERT INTO purchase_order_items
+          (
+            po_id,
+            inventory_item_id,
+            item_name,
+            item_code,
+            ordered_quantity,
+            received_quantity,
+            unit_price,
+            warehouse_location,
+            remarks,
+            item_image,
+            vendor_id,
+            vendor_name
+          )
+         VALUES
+          (
+            $1,$2,$3,$4,$5,0,$6,$7,$8,$9,$10,$11
+          )`,
+        [
+          po.id,
+          inventoryItemId,
+          item.materialName || item.materialCode,
+          item.materialCode,
+          item.quantity,
+          item.targetPrice,
+          "",
+          null,
+          null,
+          vendorIdForPO,
+          vendorNameForPO,
+        ]
+      );
+    }
+
+    await client.query("COMMIT");
+
+    // Email notification
+    const adminUsers = await db
+      .select({
+        email: usersTable.email,
+      })
+      .from(usersTable)
+      .where(
+        and(
+          eq(usersTable.role, "admin"),
+          eq(usersTable.isDeleted, false)
+        )
+      );
+
+    const adminEmails = adminUsers
+      .map(u => u.email)
+      .filter(Boolean) as string[];
+
+    if (adminEmails.length > 0 && createdPOs.length > 0) {
+      const apiBase =
+        process.env.API_BASE_URL ??
+        `https://${process.env.REPLIT_DEV_DOMAIN ?? "zari-erp.replit.app"}`;
+
+      const erpUrl = `${apiBase}/costing`;
+
+      for (const po of createdPOs) {
+        const approveToken = jwt.sign(
+          {
+            poId: po.id,
+            action: "approve",
+          },
+          process.env.SESSION_SECRET ?? "secret",
+          {
+            expiresIn: "7d",
+          }
+        );
+
+        const rejectToken = jwt.sign(
+          {
+            poId: po.id,
+            action: "reject",
+          },
+          process.env.SESSION_SECRET ?? "secret",
+          {
+            expiresIn: "7d",
+          }
+        );
+
+        sendPoApprovalRequestEmail({
+          adminEmails,
+          poNumber: po.po_number,
+          vendorName: po.vendor_name ?? "Unknown Vendor",
+          createdBy: user.email,
+          referenceType: "Style",
+          referenceId: styleOrderId,
+          itemCount: 1,
+          erpUrl,
+          approveUrl: `${apiBase}/api/costing/po-action?token=${approveToken}`,
+          rejectUrl: `${apiBase}/api/costing/po-action?token=${rejectToken}`,
+        }).catch(() => {});
+      }
+    }
+
+    return res.status(201).json({
+      data: createdPOs,
+      message: `${createdPOs.length} purchase order(s) created successfully`,
+    });
+  } catch (error) {
+    await client.query("ROLLBACK").catch(() => {});
+
+    console.error("Style PO creation failed:", error);
+
+    return res.status(500).json({
+      error: "Failed to create purchase order(s)",
+      detail: (error as Error).message,
+    });
+  } finally {
+    client.release();
+  }
 });
 
 // ─── Style PR ─────────────────────────────────────────────────────────────────
