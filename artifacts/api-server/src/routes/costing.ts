@@ -1568,6 +1568,12 @@ router.post("/consumption", requireAuth, async (req, res) => {
   if (!bomRow) { res.status(404).json({ error: "BOM item not found" }); return; }
   const newConsumedQty = parseFloat(String(consumedQty)) || 0;
 
+  // Validate Consumed Quantity Should Always be less than or equal to Required Quantity
+  const requiredQty = parseFloat(bomRow.requiredQty || "0");
+  if (newConsumedQty > requiredQty) {
+    return res.status(400).json({  error: `Consumed quantity (${newConsumedQty}) cannot exceed required quantity (${requiredQty}).`,});
+  }
+
   // Validate stock available at selected warehouse location
   if (warehouseLocation) {
     const masterTable = bomRow.materialType === "fabric" ? "fabrics" : "materials";
