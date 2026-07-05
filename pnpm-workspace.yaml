@@ -109,6 +109,8 @@ onlyBuiltDependencies:
   - esbuild
   - msw
   - unrs-resolver
+  - sharp
+  - core-js
 
 overrides:
   # replit uses linux-x64 only, we can exclude all other platforms
@@ -217,3 +219,7 @@ overrides:
   # GHSA-4r6h-8v6p-xvw6, GHSA-5pgg-2g8v-p4x9: xlsx prototype pollution / ReDoS
   # No patched version exists on npm; replace with the maintained @e965/xlsx fork
   "xlsx": "npm:@e965/xlsx@^0.20.3"
+
+allowBuilds:
+  core-js: true
+  esbuild: true
