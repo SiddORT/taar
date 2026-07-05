@@ -721,7 +721,6 @@ function BomSection({ swatchOrderId, orderCode, swatchName, clientName }: {
                 <td className="px-3 py-2 font-bold text-gray-700 text-xs">
                   {filteredRows.reduce((s, r) => s + (parseFloat(r.requiredQty) || 0), 0)}
                 </td>
-                <td className="px-3 py-2" />
                 <td className="px-3 py-2 font-bold text-amber-700 text-xs">
                   {filteredRows.reduce((s, r) => s + computeRowMetrics(r, pos, prs).poTargetTotal, 0).toFixed(2)}
                 </td>
