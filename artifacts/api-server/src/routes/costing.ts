@@ -300,6 +300,23 @@ async function applyCostingInventoryUpdate(opts: {
     ]
   );
 
+  // --- Step 3.5: Sync swatch_bom current_stock ---
+  if (effectiveBomRowId != null) {
+    await q(
+      `UPDATE swatch_bom
+      SET current_stock = $1,
+          updated_at = NOW(),
+          updated_by = $2
+      WHERE id = $3
+        AND is_deleted = false`,
+      [
+        newStock.toFixed(3),
+        actor,
+        effectiveBomRowId,
+      ]
+    );
+  }
+
   // --- Step 4: Insert stock_ledger entry ---
   await q(
     `INSERT INTO stock_ledger
@@ -554,11 +571,11 @@ async function syncConsumptionWithInventory(opts: {
     // Section 4 — stock ledger entry (reference_number = orderId so it joins to swatch/style orders)
     const balR = await client.query(`SELECT current_stock FROM inventory_items WHERE id = $1 AND is_deleted = false`, [inventoryId]);
     await client.query(
-      `INSERT INTO stock_ledger (item_id, transaction_type, reference_number, reference_type, in_quantity, out_quantity, balance_quantity, remarks, created_by)
-       VALUES ($1,'consumption',$2,$3,0,$4,$5,$6,$7)`,
+      `INSERT INTO stock_ledger (item_id, transaction_type, reference_number, reference_type, in_quantity, out_quantity, balance_quantity, remarks, created_by, consumption_log_id)
+       VALUES ($1,'consumption',$2,$3,0,$4,$5,$6,$7,$8)`,
       [inventoryId, String(orderId), reservationType,
        consumedQty, balR.rows[0].current_stock,
-       `Consumption from ${reservationType} Order #${orderId} (log #${consumptionId})`, actor]
+       `Consumption from ${reservationType} Order #${orderId} (log #${consumptionId})`, actor, consumptionId]
     );
 
     // Update material/fabric master: current_stock and location_stocks
@@ -577,6 +594,7 @@ async function syncConsumptionWithInventory(opts: {
           locStocks[locIdx].stock = Math.max(0, parseFloat(locStocks[locIdx].stock ?? "0") - consumedQty).toFixed(3);
         }
       }
+
       await client.query(
         `UPDATE ${masterTable} SET current_stock = $1, location_stocks = $2 WHERE id = $3`,
         [newMasterStock.toFixed(3), JSON.stringify(locStocks), bomRow.materialId]
@@ -659,7 +677,7 @@ async function reverseConsumptionFromInventory(opts: {
 
     // Remove ledger entry for this consumption log
     await client.query(
-      `UPDATE stock_ledger SET is_deleted = true, deleted_by = $2, deleted_at = now() WHERE LOWER(REPLACE(transaction_type,' ','_')) = 'consumption' AND reference_number = $1 AND is_deleted = false`,
+      `UPDATE stock_ledger SET is_deleted = true, deleted_by = $2, deleted_at = now() WHERE LOWER(REPLACE(transaction_type,' ','_')) = 'consumption' AND consumption_log_id = $1 AND is_deleted = false`,
       [String(entry.id), actor]
     );
 
@@ -764,6 +782,11 @@ router.get("/bom/:swatchOrderId", requireAuth, async (req, res) => {
 
     return {
       ...r,
+      requiredQty: r.requiredQty || "0",    
+      consumedQty: r.consumedQty || "0",       
+      currentStock: r.currentStock || "0",     
+      avgUnitPrice: r.avgUnitPrice || "0",     
+      estimatedAmount: r.estimatedAmount || "0", 
       liveCurrentStock: live ? live.currentStock : null,
       liveAvailableStock: live ? live.availableStock : null,
       liveReservedQty,
@@ -961,6 +984,7 @@ router.patch("/bom/:id/qty", requireAuth, async (req, res) => {
     const oldQty = parseFloat(bomRow.requiredQty);
     const newQty = parseFloat(requiredQty);
     if (isNaN(newQty) || newQty <= 0) { res.status(400).json({ error: "Required qty must be > 0" }); return; }
+    if(isNaN(newQty) || newQty < Number(bomRow.consumedQty)) { res.status(400).json({ error: "Required qty must be greater or equal to consumed Quantity" }); return; }
     if (Math.abs(newQty - oldQty) < 0.0001) { res.json({ data: bomRow, changed: false }); return; }
 
     const orderId = (bomRow.styleOrderId ?? bomRow.swatchOrderId) as number;
@@ -1543,6 +1567,53 @@ router.post("/consumption", requireAuth, async (req, res) => {
   const [bomRow] = await db.select().from(swatchBomTable).where(and(eq(swatchBomTable.id, Number(bomRowId)), eq(swatchBomTable.isDeleted, false)));
   if (!bomRow) { res.status(404).json({ error: "BOM item not found" }); return; }
   const newConsumedQty = parseFloat(String(consumedQty)) || 0;
+
+  // Validate Consumed Quantity Should Always be less than or equal to Required Quantity
+  const requiredQty = parseFloat(bomRow.requiredQty || "0");
+  if (newConsumedQty > requiredQty) {
+    return res.status(400).json({  error: `Consumed quantity (${newConsumedQty}) cannot exceed required quantity (${requiredQty}).`,});
+  }
+
+  // Validate stock available at selected warehouse location
+  if (warehouseLocation) {
+    const masterTable = bomRow.materialType === "fabric" ? "fabrics" : "materials";
+
+    const locationRes = await pool.query(
+      `SELECT location_stocks
+      FROM ${masterTable}
+      WHERE id = $1 AND is_deleted = false`,
+      [bomRow.materialId]
+    );
+
+    if (locationRes.rows.length === 0) {
+      return res.status(404).json({ error: "Material not found." });
+    }
+
+    const locationStocks: Array<{ location: string; stock: string }> =
+      locationRes.rows[0].location_stocks ?? [];
+
+    const selectedLocation = locationStocks.find(
+      l =>
+        l.location.trim().toLowerCase() ===
+        String(warehouseLocation).trim().toLowerCase()
+    );
+
+    if (!selectedLocation) {
+      return res.status(400).json({
+        error: `Warehouse location '${warehouseLocation}' not found.`,
+      });
+    }
+
+    const availableAtLocation = parseFloat(selectedLocation.stock || "0");
+
+    if (newConsumedQty > availableAtLocation) {
+      return res.status(400).json({
+        error: `Cannot consume ${newConsumedQty}. Only ${availableAtLocation.toFixed(
+          3
+        )} available at '${warehouseLocation}'.`,
+      });
+    }
+  }
 
   // Section 7 — prefer reservation-based validation, fall back to available stock
   const invR = await db
