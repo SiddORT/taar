@@ -574,7 +574,7 @@ function StyleBomSection({ styleOrderId, orderCode, styleName, clientName }: {
           )}
           <div className="flex gap-2 items-end">
             <div className="flex-1">
-              <label className="text-[10px] text-gray-500 font-medium">Required / Reserved Qty</label>
+              <label className="text-[10px] text-gray-500 font-medium">Required Qty</label>
               <input type="number" min="0" step="any" value={form.requiredQty}
                 onChange={e => setForm(f => ({ ...f, requiredQty: e.target.value }))}
                 className="w-full mt-0.5 text-xs text-gray-900 bg-white border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-gray-900/10"
@@ -610,7 +610,7 @@ function StyleBomSection({ styleOrderId, orderCode, styleName, clientName }: {
               <th className="text-left text-[10px] font-semibold text-amber-500 px-3 py-2 whitespace-nowrap">
                 <span className="flex items-center gap-1">PO Rate <span title="Target unit price agreed in the Purchase Order" className="cursor-help text-gray-500 hover:text-gray-500"><Info className="h-3 w-3" /></span></span>
               </th>
-              <th className="text-left text-[10px] font-semibold text-violet-500 px-3 py-2 whitespace-nowrap">Req / Reserved Qty</th>
+              <th className="text-left text-[10px] font-semibold text-violet-500 px-3 py-2 whitespace-nowrap">Required Qty</th>
               <th className="text-left text-[10px] font-semibold text-amber-500 px-3 py-2 whitespace-nowrap">PO Total</th>
               <th className="text-left text-[10px] font-semibold text-amber-500 px-3 py-2 whitespace-nowrap">PO Qty</th>
               <th className="text-left text-[10px] font-semibold text-blue-500 px-3 py-2 whitespace-nowrap">PR Qty</th>
@@ -693,7 +693,6 @@ function StyleBomSection({ styleOrderId, orderCode, styleName, clientName }: {
               <tr className="bg-gray-50 border-t border-gray-200">
                 <td colSpan={5} className="px-3 py-2 text-[10px] font-semibold text-gray-400">{filteredRows.length} item{filteredRows.length > 1 ? "s" : ""}</td>
                 <td className="px-3 py-2 font-bold text-gray-700 text-xs">{filteredRows.reduce((s, r) => s + (parseFloat(r.requiredQty) || 0), 0)}</td>
-                <td className="px-3 py-2" />
                 <td className="px-3 py-2 font-bold text-amber-700 text-xs">{filteredRows.reduce((s, r) => s + computeRowMetrics(r, pos, prs).poTargetTotal, 0).toFixed(2)}</td>
                 <td className="px-3 py-2"></td>
                 <td className="px-3 py-2 font-bold text-blue-700 text-xs">{filteredRows.reduce((s, r) => s + computeRowMetrics(r, pos, prs).prQty, 0).toFixed(0)}</td>
@@ -712,14 +711,14 @@ function StyleBomSection({ styleOrderId, orderCode, styleName, clientName }: {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 p-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-base font-bold text-gray-900">Edit Req / Reserved Qty</h3>
+              <h3 className="text-base font-bold text-gray-900">Edit Required Qty</h3>
               <button onClick={() => setEditRow(null)} className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100"><X className="h-4 w-4" /></button>
             </div>
             <div className="mb-4 p-3 bg-gray-50 rounded-xl text-sm">
               <div className="font-semibold text-gray-800">[{editRow.materialCode}] {editRow.materialName}</div>
-              <div className="text-xs text-violet-700 mt-1">Current Req / Reserved: <span className="font-semibold">{editRow.requiredQty} {editRow.unitType}</span></div>
+              <div className="text-xs text-violet-700 mt-1">Current Required Qty: <span className="font-semibold">{editRow.requiredQty} {editRow.unitType}</span></div>
             </div>
-            <label className="block text-xs font-semibold text-gray-700 mb-1">Adjust Req / Reserved Qty <span className="text-red-500 ml-0.5">*</span></label>
+            <label className="block text-xs font-semibold text-gray-700 mb-1">Adjust Required Qty <span className="text-red-500 ml-0.5">*</span></label>
             <div className="flex gap-2 mb-2">
               <button type="button" onClick={() => setEditMode("add")}
                 className={`flex-1 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${editMode === "add" ? "bg-emerald-600 text-white border-emerald-600" : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"}`}>
@@ -1012,17 +1011,38 @@ function StylePrTableRow({ pr, poNumber, bomItems }: { pr: PurchaseReceiptRecord
         <td className="px-3 py-2.5 text-gray-700 text-xs">{parseFloat(pr.actualPrice).toFixed(2)}</td>
         <td className="px-3 py-2.5 font-semibold text-blue-700 text-xs">{total.toFixed(2)}</td>
         <td className="px-3 py-2.5 max-w-[200px]">
-          {bomItems.length === 0 ? <span className="text-gray-300 text-xs">—</span> : (
-            <div className="flex flex-col gap-1">
-              {bomItems.slice(0, 2).map((item, i) => (
-                <div key={i} className="flex items-center gap-1">
-                  <span className="text-[9px] px-1 py-0.5 rounded font-bold shrink-0 bg-gray-100 text-gray-500 font-mono">{item.materialCode}</span>
-                  <span className="text-[10px] text-gray-700 truncate">{item.materialName}</span>
-                </div>
-              ))}
-              {bomItems.length > 2 && <span className="text-[10px] text-gray-400">+{bomItems.length - 2} more</span>}
-            </div>
-          )}
+          {(() => {
+            // If PR belongs to a specific BOM row, show only that item.
+            const itemsToShow =
+              pr.bomRowId != null
+                ? bomItems.filter(item => item.bomRowId === pr.bomRowId)
+                : bomItems;
+
+            if (itemsToShow.length === 0) {
+              return <span className="text-gray-300 text-xs">—</span>;
+            }
+
+            return (
+              <div className="flex flex-col gap-1">
+                {itemsToShow.slice(0, 2).map((item, i) => (
+                  <div key={i} className="flex items-center gap-1">
+                    <span className="text-[9px] px-1 py-0.5 rounded font-bold shrink-0 bg-gray-100 text-gray-500 font-mono">
+                      {item.materialCode}
+                    </span>
+                    <span className="text-[10px] text-gray-700 truncate">
+                      {item.materialName}
+                    </span>
+                  </div>
+                ))}
+
+                {itemsToShow.length > 2 && (
+                  <span className="text-[10px] text-gray-400">
+                    +{itemsToShow.length - 2} more
+                  </span>
+                )}
+              </div>
+            );
+          })()}
         </td>
         <td className="px-3 py-2.5">
           <div className="flex items-center gap-1">
@@ -1898,10 +1918,10 @@ function StyleConsumptionSection({ styleOrderId }: { styleOrderId: number }) {
               <tr className="border-b border-gray-100 bg-gray-50/60">
                 <th className="text-left text-[10px] font-semibold text-gray-400 px-3 py-2 whitespace-nowrap">Code</th>
                 <th className="text-left text-[10px] font-semibold text-gray-400 px-3 py-2 whitespace-nowrap">Item</th>
-                <th className="text-left text-[10px] font-semibold text-blue-500 px-3 py-2 whitespace-nowrap">
+                {/* <th className="text-left text-[10px] font-semibold text-blue-500 px-3 py-2 whitespace-nowrap">
                   <span className="flex items-center gap-1">Live Stock <span title="Base stock + all PR received quantities" className="cursor-help text-gray-500 hover:text-gray-500"><Info className="h-3 w-3" /></span></span>
-                </th>
-                <th className="text-left text-[10px] font-semibold text-violet-500 px-3 py-2 whitespace-nowrap">Req / Reserved</th>
+                </th> */}
+                {/* <th className="text-left text-[10px] font-semibold text-violet-500 px-3 py-2 whitespace-nowrap">Required</th> */}
                 <th className="text-left text-[10px] font-semibold text-gray-400 px-3 py-2 whitespace-nowrap">Avg Price</th>
                 <th className="text-left text-[10px] font-semibold text-amber-500 px-3 py-2 whitespace-nowrap">Consumed Qty</th>
                 <th className="text-left text-[10px] font-semibold text-red-500 px-3 py-2 whitespace-nowrap">Consumed Total</th>
@@ -1926,7 +1946,7 @@ function StyleConsumptionSection({ styleOrderId }: { styleOrderId: number }) {
                         </span>
                       </div>
                     </td>
-                    <td className="px-3 py-2.5 whitespace-nowrap">
+                    {/* <td className="px-3 py-2.5 whitespace-nowrap">
                       <span className="font-semibold text-blue-700">{liveStock.toFixed(2)}</span>
                       <span className="text-gray-400 ml-1 text-[10px]">{r.unitType}</span>
                       {m.prQty > 0 && <span title={`Base: ${m.stockNum} + PR received: ${m.prQty.toFixed(2)}`} className="ml-1 text-[9px] text-blue-400 cursor-help">+PR</span>}
@@ -1934,7 +1954,7 @@ function StyleConsumptionSection({ styleOrderId }: { styleOrderId: number }) {
                     <td className="px-3 py-2.5 whitespace-nowrap">
                       <span className="font-semibold text-violet-700">{parseFloat(r.requiredQty).toFixed(2)}</span>
                       <span className="text-gray-400 ml-1 text-[10px]">{r.unitType}</span>
-                    </td>
+                    </td> */}
                     <td className="px-3 py-2.5 text-gray-700">{m.weightedAvg.toFixed(2)}</td>
                     <td className="px-3 py-2.5 text-amber-700 font-medium">{m.consumedQtyNum.toFixed(2)} {r.unitType}</td>
                     <td className="px-3 py-2.5 font-semibold text-red-700">{m.consumedTotal.toFixed(2)}</td>
@@ -1962,8 +1982,8 @@ function StyleConsumptionSection({ styleOrderId }: { styleOrderId: number }) {
               <tfoot>
                 <tr className="bg-gray-50 border-t border-gray-200">
                   <td colSpan={2} className="px-3 py-2 text-right text-[10px] font-semibold text-gray-400">Total</td>
-                  <td className="px-3 py-2 font-bold text-blue-700">{totals.stockInclPr.toFixed(2)}</td>
-                  <td className="px-3 py-2" />
+                  {/* <td className="px-3 py-2 font-bold text-blue-700">{totals.stockInclPr.toFixed(2)}</td>
+                  <td className="px-3 py-2" /> */}
                   <td className="px-3 py-2" />
                   <td className="px-3 py-2 font-bold text-amber-700">{totals.consumedQty.toFixed(2)}</td>
                   <td className="px-3 py-2 font-bold text-red-700">{totals.consumedTotal.toFixed(2)}</td>
@@ -2032,16 +2052,16 @@ function StyleConsumptionSection({ styleOrderId }: { styleOrderId: number }) {
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-gray-500">Live stock:</span>
                     <span className="font-semibold text-gray-800">{selectedRowMetrics.stockNum.toFixed(2)}</span>
-                    {selectedRowMetrics.prQty > 0 && (<>
+                    {/* {selectedRowMetrics.prQty > 0 && (<>
                       <span className="text-blue-400">+</span>
                       <span className="text-blue-600 font-semibold">PR: {selectedRowMetrics.prQty.toFixed(2)}</span>
                       <span className="text-gray-400">=</span>
                       <span className="font-bold text-gray-900">{(selectedRowMetrics.stockNum + selectedRowMetrics.prQty).toFixed(2)}</span>
-                    </>)}
+                    </>)} */}
                     <span className="text-gray-500">{selectedRow.unitType}</span>
                   </div>
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-violet-100 text-violet-700">REQ / RESERVED</span>
+                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-violet-100 text-violet-700">REQUIRED</span>
                     <span className="text-gray-500">For this order:</span>
                     <span className="font-bold text-violet-700">{reservedQty !== null ? reservedQty.toFixed(2) : "—"} {selectedRow.unitType}</span>
                     {availableStock !== null && availableStock <= 0 && <span className="text-[10px] font-semibold text-red-600">FULLY CONSUMED</span>}

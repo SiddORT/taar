@@ -1069,7 +1069,7 @@ async function nextPoNumber(client?: any): Promise<string> {
     const res = await client.query(
       `SELECT MAX(CAST(SUBSTRING(po_number FROM '^PO-${year}-([0-9]{4})$') AS INTEGER)) AS max_num
        FROM purchase_orders
-       WHERE po_number LIKE 'PO-${year}-%' AND is_deleted = false`
+       WHERE po_number LIKE 'PO-${year}-%'`
     );
     maxNum = parseInt(res.rows[0]?.max_num ?? '0');
   } else {
@@ -2058,6 +2058,11 @@ router.get("/style-bom/:styleOrderId", requireAuth, async (req, res) => {
 
     return {
       ...r,
+      requiredQty: r.requiredQty || "0",    
+      consumedQty: r.consumedQty || "0",       
+      currentStock: r.currentStock || "0",     
+      avgUnitPrice: r.avgUnitPrice || "0",     
+      estimatedAmount: r.estimatedAmount || "0", 
       liveCurrentStock: live ? live.currentStock : null,
       liveAvailableStock: live ? live.availableStock : null,
       liveReservedQty,
@@ -2116,54 +2121,293 @@ router.get("/style-po/:styleOrderId", requireAuth, async (req, res) => {
 
 router.post("/style-po", requireAuth, async (req, res) => {
   const user = (req as any).user;
+
   const { styleOrderId, vendorId, notes, bomItems } = req.body as {
     styleOrderId: number;
     vendorId?: number;
     notes?: string;
-    bomItems?: { bomRowId: number; materialCode: string; materialName: string; unitType: string; targetPrice: string; quantity: string }[];
+    bomItems?: {
+      bomRowId: number;
+      materialCode: string;
+      materialName: string;
+      unitType: string;
+      targetPrice: string;
+      quantity: string;
+      targetVendorId?: number;
+      targetVendorName?: string;
+    }[];
   };
-  let vendor: { brandName: string } | undefined;
-  if (vendorId) {
-    const [v] = await db.select().from(vendorsTable).where(and(eq(vendorsTable.id, vendorId), eq(vendorsTable.isDeleted, false)));
-    if (!v) { res.status(404).json({ error: "Vendor not found" }); return; }
-    vendor = v;
-  }
-  const poNumber = await nextPoNumber();
+
   const items = bomItems ?? [];
-  const [row] = await db.insert(purchaseOrdersTable).values({
-    poNumber,
-    styleOrderId: Number(styleOrderId),
-    referenceType: "Style",
-    referenceId: Number(styleOrderId),
-    vendorId: (vendorId ?? null) as unknown as number,
-    vendorName: (vendor?.brandName ?? null) as unknown as string,
-    status: "Draft",
-    notes: notes ?? null,
-    bomRowIds: items.map(i => i.bomRowId),
-    bomItems: items,
-    createdBy: user.email,
-  }).returning();
-  const adminUsers2 = await db.select({ email: usersTable.email }).from(usersTable).where(and(eq(usersTable.role, "admin"), eq(usersTable.isDeleted, false)));
-  const adminEmails2 = adminUsers2.map(u => u.email).filter(Boolean) as string[];
-  if (adminEmails2.length > 0) {
-    const apiBase2 = process.env.API_BASE_URL ?? `https://${process.env.REPLIT_DEV_DOMAIN ?? "zari-erp.replit.app"}`;
-    const erpUrl2 = `${apiBase2}/costing`;
-    const approveToken2 = jwt.sign({ poId: row.id, action: "approve" }, process.env.SESSION_SECRET ?? "secret", { expiresIn: "7d" });
-    const rejectToken2 = jwt.sign({ poId: row.id, action: "reject" }, process.env.SESSION_SECRET ?? "secret", { expiresIn: "7d" });
-    sendPoApprovalRequestEmail({
-      adminEmails: adminEmails2,
-      poNumber,
-      vendorName: vendor?.brandName ?? "—",
-      createdBy: user.email,
-      referenceType: "Style",
-      referenceId: styleOrderId,
-      itemCount: items.length,
-      erpUrl: erpUrl2,
-      approveUrl: `${apiBase2}/api/costing/po-action?token=${approveToken2}`,
-      rejectUrl: `${apiBase2}/api/costing/po-action?token=${rejectToken2}`,
-    }).catch(() => {});
+
+  if (!items.length) {
+    return res.status(400).json({
+      error: "At least one material is required",
+    });
   }
-  return res.status(201).json({ data: row });
+
+  // Fetch inventory ids
+  const materialCodes = [...new Set(items.map(i => i.materialCode))];
+
+  const inventoryItems =
+    materialCodes.length > 0
+      ? await db
+          .select({
+            id: inventoryItemsTable.id,
+            code: inventoryItemsTable.itemCode,
+          })
+          .from(inventoryItemsTable)
+          .where(
+            and(
+              inArray(inventoryItemsTable.itemCode, materialCodes),
+              eq(inventoryItemsTable.isDeleted, false)
+            )
+          )
+      : [];
+
+  const inventoryMap = new Map(
+    inventoryItems.map(i => [i.code, i.id])
+  );
+
+  const client = await (pool as any).connect();
+
+  try {
+    await client.query("BEGIN");
+
+    const createdPOs: any[] = [];
+
+    for (const item of items) {
+      let vendorIdForPO: number | null = null;
+      let vendorNameForPO: string | null = null;
+
+      // Item level vendor
+      if (item.targetVendorId) {
+        const [vendor] = await db
+          .select({
+            id: vendorsTable.id,
+            brandName: vendorsTable.brandName,
+          })
+          .from(vendorsTable)
+          .where(
+            and(
+              eq(vendorsTable.id, item.targetVendorId),
+              eq(vendorsTable.isDeleted, false)
+            )
+          );
+
+        if (vendor) {
+          vendorIdForPO = vendor.id;
+          vendorNameForPO = vendor.brandName;
+        } else {
+          vendorNameForPO = item.targetVendorName ?? null;
+        }
+      }
+      // Vendor name only
+      else if (item.targetVendorName) {
+        vendorNameForPO = item.targetVendorName;
+      }
+      // Header vendor (legacy)
+      else if (vendorId) {
+        const [vendor] = await db
+          .select({
+            id: vendorsTable.id,
+            brandName: vendorsTable.brandName,
+          })
+          .from(vendorsTable)
+          .where(
+            and(
+              eq(vendorsTable.id, vendorId),
+              eq(vendorsTable.isDeleted, false)
+            )
+          );
+
+        if (vendor) {
+          vendorIdForPO = vendor.id;
+          vendorNameForPO = vendor.brandName;
+        }
+      }
+
+      if (!vendorNameForPO) {
+        vendorNameForPO = "Unknown Vendor";
+      }
+
+      const inventoryItemId =
+        inventoryMap.get(item.materialCode) ?? null;
+
+      const poNumber = await nextPoNumber(client);
+      // PO Header
+      const poResult = await client.query(
+        `INSERT INTO purchase_orders
+          (
+            po_number,
+            style_order_id,
+            reference_type,
+            reference_id,
+            vendor_mode,
+            vendor_id,
+            vendor_name,
+            status,
+            notes,
+            bom_row_ids,
+            bom_items,
+            created_by
+          )
+         VALUES
+          (
+            $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12
+          )
+         RETURNING
+            id,
+            po_number,
+            style_order_id,
+            reference_type,
+            reference_id,
+            vendor_mode,
+            vendor_id,
+            vendor_name,
+            status,
+            notes,
+            bom_row_ids,
+            bom_items,
+            created_by,
+            created_at`,
+        [
+          poNumber,
+          Number(styleOrderId),
+          "Style",
+          Number(styleOrderId),
+          "header",
+          vendorIdForPO,
+          vendorNameForPO,
+          "Draft",
+          notes ?? null,
+          JSON.stringify([item.bomRowId]),
+          JSON.stringify([item]),
+          user.email,
+        ]
+      );
+
+      const po = poResult.rows[0];
+
+      createdPOs.push(po);
+
+      // PO Item
+      await client.query(
+        `INSERT INTO purchase_order_items
+          (
+            po_id,
+            inventory_item_id,
+            item_name,
+            item_code,
+            ordered_quantity,
+            received_quantity,
+            unit_price,
+            warehouse_location,
+            remarks,
+            item_image,
+            vendor_id,
+            vendor_name
+          )
+         VALUES
+          (
+            $1,$2,$3,$4,$5,0,$6,$7,$8,$9,$10,$11
+          )`,
+        [
+          po.id,
+          inventoryItemId,
+          item.materialName || item.materialCode,
+          item.materialCode,
+          item.quantity,
+          item.targetPrice,
+          "",
+          null,
+          null,
+          vendorIdForPO,
+          vendorNameForPO,
+        ]
+      );
+    }
+
+    await client.query("COMMIT");
+
+    // Email notification
+    const adminUsers = await db
+      .select({
+        email: usersTable.email,
+      })
+      .from(usersTable)
+      .where(
+        and(
+          eq(usersTable.role, "admin"),
+          eq(usersTable.isDeleted, false)
+        )
+      );
+
+    const adminEmails = adminUsers
+      .map(u => u.email)
+      .filter(Boolean) as string[];
+
+    if (adminEmails.length > 0 && createdPOs.length > 0) {
+      const apiBase =
+        process.env.API_BASE_URL ??
+        `https://${process.env.REPLIT_DEV_DOMAIN ?? "zari-erp.replit.app"}`;
+
+      const erpUrl = `${apiBase}/costing`;
+
+      for (const po of createdPOs) {
+        const approveToken = jwt.sign(
+          {
+            poId: po.id,
+            action: "approve",
+          },
+          process.env.SESSION_SECRET ?? "secret",
+          {
+            expiresIn: "7d",
+          }
+        );
+
+        const rejectToken = jwt.sign(
+          {
+            poId: po.id,
+            action: "reject",
+          },
+          process.env.SESSION_SECRET ?? "secret",
+          {
+            expiresIn: "7d",
+          }
+        );
+
+        sendPoApprovalRequestEmail({
+          adminEmails,
+          poNumber: po.po_number,
+          vendorName: po.vendor_name ?? "Unknown Vendor",
+          createdBy: user.email,
+          referenceType: "Style",
+          referenceId: styleOrderId,
+          itemCount: 1,
+          erpUrl,
+          approveUrl: `${apiBase}/api/costing/po-action?token=${approveToken}`,
+          rejectUrl: `${apiBase}/api/costing/po-action?token=${rejectToken}`,
+        }).catch(() => {});
+      }
+    }
+
+    return res.status(201).json({
+      data: createdPOs,
+      message: `${createdPOs.length} purchase order(s) created successfully`,
+    });
+  } catch (error) {
+    await client.query("ROLLBACK").catch(() => {});
+
+    console.error("Style PO creation failed:", error);
+
+    return res.status(500).json({
+      error: "Failed to create purchase order(s)",
+      detail: (error as Error).message,
+    });
+  } finally {
+    client.release();
+  }
 });
 
 // ─── Style PR ─────────────────────────────────────────────────────────────────
@@ -2176,77 +2420,194 @@ router.get("/style-pr/:styleOrderId", requireAuth, async (req, res) => {
 
 router.post("/style-pr", requireAuth, async (req, res) => {
   const user = (req as any).user;
-  const { poId, styleOrderId, bomRowId, receivedQty, actualPrice, warehouseLocation } = req.body as Record<string, string | number | null>;
-  const [po] = await db.select().from(purchaseOrdersTable).where(and(eq(purchaseOrdersTable.id, Number(poId)), eq(purchaseOrdersTable.isDeleted, false)));
-  if (!po) { res.status(404).json({ error: "PO not found" }); return; }
-  if (!["Approved", "In Process"].includes(po.status)) {
-    return res.status(403).json({ error: `Purchase Receipt cannot be created: PO is currently in "${po.status}" status. An admin must approve it first.` });
-    return;
-  }
+  const {
+    poId,
+    styleOrderId,
+    bomRowId,
+    receivedQty,
+    actualPrice,
+    warehouseLocation,
+  } = req.body as Record<string, string | number | null>;
 
   const newQty = parseFloat(String(receivedQty)) || 0;
   const resolvedBomRowId = bomRowId != null ? Number(bomRowId) : null;
-  const bomItems = po.bomItems ?? [];
-  const isSingleItem = bomItems.length === 1;
 
-  let orderedQty = 0;
-  if (resolvedBomRowId != null) {
-    const item = bomItems.find(i => i.bomRowId === resolvedBomRowId);
-    orderedQty = parseFloat(item?.quantity ?? "0") || 0;
-  } else if (isSingleItem) {
-    orderedQty = parseFloat(bomItems[0]?.quantity ?? "0") || 0;
-  }
+  const client = await pool.connect();
 
-  const existingPrs = await db.select().from(purchaseReceiptsTable).where(and(eq(purchaseReceiptsTable.poId, Number(poId)), eq(purchaseReceiptsTable.isDeleted, false)));
-  const relevantPrs = resolvedBomRowId != null
-    ? existingPrs.filter(pr => pr.bomRowId === resolvedBomRowId)
-    : (isSingleItem ? existingPrs : existingPrs.filter(pr => pr.bomRowId == null));
-  const alreadyReceived = relevantPrs.reduce((s, pr) => s + (parseFloat(pr.receivedQty) || 0), 0);
+  try {
+    await client.query("BEGIN");
+    await client.query("SET LOCAL lock_timeout = '2s'");
+    await client.query("SET LOCAL statement_timeout = '5s'");
 
-  if (orderedQty > 0) {
-    if (alreadyReceived >= orderedQty) {
-      return res.status(400).json({ error: `This item is already fully received (${alreadyReceived} / ${orderedQty}). No further PR is allowed.` });
-      return;
+    // Lock PO
+    const poResult = await client.query(
+      `SELECT id, status, vendor_name, bom_items
+       FROM purchase_orders
+       WHERE id = $1
+         AND is_deleted = false
+       FOR UPDATE`,
+      [Number(poId)]
+    );
+
+    if (poResult.rows.length === 0) {
+      await client.query("ROLLBACK");
+      return res.status(404).json({ error: "PO not found" });
     }
-    const remaining = orderedQty - alreadyReceived;
-    if (newQty > remaining) {
-      return res.status(400).json({ error: `Received quantity (${newQty}) exceeds remaining ordered quantity. Max allowed: ${remaining.toFixed(4)}` });
-      return;
+
+    const po = poResult.rows[0];
+    const bomItems = po.bom_items ?? [];
+    const isSingleItem = bomItems.length === 1;
+
+    if (!["Approved", "In Process", "Partially Received"].includes(po.status)) {
+      await client.query("ROLLBACK");
+      return res.status(403).json({
+        error: `Purchase Receipt cannot be created: PO is currently in "${po.status}" status. An admin must approve it first.`,
+      });
     }
-  }
 
-  const prNumber = await nextPrNumber();
-  const [row] = await db.insert(purchaseReceiptsTable).values({
-    prNumber,
-    poId: Number(poId),
-    bomRowId: resolvedBomRowId,
-    styleOrderId: Number(styleOrderId),
-    vendorName: po.vendorName ?? "",
-    receivedQty: String(receivedQty),
-    actualPrice: String(actualPrice),
-    warehouseLocation: String(warehouseLocation ?? ""),
-    status: "Open",
-    createdBy: user.email,
-  }).returning();
+    // Ordered Qty
+    let orderedQty = 0;
 
-  // Update inventory and advance PO status in parallel
-  await Promise.all([
-    applyCostingInventoryUpdate({
-      prId: row.id,
-      prNumber: row.prNumber,
+    if (resolvedBomRowId != null) {
+      const item = bomItems.find((i: any) => i.bomRowId === resolvedBomRowId);
+      orderedQty = parseFloat(item?.quantity ?? "0") || 0;
+    } else if (isSingleItem) {
+      orderedQty = parseFloat(bomItems[0]?.quantity ?? "0") || 0;
+    }
+
+    // Lock existing PRs
+    const prResult = await client.query(
+      `SELECT received_qty, bom_row_id
+       FROM purchase_receipts
+       WHERE po_id = $1
+         AND is_deleted = false
+       FOR UPDATE`,
+      [Number(poId)]
+    );
+
+    const existingPrs = prResult.rows;
+
+    const relevantPrs =
+      resolvedBomRowId != null
+        ? existingPrs.filter((pr: any) => pr.bom_row_id === resolvedBomRowId)
+        : isSingleItem
+        ? existingPrs
+        : existingPrs.filter((pr: any) => pr.bom_row_id == null);
+
+    const alreadyReceived = relevantPrs.reduce(
+      (sum: number, pr: any) =>
+        sum + (parseFloat(pr.received_qty) || 0),
+      0
+    );
+
+    if (orderedQty > 0) {
+      if (alreadyReceived >= orderedQty) {
+        await client.query("ROLLBACK");
+        return res.status(400).json({
+          error: `This item is already fully received (${alreadyReceived} / ${orderedQty}). No further PR is allowed.`,
+        });
+      }
+
+      const remaining = orderedQty - alreadyReceived;
+
+      if (newQty > remaining) {
+        await client.query("ROLLBACK");
+        return res.status(400).json({
+          error: `Received quantity (${newQty}) exceeds remaining ordered quantity. Max allowed: ${remaining.toFixed(
+            4
+          )}`,
+        });
+      }
+    }
+
+    // Generate PR Number
+    const prNumber = await nextPrNumber();
+
+    // Insert PR
+    const insertResult = await client.query(
+      `INSERT INTO purchase_receipts
+        (pr_number,
+         po_id,
+         bom_row_id,
+         style_order_id,
+         vendor_name,
+         received_qty,
+         actual_price,
+         warehouse_location,
+         status,
+         created_by)
+       VALUES
+        ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+       RETURNING id, pr_number`,
+      [
+        prNumber,
+        Number(poId),
+        resolvedBomRowId,
+        Number(styleOrderId),
+        po.vendor_name ?? "",
+        String(receivedQty),
+        String(actualPrice),
+        String(warehouseLocation ?? ""),
+        "Open",
+        user.email,
+      ]
+    );
+
+    const newPrRow = insertResult.rows[0];
+
+    // Inventory update
+    const inventoryResult = await applyCostingInventoryUpdate({
+      client,
+      prId: newPrRow.id,
+      prNumber: newPrRow.pr_number,
       bomRowId: resolvedBomRowId,
       poId: Number(poId),
       receivedQty: newQty,
       actualPrice: parseFloat(String(actualPrice)) || 0,
       warehouseLocation: String(warehouseLocation ?? ""),
       actor: user.email,
-    }),
-    po.status === "Approved"
-      ? db.update(purchaseOrdersTable).set({ status: "In Process" }).where(eq(purchaseOrdersTable.id, Number(poId)))
-      : Promise.resolve(),
-  ]);
+    });
 
-  return res.status(201).json({ data: row });
+    // Create PR Item
+    if (inventoryResult) {
+      await createPurchaseReceiptItem({
+        client,
+        poId: Number(poId),
+        prId: newPrRow.id,
+        inventoryItemId: inventoryResult.inventoryItemId,
+        receivedQty: newQty,
+        actualPrice: parseFloat(String(actualPrice)) || 0,
+        warehouseLocation: String(warehouseLocation ?? ""),
+        prRow: newPrRow,
+      });
+    }
+
+    // Update PO Status
+    if (po.status === "Approved") {
+      await client.query(
+        `UPDATE purchase_orders
+         SET status = 'In Process'
+         WHERE id = $1`,
+        [Number(poId)]
+      );
+    }
+
+    await client.query("COMMIT");
+
+    return res.status(201).json({
+      data: newPrRow,
+    });
+
+  } catch (error) {
+    await client.query("ROLLBACK");
+    console.error("[Style PR Creation] Transaction failed:", error);
+
+    return res.status(500).json({
+      error: "Internal server error during PR creation",
+    });
+  } finally {
+    client.release();
+  }
 });
 
 // ─── Style Consumption ────────────────────────────────────────────────────────
