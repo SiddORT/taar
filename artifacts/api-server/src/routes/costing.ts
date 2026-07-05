@@ -2420,77 +2420,194 @@ router.get("/style-pr/:styleOrderId", requireAuth, async (req, res) => {
 
 router.post("/style-pr", requireAuth, async (req, res) => {
   const user = (req as any).user;
-  const { poId, styleOrderId, bomRowId, receivedQty, actualPrice, warehouseLocation } = req.body as Record<string, string | number | null>;
-  const [po] = await db.select().from(purchaseOrdersTable).where(and(eq(purchaseOrdersTable.id, Number(poId)), eq(purchaseOrdersTable.isDeleted, false)));
-  if (!po) { res.status(404).json({ error: "PO not found" }); return; }
-  if (!["Approved", "In Process"].includes(po.status)) {
-    return res.status(403).json({ error: `Purchase Receipt cannot be created: PO is currently in "${po.status}" status. An admin must approve it first.` });
-    return;
-  }
+  const {
+    poId,
+    styleOrderId,
+    bomRowId,
+    receivedQty,
+    actualPrice,
+    warehouseLocation,
+  } = req.body as Record<string, string | number | null>;
 
   const newQty = parseFloat(String(receivedQty)) || 0;
   const resolvedBomRowId = bomRowId != null ? Number(bomRowId) : null;
-  const bomItems = po.bomItems ?? [];
-  const isSingleItem = bomItems.length === 1;
 
-  let orderedQty = 0;
-  if (resolvedBomRowId != null) {
-    const item = bomItems.find(i => i.bomRowId === resolvedBomRowId);
-    orderedQty = parseFloat(item?.quantity ?? "0") || 0;
-  } else if (isSingleItem) {
-    orderedQty = parseFloat(bomItems[0]?.quantity ?? "0") || 0;
-  }
+  const client = await pool.connect();
 
-  const existingPrs = await db.select().from(purchaseReceiptsTable).where(and(eq(purchaseReceiptsTable.poId, Number(poId)), eq(purchaseReceiptsTable.isDeleted, false)));
-  const relevantPrs = resolvedBomRowId != null
-    ? existingPrs.filter(pr => pr.bomRowId === resolvedBomRowId)
-    : (isSingleItem ? existingPrs : existingPrs.filter(pr => pr.bomRowId == null));
-  const alreadyReceived = relevantPrs.reduce((s, pr) => s + (parseFloat(pr.receivedQty) || 0), 0);
+  try {
+    await client.query("BEGIN");
+    await client.query("SET LOCAL lock_timeout = '2s'");
+    await client.query("SET LOCAL statement_timeout = '5s'");
 
-  if (orderedQty > 0) {
-    if (alreadyReceived >= orderedQty) {
-      return res.status(400).json({ error: `This item is already fully received (${alreadyReceived} / ${orderedQty}). No further PR is allowed.` });
-      return;
+    // Lock PO
+    const poResult = await client.query(
+      `SELECT id, status, vendor_name, bom_items
+       FROM purchase_orders
+       WHERE id = $1
+         AND is_deleted = false
+       FOR UPDATE`,
+      [Number(poId)]
+    );
+
+    if (poResult.rows.length === 0) {
+      await client.query("ROLLBACK");
+      return res.status(404).json({ error: "PO not found" });
     }
-    const remaining = orderedQty - alreadyReceived;
-    if (newQty > remaining) {
-      return res.status(400).json({ error: `Received quantity (${newQty}) exceeds remaining ordered quantity. Max allowed: ${remaining.toFixed(4)}` });
-      return;
+
+    const po = poResult.rows[0];
+    const bomItems = po.bom_items ?? [];
+    const isSingleItem = bomItems.length === 1;
+
+    if (!["Approved", "In Process", "Partially Received"].includes(po.status)) {
+      await client.query("ROLLBACK");
+      return res.status(403).json({
+        error: `Purchase Receipt cannot be created: PO is currently in "${po.status}" status. An admin must approve it first.`,
+      });
     }
-  }
 
-  const prNumber = await nextPrNumber();
-  const [row] = await db.insert(purchaseReceiptsTable).values({
-    prNumber,
-    poId: Number(poId),
-    bomRowId: resolvedBomRowId,
-    styleOrderId: Number(styleOrderId),
-    vendorName: po.vendorName ?? "",
-    receivedQty: String(receivedQty),
-    actualPrice: String(actualPrice),
-    warehouseLocation: String(warehouseLocation ?? ""),
-    status: "Open",
-    createdBy: user.email,
-  }).returning();
+    // Ordered Qty
+    let orderedQty = 0;
 
-  // Update inventory and advance PO status in parallel
-  await Promise.all([
-    applyCostingInventoryUpdate({
-      prId: row.id,
-      prNumber: row.prNumber,
+    if (resolvedBomRowId != null) {
+      const item = bomItems.find((i: any) => i.bomRowId === resolvedBomRowId);
+      orderedQty = parseFloat(item?.quantity ?? "0") || 0;
+    } else if (isSingleItem) {
+      orderedQty = parseFloat(bomItems[0]?.quantity ?? "0") || 0;
+    }
+
+    // Lock existing PRs
+    const prResult = await client.query(
+      `SELECT received_qty, bom_row_id
+       FROM purchase_receipts
+       WHERE po_id = $1
+         AND is_deleted = false
+       FOR UPDATE`,
+      [Number(poId)]
+    );
+
+    const existingPrs = prResult.rows;
+
+    const relevantPrs =
+      resolvedBomRowId != null
+        ? existingPrs.filter((pr: any) => pr.bom_row_id === resolvedBomRowId)
+        : isSingleItem
+        ? existingPrs
+        : existingPrs.filter((pr: any) => pr.bom_row_id == null);
+
+    const alreadyReceived = relevantPrs.reduce(
+      (sum: number, pr: any) =>
+        sum + (parseFloat(pr.received_qty) || 0),
+      0
+    );
+
+    if (orderedQty > 0) {
+      if (alreadyReceived >= orderedQty) {
+        await client.query("ROLLBACK");
+        return res.status(400).json({
+          error: `This item is already fully received (${alreadyReceived} / ${orderedQty}). No further PR is allowed.`,
+        });
+      }
+
+      const remaining = orderedQty - alreadyReceived;
+
+      if (newQty > remaining) {
+        await client.query("ROLLBACK");
+        return res.status(400).json({
+          error: `Received quantity (${newQty}) exceeds remaining ordered quantity. Max allowed: ${remaining.toFixed(
+            4
+          )}`,
+        });
+      }
+    }
+
+    // Generate PR Number
+    const prNumber = await nextPrNumber();
+
+    // Insert PR
+    const insertResult = await client.query(
+      `INSERT INTO purchase_receipts
+        (pr_number,
+         po_id,
+         bom_row_id,
+         style_order_id,
+         vendor_name,
+         received_qty,
+         actual_price,
+         warehouse_location,
+         status,
+         created_by)
+       VALUES
+        ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+       RETURNING id, pr_number`,
+      [
+        prNumber,
+        Number(poId),
+        resolvedBomRowId,
+        Number(styleOrderId),
+        po.vendor_name ?? "",
+        String(receivedQty),
+        String(actualPrice),
+        String(warehouseLocation ?? ""),
+        "Open",
+        user.email,
+      ]
+    );
+
+    const newPrRow = insertResult.rows[0];
+
+    // Inventory update
+    const inventoryResult = await applyCostingInventoryUpdate({
+      client,
+      prId: newPrRow.id,
+      prNumber: newPrRow.pr_number,
       bomRowId: resolvedBomRowId,
       poId: Number(poId),
       receivedQty: newQty,
       actualPrice: parseFloat(String(actualPrice)) || 0,
       warehouseLocation: String(warehouseLocation ?? ""),
       actor: user.email,
-    }),
-    po.status === "Approved"
-      ? db.update(purchaseOrdersTable).set({ status: "In Process" }).where(eq(purchaseOrdersTable.id, Number(poId)))
-      : Promise.resolve(),
-  ]);
+    });
 
-  return res.status(201).json({ data: row });
+    // Create PR Item
+    if (inventoryResult) {
+      await createPurchaseReceiptItem({
+        client,
+        poId: Number(poId),
+        prId: newPrRow.id,
+        inventoryItemId: inventoryResult.inventoryItemId,
+        receivedQty: newQty,
+        actualPrice: parseFloat(String(actualPrice)) || 0,
+        warehouseLocation: String(warehouseLocation ?? ""),
+        prRow: newPrRow,
+      });
+    }
+
+    // Update PO Status
+    if (po.status === "Approved") {
+      await client.query(
+        `UPDATE purchase_orders
+         SET status = 'In Process'
+         WHERE id = $1`,
+        [Number(poId)]
+      );
+    }
+
+    await client.query("COMMIT");
+
+    return res.status(201).json({
+      data: newPrRow,
+    });
+
+  } catch (error) {
+    await client.query("ROLLBACK");
+    console.error("[Style PR Creation] Transaction failed:", error);
+
+    return res.status(500).json({
+      error: "Internal server error during PR creation",
+    });
+  } finally {
+    client.release();
+  }
 });
 
 // ─── Style Consumption ────────────────────────────────────────────────────────
