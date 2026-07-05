@@ -1011,17 +1011,38 @@ function StylePrTableRow({ pr, poNumber, bomItems }: { pr: PurchaseReceiptRecord
         <td className="px-3 py-2.5 text-gray-700 text-xs">{parseFloat(pr.actualPrice).toFixed(2)}</td>
         <td className="px-3 py-2.5 font-semibold text-blue-700 text-xs">{total.toFixed(2)}</td>
         <td className="px-3 py-2.5 max-w-[200px]">
-          {bomItems.length === 0 ? <span className="text-gray-300 text-xs">—</span> : (
-            <div className="flex flex-col gap-1">
-              {bomItems.slice(0, 2).map((item, i) => (
-                <div key={i} className="flex items-center gap-1">
-                  <span className="text-[9px] px-1 py-0.5 rounded font-bold shrink-0 bg-gray-100 text-gray-500 font-mono">{item.materialCode}</span>
-                  <span className="text-[10px] text-gray-700 truncate">{item.materialName}</span>
-                </div>
-              ))}
-              {bomItems.length > 2 && <span className="text-[10px] text-gray-400">+{bomItems.length - 2} more</span>}
-            </div>
-          )}
+          {(() => {
+            // If PR belongs to a specific BOM row, show only that item.
+            const itemsToShow =
+              pr.bomRowId != null
+                ? bomItems.filter(item => item.bomRowId === pr.bomRowId)
+                : bomItems;
+
+            if (itemsToShow.length === 0) {
+              return <span className="text-gray-300 text-xs">—</span>;
+            }
+
+            return (
+              <div className="flex flex-col gap-1">
+                {itemsToShow.slice(0, 2).map((item, i) => (
+                  <div key={i} className="flex items-center gap-1">
+                    <span className="text-[9px] px-1 py-0.5 rounded font-bold shrink-0 bg-gray-100 text-gray-500 font-mono">
+                      {item.materialCode}
+                    </span>
+                    <span className="text-[10px] text-gray-700 truncate">
+                      {item.materialName}
+                    </span>
+                  </div>
+                ))}
+
+                {itemsToShow.length > 2 && (
+                  <span className="text-[10px] text-gray-400">
+                    +{itemsToShow.length - 2} more
+                  </span>
+                )}
+              </div>
+            );
+          })()}
         </td>
         <td className="px-3 py-2.5">
           <div className="flex items-center gap-1">
