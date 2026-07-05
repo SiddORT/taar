@@ -1069,6 +1069,20 @@ async function applyInventoryUpdate(
       ]
     );
 
+    // Keep swatch_bom current_stock in sync
+    if (item.itemCode) {
+      await client.query( 
+        `UPDATE swatch_bom
+        SET current_stock = $1,
+            updated_at = NOW()
+        WHERE material_code = $2
+          AND is_deleted = false`,
+        [
+          newStock.toFixed(3),
+          item.itemCode
+        ]
+      );
+    }
     // ── 3. Insert stock_ledger entry ──────────────────────────────────────
     await client.query(
       `INSERT INTO stock_ledger
