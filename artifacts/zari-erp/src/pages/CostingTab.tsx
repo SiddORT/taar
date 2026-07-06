@@ -654,12 +654,14 @@ function BomSection({ swatchOrderId, orderCode, swatchName, clientName }: {
                   </td>
                   <td className="px-3 py-2.5 whitespace-nowrap">
                     {(r as any).liveCurrentStock != null ? (
-                      <div>
-                        <div>
+                      <div className="flex flex-col gap-0.5">
+                        <div className="flex items-center gap-1">
+                          <span className="text-[9px] text-gray-400 w-10 shrink-0">Current</span>
                           <span className="font-semibold text-gray-800 text-[11px]">{parseFloat((r as any).liveCurrentStock).toFixed(2)}</span>
                           <span className="text-gray-400 ml-0.5 text-[10px]">{r.unitType}</span>
                         </div>
-                        <div>
+                        <div className="flex items-center gap-1">
+                          <span className="text-[9px] text-gray-400 w-10 shrink-0">Avail</span>
                           <span className={`font-semibold text-[11px] ${parseFloat((r as any).liveAvailableStock ?? "0") <= 0 ? "text-red-600" : "text-green-700"}`}>
                             {parseFloat((r as any).liveAvailableStock ?? "0").toFixed(2)}
                           </span>
