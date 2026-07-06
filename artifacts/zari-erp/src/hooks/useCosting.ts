@@ -617,6 +617,7 @@ export function useCreateStylePR() {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["style-prs"] });
       void qc.invalidateQueries({ queryKey: ["style-pos"] });
+      void qc.invalidateQueries({queryKey: ["style-bom",] });
     },
   });
 }
