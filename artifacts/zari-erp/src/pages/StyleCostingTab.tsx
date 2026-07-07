@@ -1237,6 +1237,8 @@ function StylePoCard({ po, onCreatePR, onExportPdf, vendors }: { po: PurchaseOrd
   const canAdvance = po.status !== "Closed";
   const nextStatus = PO_STATUSES[PO_STATUSES.indexOf(po.status) + 1];
   const canCreatePR = ["Approved", "In Process", "Partially Received"].includes(po.status);
+  const DELETABLE_PO_STATUSES = ['Draft'];
+  const canDelete = DELETABLE_PO_STATUSES.includes(po.status);
 
   async function handleExport() {
     setExporting(true);
@@ -1287,10 +1289,12 @@ function StylePoCard({ po, onCreatePR, onExportPdf, vendors }: { po: PurchaseOrd
             className="flex items-center gap-1 text-[11px] px-2.5 py-1.5 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 font-medium transition-colors">
             <Pencil className="h-3 w-3" /> Edit
           </button>
-          <button onClick={() => deletePo.mutate(po.id)} disabled={deletePo.isPending}
-            className="p-1.5 rounded-lg text-gray-500 hover:text-red-500 hover:bg-red-50 transition-colors">
-            <Trash2 className="h-3.5 w-3.5" />
-          </button>
+          {canDelete && (
+            <button onClick={() => deletePo.mutate(po.id)} disabled={deletePo.isPending}
+              className="p-1.5 rounded-lg text-gray-500 hover:text-red-500 hover:bg-red-50 transition-colors">
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          )}
           <button onClick={() => setOpen(v => !v)} className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 transition-colors">
             {open ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
           </button>
