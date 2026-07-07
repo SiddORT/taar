@@ -227,6 +227,7 @@ export function useCreatePR() {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["swatch-prs"] });
       void qc.invalidateQueries({ queryKey: ["swatch-pos"] });
+      void qc.invalidateQueries({queryKey: ["swatch-bom"]});
     },
   });
 }

@@ -654,12 +654,14 @@ function BomSection({ swatchOrderId, orderCode, swatchName, clientName }: {
                   </td>
                   <td className="px-3 py-2.5 whitespace-nowrap">
                     {(r as any).liveCurrentStock != null ? (
-                      <div>
-                        <div>
+                      <div className="flex flex-col gap-0.5">
+                        <div className="flex items-center gap-1">
+                          <span className="text-[9px] text-gray-400 w-10 shrink-0">Current</span>
                           <span className="font-semibold text-gray-800 text-[11px]">{parseFloat((r as any).liveCurrentStock).toFixed(2)}</span>
                           <span className="text-gray-400 ml-0.5 text-[10px]">{r.unitType}</span>
                         </div>
-                        <div>
+                        <div className="flex items-center gap-1">
+                          <span className="text-[9px] text-gray-400 w-10 shrink-0">Avail</span>
                           <span className={`font-semibold text-[11px] ${parseFloat((r as any).liveAvailableStock ?? "0") <= 0 ? "text-red-600" : "text-green-700"}`}>
                             {parseFloat((r as any).liveAvailableStock ?? "0").toFixed(2)}
                           </span>
@@ -1067,21 +1069,37 @@ function PrTableRow({ pr, poNumber, vendorName, bomItems }: { pr: PurchaseReceip
         <td className="px-3 py-2.5 text-gray-700 text-xs">{parseFloat(pr.actualPrice).toFixed(2)}</td>
         <td className="px-3 py-2.5 font-semibold text-blue-700 text-xs">{total.toFixed(2)}</td>
         <td className="px-3 py-2.5 max-w-[200px]">
-          {bomItems.length === 0 ? (
-            <span className="text-gray-300 text-xs">—</span>
-          ) : (
-            <div className="flex flex-col gap-1">
-              {bomItems.slice(0, 2).map((item, i) => (
-                <div key={i} className="flex items-center gap-1">
-                  <span className="text-[9px] px-1 py-0.5 rounded font-bold shrink-0 bg-gray-100 text-gray-500 font-mono">{item.materialCode}</span>
-                  <span className="text-[10px] text-gray-700 truncate">{item.materialName}</span>
-                </div>
-              ))}
-              {bomItems.length > 2 && (
-                <span className="text-[10px] text-gray-400">+{bomItems.length - 2} more</span>
-              )}
-            </div>
-          )}
+          {(() => {
+            const itemsToShow =
+              pr.bomRowId != null
+                ? bomItems.filter(item => item.bomRowId === pr.bomRowId)
+                : bomItems;
+
+            if (itemsToShow.length === 0) {
+              return <span className="text-gray-300 text-xs">—</span>;
+            }
+
+            return (
+              <div className="flex flex-col gap-1">
+                {itemsToShow.slice(0, 2).map((item, i) => (
+                  <div key={i} className="flex items-center gap-1">
+                    <span className="text-[9px] px-1 py-0.5 rounded font-bold shrink-0 bg-gray-100 text-gray-500 font-mono">
+                      {item.materialCode}
+                    </span>
+                    <span className="text-[10px] text-gray-700 truncate">
+                      {item.materialName}
+                    </span>
+                  </div>
+                ))}
+
+                {itemsToShow.length > 2 && (
+                  <span className="text-[10px] text-gray-400">
+                    +{itemsToShow.length - 2} more
+                  </span>
+                )}
+              </div>
+            );
+          })()}
         </td>
         <td className="px-3 py-2.5">
           <div className="flex items-center gap-1">
@@ -1591,6 +1609,8 @@ function PoCard({ po, swatchOrderId, onCreatePR, onExportPdf, vendors }: { po: P
   const canAdvance = po.status !== "Closed";
   const nextStatus = PO_STATUSES[PO_STATUSES.indexOf(po.status) + 1];
   const canCreatePR = ["Approved", "In Process", "Partially Received"].includes(po.status);
+  const DELETABLE_PO_STATUSES = ['Draft'];
+  const canDelete = DELETABLE_PO_STATUSES.includes(po.status);
 
   async function handleExport() {
     setExporting(true);
@@ -1629,7 +1649,7 @@ function PoCard({ po, swatchOrderId, onCreatePR, onExportPdf, vendors }: { po: P
             <button onClick={advance} disabled={updatePO.isPending}
               className="flex items-center gap-1 text-[11px] px-2.5 py-1.5 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 font-medium transition-colors disabled:opacity-50">
               {updatePO.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <ArrowRight className="h-3 w-3" />}
-              → {nextStatus}
+              {nextStatus}
             </button>
           )}
           {canCreatePR && (
@@ -1646,10 +1666,12 @@ function PoCard({ po, swatchOrderId, onCreatePR, onExportPdf, vendors }: { po: P
             className="flex items-center gap-1 text-[11px] px-2.5 py-1.5 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 font-medium transition-colors">
             <Pencil className="h-3 w-3" /> Edit
           </button>
-          <button onClick={() => deletePO.mutate(po.id)} disabled={deletePO.isPending}
-            className="p-1.5 rounded-lg text-gray-500 hover:text-red-500 hover:bg-red-50 transition-colors">
-            <Trash2 className="h-3.5 w-3.5" />
-          </button>
+          {canDelete && (
+            <button onClick={() => deletePO.mutate(po.id)} disabled={deletePO.isPending}
+              className="p-1.5 rounded-lg text-gray-500 hover:text-red-500 hover:bg-red-50 transition-colors">
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          )}
           <button onClick={() => setOpen(v => !v)} className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 transition-colors">
             {open ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
           </button>
