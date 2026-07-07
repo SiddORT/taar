@@ -1649,7 +1649,7 @@ function PoCard({ po, swatchOrderId, onCreatePR, onExportPdf, vendors }: { po: P
             <button onClick={advance} disabled={updatePO.isPending}
               className="flex items-center gap-1 text-[11px] px-2.5 py-1.5 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 font-medium transition-colors disabled:opacity-50">
               {updatePO.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <ArrowRight className="h-3 w-3" />}
-              → {nextStatus}
+              {nextStatus}
             </button>
           )}
           {canCreatePR && (
