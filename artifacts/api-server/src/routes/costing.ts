@@ -1324,16 +1324,110 @@ router.post("/po", requireAuth, async (req, res) => {
 
 router.patch("/po/:id", requireAuth, async (req, res) => {
   const user = (req as any).user;
-  const { status, notes, bomItems } = req.body as { status?: string; notes?: string; bomItems?: any[] };
-  const updates: Record<string, unknown> = { updatedBy: user.email, updatedAt: new Date() };
-  if (status !== undefined) updates.status = status;
-  if (notes !== undefined) updates.notes = notes;
-  if (status === "Approved") { updates.approvedBy = user.email; updates.approvedAt = new Date(); }
+  const poId = Number(req.params.id);
+
+  const {
+    status,
+    notes,
+    bomItems,
+  } = req.body as {
+    status?: string;
+    notes?: string;
+    bomItems?: any[];
+  };
+
+  const updates: Record<string, unknown> = {
+    updatedBy: user.email,
+    updatedAt: new Date(),
+  };
+
+  if (status !== undefined) {
+    updates.status = status;
+
+    if (status === "Approved") {
+      updates.approvedBy = user.email;
+      updates.approvedAt = new Date();
+    }
+  }
+
+  if (notes !== undefined) {
+    updates.notes = notes;
+  }
+
   if (bomItems !== undefined) {
+    // Fetch existing PO items
+    const { rows: poItems } = await pool.query(
+      `
+      SELECT
+        item_code,
+        received_quantity
+      FROM purchase_order_items
+      WHERE po_id = $1
+        AND is_deleted = false
+      `,
+      [poId]
+    );
+
+    // Create lookup: item_code -> received_quantity
+    const receivedMap = new Map(
+      poItems.map((item: any) => [
+        item.item_code,
+        Number(item.received_quantity),
+      ])
+    );
+
+    // Validate edited quantity
+    for (const item of bomItems) {
+      const receivedQty = receivedMap.get(item.materialCode) ?? 0;
+
+      if (Number(item.quantity) < receivedQty) {
+        return res.status(400).json({
+          message: `${item.materialName} ordered quantity cannot be less than already received quantity (${receivedQty}).`,
+        });
+      }
+    }
+
+    // Update ordered quantity in purchase_order_items
+    for (const item of bomItems) {
+      await pool.query(
+        `
+        UPDATE purchase_order_items
+        SET
+          ordered_quantity = $1,
+          updated_at = NOW()
+        WHERE po_id = $2
+          AND item_code = $3
+          AND is_deleted = false
+        `,
+        [
+          Number(item.quantity),
+          poId,
+          item.materialCode,
+        ]
+      );
+    }
+
+    // Update JSON snapshot
     updates.bomItems = bomItems;
     updates.bomRowIds = bomItems.map((i: any) => i.bomRowId);
   }
-  const [row] = await db.update(purchaseOrdersTable).set(updates).where(eq(purchaseOrdersTable.id, Number(String(req.params.id)))).returning();
+
+  const [row] = await db
+    .update(purchaseOrdersTable)
+    .set(updates)
+    .where(eq(purchaseOrdersTable.id, poId))
+    .returning();
+
+  // Recalculate PO status if quantities changed
+  if (bomItems !== undefined) {
+    await recalcPoStatus(
+      {
+        query: pool.query.bind(pool),
+      },
+      poId
+    );
+  }
+
   return res.json({ data: row });
 });
 
