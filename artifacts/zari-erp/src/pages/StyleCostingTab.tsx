@@ -1270,7 +1270,7 @@ function StylePoCard({ po, onCreatePR, onExportPdf, vendors }: { po: PurchaseOrd
           {canAdvance && nextStatus && (
             <button onClick={advance} disabled={updatePo.isPending}
               className="flex items-center gap-1 text-[11px] px-2.5 py-1.5 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 font-medium transition-colors disabled:opacity-50">
-              {updatePo.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <ArrowRight className="h-3 w-3" />} → {nextStatus}
+              {updatePo.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <ArrowRight className="h-3 w-3" />}  {nextStatus}
             </button>
           )}
           {canCreatePR && (
