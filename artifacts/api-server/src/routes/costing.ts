@@ -484,6 +484,33 @@ async function createPurchaseReceiptItem(opts: {
   }
 }
 
+async function recalcPoStatus(client: { query: typeof pool.query }, poId: number) {
+  const items = await client.query(
+    `SELECT ordered_quantity, received_quantity FROM purchase_order_items WHERE po_id = $1 AND is_deleted = false`,
+    [poId]
+  );
+  if (!items.rows.length) return;
+
+  const totalOrdered  = items.rows.reduce((s: number, r: any) => s + parseFloat(r.ordered_quantity), 0);
+  const totalReceived = items.rows.reduce((s: number, r: any) => s + parseFloat(r.received_quantity), 0);
+
+  let newStatus: string;
+  if (totalReceived <= 0) {
+    newStatus = "Approved";
+  } else if (totalReceived + 0.001 >= totalOrdered) {
+    // Fully received — auto-close
+    newStatus = "Closed";
+  } else {
+    newStatus = "In Process";
+  }
+  // Do not overwrite a Cancelled / Draft PO, and do not downgrade an already-Closed
+  // PO (e.g. if a PR is later edited to reduce qty, leave it Closed unless user reopens).
+  await client.query(
+    `UPDATE purchase_orders SET status = $1, updated_at = NOW() WHERE id = $2 AND status NOT IN ('Draft','Cancelled')`,
+    [newStatus, poId]
+  );
+}
+
 // ─── Consumption Engine Helpers ───────────────────────────────────────────────
 // Sections 2–4, 6–7, 10 of the Consumption Engine spec.
 // Called after inserting a consumption_log entry to sync inventory, reservations,
@@ -1464,13 +1491,7 @@ router.post("/pr", requireAuth, async (req, res) => {
     }
 
     // 10. Update PO status if it was "Approved"
-    if (po.status === "Approved") {
-      await client.query(
-        `UPDATE purchase_orders SET status = 'In Process' WHERE id = $1`,
-        [Number(poId)]
-      );
-    }
-
+    await recalcPoStatus(client, Number(poId));
     // 11. Commit the entire transaction atomically
     await client.query('COMMIT');
 
