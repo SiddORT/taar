@@ -646,7 +646,7 @@ export default function StyleOrderDetail() {
                     />
                   </Field>
 
-                  {selectedClient && (
+                  {/* {selectedClient && (
                     <div className="col-span-2 bg-gradient-to-r from-violet-50 to-purple-50 border border-violet-100 rounded-xl px-4 py-2.5">
                       <div className="flex items-center flex-wrap gap-x-2 gap-y-0.5 text-xs text-gray-600">
                         {selectedClient.contactName && <span className="font-medium text-gray-800">{selectedClient.contactName}</span>}
@@ -655,7 +655,7 @@ export default function StyleOrderDetail() {
                         {selectedClient.country && <><span className="text-gray-300">·</span><span>{selectedClient.country}</span></>}
                       </div>
                     </div>
-                  )}
+                  )} */}
 
                   <Field label="Quantity">
                     <input className={inputCls} type="number" min="0" placeholder="e.g. 500"
