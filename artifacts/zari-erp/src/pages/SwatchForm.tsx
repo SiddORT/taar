@@ -300,7 +300,23 @@ export default function SwatchForm() {
   // ── Attachments ──
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? []);
+    const allowedTypes = [
+      "image/jpeg",
+      "image/png",
+      "image/webp",
+      "application/pdf",
+    ];
+
     files.forEach(file => {
+      if (!allowedTypes.includes(file.type)) {
+        toast({
+          variant: "destructive",
+          title: "Invalid file type",
+          description: `${file.name} is not supported. Please upload only PDF, JPG, PNG, or WebP files.`,
+        });
+        return;
+      }
+
       const reader = new FileReader();
       reader.onload = ev => {
         const d = (ev.target?.result as string).split(",")[1] ?? "";
@@ -497,10 +513,14 @@ export default function SwatchForm() {
                 {/* Attachments */}
                 <div className="border border-gray-100 rounded-xl p-4 bg-gray-50/50 space-y-3">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-[10px] font-black uppercase tracking-[0.18em] text-gray-400">Attachments</h3>
+                    <h3 className="text-[10px] font-black uppercase tracking-[0.18em] text-gray-400">Reference Documents</h3>
                     <label className="flex items-center gap-1 cursor-pointer px-2.5 py-1 rounded border border-dashed border-gray-300 text-xs text-gray-500 hover:border-[#C9B45C] hover:text-amber-700 transition">
                       <Paperclip size={11} /> Add File
-                      <input type="file" multiple className="hidden" onChange={handleFileChange} />
+                      <input type="file" multiple   
+                             accept="image/*,.pdf,application/pdf"
+                             className="hidden" 
+                             onChange={handleFileChange} 
+                      />
                     </label>
                   </div>
                   {form.attachments.length === 0
