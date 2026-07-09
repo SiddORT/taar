@@ -184,7 +184,7 @@ export default function MediaUploadSection({ entityType, entityId, wipMedia, fin
   }
 
   return (
-    <div className="space-y-4 pt-3 border-t border-gray-100">
+    <div className="space-y-1 pt-3 border-t border-gray-100">
       <div className="flex items-center gap-2">
         <Image size={15} className="text-gray-400" />
         <span className="text-sm font-semibold text-gray-700">Media</span>
@@ -195,11 +195,11 @@ export default function MediaUploadSection({ entityType, entityId, wipMedia, fin
         <p className="text-xs text-red-500 bg-red-50 rounded px-3 py-1.5">{error}</p>
       )}
 
-      <div className="grid grid-cols-2 gap-x-6">
+      <div className="grid grid-cols-1 gap-x-6">
         {(["wip", "final"] as const).map((cat) => {
           const items = cat === "wip" ? wipMedia : finalMedia;
           const inputRef = cat === "wip" ? wipInputRef : finalInputRef;
-          const label = cat === "wip" ? "WIP" : "Final";
+          const label = cat === "wip" ? "Artwork" : "Final";
           return (
             <div key={cat}>
               <div className="flex items-center justify-between mb-1">
