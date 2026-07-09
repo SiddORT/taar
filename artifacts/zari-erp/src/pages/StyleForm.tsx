@@ -134,7 +134,7 @@ function CreateSwatchMiniModal({ open, onClose, prefillClient, onCreated }: Crea
   const fabricOptions = (fabricsData ?? []).map(f => `${f.fabricType} – ${f.quality}`.trim());
   const unitOptions = (unitTypesData ?? []).filter(u => u.isActive).map(u => u.name);
   const activeWarehouses = warehouseLocations.filter(w => w.isActive);
-  const placeOptions = [...activeWarehouses.map(w => w.name), "Out-house"];
+  const placeOptions = [...activeWarehouses.map(w => w.name)];
   const miniLocType = form.location === "Client" ? "Client" : "Inhouse";
   const miniWarehouseVal = miniLocType === "Inhouse" ? form.location : "";
 
@@ -395,7 +395,7 @@ export default function StyleForm() {
   const swatchOptions = ((swatchRefs ?? []) as SwatchRefOption[])
     .filter(s => s.source === "master")
     .map(s => ({ value: s.code, label: `${s.code}${s.name ? ` – ${s.name}` : ""}${s.client ? ` (${s.client})` : ""}` }));
-  const placeOptions = [...warehouseLocationsMain.filter(w => w.isActive).map(w => w.name), "Out-house"];
+  const placeOptions = [...warehouseLocationsMain.filter(w => w.isActive).map(w => w.name)];
 
   useEffect(() => {
     if (!isNew && existing && !populated) {
@@ -595,7 +595,7 @@ export default function StyleForm() {
                       />
                     </FieldWrap>
 
-                    <div className="col-span-2">
+                    {/* <div className="col-span-2">
                       <FieldWrap label="Attach Link" error={errors.attachLink}>
                         <input
                           type="url"
@@ -605,7 +605,7 @@ export default function StyleForm() {
                           className={`w-full border rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900 ${errors.attachLink ? "border-red-400" : "border-gray-300"}`}
                         />
                       </FieldWrap>
-                    </div>
+                    </div> */}
 
                   </div>
                 </div>
@@ -655,7 +655,7 @@ export default function StyleForm() {
 
                 {/* Media */}
                 <div>
-                  <SectionHeader title="WIP & Final Media" />
+                  <SectionHeader title="Artworks & Final Media" />
                   {!isNew && numId ? (
                     <MediaUploadSection
                       entityType="styles"
@@ -666,7 +666,7 @@ export default function StyleForm() {
                     />
                   ) : (
                     <div className="space-y-4">
-                      <LocalMediaPanel label="WIP Media" pending={pendingWip}
+                      <LocalMediaPanel label="Artworks" pending={pendingWip}
                         onAdd={files => addPending("wip", files)} onRemove={id => removePending("wip", id)} />
                       <LocalMediaPanel label="Final Media" pending={pendingFinal}
                         onAdd={files => addPending("final", files)} onRemove={id => removePending("final", id)} />
