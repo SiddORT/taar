@@ -728,7 +728,7 @@ export default function SwatchOrderDetail() {
                 />
               </Field>
 
-              {selectedClient && (
+              {/* {selectedClient && (
                 <div className="col-span-2 bg-gradient-to-r from-violet-50 to-purple-50 border border-violet-100 rounded-xl px-4 py-2.5">
                   <div className="flex items-center flex-wrap gap-x-2 gap-y-0.5 text-xs text-gray-600">
                     {selectedClient.contactName && <span className="font-medium text-gray-800">{selectedClient.contactName}</span>}
@@ -737,7 +737,7 @@ export default function SwatchOrderDetail() {
                     {selectedClient.country && <><span className="text-gray-300">·</span><span>{selectedClient.country}</span></>}
                   </div>
                 </div>
-              )}
+              )} */}
 
               <Field label="Quantity">
                 <input className={inputCls} type="number" min="0" placeholder="e.g. 10"
@@ -1123,6 +1123,14 @@ export default function SwatchOrderDetail() {
             <div className="border-t border-gray-100 mb-6" />
             {/* Row 3: Final */}
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Final / Approved</p>
+            <div className="mb-2 flex items-start gap-1 rounded-xl border border-amber-200 bg-amber-50 p-2">
+              <div>
+                <p className="mt-1 text-xs text-amber-800">Upload media in this order <strong>Counter Sample</strong>,{" "}
+                  <strong>Flat Sample</strong>, <strong>Mannequin</strong>, and a{" "}
+                  <strong>Video</strong> whenever available.
+                </p>
+              </div>
+            </div>        
             <div className="grid grid-cols-2 gap-6">
               <Field label="Final Images">
                 <FileUploadZone

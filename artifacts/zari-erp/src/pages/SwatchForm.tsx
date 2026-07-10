@@ -300,7 +300,23 @@ export default function SwatchForm() {
   // ── Attachments ──
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? []);
+    const allowedTypes = [
+      "image/jpeg",
+      "image/png",
+      "image/webp",
+      "application/pdf",
+    ];
+
     files.forEach(file => {
+      if (!allowedTypes.includes(file.type)) {
+        toast({
+          variant: "destructive",
+          title: "Invalid file type",
+          description: `${file.name} is not supported. Please upload only PDF, JPG, PNG, or WebP files.`,
+        });
+        return;
+      }
+
       const reader = new FileReader();
       reader.onload = ev => {
         const d = (ev.target?.result as string).split(",")[1] ?? "";
@@ -497,10 +513,14 @@ export default function SwatchForm() {
                 {/* Attachments */}
                 <div className="border border-gray-100 rounded-xl p-4 bg-gray-50/50 space-y-3">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-[10px] font-black uppercase tracking-[0.18em] text-gray-400">Attachments</h3>
+                    <h3 className="text-[10px] font-black uppercase tracking-[0.18em] text-gray-400">Reference Documents</h3>
                     <label className="flex items-center gap-1 cursor-pointer px-2.5 py-1 rounded border border-dashed border-gray-300 text-xs text-gray-500 hover:border-[#C9B45C] hover:text-amber-700 transition">
                       <Paperclip size={11} /> Add File
-                      <input type="file" multiple className="hidden" onChange={handleFileChange} />
+                      <input type="file" multiple   
+                             accept="image/*,.pdf,application/pdf"
+                             className="hidden" 
+                             onChange={handleFileChange} 
+                      />
                     </label>
                   </div>
                   {form.attachments.length === 0
@@ -524,7 +544,7 @@ export default function SwatchForm() {
               {/* Right: Media (1/3) */}
               <div className="space-y-5">
                 <div className="border border-gray-100 rounded-xl p-4 bg-gray-50/50 space-y-4">
-                  <h3 className="text-[10px] font-black uppercase tracking-[0.18em] text-gray-400">WIP & Final Images</h3>
+                  <h3 className="text-[10px] font-black uppercase tracking-[0.18em] text-gray-400">Artwork Images & Final Images</h3>
 
                   {!isNew && numId ? (
                     /* Edit mode: live server upload panel */
@@ -538,7 +558,7 @@ export default function SwatchForm() {
                   ) : (
                     /* Create mode: local pending panels */
                     <div className="space-y-4">
-                      <LocalMediaPanel label="WIP" pending={pendingWip}
+                      <LocalMediaPanel label="Artwork" pending={pendingWip}
                         onAdd={f => addPending("wip", f)} onRemove={id => removePending("wip", id)} />
                       <div className="border-t border-gray-200 pt-4">
                         <LocalMediaPanel label="Final" pending={pendingFinal}
@@ -567,24 +587,6 @@ export default function SwatchForm() {
                   </div>
                 )}
 
-                {/* Quick-add pending buttons for edit mode */}
-                {!isNew && numId && pendingWip.length === 0 && pendingFinal.length === 0 && (
-                  <div className="border border-dashed border-gray-300 rounded-xl p-4 space-y-2">
-                    <p className="text-xs text-gray-500 font-medium">Queue additional files to upload on save:</p>
-                    <div className="flex gap-2">
-                      <label className="flex-1 flex items-center justify-center gap-1 cursor-pointer px-2 py-2 rounded border border-dashed border-gray-300 text-xs text-gray-500 hover:border-[#C9B45C] hover:text-amber-700 transition">
-                        <Upload size={11} /> WIP
-                        <input type="file" accept="image/*,video/*" multiple className="hidden"
-                          onChange={e => { addPending("wip", Array.from(e.target.files ?? [])); e.target.value = ""; }} />
-                      </label>
-                      <label className="flex-1 flex items-center justify-center gap-1 cursor-pointer px-2 py-2 rounded border border-dashed border-gray-300 text-xs text-gray-500 hover:border-[#C9B45C] hover:text-amber-700 transition">
-                        <Upload size={11} /> Final
-                        <input type="file" accept="image/*,video/*" multiple className="hidden"
-                          onChange={e => { addPending("final", Array.from(e.target.files ?? [])); e.target.value = ""; }} />
-                      </label>
-                    </div>
-                  </div>
-                )}
               </div>
             </div>
 

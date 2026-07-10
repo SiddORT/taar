@@ -23,6 +23,16 @@ import { useCurrency } from "@/contexts/CurrencyContext";
 const PRODUCT_STATUSES = ["Draft", "In Progress", "Completed", "On Hold", "Cancelled"];
 const PAYMENT_MODES    = ["Cash", "Bank Transfer", "Cheque", "UPI", "Card", "Other"];
 const PAYMENT_STATUSES = ["Pending", "Partial", "Paid"];
+const PATTERN_TYPES = [
+  {
+    value: "Inhouse",
+    label: "Internal",
+  },
+  {
+    value: "Outhouse",
+    label: "Outsourced",
+  },
+] as const;
 
 const STATUS_BADGE: Record<string, string> = {
   Draft:         "bg-gray-100 text-gray-600 border-gray-200",
@@ -637,15 +647,15 @@ export default function ProductsTab({
             <div>
               <label className="flex items-center gap-1 text-xs font-medium text-gray-600 mb-1.5">Pattern Making</label>
               <div className="flex gap-2">
-                {(["Inhouse", "Outhouse"] as const).map(opt => (
-                  <button key={opt} type="button"
-                    onClick={() => set("patternType", form.patternType === opt ? "" : opt)}
+                {PATTERN_TYPES.map(type => (
+                  <button key={type.value} type="button"
+                    onClick={() => set("patternType", form.patternType === type.value ? "" : type.value)}
                     className={`flex-1 py-2 rounded-xl text-sm font-semibold ring-1 transition-all ${
-                      form.patternType === opt
+                      form.patternType === type.value
                         ? "bg-gray-900 text-[#C9B45C] ring-gray-900"
                         : "bg-white text-gray-500 ring-gray-200 hover:ring-gray-400"
                     }`}>
-                    {opt}
+                    {type.label}
                   </button>
                 ))}
               </div>
