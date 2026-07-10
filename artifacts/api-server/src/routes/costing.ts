@@ -1275,7 +1275,8 @@ router.post("/po", requireAuth, async (req, res) => {
 
     if (adminEmails.length > 0 && createdPOs.length > 0) {
       const apiBase = process.env.API_BASE_URL ?? `https://${process.env.REPLIT_DEV_DOMAIN ?? "zari-erp.replit.app"}`;
-      const erpUrl = `${apiBase}/costing`;
+      const frontendUrl = process.env.FRONTEND_URL;
+      const erpUrl = `${frontendUrl}/swatch-orders/${swatchOrderId}`;
 
       // Send email for each PO
       for (const po of createdPOs) {
@@ -1301,7 +1302,13 @@ router.post("/po", requireAuth, async (req, res) => {
           erpUrl,
           approveUrl: `${apiBase}/api/costing/po-action?token=${approveToken}`,
           rejectUrl: `${apiBase}/api/costing/po-action?token=${rejectToken}`,
-        }).catch(() => {});
+        }).then(() => {
+            console.log("Email sent successfully");
+        })
+        .catch((err) => {
+            console.error("EMAIL FAILED");
+            console.error(err);
+        });
       }
     }
 
