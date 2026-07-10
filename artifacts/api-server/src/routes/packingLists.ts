@@ -623,11 +623,12 @@ router.get("/packing-lists/inventory/search", requireAuth, async (req, res) => {
       return res.json({ data: r.rows });
     } else if (type === "fabric") {
       const r = await pool.query(
-        `SELECT id, fabric_code AS code, fabric_name AS name,
+        `SELECT id, fabric_code AS code, 
+            COALESCE(fabric_type || ' - ' || quality || ' - ' || color_name, fabric_type, quality, fabric_code) AS name,
                 current_stock, location_stocks, unit_type AS unit
          FROM fabrics
          WHERE is_deleted = false AND is_active = true
-           AND (fabric_code ILIKE $1 OR fabric_name ILIKE $1)
+           AND (fabric_code ILIKE $1 OR fabric_type ILIKE $1 OR quality ILIKE $1 OR color_name ILIKE $1)
          ORDER BY fabric_code LIMIT 50`,
         [search]
       );
