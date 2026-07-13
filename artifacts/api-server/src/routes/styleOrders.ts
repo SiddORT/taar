@@ -2,22 +2,46 @@ import { Router } from "express";
 import { db, styleOrdersTable, eq, and, ilike, or, desc, sql } from "@workspace/db";
 // import { eq, and, ilike, or, desc, sql } from "drizzle-orm";
 import { requireAuth } from "../middlewares/requireAuth";
-import { insertStyleOrderSchema, updateStyleOrderSchema } from "@workspace/db";
+import { insertStyleOrderSchema, updateStyleOrderSchema, clientsTable } from "@workspace/db";
 
 const router = Router();
 
-async function generateOrderCode(): Promise<string> {
-  const prefix = "ZST-";
-  const rows = await db
-    .select({ orderCode: styleOrdersTable.orderCode })
+async function generateOrderCode(clientId: number): Promise<string> {
+  const [client] = await db
+    .select({
+      customClientCode: clientsTable.customClientCode,
+    })
+    .from(clientsTable)
+    .where(eq(clientsTable.id, clientId))
+    .limit(1);
+
+  if (!client) {
+    throw new Error("Client not found");
+  }
+
+  if (!client.customClientCode?.trim()) {
+    throw new Error("Client does not have a Custom Client Code.");
+  }
+
+  const prefix = `${client.customClientCode.trim()}-ZST-`;
+
+  const [latest] = await db
+    .select({
+      orderCode: styleOrdersTable.orderCode,
+    })
     .from(styleOrdersTable)
     .where(ilike(styleOrdersTable.orderCode, `${prefix}%`))
     .orderBy(desc(styleOrdersTable.orderCode))
     .limit(1);
-  if (rows.length === 0) return `${prefix}0001`;
-  const last = rows[0].orderCode;
-  const seq = parseInt(last.replace(prefix, ""), 10) + 1;
-  return `${prefix}${seq.toString().padStart(4, "0")}`;
+
+  if (!latest) {
+    return `${prefix}0001`;
+  }
+
+  const seq =
+    parseInt(latest.orderCode.replace(prefix, ""), 10) + 1;
+
+  return `${prefix}${String(seq).padStart(4, "0")}`;
 }
 
 // List
@@ -71,8 +95,11 @@ router.get("/style-orders/:id", requireAuth, async (req, res) => {
 router.post("/style-orders", requireAuth, async (req, res) => {
   const parsed = insertStyleOrderSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: parsed.error.issues });
-
-  const orderCode = await generateOrderCode();
+  if (!parsed.data.clientId) {
+    return res.status(400).json({ error: "Client is required" });
+  }
+  const clientId = Number(parsed.data.clientId);
+  const orderCode = await generateOrderCode(clientId);
   const user = (req as any).user;
 
   const [row] = await db.insert(styleOrdersTable).values({
