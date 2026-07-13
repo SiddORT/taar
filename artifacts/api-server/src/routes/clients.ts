@@ -109,6 +109,27 @@ router.post("/clients", requireAuth, async (req: AuthRequest, res): Promise<void
     res.status(409).json({ error: `A client named "${bn}" already exists.` }); return;
   }
 
+  const customCode = parsed.data.customClientCode?.trim();
+
+  if (customCode) {
+    const existingCode = await db
+      .select({ id: clientsTable.id })
+      .from(clientsTable)
+      .where(
+        and(
+          eq(clientsTable.isDeleted, false),
+          ilike(clientsTable.customClientCode, customCode)
+        )
+      );
+
+    if (existingCode.length > 0) {
+      res.status(409).json({
+        error: `Custom Client Code "${customCode}" already exists.`,
+      });
+      return;
+    }
+  }
+
   const createdBy = req.user?.email ?? "system";
   const next = await nextSequenceNumber("clients", "client_code", "CLI%");
   const clientCode = `CLI${String(next).padStart(4, "0")}`;
