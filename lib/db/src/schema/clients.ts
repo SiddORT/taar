@@ -72,7 +72,7 @@ export const insertClientSchema = z.object({
   altEmail: z.email("Valid email").optional().or(z.literal("")),
   contactNo: z.string().min(1, "Contact No is required"),
   altContactNo: z.string().optional(),
-  customClientCode:z.string().optional(),
+  customClientCode: z.string().min(1, "Custom Client Code is required").max(100),
   country: z.string().optional(),
   countryOfOrigin: z.string().optional(),
   hasGst: z.boolean().default(false),
