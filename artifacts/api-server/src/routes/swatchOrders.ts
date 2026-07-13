@@ -1,21 +1,50 @@
 import { Router, type IRouter } from "express";
 // import { eq, and, ilike, or, desc, sql } from "drizzle-orm";
-import { db, swatchOrdersTable, eq, and, ilike, or, desc, sql } from "@workspace/db";
+import { db, swatchOrdersTable,clientsTable, eq, and, ilike, or, desc, sql } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
 import { logger } from "../lib/logger";
 
 const router: IRouter = Router();
 
-async function generateOrderCode(): Promise<string> {
-  const prefix = "ZSW-";
+async function generateOrderCode(clientId: number): Promise<string> {
+  // Get client's custom client code
+  const [client] = await db
+    .select({
+      customClientCode: clientsTable.customClientCode,
+    })
+    .from(clientsTable)
+    .where(eq(clientsTable.id, clientId))
+    .limit(1);
+
+  if (!client) {
+    throw new Error("Client not found");
+  }
+
+  if (!client.customClientCode?.trim()) {
+    throw new Error("Client does not have a Custom Client Code.");
+  }
+
+  const prefix = `${client.customClientCode.trim()}-`;
+
+  // Find latest order for this client prefix
   const [latest] = await db
-    .select({ orderCode: swatchOrdersTable.orderCode })
+    .select({
+      orderCode: swatchOrdersTable.orderCode,
+    })
     .from(swatchOrdersTable)
     .where(ilike(swatchOrdersTable.orderCode, `${prefix}%`))
     .orderBy(desc(swatchOrdersTable.orderCode))
     .limit(1);
-  if (!latest) return `${prefix}0001`;
-  const num = parseInt(latest.orderCode.replace(prefix, ""), 10);
+
+  if (!latest) {
+    return `${prefix}0001`;
+  }
+
+  const num = parseInt(
+    latest.orderCode.replace(prefix, ""),
+    10
+  );
+
   return `${prefix}${String(num + 1).padStart(4, "0")}`;
 }
 
@@ -76,8 +105,9 @@ router.post("/swatch-orders", requireAuth, async (req, res): Promise<void> => {
     res.status(400).json({ error: "Client is required" });
     return;
   }
+  const clientId = Number(body.clientId);
 
-  const orderCode = await generateOrderCode();
+  const orderCode = await generateOrderCode(clientId);
   const [row] = await db.insert(swatchOrdersTable).values({
     orderCode,
     swatchName: body.swatchName as string,
