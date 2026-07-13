@@ -23,6 +23,7 @@ export type ClientRecord = {
   country: string | null; countryOfOrigin: string | null;
   addresses: ClientAddress[] | null;
   invoiceCurrency: string | null;
+  hasOrders : boolean;
   isActive: boolean; isDeleted: boolean;
   createdBy: string; createdAt: string; updatedBy: string | null; updatedAt: string | null;
 };
