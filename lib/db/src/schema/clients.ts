@@ -24,6 +24,7 @@ export const clientsTable = pgTable("clients", {
   altEmail: text("alt_email"),
   contactNo: text("contact_no").notNull(),
   altContactNo: text("alt_contact_no"),
+  customClientCode: text("custom_client_code"),
   country: text("country"),
   countryOfOrigin: text("country_of_origin"),
   hasGst: boolean("has_gst").notNull().default(false),

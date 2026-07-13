@@ -1,0 +1,1 @@
+ALTER TABLE "clients" ADD COLUMN "custom_client_code" text;
