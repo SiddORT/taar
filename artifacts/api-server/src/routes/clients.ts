@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 // import { eq, ilike, or, and, desc, count, asc } from "drizzle-orm";
-import { db, clientsTable , eq, ilike, or, and, desc, count, asc} from "@workspace/db";
-import { insertClientSchema, updateClientSchema, deliveryAddresses } from "@workspace/db";
+import { db, clientsTable , eq, ilike, or, and, desc, count} from "@workspace/db";
+import { insertClientSchema, updateClientSchema, deliveryAddresses, swatchOrdersTable, styleOrdersTable, quotations } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
 import { logger } from "../lib/logger";
 import { nextSequenceNumber } from "../utils/sequence";
@@ -63,7 +63,30 @@ router.get("/clients/:id", requireAuth, async (req, res): Promise<void> => {
   if (isNaN(id)) { res.status(400).json({ error: "Invalid ID" }); return; }
   const [record] = await db.select().from(clientsTable).where(and(eq(clientsTable.id, id), eq(clientsTable.isDeleted, false)));
   if (!record) { res.status(404).json({ error: "Client not found" }); return; }
-  res.json(record);
+  const [swatch] = await db
+    .select({ id: swatchOrdersTable.id })
+    .from(swatchOrdersTable)
+    .where(eq(swatchOrdersTable.clientId, String(id)))
+    .limit(1);
+
+  const [style] = await db
+    .select({ id: styleOrdersTable.id })
+    .from(styleOrdersTable)
+    .where(eq(styleOrdersTable.clientId, String(id)))
+    .limit(1);
+
+  const [quotation] = await db
+    .select({ id: quotations.id })
+    .from(quotations)
+    .where(eq(quotations.clientId, id))
+    .limit(1);
+
+  const hasOrders = !!(swatch || style || quotation);
+
+  res.json({
+    ...record,
+    hasOrders,
+  });
 });
 
 router.post("/clients", requireAuth, async (req: AuthRequest, res): Promise<void> => {
