@@ -72,6 +72,11 @@ router.post("/swatch-orders", requireAuth, async (req, res): Promise<void> => {
     return;
   }
 
+  if(!body.clientId){
+    res.status(400).json({ error: "Client is required" });
+    return;
+  }
+
   const orderCode = await generateOrderCode();
   const [row] = await db.insert(swatchOrdersTable).values({
     orderCode,

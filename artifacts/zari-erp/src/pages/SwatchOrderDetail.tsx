@@ -480,6 +480,10 @@ export default function SwatchOrderDetail() {
       toast({ title: "Swatch Name is required", variant: "destructive" });
       return;
     }
+    if (!form.clientId) {
+      toast({ title: "Client is required", variant: "destructive" });
+      return;
+    }
     const dateErr = validateDates();
     if (dateErr) {
       toast({ title: dateErr, variant: "destructive" });
@@ -715,7 +719,7 @@ export default function SwatchOrderDetail() {
                   value={form.swatchName} onChange={e => set("swatchName", e.target.value)} />
               </Field>
 
-              <Field label="Client">
+              <Field label="Client *">
                 <AddableSelect
                   value={form.clientId}
                   onChange={v => {
