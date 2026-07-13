@@ -398,7 +398,7 @@ export default function ClientForm() {
                 disabled={existingClient?.hasOrders}
                 className={`w-full rounded-lg border bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 shadow-sm outline-none transition focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10 ${errors.customClientCode ? "border-red-400 focus:border-red-400 focus:ring-red-400/10" : "border-gray-300 hover:border-gray-400"}`}
               />
-              </div>
+            </div>
             <div className="grid grid-cols-1 gap-4">
               <SearchableSelect label="Country" value={form.country}
                 onChange={handleCountryChange}
