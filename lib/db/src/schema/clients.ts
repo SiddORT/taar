@@ -59,6 +59,7 @@ const clientAddressSchema = z.object({
   pincode: z.string(),
   country: z.string(),
   isBillingDefault: z.boolean(),
+  isDeliveryDefault: z.boolean().optional().default(false),
 });
 
 const NAME_PATTERN = /^[A-Za-z]+( [A-Za-z]+)*$/;

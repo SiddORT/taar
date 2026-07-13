@@ -1,0 +1,1 @@
+ALTER TABLE "delivery_addresses" ADD COLUMN "client_address_id" text;

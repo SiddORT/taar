@@ -52,6 +52,7 @@ function emptyAddress(): ClientAddress {
     pincode: "",
     country: "India",
     isBillingDefault: false,
+    isDeliveryDefault: false,
   };
 }
 
@@ -126,6 +127,7 @@ export default function ClientForm() {
           pincode: (existingClient as any).pincode ?? "",
           country: existingClient.country ?? "India",
           isBillingDefault: true,
+          isDeliveryDefault: false,
         });
       }
       const loaded: ClientFormData = {
@@ -243,6 +245,13 @@ export default function ClientForm() {
     setForm(f => ({
       ...f,
       addresses: f.addresses.map(a => ({ ...a, isBillingDefault: a.id === id })),
+    }));
+  }
+
+  function setDefaultDelivery(id: string) {
+    setForm(f => ({
+      ...f,
+      addresses: f.addresses.map(a => ({ ...a, isDeliveryDefault: a.type === "Delivery Address" ? a.id === id : false })),
     }));
   }
 
@@ -482,20 +491,51 @@ export default function ClientForm() {
                 <div className="flex items-center gap-3 mb-4">
                   <span className="text-xs font-bold text-gray-400">#{i + 1}</span>
                   <select value={addr.type}
-                    onChange={e => updateAddress(addr.id, { type: e.target.value as ClientAddress["type"] })}
+                    onChange={e => {
+                      const type = e.target.value as ClientAddress["type"];
+                      updateAddress(addr.id, {
+                        type,
+                        isDeliveryDefault:
+                          type === "Delivery Address"
+                            ? addr.isDeliveryDefault
+                            : false,
+                      });
+                    }}
                     className={`${inputCls} flex-1 max-w-[180px]`}>
                     {ADDR_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
                   </select>
 
-                  <button type="button" onClick={() => setDefaultBilling(addr.id)}
-                    className={`flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-lg border transition-all ${addr.isBillingDefault
-                      ? "border-[#C6AF4B] text-[#8a7a2e] bg-[#C6AF4B]/10"
-                      : "border-gray-200 text-gray-400 hover:border-[#C6AF4B]/50 hover:text-[#a8922e]"}`}>
-                    <Star size={12} className={addr.isBillingDefault ? "fill-[#C6AF4B]" : ""} />
-                    {addr.isBillingDefault ? "Default Billing" : "Set as Billing Default"}
-                  </button>
+                  {addr.type === "Delivery Address" && (
+                    <button
+                      type="button"
+                      onClick={() => setDefaultDelivery(addr.id)}
+                      className={`flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-lg border transition-all ${
+                        addr.isDeliveryDefault
+                          ? "border-green-600 text-green-700 bg-green-50"
+                          : "border-gray-200 text-gray-400 hover:border-green-500 hover:text-green-600"
+                      }`}
+                    >
+                      <Star
+                        size={12}
+                        className={addr.isDeliveryDefault ? "fill-green-600" : ""}
+                      />
+                      {addr.isDeliveryDefault
+                        ? "Default Delivery"
+                        : "Set as Delivery Default"}
+                    </button>
+                  )}
 
-                  {addr.isBillingDefault && (
+                  {addr.type !== "Delivery Address" && (
+                    <button type="button" onClick={() => setDefaultBilling(addr.id)}
+                      className={`flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-lg border transition-all ${addr.isBillingDefault
+                        ? "border-[#C6AF4B] text-[#8a7a2e] bg-[#C6AF4B]/10"
+                        : "border-gray-200 text-gray-400 hover:border-[#C6AF4B]/50 hover:text-[#a8922e]"}`}>
+                      <Star size={12} className={addr.isBillingDefault ? "fill-[#C6AF4B]" : ""} />
+                      {addr.isBillingDefault ? "Default Billing" : "Set as Billing Default"}
+                    </button>
+                  )}
+
+                  {addr.type !== "Delivery Address" && addr.isBillingDefault && (
                     <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#C6AF4B]/20 text-[#8a7a2e] uppercase tracking-wide">
                       Billing Default
                     </span>

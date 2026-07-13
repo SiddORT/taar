@@ -208,6 +208,7 @@ export const orderShippingDetails = pgTable("order_shipping_details", {
 export const deliveryAddresses = pgTable("delivery_addresses", {
         id: serial().primaryKey().notNull(),
         clientId: integer("client_id").notNull(),
+        clientAddressId: text("client_address_id"),
         label: text().default('Default').notNull(),
         addressLine1: text("address_line1"),
         addressLine2: text("address_line2"),

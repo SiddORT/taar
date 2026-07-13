@@ -13,6 +13,7 @@ export interface ClientAddress {
   pincode: string;
   country: string;
   isBillingDefault: boolean;
+  isDeliveryDefault?: boolean;
 }
 
 export type ClientRecord = {

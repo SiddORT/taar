@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 // import { eq, ilike, or, and, desc, count, asc } from "drizzle-orm";
 import { db, clientsTable , eq, ilike, or, and, desc, count, asc} from "@workspace/db";
-import { insertClientSchema, updateClientSchema } from "@workspace/db";
+import { insertClientSchema, updateClientSchema, deliveryAddresses } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
 import { logger } from "../lib/logger";
 import { nextSequenceNumber } from "../utils/sequence";
@@ -91,6 +91,26 @@ router.post("/clients", requireAuth, async (req: AuthRequest, res): Promise<void
   const clientCode = `CLI${String(next).padStart(4, "0")}`;
 
   const [record] = await db.insert(clientsTable).values({ ...parsed.data, brandName: bn, contactName: cn, clientCode, createdBy }).returning();
+  const deliveryAddressList =
+  parsed.data.addresses?.filter(
+    a => a.type === "Delivery Address"
+  ) ?? [];  
+
+  if (deliveryAddressList.length > 0) {
+    await db.insert(deliveryAddresses).values(
+      deliveryAddressList.map((a, index) => ({
+        clientId: record.id,
+        label: a.name || `Delivery ${index + 1}`,
+        addressLine1: a.address1 || null,
+        addressLine2: a.address2 || null,
+        city: a.city || null,
+        state: a.state || null,
+        country: a.country || null,
+        pincode: a.pincode || null,
+        isDefault: a.isDeliveryDefault ?? false,
+      }))
+    );
+  }
   logger.info({ id: record.id, clientCode }, "Client created");
   res.status(201).json(record);
 });
@@ -117,6 +137,119 @@ router.put("/clients/:id", requireAuth, async (req: AuthRequest, res): Promise<v
       res.status(400).json({ error: "Contact Name must contain only letters and spaces." }); return;
     }
     parsed.data.contactName = cn;
+  }
+  
+  const incomingAddresses = parsed.data.addresses ?? [];
+  
+  // Get existing delivery addresses for this client
+  const existingDeliveryAddresses = await db.select().from(deliveryAddresses)
+    .where(and(
+      eq(deliveryAddresses.clientId, id),
+      eq(deliveryAddresses.isDeleted, false)
+    ));
+
+  // Map existing by client_address_id for quick lookup
+  const existingByClientAddrId = new Map(
+    existingDeliveryAddresses
+      .filter(a => a.clientAddressId)
+      .map(a => [a.clientAddressId, a])
+  );
+
+  const usedDbIds = new Set<number>();
+  const addressesToInsert: any[] = [];
+
+  for (const incoming of incomingAddresses) {
+    const isDelivery = incoming.type === "Delivery Address";
+    const clientAddrId = incoming.id;
+
+    if (!clientAddrId) {
+      // No id from frontend — treat as new if delivery
+      if (isDelivery) {
+        addressesToInsert.push({
+          clientId: id,
+          clientAddressId: null,
+          label: incoming.name || "Delivery Address",
+          addressLine1: incoming.address1 || null,
+          addressLine2: incoming.address2 || null,
+          city: incoming.city || null,
+          state: incoming.state || null,
+          country: incoming.country || null,
+          pincode: incoming.pincode || null,
+          isDefault: incoming.isDeliveryDefault ?? false,
+        });
+      }
+      continue;
+    }
+
+    const existing = existingByClientAddrId.get(clientAddrId);
+
+    if (existing) {
+      // Found matching record by client_address_id
+      if (isDelivery) {
+        // Still delivery — UPDATE (full replace, no text comparison)
+        usedDbIds.add(existing.id);
+        await db.update(deliveryAddresses)
+          .set({
+            label: incoming.name || existing.label,
+            addressLine1: incoming.address1 ?? existing.addressLine1,
+            addressLine2: incoming.address2 ?? existing.addressLine2,
+            city: incoming.city ?? existing.city,
+            state: incoming.state ?? existing.state,
+            country: incoming.country ?? existing.country,
+            pincode: incoming.pincode ?? existing.pincode,
+            isDefault: incoming.isDeliveryDefault ?? existing.isDefault,
+            updatedAt: new Date().toISOString(),
+          })
+          .where(eq(deliveryAddresses.id, existing.id));
+      } else {
+        // Changed to non-delivery — SOFT DELETE
+        usedDbIds.add(existing.id);
+        await db.update(deliveryAddresses)
+          .set({ 
+            isDeleted: true, 
+            deletedAt: new Date(),
+            deletedBy: req.user?.email ?? "system",
+            clientAddressId: null,
+          })
+          .where(eq(deliveryAddresses.id, existing.id));
+      }
+    } else {
+      // No existing record for this client_address_id
+      if (isDelivery) {
+        addressesToInsert.push({
+          clientId: id,
+          clientAddressId: clientAddrId,
+          label: incoming.name || "Delivery Address",
+          addressLine1: incoming.address1 || null,
+          addressLine2: incoming.address2 || null,
+          city: incoming.city || null,
+          state: incoming.state || null,
+          country: incoming.country || null,
+          pincode: incoming.pincode || null,
+          isDefault: incoming.isDeliveryDefault ?? false,
+        });
+      }
+    }
+  }
+
+  // Bulk insert new ones
+  if (addressesToInsert.length > 0) {
+    await db.insert(deliveryAddresses).values(addressesToInsert);
+  }
+
+  // Soft-delete existing records whose client_address_id is no longer in incoming
+  const incomingIds = new Set(incomingAddresses.map(a => a.id).filter(Boolean));
+  for (const existing of existingDeliveryAddresses) {
+    if (existing.clientAddressId && !incomingIds.has(existing.clientAddressId) && !usedDbIds.has(existing.id)) {
+      await db.update(deliveryAddresses)
+        .set({ 
+          isDeleted: true, 
+          deletedAt: new Date(),
+          deletedBy: req.user?.email ?? "system",
+          clientAddressId: null,
+        })
+        .where(eq(deliveryAddresses.id, existing.id));
+    }
   }
 
   const updatedBy = req.user?.email ?? "system";
