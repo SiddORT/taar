@@ -643,6 +643,7 @@ export default function StyleOrderDetail() {
                       }}
                       options={clientOptions}
                       placeholder="— Select client —"
+                      disabled={!isNew}
                     />
                   </Field>
 
