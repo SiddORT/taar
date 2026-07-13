@@ -19,6 +19,7 @@ export interface ClientAddress {
 export type ClientRecord = {
   id: number; clientCode: string; brandName: string; contactName: string; email: string;
   altEmail: string | null; contactNo: string; altContactNo: string | null;
+  customClientCode: string | null;
   country: string | null; countryOfOrigin: string | null;
   addresses: ClientAddress[] | null;
   invoiceCurrency: string | null;
@@ -36,6 +37,7 @@ export type ClientFormData = {
   country: string;
   addresses: ClientAddress[];
   invoiceCurrency: string;
+  customClientCode: string;
   isActive: boolean;
 };
 

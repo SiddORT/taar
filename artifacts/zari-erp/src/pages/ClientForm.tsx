@@ -58,7 +58,7 @@ function emptyAddress(): ClientAddress {
 
 const EMPTY_FORM: ClientFormData = {
   brandName: "", contactName: "", email: "", altEmail: "",
-  contactNo: "+91", altContactNo: "+91", country: "",
+  contactNo: "+91", altContactNo: "+91", country: "",customClientCode: "",
   addresses: [],
   invoiceCurrency: "INR",
   isActive: true,
@@ -137,6 +137,7 @@ export default function ClientForm() {
         altEmail: existingClient.altEmail ?? "",
         contactNo: existingClient.contactNo || "+91",
         altContactNo: existingClient.altContactNo ?? "+91",
+        customClientCode: existingClient.customClientCode ?? "",
         country: existingClient.country ?? existingClient.countryOfOrigin ?? "",
         addresses: existingClient.addresses && existingClient.addresses.length > 0
           ? existingClient.addresses
@@ -380,7 +381,24 @@ export default function ClientForm() {
               error={errors.contactNo} required placeholder="Phone number" />
             <PhoneInput label="Alternate Contact No" value={form.altContactNo}
               onChange={v => setForm(f => ({ ...f, altContactNo: v }))} placeholder="Alternate phone" />
-            <div className="col-span-2">
+            <div>
+              <label className="text-sm font-medium text-gray-700">Custom Client Code<span className="text-red-500 ml-0.5">*</span></label>
+              <span className={`text-xs ${form.customClientCode.length > 90 ? "text-orange-500" : "text-gray-400"}`}>{form.customClientCode.length}/100</span>
+              <input
+                value={form.customClientCode}
+                maxLength={100}
+                placeholder="Custom Client Code"
+                onChange={e => {
+                  const val = e.target.value.replace(/  +/g, " ");
+                  if (val.length <= 100) {
+                    setForm(f => ({ ...f, customClientCode: val }));
+                    const t = val.trim();
+                  }
+                }}
+                className={`w-full rounded-lg border bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 shadow-sm outline-none transition focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10 ${errors.customClientCode ? "border-red-400 focus:border-red-400 focus:ring-red-400/10" : "border-gray-300 hover:border-gray-400"}`}
+              />
+              </div>
+            <div className="grid grid-cols-1 gap-4">
               <SearchableSelect label="Country" value={form.country}
                 onChange={handleCountryChange}
                 options={COUNTRY_NAMES} placeholder="Select country" required
