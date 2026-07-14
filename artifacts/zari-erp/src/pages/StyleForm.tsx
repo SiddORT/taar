@@ -399,8 +399,10 @@ export default function StyleForm() {
 
   useEffect(() => {
     if (!isNew && existing && !populated) {
+      const styleSuffix = existing.styleNo?.includes("-") ? existing.styleNo.substring(existing.styleNo.indexOf("-") + 1): existing.styleNo ?? "";
       setForm({
-        client: existing.client, styleNo: existing.styleNo,
+        client: existing.client, 
+        styleNo: styleSuffix,
         styleCategory: existing.styleCategory ?? "",
         invoiceNo: existing.invoiceNo ?? "", description: existing.description ?? "",
         attachLink: existing.attachLink ?? "", placeOfIssue: existing.placeOfIssue ?? "",
@@ -468,12 +470,27 @@ export default function StyleForm() {
     if (!validate()) return;
     try {
       if (!isNew && numId) {
-        await updateMutation.mutateAsync({ id: numId, data: form });
+        const payload = {
+            ...form,
+            styleNo: clientPrefix
+                ? `${clientPrefix}-${form.styleNo}`
+                : form.styleNo,
+        };
+
+        await updateMutation.mutateAsync({
+            id: numId,
+            data: payload,
+        });
         if (pendingWip.length > 0) await uploadPendingToServer(numId, pendingWip, "wip");
         if (pendingFinal.length > 0) await uploadPendingToServer(numId, pendingFinal, "final");
         toast({ title: "Style updated successfully." });
       } else {
-        const record = await createMutation.mutateAsync(form) as StyleRecord;
+        const payload = {
+          ...form,
+          styleNo: clientPrefix ? `${clientPrefix}-${form.styleNo}` : form.styleNo,
+        };
+
+        const record = await createMutation.mutateAsync(payload) as StyleRecord;
         if (pendingWip.length > 0) await uploadPendingToServer(record.id, pendingWip, "wip");
         if (pendingFinal.length > 0) await uploadPendingToServer(record.id, pendingFinal, "final");
         toast({ title: "Style created successfully." });
@@ -485,6 +502,11 @@ export default function StyleForm() {
   }
 
   const submitting = createMutation.isPending || updateMutation.isPending;
+  const selectedClient = (clientsData ?? []).find(
+    c => c.brandName === form.client
+  );
+
+  const clientPrefix = selectedClient?.customClientCode ?? "";
 
   if (!user) return null;
   if (!isNew && loadingRecord) {
@@ -541,19 +563,32 @@ export default function StyleForm() {
 
                     <FieldWrap label="Client" required error={errors.client}>
                       <SearchableSelect value={form.client} onChange={v => setField("client", v)}
-                        options={clientOptions} placeholder="Select client" clearable />
+                        options={clientOptions} placeholder="Select client" clearable 
+                        disabled={!isNew}
+                        />
                     </FieldWrap>
 
                     {/* Style No — always read-only */}
-                    <FieldWrap label="Style No">
-                      <div className={`px-3 py-2 text-sm border rounded-lg font-mono ${
-                        isNew
-                          ? "bg-gray-50 border-dashed border-gray-300 text-gray-400 italic"
-                          : "bg-gray-50 border-gray-200 text-gray-500"
-                      }`}>
-                        {isNew ? "Auto-generated (ST-XXXX)" : (existing?.styleNo ?? "")}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Style No
+                      </label>
+
+                      <div className="flex">
+                        <span className="inline-flex items-center px-3 rounded-l-lg border border-r-0 border-gray-300 bg-gray-100 text-gray-600 text-sm whitespace-nowrap">
+                          {clientPrefix || "Select Client"}-
+                        </span>
+
+                        <input
+                          type="text"
+                          value={form.styleNo}
+                          onChange={(e) => setField("styleNo", e.target.value)}
+                          disabled={!isNew}
+                          className="flex-1 rounded-r-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900/10"
+                          placeholder="STYLE001"
+                        />
                       </div>
-                    </FieldWrap>
+                    </div>
 
                     <FieldWrap label="Style Category" required error={errors.styleCategory}>
                       <SearchableSelect value={form.styleCategory} onChange={v => setField("styleCategory", v)}
