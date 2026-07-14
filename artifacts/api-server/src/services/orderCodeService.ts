@@ -11,7 +11,7 @@ export async function generateOrderCode(
   clientId: number,
   table: keyof typeof IDENTIFIERS,
   codeColumn: string,
-  client: any
+  client?: any
 ): Promise<string> {
   // Fetch client's custom code
   const [clientRow] = await db

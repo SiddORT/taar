@@ -3,50 +3,9 @@ import { Router, type IRouter } from "express";
 import { db, swatchOrdersTable,clientsTable, eq, and, ilike, or, desc, sql } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
 import { logger } from "../lib/logger";
+import { generateOrderCode } from "../services/orderCodeService";
 
 const router: IRouter = Router();
-
-async function generateOrderCode(clientId: number): Promise<string> {
-  // Get client's custom client code
-  const [client] = await db
-    .select({
-      customClientCode: clientsTable.customClientCode,
-    })
-    .from(clientsTable)
-    .where(eq(clientsTable.id, clientId))
-    .limit(1);
-
-  if (!client) {
-    throw new Error("Client not found");
-  }
-
-  if (!client.customClientCode?.trim()) {
-    throw new Error("Client does not have a Custom Client Code.");
-  }
-
-  const prefix = `${client.customClientCode.trim()}-`;
-
-  // Find latest order for this client prefix
-  const [latest] = await db
-    .select({
-      orderCode: swatchOrdersTable.orderCode,
-    })
-    .from(swatchOrdersTable)
-    .where(ilike(swatchOrdersTable.orderCode, `${prefix}%`))
-    .orderBy(desc(swatchOrdersTable.orderCode))
-    .limit(1);
-
-  if (!latest) {
-    return `${prefix}0001`;
-  }
-
-  const num = parseInt(
-    latest.orderCode.replace(prefix, ""),
-    10
-  );
-
-  return `${prefix}${String(num + 1).padStart(4, "0")}`;
-}
 
 router.get("/swatch-orders", requireAuth, async (req, res): Promise<void> => {
   const { search = "", status = "all", priority = "all", chargeable = "all", page = "1", limit = "20" } = req.query as Record<string, string>;
@@ -107,7 +66,12 @@ router.post("/swatch-orders", requireAuth, async (req, res): Promise<void> => {
   }
   const clientId = Number(body.clientId);
 
-  const orderCode = await generateOrderCode(clientId);
+  const orderCode = await generateOrderCode(
+    clientId,
+    "swatch_orders",
+    "order_code"
+  );
+
   const [row] = await db.insert(swatchOrdersTable).values({
     orderCode,
     swatchName: body.swatchName as string,
