@@ -315,7 +315,7 @@ export default function QuotationForm() {
           </div>
 
           {/* Client Detail Card (read-only, shown after selection) */}
-          {selectedClient && (
+          {/* {selectedClient && (
             <div className="border border-[#C6AF4B]/20 rounded-xl bg-[#C6AF4B]/[0.04] p-4">
               <div className="flex items-center justify-between gap-3 mb-3">
                 <div>
@@ -391,7 +391,7 @@ export default function QuotationForm() {
                 )}
               </div>
             </div>
-          )}
+          )} */}
         </div>
 
         {/* ─── Requirement Details ────────────────────────────────────────── */}
