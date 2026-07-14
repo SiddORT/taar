@@ -24,7 +24,7 @@ const NAME_REGEX = /^[A-Za-z]+( [A-Za-z]+)*$/;
 const NUMERIC_REGEX = /^[0-9]+(\.[0-9]{1,2})?$/;
 
 const EMPTY_FORM: SwatchFormData = {
-  client: "", swatchName: "", swatchCategory: "", fabric: "",
+  client: "", swatchName: "", swatchCode: "", swatchCategory: "", fabric: "",
   location: "", swatchDate: "", length: "", width: "", unitType: "",
   hours: "", attachments: [], isActive: true,
 };
@@ -200,8 +200,12 @@ export default function SwatchForm() {
   // Populate form from loaded record (edit mode)
   useEffect(() => {
     if (!isNew && existing && !populated) {
+      const fullCode = existing.swatchCode ?? "";
+      const suffix = fullCode.includes("-") ? fullCode.substring(fullCode.indexOf("-") + 1) : fullCode;
+
       setForm({
         client: existing.client ?? "", swatchName: existing.swatchName,
+        swatchCode: suffix ?? "",
         swatchCategory: existing.swatchCategory ?? "", fabric: existing.fabric ?? "",
         location: existing.location ?? "", swatchDate: existing.swatchDate ?? "",
         length: existing.length ?? "", width: existing.width ?? "",
@@ -274,6 +278,7 @@ export default function SwatchForm() {
     if (!validate()) return;
     const payload: SwatchFormData = {
       ...form,
+      swatchCode: clientPrefix ? `${clientPrefix}-${form.swatchCode}` : form.swatchCode,
       swatchName: form.swatchName.trim(),
       length: form.length.trim(),
       width: form.width.trim(),
@@ -344,6 +349,9 @@ export default function SwatchForm() {
 
   const submitting = createMutation.isPending || updateMutation.isPending;
 
+  const selectedClient = (clientsData ?? []).find( (c) => c.brandName === form.client);
+  const clientPrefix = selectedClient?.customClientCode ?? "";
+
   if (!user) return null;
   if (!isNew && loadingRecord) {
     return (
@@ -399,8 +407,29 @@ export default function SwatchForm() {
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Client</label>
-                      <SearchableSelect value={form.client} onChange={v => setField("client", v)}
-                        options={clientOptions} placeholder="Select client" clearable />
+                      <SearchableSelect value={form.client} onChange={v => { setField("client", v);}}
+                        options={clientOptions} placeholder="Select client" clearable disabled={!isNew}/>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Swatch Code
+                      </label>
+
+                      <div className="flex">
+                        <span className="inline-flex items-center px-3 rounded-l-lg border border-r-0 border-gray-300 bg-gray-100 text-gray-600 text-sm whitespace-nowrap">
+                          {clientPrefix || "Select Client"}-
+                        </span>
+
+                        <input
+                          type="text"
+                          value={form.swatchCode}
+                          onChange={(e) => setField("swatchCode", e.target.value)}
+                          disabled={!isNew}
+                          className="flex-1 border border-gray-300 rounded-r-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900"
+                          placeholder="SWA001"
+                        />
+                      </div>
                     </div>
 
                     <div>

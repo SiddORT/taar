@@ -138,16 +138,23 @@ router.post("/swatches", requireAuth, async (req: AuthRequest, res): Promise<voi
   if (dupSwatch.length > 0) { res.status(409).json({ error: `A swatch named "${parsed.data.swatchName}" already exists.` }); return; }
 
   const createdBy = req.user?.email ?? "system";
-  const prefix = "SW-";
-  const [latest] = await db
-    .select({ swatchCode: swatchesTable.swatchCode })
+  const swatchCode = String(req.body.swatchCode).trim();
+
+  const existingSwatch = await db
+    .select({ id: swatchesTable.id })
     .from(swatchesTable)
-    .where(ilike(swatchesTable.swatchCode, `${prefix}%`))
-    .orderBy(desc(swatchesTable.swatchCode))
+    .where(
+      and(
+        eq(swatchesTable.swatchCode, swatchCode),
+        eq(swatchesTable.isDeleted, false)
+      )
+    )
     .limit(1);
-  const swatchCode = !latest
-    ? `${prefix}0001`
-    : `${prefix}${String(parseInt(latest.swatchCode.replace(prefix, ""), 10) + 1).padStart(4, "0")}`;
+
+  if (existingSwatch.length > 0) {
+    res.status(409).json({ error: `Swatch code "${swatchCode}" already exists.`,});
+    return;
+  }
 
   const [record] = await db.insert(swatchesTable).values({ ...parsed.data, swatchCode, createdBy }).returning();
   logger.info({ id: record.id, swatchCode }, "Swatch created");
