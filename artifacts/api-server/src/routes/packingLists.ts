@@ -132,24 +132,23 @@ router.get("/eligible-orders-for-packing", requireAuth, async (req, res) => {
     const { client_id, delivery_address_id } = req.query;
     if (!client_id) return res.status(400).json({ error: "client_id is required" });
 
-    const daCondition = delivery_address_id
-      ? `AND o.delivery_address_id = ${parseInt(delivery_address_id as string)}`
-      : "";
 
     const [swatches, styles] = await Promise.all([
       pool.query(
-        `SELECT id, order_code, swatch_name AS name, client_name, delivery_address_id, order_status, quantity
+        `SELECT id, order_code, swatch_name AS name, client_name, order_status, quantity
          FROM swatch_orders o
-         WHERE client_id::text = $1::text ${daCondition} AND is_deleted = FALSE
+         WHERE client_id::text = $1::text  AND is_deleted = FALSE
            AND order_status NOT IN ('Shipped','Cancelled')
+           AND order_status = 'Completed'
          ORDER BY order_code DESC LIMIT 300`,
         [client_id]
       ),
       pool.query(
-        `SELECT id, order_code, style_name AS name, client_name, delivery_address_id, order_status, quantity
+        `SELECT id, order_code, style_name AS name, client_name, order_status, quantity
          FROM style_orders o
-         WHERE client_id::text = $1::text ${daCondition} AND is_deleted = FALSE
+         WHERE client_id::text = $1::text  AND is_deleted = FALSE
            AND order_status NOT IN ('Shipped','Cancelled')
+           AND order_status = 'Completed'
          ORDER BY order_code DESC LIMIT 300`,
         [client_id]
       ),
