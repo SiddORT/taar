@@ -636,14 +636,14 @@ export default function PackingListForm() {
                 </div>
               )}
 
-              {deliveryAddressId && (
+              {/* {deliveryAddressId && (
                 <div className="mt-3 p-3 rounded-xl bg-gray-50 border border-gray-100 flex items-start gap-2">
                   <AlertCircle className="h-4 w-4 text-gray-400 mt-0.5 shrink-0" />
                   <p className="text-xs text-gray-500">
                     Only orders matching this delivery address can be packed. Shipped or cancelled orders are excluded.
                   </p>
                 </div>
-              )}
+              )} */}
             </div>
 
             {/* Shipment + Details */}
