@@ -258,6 +258,10 @@ export default function VendorMaster() {
         const accountNo = String(row["Account No"] ?? "").trim();
         const ifscCode = String(row["IFSC Code"] ?? "").trim();
         const hasBank = bankName || accountNo || ifscCode;
+        const vendorContactName = String(row["Contact Name"] ?? "").trim();
+        const vendorContactNo = String(row["Contact No"] ?? "").trim();
+        const addressContactPerson = String(row["Address Contact Person"] ?? "").trim() || vendorContactName;
+        const addressContactNumber = String(row["Address Contact Number"] ?? "").trim() || vendorContactNo;
         return {
           brandName: String(row["Brand / Vendor Name"] ?? "").trim(),
           contactName: String(row["Contact Name"] ?? "").trim(),
@@ -268,7 +272,7 @@ export default function VendorMaster() {
           country: String(row["Country (General)"] ?? "").trim() || undefined,
           hasGst,
           gstNo: hasGst ? (String(row["GST No"] ?? "").trim() || undefined) : undefined,
-          addresses: hasAddr ? [{ id: Math.random().toString(36).slice(2, 10), type: addrType, address1: addrLine1, address2: addrLine2, pincode: addrPincode, city: addrCity, state: addrState, country: addrCountry, isBillingDefault: true }] : undefined,
+          addresses: hasAddr ? [{ id: Math.random().toString(36).slice(2, 10), type: addrType,  name: addressContactPerson,contactNo: addressContactNumber, address1: addrLine1, address2: addrLine2, pincode: addrPincode, city: addrCity, state: addrState, country: addrCountry, isBillingDefault: true }] : undefined,
           bankAccounts: hasBank ? [{ bankName, accountNo, ifscCode }] : undefined,
         };
       });
