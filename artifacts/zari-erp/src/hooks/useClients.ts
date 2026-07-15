@@ -13,14 +13,17 @@ export interface ClientAddress {
   pincode: string;
   country: string;
   isBillingDefault: boolean;
+  isDeliveryDefault?: boolean;
 }
 
 export type ClientRecord = {
   id: number; clientCode: string; brandName: string; contactName: string; email: string;
   altEmail: string | null; contactNo: string; altContactNo: string | null;
+  customClientCode: string | null;
   country: string | null; countryOfOrigin: string | null;
   addresses: ClientAddress[] | null;
   invoiceCurrency: string | null;
+  hasOrders : boolean;
   isActive: boolean; isDeleted: boolean;
   createdBy: string; createdAt: string; updatedBy: string | null; updatedAt: string | null;
 };
@@ -35,6 +38,7 @@ export type ClientFormData = {
   country: string;
   addresses: ClientAddress[];
   invoiceCurrency: string;
+  customClientCode: string;
   isActive: boolean;
 };
 

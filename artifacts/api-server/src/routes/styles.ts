@@ -212,7 +212,25 @@ router.post("/styles", requireAuth, async (req: AuthRequest, res): Promise<void>
   if (dupStyle.length > 0) { res.status(409).json({ error: `A style for client "${parsed.data.client}" with the same description and category already exists.` }); return; }
 
   const createdBy = req.user?.email ?? "system";
-  const styleNo = await generateStyleNo();
+  const styleNo = req.body.styleNo?.trim();
+
+  const dupStyleNo = await db
+  .select({ id: stylesTable.id })
+  .from(stylesTable)
+  .where(
+    and(
+      ilike(stylesTable.styleNo, styleNo),
+      eq(stylesTable.isDeleted, false)
+    )
+  );
+
+  if (dupStyleNo.length > 0) {
+    res.status(409).json({
+      error: `Style No "${styleNo}" already exists.`,
+    });
+    return;
+  }
+
   const [record] = await db.insert(stylesTable).values({ ...parsed.data, styleNo, createdBy }).returning();
   logger.info({ id: record.id }, "Style created");
   res.status(201).json(record);

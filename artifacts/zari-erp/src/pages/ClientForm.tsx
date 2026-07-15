@@ -52,12 +52,13 @@ function emptyAddress(): ClientAddress {
     pincode: "",
     country: "India",
     isBillingDefault: false,
+    isDeliveryDefault: false,
   };
 }
 
 const EMPTY_FORM: ClientFormData = {
   brandName: "", contactName: "", email: "", altEmail: "",
-  contactNo: "+91", altContactNo: "+91", country: "",
+  contactNo: "+91", altContactNo: "+91", country: "",customClientCode: "",
   addresses: [],
   invoiceCurrency: "INR",
   isActive: true,
@@ -126,6 +127,7 @@ export default function ClientForm() {
           pincode: (existingClient as any).pincode ?? "",
           country: existingClient.country ?? "India",
           isBillingDefault: true,
+          isDeliveryDefault: false,
         });
       }
       const loaded: ClientFormData = {
@@ -135,6 +137,7 @@ export default function ClientForm() {
         altEmail: existingClient.altEmail ?? "",
         contactNo: existingClient.contactNo || "+91",
         altContactNo: existingClient.altContactNo ?? "+91",
+        customClientCode: existingClient.customClientCode ?? "",
         country: existingClient.country ?? existingClient.countryOfOrigin ?? "",
         addresses: existingClient.addresses && existingClient.addresses.length > 0
           ? existingClient.addresses
@@ -243,6 +246,13 @@ export default function ClientForm() {
     setForm(f => ({
       ...f,
       addresses: f.addresses.map(a => ({ ...a, isBillingDefault: a.id === id })),
+    }));
+  }
+
+  function setDefaultDelivery(id: string) {
+    setForm(f => ({
+      ...f,
+      addresses: f.addresses.map(a => ({ ...a, isDeliveryDefault: a.type === "Delivery Address" ? a.id === id : false })),
     }));
   }
 
@@ -371,7 +381,25 @@ export default function ClientForm() {
               error={errors.contactNo} required placeholder="Phone number" />
             <PhoneInput label="Alternate Contact No" value={form.altContactNo}
               onChange={v => setForm(f => ({ ...f, altContactNo: v }))} placeholder="Alternate phone" />
-            <div className="col-span-2">
+            <div>
+              <label className="text-sm font-medium text-gray-700">Custom Client Code<span className="text-red-500 ml-0.5">*</span></label>
+              <span className={`text-xs ${form.customClientCode.length > 90 ? "text-orange-500" : "text-gray-400"}`}>{form.customClientCode.length}/100</span>
+              <input
+                value={form.customClientCode}
+                maxLength={100}
+                placeholder="Custom Client Code"
+                onChange={e => {
+                  const val = e.target.value.replace(/  +/g, " ");
+                  if (val.length <= 100) {
+                    setForm(f => ({ ...f, customClientCode: val }));
+                    const t = val.trim();
+                  }
+                }}
+                disabled={existingClient?.hasOrders}
+                className={`w-full rounded-lg border bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 shadow-sm outline-none transition focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10 ${errors.customClientCode ? "border-red-400 focus:border-red-400 focus:ring-red-400/10" : "border-gray-300 hover:border-gray-400"}`}
+              />
+            </div>
+            <div className="grid grid-cols-1 gap-4">
               <SearchableSelect label="Country" value={form.country}
                 onChange={handleCountryChange}
                 options={COUNTRY_NAMES} placeholder="Select country" required
@@ -482,20 +510,51 @@ export default function ClientForm() {
                 <div className="flex items-center gap-3 mb-4">
                   <span className="text-xs font-bold text-gray-400">#{i + 1}</span>
                   <select value={addr.type}
-                    onChange={e => updateAddress(addr.id, { type: e.target.value as ClientAddress["type"] })}
+                    onChange={e => {
+                      const type = e.target.value as ClientAddress["type"];
+                      updateAddress(addr.id, {
+                        type,
+                        isDeliveryDefault:
+                          type === "Delivery Address"
+                            ? addr.isDeliveryDefault
+                            : false,
+                      });
+                    }}
                     className={`${inputCls} flex-1 max-w-[180px]`}>
                     {ADDR_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
                   </select>
 
-                  <button type="button" onClick={() => setDefaultBilling(addr.id)}
-                    className={`flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-lg border transition-all ${addr.isBillingDefault
-                      ? "border-[#C6AF4B] text-[#8a7a2e] bg-[#C6AF4B]/10"
-                      : "border-gray-200 text-gray-400 hover:border-[#C6AF4B]/50 hover:text-[#a8922e]"}`}>
-                    <Star size={12} className={addr.isBillingDefault ? "fill-[#C6AF4B]" : ""} />
-                    {addr.isBillingDefault ? "Default Billing" : "Set as Billing Default"}
-                  </button>
+                  {addr.type === "Delivery Address" && (
+                    <button
+                      type="button"
+                      onClick={() => setDefaultDelivery(addr.id)}
+                      className={`flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-lg border transition-all ${
+                        addr.isDeliveryDefault
+                          ? "border-green-600 text-green-700 bg-green-50"
+                          : "border-gray-200 text-gray-400 hover:border-green-500 hover:text-green-600"
+                      }`}
+                    >
+                      <Star
+                        size={12}
+                        className={addr.isDeliveryDefault ? "fill-green-600" : ""}
+                      />
+                      {addr.isDeliveryDefault
+                        ? "Default Delivery"
+                        : "Set as Delivery Default"}
+                    </button>
+                  )}
 
-                  {addr.isBillingDefault && (
+                  {addr.type !== "Delivery Address" && (
+                    <button type="button" onClick={() => setDefaultBilling(addr.id)}
+                      className={`flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-lg border transition-all ${addr.isBillingDefault
+                        ? "border-[#C6AF4B] text-[#8a7a2e] bg-[#C6AF4B]/10"
+                        : "border-gray-200 text-gray-400 hover:border-[#C6AF4B]/50 hover:text-[#a8922e]"}`}>
+                      <Star size={12} className={addr.isBillingDefault ? "fill-[#C6AF4B]" : ""} />
+                      {addr.isBillingDefault ? "Default Billing" : "Set as Billing Default"}
+                    </button>
+                  )}
+
+                  {addr.type !== "Delivery Address" && addr.isBillingDefault && (
                     <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#C6AF4B]/20 text-[#8a7a2e] uppercase tracking-wide">
                       Billing Default
                     </span>

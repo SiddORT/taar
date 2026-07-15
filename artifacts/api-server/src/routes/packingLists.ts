@@ -132,24 +132,23 @@ router.get("/eligible-orders-for-packing", requireAuth, async (req, res) => {
     const { client_id, delivery_address_id } = req.query;
     if (!client_id) return res.status(400).json({ error: "client_id is required" });
 
-    const daCondition = delivery_address_id
-      ? `AND o.delivery_address_id = ${parseInt(delivery_address_id as string)}`
-      : "";
 
     const [swatches, styles] = await Promise.all([
       pool.query(
-        `SELECT id, order_code, swatch_name AS name, client_name, delivery_address_id, order_status, quantity
+        `SELECT id, order_code, swatch_name AS name, client_name, order_status, quantity
          FROM swatch_orders o
-         WHERE client_id::text = $1::text ${daCondition} AND is_deleted = FALSE
+         WHERE client_id::text = $1::text  AND is_deleted = FALSE
            AND order_status NOT IN ('Shipped','Cancelled')
+           AND order_status = 'Completed'
          ORDER BY order_code DESC LIMIT 300`,
         [client_id]
       ),
       pool.query(
-        `SELECT id, order_code, style_name AS name, client_name, delivery_address_id, order_status, quantity
+        `SELECT id, order_code, style_name AS name, client_name, order_status, quantity
          FROM style_orders o
-         WHERE client_id::text = $1::text ${daCondition} AND is_deleted = FALSE
+         WHERE client_id::text = $1::text  AND is_deleted = FALSE
            AND order_status NOT IN ('Shipped','Cancelled')
+           AND order_status = 'Completed'
          ORDER BY order_code DESC LIMIT 300`,
         [client_id]
       ),
@@ -623,11 +622,12 @@ router.get("/packing-lists/inventory/search", requireAuth, async (req, res) => {
       return res.json({ data: r.rows });
     } else if (type === "fabric") {
       const r = await pool.query(
-        `SELECT id, fabric_code AS code, fabric_name AS name,
+        `SELECT id, fabric_code AS code, 
+            COALESCE(fabric_type || ' - ' || quality || ' - ' || color_name, fabric_type, quality, fabric_code) AS name,
                 current_stock, location_stocks, unit_type AS unit
          FROM fabrics
          WHERE is_deleted = false AND is_active = true
-           AND (fabric_code ILIKE $1 OR fabric_name ILIKE $1)
+           AND (fabric_code ILIKE $1 OR fabric_type ILIKE $1 OR quality ILIKE $1 OR color_name ILIKE $1)
          ORDER BY fabric_code LIMIT 50`,
         [search]
       );

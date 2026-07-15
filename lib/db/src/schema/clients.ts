@@ -24,6 +24,7 @@ export const clientsTable = pgTable("clients", {
   altEmail: text("alt_email"),
   contactNo: text("contact_no").notNull(),
   altContactNo: text("alt_contact_no"),
+  customClientCode: text("custom_client_code"),
   country: text("country"),
   countryOfOrigin: text("country_of_origin"),
   hasGst: boolean("has_gst").notNull().default(false),
@@ -59,6 +60,7 @@ const clientAddressSchema = z.object({
   pincode: z.string(),
   country: z.string(),
   isBillingDefault: z.boolean(),
+  isDeliveryDefault: z.boolean().optional().default(false),
 });
 
 const NAME_PATTERN = /^[A-Za-z]+( [A-Za-z]+)*$/;
@@ -70,6 +72,7 @@ export const insertClientSchema = z.object({
   altEmail: z.email("Valid email").optional().or(z.literal("")),
   contactNo: z.string().min(1, "Contact No is required"),
   altContactNo: z.string().optional(),
+  customClientCode: z.string().min(1, "Custom Client Code is required").max(100),
   country: z.string().optional(),
   countryOfOrigin: z.string().optional(),
   hasGst: z.boolean().default(false),

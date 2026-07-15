@@ -1,23 +1,11 @@
 import { Router, type IRouter } from "express";
 // import { eq, and, ilike, or, desc, sql } from "drizzle-orm";
-import { db, swatchOrdersTable, eq, and, ilike, or, desc, sql } from "@workspace/db";
+import { db, swatchOrdersTable,clientsTable, eq, and, ilike, or, desc, sql } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
 import { logger } from "../lib/logger";
+import { generateOrderCode } from "../services/orderCodeService";
 
 const router: IRouter = Router();
-
-async function generateOrderCode(): Promise<string> {
-  const prefix = "ZSW-";
-  const [latest] = await db
-    .select({ orderCode: swatchOrdersTable.orderCode })
-    .from(swatchOrdersTable)
-    .where(ilike(swatchOrdersTable.orderCode, `${prefix}%`))
-    .orderBy(desc(swatchOrdersTable.orderCode))
-    .limit(1);
-  if (!latest) return `${prefix}0001`;
-  const num = parseInt(latest.orderCode.replace(prefix, ""), 10);
-  return `${prefix}${String(num + 1).padStart(4, "0")}`;
-}
 
 router.get("/swatch-orders", requireAuth, async (req, res): Promise<void> => {
   const { search = "", status = "all", priority = "all", chargeable = "all", page = "1", limit = "20" } = req.query as Record<string, string>;
@@ -72,7 +60,18 @@ router.post("/swatch-orders", requireAuth, async (req, res): Promise<void> => {
     return;
   }
 
-  const orderCode = await generateOrderCode();
+  if(!body.clientId){
+    res.status(400).json({ error: "Client is required" });
+    return;
+  }
+  const clientId = Number(body.clientId);
+
+  const orderCode = await generateOrderCode(
+    clientId,
+    "swatch_orders",
+    "order_code"
+  );
+
   const [row] = await db.insert(swatchOrdersTable).values({
     orderCode,
     swatchName: body.swatchName as string,

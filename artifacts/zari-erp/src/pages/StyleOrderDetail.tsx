@@ -493,6 +493,11 @@ export default function StyleOrderDetail() {
       toast({ title: "Style Name is required", variant: "destructive" });
       return;
     }
+
+    if(!form.clientId.trim()) {
+      toast({ title: "Client is required", variant: "destructive" });
+      return;
+    }
     const dateErr = validateDates();
     if (dateErr) {
       toast({ title: dateErr, variant: "destructive" });
@@ -632,7 +637,7 @@ export default function StyleOrderDetail() {
                       value={form.styleName} onChange={e => set("styleName", e.target.value)} />
                   </Field>
 
-                  <Field label="Client">
+                  <Field label="Client *">
                     <AddableSelect
                       value={form.clientId}
                       onChange={v => {
@@ -643,6 +648,7 @@ export default function StyleOrderDetail() {
                       }}
                       options={clientOptions}
                       placeholder="— Select client —"
+                      disabled={!isNew}
                     />
                   </Field>
 

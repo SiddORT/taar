@@ -13,11 +13,12 @@ interface SearchableSelectProps {
   clearable?: boolean;
   footerAction?: { label: string; onClick: () => void };
   displayValue?: string;
+  disabled?: boolean;
 }
 
 export default function SearchableSelect({
   label, value, onChange, options, placeholder = "Select...", required, error, clearable,
-  footerAction, displayValue,
+  footerAction, displayValue, disabled = false
 }: SearchableSelectProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -42,6 +43,7 @@ export default function SearchableSelect({
   }, [filtered.length]);
 
   function openDropdown() {
+    if (disabled) return;
     reposition();
     setOpen(true);
     setSearch("");

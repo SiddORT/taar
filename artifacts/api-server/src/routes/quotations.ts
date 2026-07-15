@@ -2,6 +2,7 @@ import { Router } from "express";
 import { pool } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
 import type { AuthRequest } from "../middlewares/requireAuth";
+import { generateOrderCode } from "../services/orderCodeService";
 
 const router = Router();
 const COMPANY_STATE = process.env["COMPANY_STATE"] ?? "Maharashtra";
@@ -18,12 +19,6 @@ const STATUS_TRANSITIONS: Record<string, string[]> = {
   "Converted to Swatch": [],
 };
 
-async function generateQuotationNumber(client: any): Promise<string> {
-  const year = new Date().getFullYear();
-  const seq = await client.query(`SELECT nextval('quotation_number_seq') AS n`);
-  const n = String(seq.rows[0].n).padStart(5, "0");
-  return `QT-${year}-${n}`;
-}
 
 function calcGst(clientState: string | null, subtotal: number, shipping: number): { type: string; rate: number; amount: number } {
   const state = (clientState ?? "").toLowerCase().trim();
@@ -146,7 +141,7 @@ router.post("/quotations", requireAuth, async (req: AuthRequest, res) => {
 
     await client.query("BEGIN");
 
-    const qNum = await generateQuotationNumber(client);
+    const qNum = await generateOrderCode(clientId, "quotations", "quotation_number", client);
 
     // Sanitize once — every downstream calculation uses the clamped values.
     const safeWeight = Math.max(0, parseFloat(estimatedWeight) || 0);
@@ -387,7 +382,9 @@ router.post("/quotations/:id/revise", requireAuth, async (req: AuthRequest, res)
 
     await client.query("BEGIN");
 
-    const qNum = await generateQuotationNumber(client);
+    const clientId = o.client_id;
+    const qNum = await generateOrderCode(clientId, "quotations", "quotation_number", client);
+
     const newRev = o.revision_number + 1;
     const rootId = o.parent_quotation_id ?? o.id;
 
@@ -454,8 +451,12 @@ router.post("/quotations/:id/convert-swatch", requireAuth, async (req: AuthReque
     const designs = await client.query(`SELECT * FROM quotation_designs WHERE quotation_id = $1 AND is_deleted = false LIMIT 1`, [id]);
     const firstDesign = designs.rows[0];
 
-    const seq = await client.query(`SELECT nextval('quotation_number_seq') AS n`);
-    const swCode = `QSW-${new Date().getFullYear()}-${String(seq.rows[0].n).padStart(5, "0")}`;
+    const swCode = await generateOrderCode(
+      Number(qt.client_id),
+      "swatch_orders",
+      "order_code",
+      client,
+    );
 
     const swRes = await client.query(
       `INSERT INTO swatch_orders

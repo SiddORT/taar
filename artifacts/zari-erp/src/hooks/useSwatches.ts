@@ -20,6 +20,7 @@ export type SwatchRecord = {
 export type SwatchFormData = {
   client: string;
   swatchName: string;
+  swatchCode: string;
   swatchCategory: string;
   fabric: string;
   location: string;

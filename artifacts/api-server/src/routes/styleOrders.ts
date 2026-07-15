@@ -2,23 +2,10 @@ import { Router } from "express";
 import { db, styleOrdersTable, eq, and, ilike, or, desc, sql } from "@workspace/db";
 // import { eq, and, ilike, or, desc, sql } from "drizzle-orm";
 import { requireAuth } from "../middlewares/requireAuth";
-import { insertStyleOrderSchema, updateStyleOrderSchema } from "@workspace/db";
+import { insertStyleOrderSchema, updateStyleOrderSchema, clientsTable } from "@workspace/db";
+import { generateOrderCode } from "../services/orderCodeService";
 
 const router = Router();
-
-async function generateOrderCode(): Promise<string> {
-  const prefix = "ZST-";
-  const rows = await db
-    .select({ orderCode: styleOrdersTable.orderCode })
-    .from(styleOrdersTable)
-    .where(ilike(styleOrdersTable.orderCode, `${prefix}%`))
-    .orderBy(desc(styleOrdersTable.orderCode))
-    .limit(1);
-  if (rows.length === 0) return `${prefix}0001`;
-  const last = rows[0].orderCode;
-  const seq = parseInt(last.replace(prefix, ""), 10) + 1;
-  return `${prefix}${seq.toString().padStart(4, "0")}`;
-}
 
 // List
 router.get("/style-orders", requireAuth, async (req, res) => {
@@ -71,8 +58,15 @@ router.get("/style-orders/:id", requireAuth, async (req, res) => {
 router.post("/style-orders", requireAuth, async (req, res) => {
   const parsed = insertStyleOrderSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: parsed.error.issues });
-
-  const orderCode = await generateOrderCode();
+  if (!parsed.data.clientId) {
+    return res.status(400).json({ error: "Client is required" });
+  }
+  const clientId = Number(parsed.data.clientId);
+  const orderCode = await generateOrderCode(
+    clientId,
+    "style_orders",
+    "order_code"
+  );
   const user = (req as any).user;
 
   const [row] = await db.insert(styleOrdersTable).values({
