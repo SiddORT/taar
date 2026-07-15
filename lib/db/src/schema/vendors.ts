@@ -102,14 +102,14 @@ export const insertVendorSchema = z.object({
     .string()
     .trim()
     .min(1, "Brand / Vendor Name is required.")
-    .max(100, "Vendor Name must be 100 characters or fewer.")
-    .regex(NAME_REGEX, "Vendor Name must contain only letters and spaces (max 100 characters)."),
+    .max(100, "Vendor Name must be 100 characters or fewer."),
+    // .regex(NAME_REGEX, "Vendor Name must contain only letters and spaces (max 100 characters)."),
   contactName: z
     .string()
     .trim()
     .min(1, "Contact Name is required.")
-    .max(100, "Contact Name must be 100 characters or fewer.")
-    .regex(NAME_REGEX, "Contact Name must contain only letters and spaces (max 100 characters)."),
+    .max(100, "Contact Name must be 100 characters or fewer."),
+    // .regex(NAME_REGEX, "Contact Name must contain only letters and spaces (max 100 characters)."),
   email: z.string().email("Valid email required.").optional().or(z.literal("")),
   altEmail: z.string().email("Valid email required.").optional().or(z.literal("")),
   contactNo: z.string().optional().refine(
