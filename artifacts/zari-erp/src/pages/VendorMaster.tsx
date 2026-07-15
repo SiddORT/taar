@@ -151,6 +151,7 @@ export default function VendorMaster() {
 
   function downloadSample() {
     setImportMenuOpen(false);
+
     const sampleData = [
       {
         "Brand / Vendor Name": "Sunrise Textiles",
@@ -162,13 +163,17 @@ export default function VendorMaster() {
         "Country (General)": "India",
         "Has GST (Yes/No)": "Yes",
         "GST No": "27AABCS1234A1Z5",
+
         "Address Type": "Warehouse",
+        "Address Contact Person": "Raj Kumar",
+        "Address Contact Number": "9876543210",
         "Address Line 1": "Shop 12, Surat Textile Market",
         "Address Line 2": "Ring Road",
         "Pincode": "395002",
         "City": "Surat",
         "State": "Gujarat",
         "Address Country": "India",
+
         "Bank Name": "HDFC Bank",
         "Account No": "50100123456789",
         "IFSC Code": "HDFC0001234",
@@ -183,13 +188,17 @@ export default function VendorMaster() {
         "Country (General)": "India",
         "Has GST (Yes/No)": "Yes",
         "GST No": "09AABCG5678B2Z3",
+
         "Address Type": "Office",
+        "Address Contact Person": "Priya Sharma",
+        "Address Contact Number": "9123456780",
         "Address Line 1": "Plot 44, Embroidery Zone",
         "Address Line 2": "",
         "Pincode": "110006",
         "City": "Delhi",
         "State": "Delhi",
         "Address Country": "India",
+
         "Bank Name": "SBI",
         "Account No": "30218765432100",
         "IFSC Code": "SBIN0001234",
@@ -204,28 +213,58 @@ export default function VendorMaster() {
         "Country (General)": "India",
         "Has GST (Yes/No)": "No",
         "GST No": "",
+
         "Address Type": "Factory",
+        "Address Contact Person": "Amit Singh",
+        "Address Contact Number": "9000011122",
         "Address Line 1": "Industrial Area, Sector 5",
         "Address Line 2": "",
         "Pincode": "302020",
         "City": "Jaipur",
         "State": "Rajasthan",
         "Address Country": "India",
+
         "Bank Name": "ICICI Bank",
         "Account No": "123456789012",
         "IFSC Code": "ICIC0001234",
       },
     ];
+
     const ws = XLSX.utils.json_to_sheet(sampleData);
+
     ws["!cols"] = [
-      { wch: 28 }, { wch: 22 }, { wch: 28 }, { wch: 24 }, { wch: 14 }, { wch: 18 },
-      { wch: 16 }, { wch: 16 }, { wch: 20 }, { wch: 16 }, { wch: 34 }, { wch: 22 },
-      { wch: 10 }, { wch: 16 }, { wch: 16 }, { wch: 14 }, { wch: 18 }, { wch: 18 }, { wch: 14 },
+      { wch: 28 }, // Brand / Vendor Name
+      { wch: 22 }, // Contact Name
+      { wch: 30 }, // Email
+      { wch: 30 }, // Alternate Email
+      { wch: 18 }, // Contact No
+      { wch: 20 }, // Alternate Contact No
+      { wch: 18 }, // Country
+      { wch: 16 }, // Has GST
+      { wch: 22 }, // GST No
+      { wch: 18 }, // Address Type
+      { wch: 24 }, // Address Contact Person
+      { wch: 22 }, // Address Contact Number
+      { wch: 35 }, // Address Line 1
+      { wch: 30 }, // Address Line 2
+      { wch: 12 }, // Pincode
+      { wch: 18 }, // City
+      { wch: 18 }, // State
+      { wch: 18 }, // Address Country
+      { wch: 24 }, // Bank Name
+      { wch: 22 }, // Account No
+      { wch: 18 }, // IFSC Code
     ];
+
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Vendor Import Template");
+
     XLSX.writeFile(wb, "Vendor_Import_Sample.xlsx");
-    toast({ title: "Sample Downloaded", description: "Fill in the template and upload it to import." });
+
+    toast({
+      title: "Sample Downloaded",
+      description: "Fill in the template and upload it to import.",
+    });
   }
 
   async function handleImportFile(e: React.ChangeEvent<HTMLInputElement>) {
@@ -258,6 +297,10 @@ export default function VendorMaster() {
         const accountNo = String(row["Account No"] ?? "").trim();
         const ifscCode = String(row["IFSC Code"] ?? "").trim();
         const hasBank = bankName || accountNo || ifscCode;
+        const vendorContactName = String(row["Contact Name"] ?? "").trim();
+        const vendorContactNo = String(row["Contact No"] ?? "").trim();
+        const addressContactPerson = String(row["Address Contact Person"] ?? "").trim() || vendorContactName;
+        const addressContactNumber = String(row["Address Contact Number"] ?? "").trim() || vendorContactNo;
         return {
           brandName: String(row["Brand / Vendor Name"] ?? "").trim(),
           contactName: String(row["Contact Name"] ?? "").trim(),
@@ -268,7 +311,7 @@ export default function VendorMaster() {
           country: String(row["Country (General)"] ?? "").trim() || undefined,
           hasGst,
           gstNo: hasGst ? (String(row["GST No"] ?? "").trim() || undefined) : undefined,
-          addresses: hasAddr ? [{ id: Math.random().toString(36).slice(2, 10), type: addrType, address1: addrLine1, address2: addrLine2, pincode: addrPincode, city: addrCity, state: addrState, country: addrCountry, isBillingDefault: true }] : undefined,
+          addresses: hasAddr ? [{ id: Math.random().toString(36).slice(2, 10), type: addrType,  name: addressContactPerson,contactNo: addressContactNumber, address1: addrLine1, address2: addrLine2, pincode: addrPincode, city: addrCity, state: addrState, country: addrCountry, isBillingDefault: true }] : undefined,
           bankAccounts: hasBank ? [{ bankName, accountNo, ifscCode }] : undefined,
         };
       });
