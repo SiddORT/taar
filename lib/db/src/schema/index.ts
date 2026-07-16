@@ -25,3 +25,4 @@ export * from "./purchaseReceipts";
 export * from "./items";
 export * from "./vendorChallans";
 export * from "./extended";
+export * from "./entityTags";

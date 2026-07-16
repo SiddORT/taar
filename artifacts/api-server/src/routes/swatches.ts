@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 // import { eq, ilike, or, and, desc, ne } from "drizzle-orm";
 import { mediaUploadMiddleware, uploadFile, deleteUpload } from "../utils/uploadHelper";
-import { db, pool, swatchesTable } from "@workspace/db";
+import { db, pool, swatchesTable, entityTagsTable } from "@workspace/db";
 import { insertSwatchSchema, updateSwatchSchema, eq, ilike, or, and, desc, ne } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
 import { logger } from "../lib/logger";
@@ -121,8 +121,18 @@ router.get("/swatches/:id", requireAuth, async (req: AuthRequest, res): Promise<
   const id = parseInt(String(req.params.id), 10);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid ID" }); return; }
   const [record] = await db.select().from(swatchesTable).where(and(eq(swatchesTable.id, id), eq(swatchesTable.isDeleted, false)));
+  const tagRows = await db.select({tag: entityTagsTable.tag,
+    })
+    .from(entityTagsTable)
+    .where(
+      and(
+        eq(entityTagsTable.entityType, "swatch_master"),
+        eq(entityTagsTable.entityId, id)
+      )
+    );
+
   if (!record) { res.status(404).json({ error: "Swatch not found" }); return; }
-  res.json(record);
+  res.json({ ...record, tags: tagRows.map(row => row.tag) });
 });
 
 router.post("/swatches", requireAuth, async (req: AuthRequest, res): Promise<void> => {
@@ -156,7 +166,30 @@ router.post("/swatches", requireAuth, async (req: AuthRequest, res): Promise<voi
     return;
   }
 
-  const [record] = await db.insert(swatchesTable).values({ ...parsed.data, swatchCode, createdBy }).returning();
+  const record = await db.transaction(async (tx) => {
+    const [swatch] = await tx
+      .insert(swatchesTable)
+      .values({
+        ...parsed.data,
+        swatchCode,
+        createdBy,
+      })
+      .returning();
+
+    const tags = [ ...new Set( parsed.data.tags.map(tag => tag.trim()).filter(tag => tag.length > 0))];
+
+    if (tags.length > 0) {
+      await db.insert(entityTagsTable).values(
+        tags.map(tag => ({
+          entityType: "swatch_master",
+          entityId: swatch.id,
+          tag,
+        }))
+      );
+    }
+    return swatch;
+  });
+
   logger.info({ id: record.id, swatchCode }, "Swatch created");
   res.status(201).json(record);
 });
