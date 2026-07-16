@@ -12,11 +12,13 @@ interface PhoneInputProps {
   placeholder?: string;
 }
 
+const INDIAN_MOBILE_REGEX = /^[6-9]\d{9}$/;
+
 function parsePhone(val: string): { dialCode: string; number: string } {
-  if (!val) return { dialCode: "+91", number: "" };
+  if (!val) return { dialCode: "", number: "" };
   const match = val.match(/^(\+\d{1,4})\s*(.*)?$/);
   if (match) return { dialCode: match[1], number: match[2] ?? "" };
-  return { dialCode: "+91", number: val };
+  return { dialCode: "", number: val };
 }
 
 export default function PhoneInput({ label, value, onChange, required, error, placeholder }: PhoneInputProps) {
@@ -27,7 +29,7 @@ export default function PhoneInput({ label, value, onChange, required, error, pl
   const buttonRef = useRef<HTMLButtonElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
 
-  const selectedCountry = COUNTRIES.find((c) => c.dialCode === parsed.dialCode) ?? COUNTRIES.find((c) => c.code === "IN")!;
+  const selectedCountry = COUNTRIES.find((c) => c.dialCode === parsed.dialCode);
 
   const filtered = search
     ? COUNTRIES.filter((c) => c.name.toLowerCase().includes(search.toLowerCase()) || c.dialCode.includes(search))
@@ -56,8 +58,27 @@ export default function PhoneInput({ label, value, onChange, required, error, pl
     onChange(dialCode + (parsed.number ? " " + parsed.number : ""));
   }
 
+  // function handleNumberChange(num: string) {
+  //   onChange(parsed.dialCode + (num ? " " + num : ""));
+  // }
+
   function handleNumberChange(num: string) {
-    onChange(parsed.dialCode + (num ? " " + num : ""));
+    const digits = num.replace(/\D/g, "");
+
+    // Existing country selected
+    if (parsed.dialCode) {
+      onChange(parsed.dialCode + (num ? ` ${num}` : ""));
+      return;
+    }
+
+    // Auto-select India only for valid Indian mobile numbers
+    if (INDIAN_MOBILE_REGEX.test(digits)) {
+      onChange(`+91 ${digits}`);
+      return;
+    }
+
+    // No country code
+    onChange(num);
   }
 
   useEffect(() => {
@@ -114,8 +135,16 @@ export default function PhoneInput({ label, value, onChange, required, error, pl
           <button ref={buttonRef} type="button" onClick={openDropdown}
             className={`flex items-center gap-1 rounded-lg border px-2.5 py-2.5 text-sm bg-white shadow-sm transition outline-none
               ${open ? "border-gray-900 ring-2 ring-gray-900/10" : "border-gray-300 hover:border-gray-400"}`}>
-            <span className="text-base leading-none">{selectedCountry.flag}</span>
-            <span className="text-gray-700 font-mono text-xs">{parsed.dialCode}</span>
+            {selectedCountry ? (
+                <>
+                  <span>{selectedCountry.flag}</span>
+                  <span>{selectedCountry.dialCode}</span>
+                </>
+              ) : (
+                <span className="text-gray-400 text-xs">
+                  Code
+                </span>
+              )}
             <ChevronDown size={12} className={`text-gray-400 transition-transform ${open ? "rotate-180" : ""}`} />
           </button>
         </div>
