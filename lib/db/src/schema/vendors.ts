@@ -32,7 +32,7 @@ export const vendorsTable = pgTable("vendors", {
   id: serial("id").primaryKey(),
   vendorCode: text("vendor_code").notNull().unique(),
   brandName: text("brand_name").notNull(),
-  contactName: text("contact_name").notNull(),
+  contactName: text("contact_name"),
   email: text("email"),
   altEmail: text("alt_email"),
   contactNo: text("contact_no"),
@@ -107,15 +107,17 @@ export const insertVendorSchema = z.object({
   contactName: z
     .string()
     .trim()
-    .min(1, "Contact Name is required.")
-    .max(100, "Contact Name must be 100 characters or fewer."),
+    // .min(1, "Contact Name is required.")
+    .max(100, "Contact Name must be 100 characters or fewer.")
+    .optional(),
     // .regex(NAME_REGEX, "Contact Name must contain only letters and spaces (max 100 characters)."),
   email: z.string().email("Valid email required.").optional().or(z.literal("")),
   altEmail: z.string().email("Valid email required.").optional().or(z.literal("")),
-  contactNo: z.string().optional().refine(
-    val => !val || val === "" || CONTACT_NO_REGEX.test(val.replace(/^\+\d+\s*/, "").replace(/\D/g, "")),
-    { message: "Contact Number must be exactly 10 digits." }
-  ),
+  contactNo: z.string().optional(),
+  // refine(
+    // val => !val || val === "" || CONTACT_NO_REGEX.test(val.replace(/^\+\d+\s*/, "").replace(/\D/g, "")),
+    // { message: "Contact Number must be exactly 10 digits." }
+  // ),
   altContactNo: z.string().optional(),
   country: z.string().optional(),
   hasGst: z.boolean().default(false),

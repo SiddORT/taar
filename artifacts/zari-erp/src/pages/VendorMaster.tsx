@@ -267,6 +267,57 @@ export default function VendorMaster() {
     });
   }
 
+  function excelValue(value: unknown): string {
+    if (value == null) return "";
+
+    const str = String(value).trim();
+
+    // Not scientific notation
+    if (!/[eE]/.test(str)) {
+      return str;
+    }
+
+    // Convert scientific notation to plain string
+    const match = str.match(/^(\d+)(?:\.(\d+))?[eE]\+(\d+)$/);
+
+    if (!match) {
+      return str;
+    }
+
+    const [, intPart, fracPart = "", exponentStr] = match;
+    const exponent = parseInt(exponentStr, 10);
+
+    const digits = intPart + fracPart;
+
+    if (digits.length >= exponent + 1) {
+      return digits;
+    }
+
+    return digits.padEnd(exponent + 1, "0");
+  }
+
+  function formatPhoneNumber(phone: string, country: string): string {
+    const value = excelValue(phone).trim();
+    const countryName = country.trim().toLowerCase();
+
+    // Already has a country code
+    if (value.startsWith("+")) {
+      return value;
+    }
+
+    // Remove all non-digit characters
+    const digits = value.replace(/\D/g, "");
+
+    // Valid Indian mobile number (starts with 6-9 and is exactly 10 digits)
+    if (countryName === "india" && /^[6-9]\d{9}$/.test(digits)) {
+      return `+91 ${digits}`;
+    }
+
+    // Otherwise leave as-is
+    return value;
+  }
+
+
   async function handleImportFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -277,44 +328,97 @@ export default function VendorMaster() {
       const buffer = await file.arrayBuffer();
       const wb = XLSX.read(buffer, { type: "array" });
       const ws = wb.Sheets[wb.SheetNames[0]];
-      const jsonRows = XLSX.utils.sheet_to_json<Record<string, string>>(ws);
+      const jsonRows = XLSX.utils.sheet_to_json<Record<string, string>>(ws, {
+        raw: false,
+        defval: "",
+      });
       if (jsonRows.length === 0) {
         toast({ title: "Empty File", description: "No data rows found.", variant: "destructive" });
         return;
       }
       const records = jsonRows.map((row) => {
-        const hasGstRaw = String(row["Has GST (Yes/No)"] ?? "").trim().toLowerCase();
-        const hasGst = hasGstRaw === "yes" || hasGstRaw === "y" || hasGstRaw === "true";
-        const addrLine1 = String(row["Address Line 1"] ?? "").trim();
-        const addrLine2 = String(row["Address Line 2"] ?? "").trim();
-        const addrPincode = String(row["Pincode"] ?? "").trim();
-        const addrCity = String(row["City"] ?? "").trim();
-        const addrState = String(row["State"] ?? "").trim();
-        const addrCountry = String(row["Address Country"] ?? "").trim();
-        const addrType = String(row["Address Type"] ?? "").trim() || "Office";
-        const hasAddr = addrLine1 || addrPincode || addrCity || addrState;
-        const bankName = String(row["Bank Name"] ?? "").trim();
-        const accountNo = String(row["Account No"] ?? "").trim();
-        const ifscCode = String(row["IFSC Code"] ?? "").trim();
-        const hasBank = bankName || accountNo || ifscCode;
-        const vendorContactName = String(row["Contact Name"] ?? "").trim();
-        const vendorContactNo = String(row["Contact No"] ?? "").trim();
-        const addressContactPerson = String(row["Address Contact Person"] ?? "").trim() || vendorContactName;
-        const addressContactNumber = String(row["Address Contact Number"] ?? "").trim() || vendorContactNo;
-        return {
-          brandName: String(row["Brand / Vendor Name"] ?? "").trim(),
-          contactName: String(row["Contact Name"] ?? "").trim(),
-          email: String(row["Email"] ?? "").trim() || undefined,
-          altEmail: String(row["Alternate Email"] ?? "").trim() || undefined,
-          contactNo: String(row["Contact No"] ?? "").trim() || undefined,
-          altContactNo: String(row["Alternate Contact No"] ?? "").trim() || undefined,
-          country: String(row["Country (General)"] ?? "").trim() || undefined,
-          hasGst,
-          gstNo: hasGst ? (String(row["GST No"] ?? "").trim() || undefined) : undefined,
-          addresses: hasAddr ? [{ id: Math.random().toString(36).slice(2, 10), type: addrType,  name: addressContactPerson,contactNo: addressContactNumber, address1: addrLine1, address2: addrLine2, pincode: addrPincode, city: addrCity, state: addrState, country: addrCountry, isBillingDefault: true }] : undefined,
-          bankAccounts: hasBank ? [{ bankName, accountNo, ifscCode }] : undefined,
-        };
-      });
+      const cell = (key: string) => excelValue(row[key]);
+
+      // Vendor Details
+      const brandName = cell("Brand / Vendor Name");
+      const contactName = cell("Contact Name");
+      const email = cell("Email");
+      const altEmail = cell("Alternate Email");
+      const country = cell("Country (General)");
+
+      const contactNo = formatPhoneNumber(cell("Contact No"),country);
+      const altContactNo = formatPhoneNumber(cell("Alternate Contact No"),country);
+
+      // GST
+      const hasGstRaw = cell("Has GST (Yes/No)").toLowerCase();
+      const hasGst =
+        hasGstRaw === "yes" ||
+        hasGstRaw === "y" ||
+        hasGstRaw === "true";
+
+      const gstNo = hasGst ? cell("GST No") : undefined;
+
+      // Address
+      const addrType = cell("Address Type") || "Office";
+      const addrLine1 = cell("Address Line 1");
+      const addrLine2 = cell("Address Line 2");
+      const addrPincode = cell("Pincode");
+      const addrCity = cell("City");
+      const addrState = cell("State");
+      const addrCountry = cell("Address Country");
+
+      const hasAddr = !!(addrLine1 || addrLine2 || addrPincode || addrCity || addrState);
+
+      const addressContactPerson = cell("Address Contact Person") || contactName;
+      const addressContactNumber = formatPhoneNumber(cell("Address Contact Number"), addrCountry) || contactNo;
+
+      // Bank
+      const bankName = cell("Bank Name");
+      const accountNo = cell("Account No");
+      const ifscCode = cell("IFSC Code");
+
+      const hasBank = !!(bankName || accountNo || ifscCode);
+
+      return {
+        brandName,
+        contactName,
+        email: email || undefined,
+        altEmail: altEmail || undefined,
+        contactNo: contactNo || undefined,
+        altContactNo: altContactNo || undefined,
+        country: country || undefined,
+        hasGst,
+        gstNo,
+
+        addresses: hasAddr
+          ? [
+              {
+                id: Math.random().toString(36).slice(2, 10),
+                type: addrType,
+                name: addressContactPerson,
+                contactNo: addressContactNumber,
+                address1: addrLine1,
+                address2: addrLine2,
+                pincode: addrPincode,
+                city: addrCity,
+                state: addrState,
+                country: addrCountry,
+                isBillingDefault: true,
+              },
+            ]
+          : undefined,
+
+        bankAccounts: hasBank
+          ? [
+              {
+                bankName,
+                accountNo,
+                ifscCode,
+              },
+            ]
+          : undefined,
+      };
+    });
       const importRaw = await importMutation.mutateAsync(records);
       setImportResult(normalizeImportResult(importRaw));
       setImportResultOpen(true);
