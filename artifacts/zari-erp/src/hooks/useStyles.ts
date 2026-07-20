@@ -10,6 +10,7 @@ export type StyleRecord = {
   referenceSwatchId: string | null;
   referenceSwatchCode: string | null;
   wipMedia: MediaItem[] | null; finalMedia: MediaItem[] | null;
+  tags: string[] | null;
   isActive: boolean; isDeleted: boolean;
   createdBy: string; createdAt: string; updatedBy: string | null; updatedAt: string | null;
 };
@@ -20,6 +21,7 @@ export type StyleFormData = {
   attachLink: string; placeOfIssue: string; vendorPoNo: string; shippingDate: string;
   referenceSwatchId: string;
   isActive: boolean;
+  tags : string[];
 };
 
 export type StyleImportResult = {

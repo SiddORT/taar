@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 
 import TopNavbar from "@/components/layout/TopNavbar";
 import SearchableSelect from "@/components/ui/SearchableSelect";
+import TagInput from "@/components/ui/TagInput";
 import InputField from "@/components/ui/InputField";
 import MediaUploadSection from "@/components/ui/MediaUploadSection";
 
@@ -29,7 +30,7 @@ const URL_REGEX = /^https?:\/\/.+/i;
 const EMPTY_FORM: StyleFormData = {
   client: "", styleNo: "", styleCategory: "", invoiceNo: "", description: "",
   attachLink: "", placeOfIssue: "", vendorPoNo: "", shippingDate: "",
-  referenceSwatchId: "", isActive: true,
+  referenceSwatchId: "", isActive: true, tags: [],
 };
 
 type FormErrors = Partial<Record<keyof StyleFormData, string>>;
@@ -408,6 +409,7 @@ export default function StyleForm() {
         attachLink: existing.attachLink ?? "", placeOfIssue: existing.placeOfIssue ?? "",
         vendorPoNo: existing.vendorPoNo ?? "", shippingDate: existing.shippingDate ?? "",
         referenceSwatchId: existing.referenceSwatchId ?? "", isActive: existing.isActive,
+        tags : (existing.tags as string[]) ?? [],
       });
       setWipMedia((existing.wipMedia as MediaItem[]) ?? []);
       setFinalMedia((existing.finalMedia as MediaItem[]) ?? []);
@@ -629,6 +631,18 @@ export default function StyleForm() {
                         className={`w-full border rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900 ${errors.shippingDate ? "border-red-400" : "border-gray-300"}`}
                       />
                     </FieldWrap>
+
+                    <div className="col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Swatch Tags
+                    </label>
+
+                    <TagInput
+                      value={form.tags}
+                      onChange={tags => setField("tags", tags)}
+                      placeholder="Add a tag..."
+                    />
+                  </div>
 
                     {/* <div className="col-span-2">
                       <FieldWrap label="Attach Link" error={errors.attachLink}>
