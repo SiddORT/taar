@@ -207,61 +207,6 @@ export default function ClientMaster() {
             "Delivery 3 Country": "India",
             "Delivery 3 Is Default": "false",
         },
-        {
-            // Client Info
-            "Custom Client Code": "CL002",
-            "Brand / Client Name": "Global Threads",
-            "Contact Name": "John Smith",
-            "Email": "john@globalthreads.com",
-            "Alternate Email": "support@globalthreads.com",
-            "Contact No": "9123456780",
-            "Alternate Contact No": "",
-            "Country": "United States",
-            "Invoice Currency": "USD",
-            
-            // Billing Address
-            "Billing Address Contact Person": "John Smith",
-            "Billing Address Contact Number": "9123456780",
-            "Billing Address Line 1": "500 Fashion Ave",
-            "Billing Address Line 2": "Suite 12",
-            "Billing Pincode": "10018",
-            "Billing City": "New York",
-            "Billing State": "New York",
-            "Billing Country": "United States",
-            
-            // Delivery Address 1 (Default)
-            "Delivery 1 Address Contact Person": "Sarah Johnson",
-            "Delivery 1 Address Contact Number": "9123456781",
-            "Delivery 1 Address Line 1": "200 Park Avenue",
-            "Delivery 1 Address Line 2": "Floor 15",
-            "Delivery 1 Pincode": "10017",
-            "Delivery 1 City": "New York",
-            "Delivery 1 State": "New York",
-            "Delivery 1 Country": "United States",
-            "Delivery 1 Is Default": "true",
-            
-            // Delivery Address 2
-            "Delivery 2 Address Contact Person": "Mike Davis",
-            "Delivery 2 Address Contact Number": "9123456782",
-            "Delivery 2 Address Line 1": "350 Fifth Avenue",
-            "Delivery 2 Address Line 2": "",
-            "Delivery 2 Pincode": "10118",
-            "Delivery 2 City": "New York",
-            "Delivery 2 State": "New York",
-            "Delivery 2 Country": "United States",
-            "Delivery 2 Is Default": "false",
-            
-            // Delivery Address 3 (Empty)
-            "Delivery 3 Address Contact Person": "",
-            "Delivery 3 Address Contact Number": "",
-            "Delivery 3 Address Line 1": "",
-            "Delivery 3 Address Line 2": "",
-            "Delivery 3 Pincode": "",
-            "Delivery 3 City": "",
-            "Delivery 3 State": "",
-            "Delivery 3 Country": "",
-            "Delivery 3 Is Default": "false",
-        },
     ];
 
     const ws = XLSX.utils.json_to_sheet(sampleData);
