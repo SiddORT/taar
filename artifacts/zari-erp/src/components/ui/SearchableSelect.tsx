@@ -143,36 +143,92 @@ interface SmallSearchSelectProps {
   options: { value: string; label: string }[];
   value: string;
   onChange: (value: string) => void;
+  onSearch?: (search: string) => void;
   placeholder?: string;
   disabled?: boolean;
   clearable?: boolean;
 }
 
 export function SmallSearchSelect({
-  options, value, onChange, placeholder = "Select...", disabled = false, clearable = true,
+  options, value, onChange, onSearch, placeholder = "Select...", disabled = false, clearable = true,
 }: SmallSearchSelectProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
-  const containerRef = useRef<HTMLDivElement>(null);
+  const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({});
+  
+  const buttonRef = useRef<HTMLButtonElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const selected = options.find(o => o.value === value);
-  const filtered = search
-    ? options.filter(o => o.label.toLowerCase().includes(search.toLowerCase()))
-    : options;
+  const filtered = options;
 
+  // Dynamically calculate coordinates relative to the button
+  const reposition = useCallback(() => {
+    if (!buttonRef.current) return;
+    const rect = buttonRef.current.getBoundingClientRect();
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const dropH = Math.min(220, 50 + filtered.length * 32); // Max height estimation
+
+    if (spaceBelow < dropH && rect.top > dropH) {
+      // Place above button if space is constrained
+      setDropdownStyle({
+        position: "fixed",
+        bottom: window.innerHeight - rect.top + 4,
+        left: rect.left,
+        width: rect.width,
+        zIndex: 9999,
+      });
+    } else {
+      // Place below button
+      setDropdownStyle({
+        position: "fixed",
+        top: rect.bottom + 4,
+        left: rect.left,
+        width: rect.width,
+        zIndex: 9999,
+      });
+    }
+  }, [filtered.length]);
+
+  function handleOpen() {
+    if (disabled) return;
+    reposition();
+    setOpen(v => !v);
+    setSearch("");
+  }
+
+  // Handle outside click, scrolls, and resizing
   useEffect(() => {
     if (!open) return;
     setTimeout(() => searchRef.current?.focus(), 10);
+
     function handler(e: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+      // Close only if click is outside both trigger button AND the portal container
+      if (
+        buttonRef.current && !buttonRef.current.contains(target) &&
+        !document.getElementById("small-select-portal")?.contains(target)
+      ) {
         setOpen(false);
         setSearch("");
       }
     }
+
+    function onScroll() {
+      reposition();
+    }
+
     document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [open]);
+    window.addEventListener("scroll", onScroll, true); // Capture scroll on table container
+    window.addEventListener("resize", reposition);
+
+    return () => {
+      document.removeEventListener("mousedown", handler);
+      window.removeEventListener("scroll", onScroll, true);
+      window.removeEventListener("resize", reposition);
+    };
+  }, [open, reposition]);
 
   if (disabled) {
     return (
@@ -183,44 +239,87 @@ export function SmallSearchSelect({
     );
   }
 
+  // Portal Dropdown Body
+  const dropdown = open ? (
+    <div
+      id="small-select-portal"
+      style={dropdownStyle}
+      className="bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden"
+    >
+      <div className="p-1.5 border-b border-gray-100">
+        <input
+          ref={searchRef}
+          value={search}
+          onChange={(e) => {
+            const val = e.target.value;
+            setSearch(val);
+            if (debounceRef.current) clearTimeout(debounceRef.current);
+            debounceRef.current = setTimeout(() => {
+              onSearch?.(val);
+            }, 300);
+          }}
+          placeholder="Search..."
+          autoComplete="off"
+          className="w-full text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-gray-400"
+        />
+      </div>
+      <div className="max-h-44 overflow-y-auto">
+        {filtered.length === 0 ? (
+          <div className="px-3 py-3 text-xs text-gray-400 text-center">No results</div>
+        ) : (
+          filtered.map((o) => (
+            <button
+              key={o.value}
+              type="button"
+              onClick={() => {
+                onChange(o.value);
+                setOpen(false);
+                setSearch("");
+              }}
+              className={`w-full text-left px-3 py-2 text-xs hover:bg-gray-50 transition-colors ${
+                o.value === value ? "bg-gray-50 font-semibold text-gray-900" : "text-gray-700"
+              }`}
+            >
+              {o.label}
+            </button>
+          ))
+        )}
+      </div>
+    </div>
+  ) : null;
+
   return (
-    <div ref={containerRef} className="flex-1 relative">
-      <button type="button"
-        onClick={() => { setOpen(v => !v); setSearch(""); }}
-        className="w-full text-left text-xs border border-gray-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-gray-900/10 flex items-center justify-between gap-1 transition-colors hover:border-gray-300">
-        <span className={selected ? "text-gray-900 truncate" : "text-gray-400"}>{selected?.label || placeholder}</span>
+    <div className="flex-1 relative">
+      <button
+        ref={buttonRef}
+        type="button"
+        onClick={handleOpen}
+        className="w-full text-left text-xs border border-gray-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-gray-900/10 flex items-center justify-between gap-1 transition-colors hover:border-gray-300"
+      >
+        <span className={selected ? "text-gray-900 truncate" : "text-gray-400"}>
+          {selected?.label || placeholder}
+        </span>
         <div className="flex items-center gap-0.5 shrink-0">
           {clearable && value && (
-            <span role="button"
-              onClick={e => { e.stopPropagation(); onChange(""); setSearch(""); }}
-              className="text-gray-300 hover:text-gray-500 p-0.5 rounded">
+            <span
+              role="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onChange("");
+                setSearch("");
+              }}
+              className="text-gray-300 hover:text-gray-500 p-0.5 rounded"
+            >
               <X size={10} />
             </span>
           )}
-          <ChevronDown size={12} className={`text-gray-400 transition-transform ${open ? "rotate-180" : ""}`} />
+          <ChevronDown
+            size={12}
+            className={`text-gray-400 transition-transform ${open ? "rotate-180" : ""}`}
+          />
         </div>
       </button>
-      {open && (
-        <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-[200] overflow-hidden">
-          <div className="p-1.5 border-b border-gray-100">
-            <input ref={searchRef} value={search} onChange={e => setSearch(e.target.value)}
-              placeholder="Search..." autoComplete="off"
-              className="w-full text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-gray-400" />
-          </div>
-          <div className="max-h-44 overflow-y-auto">
-            {filtered.length === 0
-              ? <div className="px-3 py-3 text-xs text-gray-400 text-center">No results</div>
-              : filtered.map(o => (
-                  <button key={o.value} type="button"
-                    onClick={() => { onChange(o.value); setOpen(false); setSearch(""); }}
-                    className={`w-full text-left px-3 py-2 text-xs hover:bg-gray-50 transition-colors ${o.value === value ? "bg-gray-50 font-semibold text-gray-900" : "text-gray-700"}`}>
-                    {o.label}
-                  </button>
-                ))
-            }
-          </div>
-        </div>
-      )}
+      {typeof document !== "undefined" && createPortal(dropdown, document.body)}
     </div>
   );
 }
