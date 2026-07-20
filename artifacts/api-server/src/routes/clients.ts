@@ -326,7 +326,8 @@ router.delete("/clients/:id", requireAuth, async (req: AuthRequest, res): Promis
 router.post("/clients/import", requireAuth, async (req: AuthRequest, res): Promise<void> => {
   const body = req.body;
   if (!Array.isArray(body) || body.length === 0) {
-    res.status(400).json({ error: "Request body must be a non-empty array." }); return;
+    res.status(400).json({ error: "Request body must be a non-empty array." });
+    return;
   }
 
   const createdBy = req.user?.email ?? "system";
@@ -335,55 +336,100 @@ router.post("/clients/import", requireAuth, async (req: AuthRequest, res): Promi
   const errors: { row: number; name: string; error: string }[] = [];
 
   for (let i = 0; i < body.length; i++) {
-    const row = body[i] as Record<string, unknown>;
-    const rowNum = i + 2;
-    const brandName = String(row.brandName ?? "").trim();
-    const contactName = String(row.contactName ?? "").trim();
+      const row = body[i] as Record<string, unknown>;
+      const rowNum = i + 2;
+      const brandName = String(row.brandName ?? "").trim();
+      const contactName = String(row.contactName ?? "").trim();
 
-    if (!brandName) { errors.push({ row: rowNum, name: "", error: "Brand / Client Name is required." }); skipped++; continue; }
-    if (!NAME_REGEX.test(brandName)) { errors.push({ row: rowNum, name: brandName, error: "Client Name must contain only letters and spaces." }); skipped++; continue; }
-    if (!contactName) { errors.push({ row: rowNum, name: brandName, error: "Contact Name is required." }); skipped++; continue; }
-    if (!NAME_REGEX.test(contactName)) { errors.push({ row: rowNum, name: brandName, error: "Contact Name must contain only letters and spaces." }); skipped++; continue; }
+      if (!brandName) { errors.push({ row: rowNum, name: "", error: "Brand / Client Name is required." }); skipped++; continue; }
+      if (!NAME_REGEX.test(brandName)) { errors.push({ row: rowNum, name: brandName, error: "Client Name must contain only letters and spaces." }); skipped++; continue; }
+      if (!contactName) { errors.push({ row: rowNum, name: brandName, error: "Contact Name is required." }); skipped++; continue; }
+      if (!NAME_REGEX.test(contactName)) { errors.push({ row: rowNum, name: brandName, error: "Contact Name must contain only letters and spaces." }); skipped++; continue; }
 
-    const rawContact = String(row.contactNo ?? "").trim().replace(/\D/g, "");
-    const contact10 = rawContact.length > 10 ? rawContact.slice(-10) : rawContact;
-    if (!CONTACT_DIGITS_REGEX.test(contact10)) {
-      errors.push({ row: rowNum, name: brandName, error: "Contact Number must be exactly 10 digits." }); skipped++; continue;
-    }
+      const existing = await db.select({ id: clientsTable.id }).from(clientsTable)
+          .where(and(eq(clientsTable.isDeleted, false), ilike(clientsTable.brandName, brandName)));
+      if (existing.length > 0) { errors.push({ row: rowNum, name: brandName, error: "Client already exists." }); skipped++; continue; }
 
-    const existing = await db.select({ id: clientsTable.id }).from(clientsTable)
-      .where(and(eq(clientsTable.isDeleted, false), ilike(clientsTable.brandName, brandName)));
-    if (existing.length > 0) { errors.push({ row: rowNum, name: brandName, error: "Client already exists." }); skipped++; continue; }
+      const addresses = Array.isArray(row.addresses) && row.addresses.length > 0 ? row.addresses : undefined;
 
-    const addresses = Array.isArray(row.addresses) && row.addresses.length > 0 ? row.addresses : undefined;
+      const parsed = insertClientSchema.safeParse({
+          customClientCode: String(row.customClientCode ?? "").trim() || undefined,  // From Excel: CL001
+          brandName,
+          contactName,
+          email: String(row.email ?? "").trim() || undefined,
+          altEmail: String(row.altEmail ?? "").trim() || undefined,
+          contactNo: String(row.contactNo ?? "").trim() || undefined,
+          altContactNo: String(row.altContactNo ?? "").trim() || undefined,
+          country: String(row.country ?? "").trim() || undefined,
+          countryOfOrigin: String(row.country ?? "").trim() || undefined,
+          invoiceCurrency: String(row.invoiceCurrency ?? "").trim() || undefined,
+          addresses,
+          isActive: true,
+      });
 
-    const parsed = insertClientSchema.safeParse({
-      brandName,
-      contactName,
-      email: String(row.email ?? "").trim() || undefined,
-      altEmail: String(row.altEmail ?? "").trim() || undefined,
-      contactNo: contact10,
-      altContactNo: String(row.altContactNo ?? "").trim() || undefined,
-      country: String(row.country ?? "").trim() || undefined,
-      countryOfOrigin: String(row.country ?? "").trim() || undefined,
-      invoiceCurrency: String(row.invoiceCurrency ?? "").trim() || undefined,
-      addresses,
-      isActive: true,
-    });
+      if (!parsed.success) {
+          errors.push({ row: rowNum, name: brandName, error: zodFieldErrorsToHuman(parsed.error.flatten().fieldErrors) }); skipped++; continue;
+      }
 
-    if (!parsed.success) {
-      errors.push({ row: rowNum, name: brandName, error: zodFieldErrorsToHuman(parsed.error.flatten().fieldErrors) }); skipped++; continue;
-    }
+      try {
+          const [{ total }] = await db.select({ total: count() }).from(clientsTable);
+          const clientCode = `CLI${String(total + 1).padStart(4, "0")}`;
 
-    try {
-      const [{ total }] = await db.select({ total: count() }).from(clientsTable);
-      const clientCode = `CLI${String(total + 1).padStart(4, "0")}`;
-      await db.insert(clientsTable).values({ ...parsed.data, clientCode, createdBy });
-      imported++;
-    } catch (err) {
-      errors.push({ row: rowNum, name: brandName, error: "Database error." });
-      skipped++;
-    }
+          // Insert client with server-generated clientCode + Excel customClientCode
+          const [insertedClient] = await db.insert(clientsTable)
+              .values({
+                  ...parsed.data,
+                  clientCode,// Server-generated: CLI0001
+                  createdBy,
+              })
+              .returning({ id: clientsTable.id });
+
+          if (!insertedClient) {
+              errors.push({ row: rowNum, name: brandName, error: "Failed to insert client." });
+              skipped++;
+              continue;
+          }
+
+          const clientId = insertedClient.id;
+
+          // --- Insert delivery addresses into separate table ---
+          if (addresses && addresses.length > 0) {
+              const addressesToInsert = addresses
+                  .filter((addr: any) => {
+                      return addr && (
+                          addr.address1 ||
+                          addr.address2 ||
+                          addr.city ||
+                          addr.state ||
+                          addr.pincode ||
+                          addr.country
+                      );
+                  })
+                  .map((addr: any) => ({
+                      clientId: clientId,
+                      clientAddressId: addr.id ?? null,
+                      label: addr.type === "Billing Address" ? "Billing" : (addr.name || "Default"),
+                      addressLine1: addr.address1 || null,
+                      addressLine2: addr.address2 || null,
+                      city: addr.city || null,
+                      state: addr.state || null,
+                      country: addr.country || null,
+                      pincode: addr.pincode || null,
+                      isDefault: addr.type === "Billing Address"
+                          ? (addr.isBillingDefault ?? true)
+                          : (addr.isDeliveryDefault ?? false),
+                  }));
+
+              if (addressesToInsert.length > 0) {
+                  await db.insert(deliveryAddresses).values(addressesToInsert);
+              }
+          }
+
+          imported++;
+      } catch (err) {
+          errors.push({ row: rowNum, name: brandName, error: "Database error." });
+          skipped++;
+      }
   }
 
   res.json({ imported, skipped, errors });
