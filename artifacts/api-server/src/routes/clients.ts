@@ -407,37 +407,37 @@ router.post("/clients/import", requireAuth, async (req: AuthRequest, res): Promi
 
           // --- Insert delivery addresses into separate table ---
           if (addresses && addresses.length > 0) {
-              const addressesToInsert = addresses
-                  .filter((addr: any) => {
-                      return addr && (
-                          addr.address1 ||
-                          addr.address2 ||
-                          addr.city ||
-                          addr.state ||
-                          addr.pincode ||
-                          addr.country
-                      );
-                  })
-                  .map((addr: any) => ({
-                      clientId: clientId,
-                      clientAddressId: addr.id ?? null,
-                      label: addr.type === "Billing Address" ? "Billing" : (addr.name || "Default"),
-                      addressLine1: addr.address1 || null,
-                      addressLine2: addr.address2 || null,
-                      city: addr.city || null,
-                      state: addr.state || null,
-                      country: addr.country || null,
-                      pincode: addr.pincode || null,
-                      isDefault: addr.type === "Billing Address"
-                          ? (addr.isBillingDefault ?? true)
-                          : (addr.isDeliveryDefault ?? false),
-                  }));
+            const addressesToInsert = addresses
+              .filter((addr: any) => {
+                return (
+                  addr?.type === "Delivery Address" &&
+                  (
+                    addr.address1 ||
+                    addr.address2 ||
+                    addr.city ||
+                    addr.state ||
+                    addr.pincode ||
+                    addr.country
+                  )
+                );
+              })
+              .map((addr: any) => ({
+                clientId,
+                clientAddressId: addr.id ?? null,
+                label: addr.name || "Default",
+                addressLine1: addr.address1 || null,
+                addressLine2: addr.address2 || null,
+                city: addr.city || null,
+                state: addr.state || null,
+                country: addr.country || null,
+                pincode: addr.pincode || null,
+                isDefault: addr.isDeliveryDefault ?? false,
+              }));
 
-              if (addressesToInsert.length > 0) {
-                  await db.insert(deliveryAddresses).values(addressesToInsert);
-              }
+            if (addressesToInsert.length > 0) {
+              await db.insert(deliveryAddresses).values(addressesToInsert);
+            }
           }
-
           imported++;
       } catch (err) {
           errors.push({ row: rowNum, name: brandName, error: "Database error." });
