@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 
 import TopNavbar from "@/components/layout/TopNavbar";
 import SearchableSelect from "@/components/ui/SearchableSelect";
+import TagInput from "@/components/ui/TagInput";
 import AddableSelect from "@/components/ui/AddableSelect";
 import MediaUploadSection from "@/components/ui/MediaUploadSection";
 
@@ -26,7 +27,7 @@ const NUMERIC_REGEX = /^[0-9]+(\.[0-9]{1,2})?$/;
 const EMPTY_FORM: SwatchFormData = {
   client: "", swatchName: "", swatchCode: "", swatchCategory: "", fabric: "",
   location: "", swatchDate: "", length: "", width: "", unitType: "",
-  hours: "", attachments: [], isActive: true,
+  hours: "", attachments: [], tags: [], isActive: true,
 };
 
 type FormErrors = Partial<Record<keyof SwatchFormData, string>>;
@@ -210,7 +211,9 @@ export default function SwatchForm() {
         location: existing.location ?? "", swatchDate: existing.swatchDate ?? "",
         length: existing.length ?? "", width: existing.width ?? "",
         unitType: existing.unitType ?? "", hours: existing.hours ?? "",
-        attachments: (existing.attachments as SwatchAttachment[]) ?? [], isActive: existing.isActive,
+        attachments: (existing.attachments as SwatchAttachment[]) ?? [], 
+        tags : (existing.tags as string[]) ?? [],
+        isActive: existing.isActive,
       });
       setWipMedia((existing.wipMedia as MediaItem[]) ?? []);
       setFinalMedia((existing.finalMedia as MediaItem[]) ?? []);
@@ -481,6 +484,18 @@ export default function SwatchForm() {
                         onChange={e => setField("swatchDate", e.target.value)}
                         className={`w-full border rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 transition ${errors.swatchDate ? "border-red-400 focus:ring-red-300" : "border-gray-300 focus:ring-gray-900"}`} />
                       {errors.swatchDate && <p className="text-xs text-red-500 mt-1">{errors.swatchDate}</p>}
+                    </div>
+
+                    <div className="col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Swatch Tags
+                      </label>
+
+                      <TagInput
+                        value={form.tags}
+                        onChange={tags => setField("tags", tags)}
+                        placeholder="Add a tag..."
+                      />
                     </div>
                   </div>
                 </div>
