@@ -23,6 +23,7 @@ import { useAllClients, type ClientRecord } from "@/hooks/useClients";
 import { useAllStyleCategories, type StyleCategoryRecord } from "@/hooks/useStyleCategories";
 import { SmallSearchSelect } from "@/components/ui/SearchableSelect";
 import { useWarehouseLocations } from "@/hooks/useWarehouseLocations";
+import { customFetch } from "@workspace/api-client-react";
 
 // ─── Constants ──────────────────────────────────────────────────────────────────
 const STATUS_OPTIONS = [
@@ -35,6 +36,12 @@ function formatDate(val: string | null | undefined) {
   if (!val) return "—";
   try { return new Date(val).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }); }
   catch { return String(val); }
+}
+interface Tags{
+  id: number;
+  entity_id: number;
+  entity_type: string;
+  tag: string;  
 }
 
 const asStyle = (r: TableRow) => r as unknown as StyleRecord;
@@ -63,6 +70,8 @@ export default function StyleMaster() {
   const [filterClient, setFilterClient] = useState("");
   const [filterLocation, setFilterLocation] = useState("");
   const [filterCategory, setFilterCategory] = useState("");
+  const [tags, setTags] = useState<Tags[]>([]);
+  const [tagFilter, setTagFilter] = useState("");
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
 
@@ -96,6 +105,36 @@ export default function StyleMaster() {
     { value: "Out-house", label: "Out-house" },
   ];
   const hasFilters = !!(search || status !== "all" || filterClient || filterLocation || filterCategory);
+
+  const fetchTags = (searchString = "") => {
+    customFetch(
+      `/api/entity-tags?entityType=swatch_master&search=${encodeURIComponent(searchString)}&_t=${Date.now()}`
+    )
+      .then((r: unknown) => {
+        const fetched = (r as { data: Tags[] }).data ?? [];
+        setTags(fetched);
+      })
+      .catch(() => {
+        setTags([]);
+      });
+  };
+  
+  const tagOptions = tags.map(tag => ({
+    value: tag.tag,
+    label: tag.tag,
+  }));
+  
+  if (tagFilter && !tags.some(t => t.tag === tagFilter)) {
+    tagOptions.unshift({
+      value: tagFilter,
+      label: tagFilter,
+    });
+  }
+  
+  // Initial Data Load
+  useEffect(() => {
+    fetchTags();
+  }, []);
 
   // ── Handlers ──
   async function handleDelete() {
@@ -321,6 +360,20 @@ export default function StyleMaster() {
               clearable={false}
             />
           </div>
+          <div className="w-44">
+            <SmallSearchSelect
+              options={tagOptions}
+              value={tagFilter}
+              onSearch={fetchTags}
+              onChange={(value) => {
+                setTagFilter(value);
+                setPage(1);
+                fetchTags(""); 
+              }}
+              placeholder="All Tags"
+            />
+          </div>
+
           <div className="w-36">
             <SmallSearchSelect
               value={status}

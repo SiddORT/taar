@@ -19,7 +19,6 @@ import {
   useImportSwatches, fetchAllSwatchesForExport,
   type SwatchRecord, type StatusFilter,
 } from "@/hooks/useSwatches";
-import { useTagList } from "@/hooks/useTags";
 import { useSwatchCategories } from "@/hooks/useLookups";
 import { useAllClients, type ClientRecord } from "@/hooks/useClients";
 import { SmallSearchSelect } from "@/components/ui/SearchableSelect";
