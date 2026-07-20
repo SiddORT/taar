@@ -152,51 +152,146 @@ export default function ClientMaster() {
   function downloadSample() {
     setImportMenuOpen(false);
     const sampleData = [
-      {
-        "Brand / Client Name": "Fusion Garments",
-        "Contact Name": "Priya Sharma",
-        "Email": "priya@fusiongarments.com",
-        "Alternate Email": "",
-        "Contact No": "9876543210",
-        "Alternate Contact No": "",
-        "Country": "India",
-        "Invoice Currency": "INR",
-        "Address Type": "Billing Address",
-        "Address Line 1": "12 MG Road",
-        "Address Line 2": "Bandra West",
-        "Pincode": "400050",
-        "City": "Mumbai",
-        "State": "Maharashtra",
-        "Address Country": "India",
-      },
-      {
-        "Brand / Client Name": "Global Threads",
-        "Contact Name": "John Smith",
-        "Email": "john@globalthreads.com",
-        "Alternate Email": "support@globalthreads.com",
-        "Contact No": "9123456780",
-        "Alternate Contact No": "",
-        "Country": "United States",
-        "Invoice Currency": "USD",
-        "Address Type": "Billing Address",
-        "Address Line 1": "500 Fashion Ave",
-        "Address Line 2": "Suite 12",
-        "Pincode": "10018",
-        "City": "New York",
-        "State": "New York",
-        "Address Country": "United States",
-      },
+        {
+            // Client Info
+            "Custom Client Code": "CL001",
+            "Brand / Client Name": "Fusion Garments",
+            "Contact Name": "Priya Sharma",
+            "Email": "priya@fusiongarments.com",
+            "Alternate Email": "",
+            "Contact No": "9876543210",
+            "Alternate Contact No": "",
+            "Country": "India",
+            "Invoice Currency": "INR",
+            
+            // Billing Address
+            "Billing Address Contact Person": "Priya Sharma",
+            "Billing Address Contact Number": "9876543210",
+            "Billing Address Line 1": "12 MG Road",
+            "Billing Address Line 2": "Bandra West",
+            "Billing Pincode": "400050",
+            "Billing City": "Mumbai",
+            "Billing State": "Maharashtra",
+            "Billing Country": "India",
+            
+            // Delivery Address 1 (Default)
+            "Delivery 1 Address Contact Person": "Rahul Sharma",
+            "Delivery 1 Address Contact Number": "9876543211",
+            "Delivery 1 Address Line 1": "45 Andheri East",
+            "Delivery 1 Address Line 2": "Near Metro Station",
+            "Delivery 1 Pincode": "400069",
+            "Delivery 1 City": "Mumbai",
+            "Delivery 1 State": "Maharashtra",
+            "Delivery 1 Country": "India",
+            "Delivery 1 Is Default": "true",
+            
+            // Delivery Address 2
+            "Delivery 2 Address Contact Person": "Neha Gupta",
+            "Delivery 2 Address Contact Number": "9876543212",
+            "Delivery 2 Address Line 1": "78 Borivali West",
+            "Delivery 2 Address Line 2": "",
+            "Delivery 2 Pincode": "400092",
+            "Delivery 2 City": "Mumbai",
+            "Delivery 2 State": "Maharashtra",
+            "Delivery 2 Country": "India",
+            "Delivery 2 Is Default": "false",
+            
+            // Delivery Address 3
+            "Delivery 3 Address Contact Person": "Amit Patel",
+            "Delivery 3 Address Contact Number": "9876543213",
+            "Delivery 3 Address Line 1": "22 Dadar",
+            "Delivery 3 Address Line 2": "",
+            "Delivery 3 Pincode": "400014",
+            "Delivery 3 City": "Mumbai",
+            "Delivery 3 State": "Maharashtra",
+            "Delivery 3 Country": "India",
+            "Delivery 3 Is Default": "false",
+        },
     ];
+
     const ws = XLSX.utils.json_to_sheet(sampleData);
+
+    // Column widths matching the new structure (44 columns total)
     ws["!cols"] = [
-      { wch: 25 }, { wch: 20 }, { wch: 30 }, { wch: 30 },
-      { wch: 15 }, { wch: 15 }, { wch: 20 }, { wch: 16 },
-      { wch: 18 }, { wch: 28 }, { wch: 22 }, { wch: 10 },
-      { wch: 16 }, { wch: 16 }, { wch: 18 },
+        // Client Info (9 columns)
+        { wch: 12 }, // Custom Client Code
+        { wch: 25 }, // Brand / Client Name
+        { wch: 20 }, // Contact Name
+        { wch: 30 }, // Email
+        { wch: 30 }, // Alternate Email
+        { wch: 15 }, // Contact No
+        { wch: 15 }, // Alternate Contact No
+        { wch: 20 }, // Country
+        { wch: 16 }, // Invoice Currency
+        
+        // Billing Address (8 columns)
+        { wch: 30 }, // Billing Address Contact Person
+        { wch: 25 }, // Billing Address Contact Number
+        { wch: 28 }, // Billing Address Line 1
+        { wch: 22 }, // Billing Address Line 2
+        { wch: 12 }, // Billing Pincode
+        { wch: 16 }, // Billing City
+        { wch: 16 }, // Billing State
+        { wch: 18 }, // Billing Country
+        
+        // Delivery Address 1 (9 columns)
+        { wch: 30 }, // Delivery 1 Address Contact Person
+        { wch: 25 }, // Delivery 1 Address Contact Number
+        { wch: 28 }, // Delivery 1 Address Line 1
+        { wch: 22 }, // Delivery 1 Address Line 2
+        { wch: 12 }, // Delivery 1 Pincode
+        { wch: 16 }, // Delivery 1 City
+        { wch: 16 }, // Delivery 1 State
+        { wch: 18 }, // Delivery 1 Country
+        { wch: 18 }, // Delivery 1 Is Default
+        
+        // Delivery Address 2 (9 columns)
+        { wch: 30 }, // Delivery 2 Address Contact Person
+        { wch: 25 }, // Delivery 2 Address Contact Number
+        { wch: 28 }, // Delivery 2 Address Line 1
+        { wch: 22 }, // Delivery 2 Address Line 2
+        { wch: 12 }, // Delivery 2 Pincode
+        { wch: 16 }, // Delivery 2 City
+        { wch: 16 }, // Delivery 2 State
+        { wch: 18 }, // Delivery 2 Country
+        { wch: 18 }, // Delivery 2 Is Default
+        
+        // Delivery Address 3 (9 columns)
+        { wch: 30 }, // Delivery 3 Address Contact Person
+        { wch: 25 }, // Delivery 3 Address Contact Number
+        { wch: 28 }, // Delivery 3 Address Line 1
+        { wch: 22 }, // Delivery 3 Address Line 2
+        { wch: 12 }, // Delivery 3 Pincode
+        { wch: 16 }, // Delivery 3 City
+        { wch: 16 }, // Delivery 3 State
+        { wch: 18 }, // Delivery 3 Country
+        { wch: 18 }, // Delivery 3 Is Default
     ];
+
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Clients_Sample");
     XLSX.writeFile(wb, "Clients_Import_Sample.xlsx");
+  }
+
+  function formatPhoneNumber(phone: string, country: string): string {
+    const value = phone.trim();
+    const countryName = country.trim().toLowerCase();
+
+    // Already has a country code
+    if (value.startsWith("+")) {
+      return value;
+    }
+
+    // Remove all non-digit characters
+    const digits = value.replace(/\D/g, "");
+
+    // Valid Indian mobile number (starts with 6-9 and is exactly 10 digits)
+    if (countryName === "india" && /^[6-9]\d{9}$/.test(digits)) {
+      return `+91 ${digits}`;
+    }
+
+    // Otherwise leave as-is
+    return value;
   }
 
   async function handleImportFile(e: React.ChangeEvent<HTMLInputElement>) {
@@ -205,60 +300,171 @@ export default function ClientMaster() {
     e.target.value = "";
     setImportLoading(true);
     try {
-      const ab = await file.arrayBuffer();
-      const wb = XLSX.read(ab, { type: "array" });
-      const ws = wb.Sheets[wb.SheetNames[0]];
-      const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(ws);
+        const ab = await file.arrayBuffer();
+        const wb = XLSX.read(ab, { type: "array" });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(ws);
 
-      const mapped = rows.map((row) => {
-        const contactName = String(row["Contact Name"] ?? row["contactName"] ?? "").trim();
-        const contactNo = String(row["Contact No"] ?? row["contactNo"] ?? "").trim();
-        const country = String(row["Country"] ?? row["country"] ?? "").trim() || undefined;
+        const mapped = rows.map((row) => {
+            const contactName = String(row["Contact Name"] ?? row["contactName"] ?? "").trim();
+            const contactNoRaw = String(row["Contact No"] ?? row["contactNo"] ?? "").trim();
+            const country = String(row["Country"] ?? row["country"] ?? "").trim() || undefined;
 
-        const addrType = String(row["Address Type"] ?? "").trim();
-        const addr1 = String(row["Address Line 1"] ?? "").trim();
-        const addr2 = String(row["Address Line 2"] ?? "").trim();
-        const pincode = String(row["Pincode"] ?? "").trim();
-        const city = String(row["City"] ?? "").trim();
-        const state = String(row["State"] ?? "").trim();
-        const addrCountry = String(row["Address Country"] ?? "").trim() || country || "";
+            // Format primary contact number
+            const contactNo = country ? formatPhoneNumber(contactNoRaw, country) : contactNoRaw;
 
-        const hasAddr = !!(addr1 || addr2 || city || state || pincode);
-        const validTypes = ["Billing Address", "Delivery Address", "Other"];
-        const addresses = hasAddr ? [{
-          id: Math.random().toString(36).slice(2, 10),
-          type: validTypes.includes(addrType) ? addrType : "Billing Address",
-          name: contactName,
-          contactNo,
-          address1: addr1,
-          address2: addr2,
-          city,
-          state,
-          pincode,
-          country: addrCountry,
-          isBillingDefault: true,
-        }] : undefined;
+            // Helper to read a field with fallback keys
+            const get = (keys: string[]) => {
+                for (const k of keys) {
+                    const v = row[k];
+                    if (v !== undefined && v !== null && v !== "") return String(v).trim();
+                }
+                return "";
+            };
 
-        return {
-          brandName: String(row["Brand / Client Name"] ?? row["brandName"] ?? "").trim(),
-          contactName,
-          email: String(row["Email"] ?? row["email"] ?? "").trim(),
-          altEmail: String(row["Alternate Email"] ?? row["altEmail"] ?? "").trim() || undefined,
-          contactNo,
-          altContactNo: String(row["Alternate Contact No"] ?? row["altContactNo"] ?? "").trim() || undefined,
-          country,
-          invoiceCurrency: String(row["Invoice Currency"] ?? row["invoiceCurrency"] ?? "").trim() || undefined,
-          addresses,
-        };
-      });
+            // Build addresses array
+            const addresses: Array<{
+                id: string;
+                type: string;
+                name: string;
+                contactNo: string;
+                address1: string;
+                address2: string;
+                city: string;
+                state: string;
+                pincode: string;
+                country: string;
+                isBillingDefault: boolean;
+                isDeliveryDefault: boolean;
+            }> = [];
 
-      const importRaw = await importMutation.mutateAsync(mapped);
-      setImportResult(normalizeImportResult(importRaw));
-      setImportResultOpen(true);
+            // --- Billing Address (always present, always default) ---
+            const billingAddr1 = get(["Billing Address Line 1", "billingAddressLine1"]);
+            const billingAddr2 = get(["Billing Address Line 2", "billingAddressLine2"]);
+            const billingPincode = get(["Billing Pincode", "billingPincode"]);
+            const billingCity = get(["Billing City", "billingCity"]);
+            const billingState = get(["Billing State", "billingState"]);
+            const billingCountry = get(["Billing Country", "billingCountry"]) || country || "";
+
+            const hasBilling = !!(billingAddr1 || billingAddr2 || billingCity || billingState || billingPincode);
+
+            if (hasBilling) {
+                const billingContactNoRaw = get(["Billing Address Contact Number", "billingAddressContactNumber"]) || contactNoRaw;
+                const billingContactNo = country ? formatPhoneNumber(billingContactNoRaw, country) : billingContactNoRaw;
+
+                addresses.push({
+                    id: Math.random().toString(36).slice(2, 10),
+                    type: "Billing Address",
+                    name: get(["Billing Address Contact Person", "billingAddressContactPerson"]) || contactName,
+                    contactNo: billingContactNo,
+                    address1: billingAddr1,
+                    address2: billingAddr2,
+                    city: billingCity,
+                    state: billingState,
+                    pincode: billingPincode,
+                    country: billingCountry,
+                    isBillingDefault: true,
+                    isDeliveryDefault: false,
+                });
+            }
+
+            // --- Delivery Addresses 1, 2, 3 ---
+            const deliveryAddresses: typeof addresses = [];
+
+            for (let i = 1; i <= 3; i++) {
+                const prefix = `Delivery ${i}`;
+                const camelPrefix = `delivery${i}`;
+
+                const dAddr1 = get([`${prefix} Address Line 1`, `${camelPrefix}AddressLine1`]);
+                const dAddr2 = get([`${prefix} Address Line 2`, `${camelPrefix}AddressLine2`]);
+                const dPincode = get([`${prefix} Pincode`, `${camelPrefix}Pincode`]);
+                const dCity = get([`${prefix} City`, `${camelPrefix}City`]);
+                const dState = get([`${prefix} State`, `${camelPrefix}State`]);
+                const dCountry = get([`${prefix} Country`, `${camelPrefix}Country`]) || country || "";
+
+                const hasDelivery = !!(dAddr1 || dAddr2 || dCity || dState || dPincode);
+
+                if (hasDelivery) {
+                    const isDefaultRaw = get([`${prefix} Is Default`, `${camelPrefix}IsDefault`]).toLowerCase();
+                    const isDefault = isDefaultRaw === "true" || isDefaultRaw === "1" || isDefaultRaw === "yes";
+
+                    const deliveryContactNoRaw = get([`${prefix} Address Contact Number`, `${camelPrefix}AddressContactNumber`]) || contactNoRaw;
+                    const deliveryContactNo = country ? formatPhoneNumber(deliveryContactNoRaw, country) : deliveryContactNoRaw;
+
+                    deliveryAddresses.push({
+                        id: Math.random().toString(36).slice(2, 10),
+                        type: "Delivery Address",
+                        name: get([`${prefix} Address Contact Person`, `${camelPrefix}AddressContactPerson`]) || contactName,
+                        contactNo: deliveryContactNo,
+                        address1: dAddr1,
+                        address2: dAddr2,
+                        city: dCity,
+                        state: dState,
+                        pincode: dPincode,
+                        country: dCountry,
+                        isBillingDefault: false,
+                        isDeliveryDefault: isDefault,
+                    });
+                }
+            }
+
+            // --- Enforce exactly ONE delivery default ---
+            if (deliveryAddresses.length > 0) {
+                const defaultCount = deliveryAddresses.filter((a) => a.isDeliveryDefault).length;
+
+                if (defaultCount === 0) {
+                    deliveryAddresses[0].isDeliveryDefault = true;
+                } else if (defaultCount > 1) {
+                    let foundFirst = false;
+                    for (const addr of deliveryAddresses) {
+                        if (addr.isDeliveryDefault) {
+                            if (foundFirst) {
+                                addr.isDeliveryDefault = false;
+                            } else {
+                                foundFirst = true;
+                            }
+                        }
+                    }
+                }
+            }
+
+            addresses.push(...deliveryAddresses);
+
+            // --- Fallback: if only one address total, make it billing default ---
+            if (addresses.length === 1 && addresses[0].type === "Delivery Address") {
+                addresses[0].isBillingDefault = true;
+                addresses[0].type = "Billing Address";
+            }
+
+            // Format alternate contact number if present
+            const altContactNoRaw = String(row["Alternate Contact No"] ?? row["altContactNo"] ?? "").trim();
+            const altContactNo = altContactNoRaw && country ? formatPhoneNumber(altContactNoRaw, country) : altContactNoRaw || undefined;
+
+            return {
+                customClientCode: get(["Custom Client Code", "customClientCode"]) || undefined,
+                brandName: String(row["Brand / Client Name"] ?? row["brandName"] ?? "").trim(),
+                contactName,
+                email: String(row["Email"] ?? row["email"] ?? "").trim(),
+                altEmail: String(row["Alternate Email"] ?? row["altEmail"] ?? "").trim() || undefined,
+                contactNo,
+                altContactNo,
+                country,
+                invoiceCurrency: String(row["Invoice Currency"] ?? row["invoiceCurrency"] ?? "").trim() || undefined,
+                addresses: addresses.length > 0 ? addresses : undefined,
+            };
+        });
+
+        const importRaw = await importMutation.mutateAsync(mapped);
+        setImportResult(normalizeImportResult(importRaw));
+        setImportResultOpen(true);
     } catch (err) {
-      toast({ title: "Import Failed", description: err instanceof Error ? err.message : "Could not import file.", variant: "destructive" });
+        toast({
+            title: "Import Failed",
+            description: err instanceof Error ? err.message : "Could not import file.",
+            variant: "destructive",
+        });
     } finally {
-      setImportLoading(false);
+        setImportLoading(false);
     }
   }
 
