@@ -15,6 +15,7 @@ import { customFetch } from "@workspace/api-client-react";
 import TopNavbar from "@/components/layout/TopNavbar";
 import { useToast } from "@/hooks/use-toast";
 import { useCurrency } from "@/contexts/CurrencyContext";
+import { SmallSearchSelect} from "@/components/ui/SearchableSelect";
 
 const G     = "#C6AF4B";
 const G_DIM = "#A8943E";
@@ -170,20 +171,79 @@ export default function PurchaseOrderForm() {
 
   useEffect(() => { if (isError) navigate("/login"); }, [isError, navigate]);
 
+  const fetchVendors = (search = "") => {
+    customFetch(
+      `/api/vendors?search=${encodeURIComponent(search)}&page=1&limit=20&_t=${Date.now()}`
+    )
+      .then((r: unknown) => {
+        setVendors((r as { data: Vendor[] }).data ?? []);
+      })
+      .catch(() => {
+        setVendors([]);
+      });
+  };
+
+  const fetchInventoryItems = (
+    search = "",
+    category: ItemCategory = "all"
+  ) => {
+    customFetch(
+        `/api/inventory/items?search=${encodeURIComponent(search)}&category=${category}&page=1&limit=20&sort=item_code&order=desc&_t=${Date.now()}`
+      ).then((r: unknown) =>
+        setInventoryItems((r as { data: InventoryOption[] }).data ?? [])
+      )
+      .catch(() => setInventoryItems([]));
+  };
+
+  const fetchSwatchOrders = (search = "") => {
+    customFetch(
+      `/api/swatch-orders?search=${encodeURIComponent(search)}&page=1&limit=20&_t=${Date.now()}`
+    )
+      .then((r: unknown) => {
+        setSwatchOrders(
+          (r as {
+            data: Array<{
+              id: number;
+              orderCode: string;
+              swatchName: string;
+              clientName: string;
+            }>;
+          }).data ?? []
+        );
+      })
+      .catch(() => {
+        setSwatchOrders([]);
+      });
+  };
+
+  const fetchStyleOrders = (search = "") => {
+    customFetch(
+      `/api/style-orders?search=${encodeURIComponent(search)}&page=1&limit=20&_t=${Date.now()}`
+    )
+      .then((r: unknown) => {
+        setStyleOrders(
+          (r as {
+            data: Array<{
+              id: number;
+              orderCode: string;
+              styleName: string;
+              clientName: string;
+            }>;
+          }).data ?? []
+        );
+      })
+      .catch(() => {
+        setStyleOrders([]);
+      });
+  };
+
+
   useEffect(() => {
     if (!token) return;
-    customFetch(`/api/vendors?limit=500&_t=${Date.now()}`)
-      .then((r: unknown) => setVendors((r as { data: Vendor[] }).data ?? []))
-      .catch(() => {});
-    customFetch(`/api/inventory/items?limit=500&sort=item_name&order=asc&_t=${Date.now()}`)
-      .then((r: unknown) => setInventoryItems((r as { data: InventoryOption[] }).data ?? []))
-      .catch(() => {});
-    customFetch(`/api/swatch-orders?limit=500&_t=${Date.now()}`)
-      .then((r: unknown) => setSwatchOrders((r as { data: Array<{ id: number; orderCode: string; swatchName: string; clientName: string }> }).data ?? []))
-      .catch(() => {});
-    customFetch(`/api/style-orders?limit=500&_t=${Date.now()}`)
-      .then((r: unknown) => setStyleOrders((r as { data: Array<{ id: number; orderCode: string; styleName: string; clientName: string }> }).data ?? []))
-      .catch(() => {});
+    fetchVendors();
+    fetchInventoryItems();
+    fetchSwatchOrders();
+    fetchStyleOrders();
   }, [token]);
 
   const loadPo = useCallback(() => {
@@ -343,6 +403,20 @@ export default function PurchaseOrderForm() {
     }
   };
 
+  const vendorOptions = vendors.map((v) => ({
+    value: String(v.id),
+    label: v.brandName,
+  }));
+
+  const swatchOptions = swatchOrders.map(s => ({
+    value: String(s.id),
+    label: `${s.orderCode} · ${s.swatchName} (${s.clientName})`,
+  }));
+
+  const styleOptions = styleOrders.map(s => ({
+    value: String(s.id),
+    label: `${s.orderCode} · ${s.styleName} (${s.clientName})`,
+  }));
   // ── VIEW mode ─────────────────────────────────────────────────────────────
 
   if (!isNew) {
@@ -609,17 +683,17 @@ export default function PurchaseOrderForm() {
             {/* Vendor */}
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Vendor <span className="text-red-500">*</span></label>
-              <select value={vendorId}
-                onChange={e => {
-                  const id = Number(e.target.value);
+              <SmallSearchSelect
+                options={vendorOptions}
+                value={vendorId ? String(vendorId) : ""}
+                onSearch={fetchVendors}
+                onChange={(value) => {
+                  const id = Number(value);
                   setVendorId(id || "");
-                  const v = vendors.find(v => v.id === id) ?? null;
-                  setSelectedVendor(v);
+                  setSelectedVendor( vendors.find(v => v.id === id) ?? null);
                 }}
-                className={`${inputCls} bg-white appearance-none`}>
-                <option value="">Select vendor…</option>
-                {vendors.map(v => <option key={v.id} value={v.id}>{v.brandName}</option>)}
-              </select>
+                placeholder="Select vendor..."
+              />
             </div>
 
             <div>
@@ -643,26 +717,26 @@ export default function PurchaseOrderForm() {
                 <label className="block text-xs font-medium text-gray-600 mb-1">
                   Swatch Order <span className="text-red-500">*</span>
                 </label>
-                <select value={referenceId} onChange={e => setReferenceId(Number(e.target.value) || "")}
-                  className={`${inputCls} bg-white appearance-none`}>
-                  <option value="">— Select swatch order —</option>
-                  {swatchOrders.map(s => (
-                    <option key={s.id} value={s.id}>{s.orderCode} · {s.swatchName} ({s.clientName})</option>
-                  ))}
-                </select>
+                <SmallSearchSelect
+                  options={swatchOptions}
+                  value={referenceId ? String(referenceId) : ""}
+                  onSearch={fetchSwatchOrders}
+                  onChange={(value) => setReferenceId(Number(value) || "")}
+                  placeholder="Select swatch order..."
+                />
               </div>
             ) : referenceType === "Style" ? (
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">
                   Style Order <span className="text-red-500">*</span>
                 </label>
-                <select value={referenceId} onChange={e => setReferenceId(Number(e.target.value) || "")}
-                  className={`${inputCls} bg-white appearance-none`}>
-                  <option value="">— Select style order —</option>
-                  {styleOrders.map(s => (
-                    <option key={s.id} value={s.id}>{s.orderCode} · {s.styleName} ({s.clientName})</option>
-                  ))}
-                </select>
+                <SmallSearchSelect
+                  options={styleOptions}
+                  value={referenceId ? String(referenceId) : ""}
+                  onSearch={fetchStyleOrders}
+                  onChange={(value) => setReferenceId(Number(value) || "")}
+                  placeholder="Select style order..."
+                />
               </div>
             ) : (
               <div>
@@ -824,10 +898,10 @@ export default function PurchaseOrderForm() {
 
                   return (
                     <tr key={line.key}>
-                      <td className="px-3 py-2 text-xs text-gray-400">{idx+1}</td>
+                      <td className="px-3 py-2 text-xs text-gray-400 align-top">{idx+1}</td>
 
                       {/* Category */}
-                      <td className="px-3 py-2">
+                      <td className="px-3 py-2 align-top">
                         <select
                           value={line.itemCategory}
                           onChange={e => {
@@ -843,37 +917,40 @@ export default function PurchaseOrderForm() {
                       </td>
 
                       {/* Item */}
-                      <td className="px-3 py-2">
-                        <select
-                          value={line.inventoryItemId ?? ""}
-                          onChange={e => {
-                            const id = parseInt(e.target.value);
-                            const item = inventoryItems.find(i => i.id === id) ?? null;
-                            selectItem(line.key, item);
+                      <td className="px-3 py-2 align-top">
+                        <SmallSearchSelect
+                          value={line.inventoryItemId ? String(line.inventoryItemId) : ""}
+                          options={itemsForCategory(line.itemCategory).map(item => ({
+                              value: String(item.id),
+                              label: `${item.item_name} · ${
+                                  item.source_type === "fabric"
+                                      ? "Fabric"
+                                      : item.source_type === "material"
+                                      ? "Material"
+                                      : item.source_type === "packaging"
+                                      ? "Item Master"
+                                      : item.source_type
+                              }${item.item_code ? ` (${item.item_code})` : ""}`,
+                          }))}
+                          onSearch={(search) => fetchInventoryItems(search, line.itemCategory)}
+                          onChange={(value) => {
+                              const item =
+                                  inventoryItems.find(i => String(i.id) === value) ?? null;
+
+                              selectItem(line.key, item);
                           }}
-                          className={`${inputCls} bg-white appearance-none`}>
-                          <option value="">— Select item —</option>
-                          {itemsForCategory(line.itemCategory).map(item => {
-                            const srcLabel = item.source_type === "fabric"    ? "Fabric"
-                                           : item.source_type === "material"   ? "Material"
-                                           : item.source_type === "packaging"  ? "Item Master"
-                                           : item.source_type;
-                            return (
-                              <option key={item.id} value={item.id}>
-                                {item.item_name} · {srcLabel}{item.item_code ? ` (${item.item_code})` : ""}
-                              </option>
-                            );
-                          })}
-                        </select>
+                          placeholder="Select item..."
+                      />
+                                              
                       </td>
-                      <td className="px-3 py-2 text-xs text-gray-500">{line.unitType || "—"}</td>
-                      <td className="px-3 py-2">
+                      <td className="px-3 py-2 text-xs text-gray-500 align-top">{line.unitType || "—"}</td>
+                      <td className="px-3 py-2 align-top">
                         <input type="number" min="0" step="0.001"
                           value={line.orderedQuantity}
                           onChange={e => updateLine(line.key, "orderedQuantity", e.target.value)}
                           className={`${inputCls} text-right`} />
                       </td>
-                      <td className="px-3 py-2">
+                      <td className="px-3 py-2 align-top">
                         <div>
                           <input type="number" min="0" step="0.01"
                             value={line.targetPrice}
@@ -884,32 +961,32 @@ export default function PurchaseOrderForm() {
                           )}
                         </div>
                       </td>
-                      <td className="px-3 py-2 text-sm font-mono font-semibold text-gray-900 text-right pr-4">
+                      <td className="px-3 py-2 text-sm font-mono font-semibold text-gray-900 text-right pr-4 align-top">
                         {lineAmt > 0 ? `${fmt(lineAmt)}` : "—"}
                       </td>
                       {includeGst && <>
-                        <td className="px-3 py-2">
+                        <td className="px-3 py-2 align-top2">
                           <input type="text"
                             value={line.hsnCode}
                             onChange={e => updateLine(line.key, "hsnCode", e.target.value)}
                             placeholder="HSN…"
                             className={inputCls} />
                         </td>
-                        <td className="px-3 py-2">
+                        <td className="px-3 py-2 align-top2">
                           <input type="number" min="0" max="100" step="0.01"
                             value={line.gstPercent}
                             onChange={e => updateLine(line.key, "gstPercent", e.target.value)}
                             className={`${inputCls} text-right`} />
                         </td>
-                        <td className="px-3 py-2 text-xs font-mono text-amber-600 text-right pr-4">
+                        <td className="px-3 py-2 text-xs font-mono text-amber-600 text-right pr-4 align-top">
                           {gstAmt > 0 ? `${fmt(gstAmt)}` : "—"}
                         </td>
-                        <td className="px-3 py-2 text-xs font-mono font-semibold text-gray-900 text-right pr-4">
+                        <td className="px-3 py-2 text-xs font-mono font-semibold text-gray-900 text-right pr-4 align-top">
                           {lineTotal > 0 ? `${fmt(lineTotal)}` : "—"}
                         </td>
                       </>}
                       {/* Image picker */}
-                      <td className="px-3 py-2">
+                      <td className="px-3 py-2 align-top">
                         <div className="relative">
                         <div className="flex flex-col gap-1">
                           {line.itemImage ? (
@@ -999,7 +1076,7 @@ export default function PurchaseOrderForm() {
                         </div>
                         </div>
                       </td>
-                      <td className="px-3 py-2">
+                      <td className="px-3 py-2 align-top">
                         {lineItems.length > 1 && (
                           <button onClick={() => removeLine(line.key)}
                             className="p-1 rounded-lg text-red-400 hover:bg-red-50 hover:text-red-600">
