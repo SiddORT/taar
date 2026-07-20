@@ -35,7 +35,7 @@ export type StatusFilter = "all" | "active" | "inactive";
 const BASE = "/api/styles";
 const QK = "styles";
 
-export function useStyleList(p: { search: string; status: StatusFilter; client: string; location: string; category: string; page: number; limit: number }) {
+export function useStyleList(p: { search: string; status: StatusFilter; client: string; location: string; category: string; tag: string; page: number; limit: number }) {
   return useQuery({
     queryKey: [QK, p],
     queryFn: () => customFetch<{ data: StyleRecord[]; total: number; page: number; limit: number }>(

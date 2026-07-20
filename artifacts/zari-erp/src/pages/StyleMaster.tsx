@@ -88,7 +88,7 @@ export default function StyleMaster() {
   const [importResultOpen, setImportResultOpen] = useState(false);
 
   // ── Data ──
-  const { data, isLoading } = useStyleList({ search, status, client: filterClient, location: filterLocation, category: filterCategory, page, limit });
+  const { data, isLoading } = useStyleList({ search, status, client: filterClient, location: filterLocation, category: filterCategory, tag: tagFilter,page, limit });
   const { data: clientsData } = useAllClients();
   const { data: styleCatData } = useAllStyleCategories();
 
@@ -104,11 +104,11 @@ export default function StyleMaster() {
     ...warehouseLocations.filter(w => w.isActive).map(w => ({ value: w.name, label: w.name })),
     { value: "Out-house", label: "Out-house" },
   ];
-  const hasFilters = !!(search || status !== "all" || filterClient || filterLocation || filterCategory);
+  const hasFilters = !!(search || status !== "all" || filterClient || filterLocation || filterCategory || tagFilter);
 
   const fetchTags = (searchString = "") => {
     customFetch(
-      `/api/entity-tags?entityType=swatch_master&search=${encodeURIComponent(searchString)}&_t=${Date.now()}`
+      `/api/entity-tags?entityType=style_master&search=${encodeURIComponent(searchString)}&_t=${Date.now()}`
     )
       .then((r: unknown) => {
         const fetched = (r as { data: Tags[] }).data ?? [];
@@ -119,9 +119,11 @@ export default function StyleMaster() {
       });
   };
   
-  const tagOptions = tags.map(tag => ({
-    value: tag.tag,
-    label: tag.tag,
+ const uniqueTags = Array.from(new Set(tags.map(t => t.tag)));
+
+  const tagOptions = uniqueTags.map(tag => ({
+    value: tag,
+    label: tag,
   }));
   
   if (tagFilter && !tags.some(t => t.tag === tagFilter)) {
@@ -152,7 +154,7 @@ export default function StyleMaster() {
   }
 
   function clearFilters() {
-    setSearch(""); setStatus("all"); setFilterClient(""); setFilterLocation(""); setFilterCategory(""); setPage(1);
+    setSearch(""); setStatus("all"); setFilterClient(""); setFilterLocation(""); setFilterCategory(""); setTagFilter(""); setPage(1);
   }
 
   // ── Import ──
