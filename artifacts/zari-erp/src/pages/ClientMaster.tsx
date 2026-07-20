@@ -152,48 +152,177 @@ export default function ClientMaster() {
   function downloadSample() {
     setImportMenuOpen(false);
     const sampleData = [
-      {
-        "Brand / Client Name": "Fusion Garments",
-        "Contact Name": "Priya Sharma",
-        "Email": "priya@fusiongarments.com",
-        "Alternate Email": "",
-        "Contact No": "9876543210",
-        "Alternate Contact No": "",
-        "Country": "India",
-        "Invoice Currency": "INR",
-        "Address Type": "Billing Address",
-        "Address Line 1": "12 MG Road",
-        "Address Line 2": "Bandra West",
-        "Pincode": "400050",
-        "City": "Mumbai",
-        "State": "Maharashtra",
-        "Address Country": "India",
-      },
-      {
-        "Brand / Client Name": "Global Threads",
-        "Contact Name": "John Smith",
-        "Email": "john@globalthreads.com",
-        "Alternate Email": "support@globalthreads.com",
-        "Contact No": "9123456780",
-        "Alternate Contact No": "",
-        "Country": "United States",
-        "Invoice Currency": "USD",
-        "Address Type": "Billing Address",
-        "Address Line 1": "500 Fashion Ave",
-        "Address Line 2": "Suite 12",
-        "Pincode": "10018",
-        "City": "New York",
-        "State": "New York",
-        "Address Country": "United States",
-      },
+        {
+            // Client Info
+            "Client Code": "CL001",
+            "Brand / Client Name": "Fusion Garments",
+            "Contact Name": "Priya Sharma",
+            "Email": "priya@fusiongarments.com",
+            "Alternate Email": "",
+            "Contact No": "9876543210",
+            "Alternate Contact No": "",
+            "Country": "India",
+            "Invoice Currency": "INR",
+            
+            // Billing Address
+            "Billing Address Contact Person": "Priya Sharma",
+            "Billing Address Contact Number": "9876543210",
+            "Billing Address Line 1": "12 MG Road",
+            "Billing Address Line 2": "Bandra West",
+            "Billing Pincode": "400050",
+            "Billing City": "Mumbai",
+            "Billing State": "Maharashtra",
+            "Billing Country": "India",
+            
+            // Delivery Address 1 (Default)
+            "Delivery 1 Address Contact Person": "Rahul Sharma",
+            "Delivery 1 Address Contact Number": "9876543211",
+            "Delivery 1 Address Line 1": "45 Andheri East",
+            "Delivery 1 Address Line 2": "Near Metro Station",
+            "Delivery 1 Pincode": "400069",
+            "Delivery 1 City": "Mumbai",
+            "Delivery 1 State": "Maharashtra",
+            "Delivery 1 Country": "India",
+            "Delivery 1 Is Default": "true",
+            
+            // Delivery Address 2
+            "Delivery 2 Address Contact Person": "Neha Gupta",
+            "Delivery 2 Address Contact Number": "9876543212",
+            "Delivery 2 Address Line 1": "78 Borivali West",
+            "Delivery 2 Address Line 2": "",
+            "Delivery 2 Pincode": "400092",
+            "Delivery 2 City": "Mumbai",
+            "Delivery 2 State": "Maharashtra",
+            "Delivery 2 Country": "India",
+            "Delivery 2 Is Default": "false",
+            
+            // Delivery Address 3
+            "Delivery 3 Address Contact Person": "Amit Patel",
+            "Delivery 3 Address Contact Number": "9876543213",
+            "Delivery 3 Address Line 1": "22 Dadar",
+            "Delivery 3 Address Line 2": "",
+            "Delivery 3 Pincode": "400014",
+            "Delivery 3 City": "Mumbai",
+            "Delivery 3 State": "Maharashtra",
+            "Delivery 3 Country": "India",
+            "Delivery 3 Is Default": "false",
+        },
+        {
+            // Client Info
+            "Client Code": "CL002",
+            "Brand / Client Name": "Global Threads",
+            "Contact Name": "John Smith",
+            "Email": "john@globalthreads.com",
+            "Alternate Email": "support@globalthreads.com",
+            "Contact No": "9123456780",
+            "Alternate Contact No": "",
+            "Country": "United States",
+            "Invoice Currency": "USD",
+            
+            // Billing Address
+            "Billing Address Contact Person": "John Smith",
+            "Billing Address Contact Number": "9123456780",
+            "Billing Address Line 1": "500 Fashion Ave",
+            "Billing Address Line 2": "Suite 12",
+            "Billing Pincode": "10018",
+            "Billing City": "New York",
+            "Billing State": "New York",
+            "Billing Country": "United States",
+            
+            // Delivery Address 1 (Default)
+            "Delivery 1 Address Contact Person": "Sarah Johnson",
+            "Delivery 1 Address Contact Number": "9123456781",
+            "Delivery 1 Address Line 1": "200 Park Avenue",
+            "Delivery 1 Address Line 2": "Floor 15",
+            "Delivery 1 Pincode": "10017",
+            "Delivery 1 City": "New York",
+            "Delivery 1 State": "New York",
+            "Delivery 1 Country": "United States",
+            "Delivery 1 Is Default": "true",
+            
+            // Delivery Address 2
+            "Delivery 2 Address Contact Person": "Mike Davis",
+            "Delivery 2 Address Contact Number": "9123456782",
+            "Delivery 2 Address Line 1": "350 Fifth Avenue",
+            "Delivery 2 Address Line 2": "",
+            "Delivery 2 Pincode": "10118",
+            "Delivery 2 City": "New York",
+            "Delivery 2 State": "New York",
+            "Delivery 2 Country": "United States",
+            "Delivery 2 Is Default": "false",
+            
+            // Delivery Address 3 (Empty)
+            "Delivery 3 Address Contact Person": "",
+            "Delivery 3 Address Contact Number": "",
+            "Delivery 3 Address Line 1": "",
+            "Delivery 3 Address Line 2": "",
+            "Delivery 3 Pincode": "",
+            "Delivery 3 City": "",
+            "Delivery 3 State": "",
+            "Delivery 3 Country": "",
+            "Delivery 3 Is Default": "false",
+        },
     ];
+
     const ws = XLSX.utils.json_to_sheet(sampleData);
+
+    // Column widths matching the new structure (44 columns total)
     ws["!cols"] = [
-      { wch: 25 }, { wch: 20 }, { wch: 30 }, { wch: 30 },
-      { wch: 15 }, { wch: 15 }, { wch: 20 }, { wch: 16 },
-      { wch: 18 }, { wch: 28 }, { wch: 22 }, { wch: 10 },
-      { wch: 16 }, { wch: 16 }, { wch: 18 },
+        // Client Info (9 columns)
+        { wch: 12 }, // Client Code
+        { wch: 25 }, // Brand / Client Name
+        { wch: 20 }, // Contact Name
+        { wch: 30 }, // Email
+        { wch: 30 }, // Alternate Email
+        { wch: 15 }, // Contact No
+        { wch: 15 }, // Alternate Contact No
+        { wch: 20 }, // Country
+        { wch: 16 }, // Invoice Currency
+        
+        // Billing Address (8 columns)
+        { wch: 30 }, // Billing Address Contact Person
+        { wch: 25 }, // Billing Address Contact Number
+        { wch: 28 }, // Billing Address Line 1
+        { wch: 22 }, // Billing Address Line 2
+        { wch: 12 }, // Billing Pincode
+        { wch: 16 }, // Billing City
+        { wch: 16 }, // Billing State
+        { wch: 18 }, // Billing Country
+        
+        // Delivery Address 1 (9 columns)
+        { wch: 30 }, // Delivery 1 Address Contact Person
+        { wch: 25 }, // Delivery 1 Address Contact Number
+        { wch: 28 }, // Delivery 1 Address Line 1
+        { wch: 22 }, // Delivery 1 Address Line 2
+        { wch: 12 }, // Delivery 1 Pincode
+        { wch: 16 }, // Delivery 1 City
+        { wch: 16 }, // Delivery 1 State
+        { wch: 18 }, // Delivery 1 Country
+        { wch: 18 }, // Delivery 1 Is Default
+        
+        // Delivery Address 2 (9 columns)
+        { wch: 30 }, // Delivery 2 Address Contact Person
+        { wch: 25 }, // Delivery 2 Address Contact Number
+        { wch: 28 }, // Delivery 2 Address Line 1
+        { wch: 22 }, // Delivery 2 Address Line 2
+        { wch: 12 }, // Delivery 2 Pincode
+        { wch: 16 }, // Delivery 2 City
+        { wch: 16 }, // Delivery 2 State
+        { wch: 18 }, // Delivery 2 Country
+        { wch: 18 }, // Delivery 2 Is Default
+        
+        // Delivery Address 3 (9 columns)
+        { wch: 30 }, // Delivery 3 Address Contact Person
+        { wch: 25 }, // Delivery 3 Address Contact Number
+        { wch: 28 }, // Delivery 3 Address Line 1
+        { wch: 22 }, // Delivery 3 Address Line 2
+        { wch: 12 }, // Delivery 3 Pincode
+        { wch: 16 }, // Delivery 3 City
+        { wch: 16 }, // Delivery 3 State
+        { wch: 18 }, // Delivery 3 Country
+        { wch: 18 }, // Delivery 3 Is Default
     ];
+
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Clients_Sample");
     XLSX.writeFile(wb, "Clients_Import_Sample.xlsx");
