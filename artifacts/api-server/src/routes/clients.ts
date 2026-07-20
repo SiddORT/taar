@@ -320,6 +320,19 @@ router.delete("/clients/:id", requireAuth, async (req: AuthRequest, res): Promis
   const [record] = await db.update(clientsTable).set({ isDeleted: true, updatedBy, updatedAt: new Date(), deletedBy: updatedBy, deletedAt: new Date() })
     .where(and(eq(clientsTable.id, id), eq(clientsTable.isDeleted, false))).returning();
   if (!record) { res.status(404).json({ error: "Client not found" }); return; }
+
+   await db.update(deliveryAddresses)
+        .set({
+            isDeleted: true,
+            updatedAt: new Date().toISOString(),
+            deletedBy: updatedBy,
+            deletedAt: new Date(),
+        })
+        .where(and(
+            eq(deliveryAddresses.clientId, id),
+            eq(deliveryAddresses.isDeleted, false)
+        ));
+
   res.json({ message: "Client deleted" });
 });
 
