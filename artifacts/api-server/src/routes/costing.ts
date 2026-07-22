@@ -1532,13 +1532,15 @@ router.post("/pr", requireAuth, async (req, res) => {
           error: `This item is already fully received (${alreadyReceived} / ${orderedQty}). No further PR is allowed.`
         });
       }
-      const remaining = orderedQty - alreadyReceived;
-      if (newQty > remaining) {
-        await client.query('ROLLBACK');
-        return res.status(400).json({
-          error: `Received quantity (${newQty}) exceeds remaining ordered quantity. Max allowed: ${remaining.toFixed(4)}`
-        });
-      }
+      // const remaining = orderedQty - alreadyReceived;
+      const remaining = Math.max( 0, orderedQty - alreadyReceived );
+
+      // if (newQty > remaining) {
+      //   await client.query('ROLLBACK');
+      //   return res.status(400).json({
+      //     error: `Received quantity (${newQty}) exceeds remaining ordered quantity. Max allowed: ${remaining.toFixed(4)}`
+      //   });
+      // }
     }
 
     // 7. Generate PR number and insert the new Purchase Receipt
