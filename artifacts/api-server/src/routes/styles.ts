@@ -150,8 +150,8 @@ router.get("/styles", requireAuth, async (req: AuthRequest, res): Promise<void> 
           .from(entityTagsTable)
           .where(
             and(
-              eq(entityTagsTable.entityType, "swatch_master"),
-              eq(entityTagsTable.entityId, swatchesTable.id),
+              eq(entityTagsTable.entityType, "style_master"),
+              eq(entityTagsTable.entityId, stylesTable.id),
               ilike(entityTagsTable.tag, `%${search}%`)
             )
           )
