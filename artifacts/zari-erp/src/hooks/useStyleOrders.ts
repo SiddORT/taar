@@ -11,6 +11,7 @@ export type StyleOrderRecord = {
   styleNo: string | null;
   clientId: string | null;
   clientName: string | null;
+  tags: string[] | [];
   quantity: string | null;
   priority: string;
   orderStatus: string;

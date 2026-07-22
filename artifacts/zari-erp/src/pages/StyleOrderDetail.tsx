@@ -27,6 +27,7 @@ import StyleClientLinkTab from "./StyleClientLinkTab";
 import ShippingTab from "@/pages/ShippingTab";
 import LinkedInvoicesPanel from "@/components/LinkedInvoicesPanel";
 import { useCurrency } from "@/contexts/CurrencyContext";
+import TagInput from "@/components/ui/TagInput";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const ORDER_STATUSES = ["Draft", "Issued", "In Production", "In Review", "Pending Approval", "Completed", "Rejected"];
@@ -88,6 +89,7 @@ type FormState = {
   styleNo: string;
   clientId: string;
   clientName: string;
+  tags: string[];
   quantity: string;
   priority: string;
   orderStatus: string;
@@ -125,7 +127,7 @@ type FormState = {
 
 const EMPTY_FORM: FormState = {
   styleName: "", styleNo: "", clientId: "", clientName: "",
-  quantity: "", priority: "Medium", orderStatus: "Draft",
+  tags:[], quantity: "", priority: "Medium", orderStatus: "Draft",
   season: "", colorway: "", sampleSize: "", fabricType: "",
   orderIssueDate: "", deliveryDate: "", targetHours: "",
   issuedTo: "", department: "", description: "",
@@ -275,9 +277,9 @@ function SectionCard({ icon, title, subtitle, accentColor, children }: {
   );
 }
 
-function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
+function Field({ label, hint, children, className = "" }: { label: string; hint?: string; children: React.ReactNode, className?: string; }) {
   return (
-    <div>
+    <div className={className}>
       <label className="block text-xs font-medium text-gray-600 mb-1.5">
         {label}
         {hint && <span className="ml-1 text-gray-400 font-normal">— {hint}</span>}
@@ -379,6 +381,7 @@ export default function StyleOrderDetail() {
         styleNo: o.styleNo ?? "",
         clientId: o.clientId ?? "",
         clientName: o.clientName ?? "",
+        tags: o.tags ?? [],
         quantity: o.quantity ?? "",
         priority: o.priority ?? "Medium",
         orderStatus: o.orderStatus ?? "Draft",
@@ -662,6 +665,14 @@ export default function StyleOrderDetail() {
                       </div>
                     </div>
                   )} */}
+
+                  <Field label="Tags" className="col-span-2">
+                    <TagInput
+                      value={form.tags}
+                      onChange={tags => set("tags", tags)}
+                      placeholder="Add a tag..."
+                    />
+                  </Field>
 
                   <Field label="Quantity">
                     <input className={inputCls} type="number" min="0" placeholder="e.g. 500"
