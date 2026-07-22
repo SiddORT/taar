@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 // import { eq, ilike, or, and, desc, ne, sql } from "drizzle-orm";
-import { db, pool, stylesTable, swatchesTable,entityTagsTable, eq, ilike, or, and, desc, ne, sql } from "@workspace/db";
+import { db, pool, stylesTable, swatchesTable,entityTagsTable, eq, ilike, or, and, desc, ne, sql, exists } from "@workspace/db";
 import { insertStyleSchema, updateStyleSchema } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
 import { logger } from "../lib/logger";
@@ -112,6 +112,7 @@ router.get("/styles", requireAuth, async (req: AuthRequest, res): Promise<void> 
   const clientFilter = (req.query.client as string) ?? "";
   const locationFilter = (req.query.location as string) ?? "";
   const categoryFilter = (req.query.category as string) ?? "";
+  const tagFilter = (req.query.tag as string) ?? "";
   const page = Math.max(1, parseInt((req.query.page as string) ?? "1", 10));
   const limit = Math.min(100, Math.max(1, parseInt((req.query.limit as string) ?? "10", 10)));
   const offset = (page - 1) * limit;
@@ -122,11 +123,39 @@ router.get("/styles", requireAuth, async (req: AuthRequest, res): Promise<void> 
   if (clientFilter) conditions.push(ilike(stylesTable.client, `%${clientFilter}%`));
   if (locationFilter) conditions.push(ilike(stylesTable.placeOfIssue, `%${locationFilter}%`));
   if (categoryFilter) conditions.push(ilike(stylesTable.styleCategory, `%${categoryFilter}%`));
+  if (tagFilter) {
+    conditions.push(
+      exists(
+        db
+          .select({ one: sql`1` })
+          .from(entityTagsTable)
+          .where(
+            and(
+              eq(entityTagsTable.entityType, "style_master"),
+              eq(entityTagsTable.entityId, stylesTable.id),
+              eq(entityTagsTable.tag, tagFilter)
+            )
+          )
+      )
+    );
+  }
+
   if (search) {
     conditions.push(or(
       ilike(stylesTable.styleNo, `%${search}%`),
       ilike(stylesTable.client, `%${search}%`),
       ilike(stylesTable.description, `%${search}%`),
+      exists( db
+          .select({ one: sql`1` })
+          .from(entityTagsTable)
+          .where(
+            and(
+              eq(entityTagsTable.entityType, "swatch_master"),
+              eq(entityTagsTable.entityId, swatchesTable.id),
+              ilike(entityTagsTable.tag, `%${search}%`)
+            )
+          )
+        )
     )!);
   }
 
