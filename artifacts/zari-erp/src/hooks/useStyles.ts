@@ -39,7 +39,7 @@ export function useStyleList(p: { search: string; status: StatusFilter; client: 
   return useQuery({
     queryKey: [QK, p],
     queryFn: () => customFetch<{ data: StyleRecord[]; total: number; page: number; limit: number }>(
-      `${BASE}?search=${encodeURIComponent(p.search)}&status=${p.status}&client=${encodeURIComponent(p.client)}&location=${encodeURIComponent(p.location)}&category=${encodeURIComponent(p.category)}&page=${p.page}&limit=${p.limit}`),
+      `${BASE}?search=${encodeURIComponent(p.search)}&status=${p.status}&client=${encodeURIComponent(p.client)}&location=${encodeURIComponent(p.location)}&category=${encodeURIComponent(p.category)}&tag=${encodeURIComponent(p.tag ?? "")}&page=${p.page}&limit=${p.limit}`),
     placeholderData: (prev) => prev,
   });
 }
