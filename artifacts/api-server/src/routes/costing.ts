@@ -2637,8 +2637,7 @@ router.post("/style-pr", requireAuth, async (req, res) => {
         });
       }
 
-      const remaining = orderedQty - alreadyReceived;
-
+      const remaining = Math.max( 0, orderedQty - alreadyReceived );
       // if (newQty > remaining) {
       //   await client.query("ROLLBACK");
       //   return res.status(400).json({
@@ -2712,14 +2711,7 @@ router.post("/style-pr", requireAuth, async (req, res) => {
     }
 
     // Update PO Status
-    if (po.status === "Approved") {
-      await client.query(
-        `UPDATE purchase_orders
-         SET status = 'In Process'
-         WHERE id = $1`,
-        [Number(poId)]
-      );
-    }
+    await recalcPoStatus(client, Number(poId));
 
     await client.query("COMMIT");
 
