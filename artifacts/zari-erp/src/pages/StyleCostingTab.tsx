@@ -1576,9 +1576,9 @@ function StylePoSection({ styleOrderId, orderCode, styleName, clientName }: {
     if (!prForm.receivedQty || parseFloat(prForm.receivedQty) <= 0) { toast({ title: "Enter received quantity", variant: "destructive" }); return; }
     if (!prForm.actualPrice || parseFloat(prForm.actualPrice) <= 0) { toast({ title: "Enter actual price", variant: "destructive" }); return; }
     if (prItemStats && prItemStats.remaining <= 0) { toast({ title: "This item is already fully received.", variant: "destructive" }); return; }
-    if (prItemStats && parseFloat(prForm.receivedQty) > prItemStats.remaining) {
-      toast({ title: `Received qty exceeds remaining. Max: ${prItemStats.remaining.toFixed(2)} ${prItemStats.unitType}`, variant: "destructive" }); return;
-    }
+    // if (prItemStats && parseFloat(prForm.receivedQty) > prItemStats.remaining) {
+    //   toast({ title: `Received qty exceeds remaining. Max: ${prItemStats.remaining.toFixed(2)} ${prItemStats.unitType}`, variant: "destructive" }); return;
+    // }
     const bomRowId = prForm.bomRowId ? Number(prForm.bomRowId) : (prModal.bomItems.length === 1 ? prModal.bomItems[0].bomRowId : null);
     createPR.mutate({ poId: prModal.poId, styleOrderId, bomRowId, receivedQty: prForm.receivedQty, actualPrice: prForm.actualPrice, warehouseLocation: prForm.warehouseLocation }, {
       onSuccess: () => { setPrForm({ bomRowId: "", receivedQty: "", actualPrice: "", warehouseLocation: "" }); setPrModal(null); toast({ title: "Purchase Receipt created" }); },
