@@ -542,10 +542,10 @@ router.post("/procurement/purchase-receipts", requireAuth, async (req: AuthReque
         [item.poItemId, poId]
       );
       if (!poItem.rows.length) { res.status(400).json({ error: `PO item ${item.poItemId} not found` }); return; }
-      const pending = parseFloat(poItem.rows[0].ordered_quantity) - parseFloat(poItem.rows[0].received_quantity);
-      if (item.quantity > pending + 0.001) {
-        res.status(400).json({ error: `Received quantity (${item.quantity}) exceeds pending (${pending.toFixed(3)}) for item ${item.itemName}` }); return;
-      }
+      // const pending = Math.max( 0, parseFloat(poItem.rows[0].ordered_quantity) - parseFloat(poItem.rows[0].received_quantity));
+      // if (item.quantity > pending + 0.001) {
+      //   res.status(400).json({ error: `Received quantity (${item.quantity}) exceeds pending (${pending.toFixed(3)}) for item ${item.itemName}` }); return;
+      // }
     }
 
     const prNumber = await nextPrNumber(client);
