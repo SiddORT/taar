@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
 import { Plus, Search, Eye, Trash2, XCircle, Copy, ChevronLeft, ChevronRight, Palette, Calendar, User, Hash, LayoutGrid, LayoutList } from "lucide-react";
@@ -8,6 +8,8 @@ import AppLayout from "@/components/layout/AppLayout";
 import ConfirmModal from "@/components/ui/ConfirmModal";
 import CancelOrderModal from "@/components/ui/CancelOrderModal";
 import { useSwatchOrderList, useDeleteSwatchOrder, useCancelSwatchOrder, useCreateSwatchOrder, type SwatchOrderRecord } from "@/hooks/useSwatchOrders";
+import { SmallSearchSelect } from "@/components/ui/SearchableSelect";
+import { customFetch } from "@workspace/api-client-react";
 
 const ORDER_STATUSES = ["Draft", "Issued", "In Sampling", "In Artwork", "Pending Approval", "Completed", "Rejected", "Cancelled"];
 const PRIORITIES = ["Low", "Medium", "High", "Urgent"];
@@ -43,6 +45,12 @@ const PRIORITY_COLORS: Record<string, string> = {
   High: "bg-orange-100 text-orange-700",
   Urgent: "bg-red-100 text-red-700",
 };
+interface Tags{
+  id: number;
+  entity_id: number;
+  entity_type: string;
+  tag: string;  
+}
 
 function StatusBadge({ status }: { status: string }) {
   return (
@@ -168,12 +176,14 @@ export default function SwatchOrders() {
   const [priorityFilter, setPriorityFilter] = useState("all");
   const [chargeableFilter, setChargeableFilter] = useState("all");
   const [inhouseFilter, setInhouseFilter] = useState("all");
+  const [tags, setTags] = useState<Tags[]>([]);
+  const [tagFilter, setTagFilter] = useState(""); 
   const [page, setPage] = useState(1);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [cancelId, setCancelId] = useState<number | null>(null);
   const [view, setView] = useState<"grid" | "table">("grid");
 
-  const { data, isLoading } = useSwatchOrderList({ search, status: statusFilter, priority: priorityFilter, chargeable: chargeableFilter, inhouse: inhouseFilter, page, limit: 24 });
+  const { data, isLoading } = useSwatchOrderList({ search, status: statusFilter, priority: priorityFilter, chargeable: chargeableFilter, inhouse: inhouseFilter, tag: tagFilter, page, limit: 24 });
   const deleteOrder = useDeleteSwatchOrder();
   const cancelOrder = useCancelSwatchOrder();
   const copyOrder = useCreateSwatchOrder();
@@ -241,6 +251,36 @@ export default function SwatchOrders() {
       toast({ title: "Error", description: "Failed to copy order", variant: "destructive" });
     }
   }
+
+  const fetchTags = (searchString = "") => {
+      customFetch(
+        `/api/entity-tags?entityType=swatch_order&search=${encodeURIComponent(searchString)}&_t=${Date.now()}`
+      )
+        .then((r: unknown) => {
+          const fetched = (r as { data: Tags[] }).data ?? [];
+          setTags(fetched);
+        })
+        .catch(() => {
+          setTags([]);
+        });
+  };
+  
+  const tagOptions = tags.map(tag => ({
+      value: tag.tag,
+      label: tag.tag,
+  }));
+  
+  if (tagFilter && !tags.some(t => t.tag === tagFilter)) {
+    tagOptions.unshift({
+      value: tagFilter,
+      label: tagFilter,
+    });
+  }
+  
+  // Initial Data Load
+  useEffect(() => {
+    fetchTags();
+  }, []);
 
   if (loadingUser) return null;
   if (!user) { setLocation("/login"); return null; }
@@ -321,6 +361,19 @@ export default function SwatchOrders() {
             <option value="yes">In-house Only</option>
             <option value="no">Client Orders Only</option>
           </select>
+          
+          <SmallSearchSelect
+            options={tagOptions}
+            value={tagFilter}
+            onSearch={fetchTags}
+            onChange={(value) => {
+              setTagFilter(value);
+              setPage(1);
+              fetchTags(""); 
+            }}
+            placeholder="All Tags"
+          />
+
         </div>
 
         {/* Content */}
