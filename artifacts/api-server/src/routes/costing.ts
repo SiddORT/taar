@@ -2634,14 +2634,14 @@ router.post("/style-pr", requireAuth, async (req, res) => {
 
       const remaining = orderedQty - alreadyReceived;
 
-      if (newQty > remaining) {
-        await client.query("ROLLBACK");
-        return res.status(400).json({
-          error: `Received quantity (${newQty}) exceeds remaining ordered quantity. Max allowed: ${remaining.toFixed(
-            4
-          )}`,
-        });
-      }
+      // if (newQty > remaining) {
+      //   await client.query("ROLLBACK");
+      //   return res.status(400).json({
+      //     error: `Received quantity (${newQty}) exceeds remaining ordered quantity. Max allowed: ${remaining.toFixed(
+      //       4
+      //     )}`,
+      //   });
+      // }
     }
 
     // Generate PR Number
