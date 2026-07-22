@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 // import { eq, and, ilike, or, desc, sql } from "drizzle-orm";
-import { db, swatchOrdersTable,clientsTable, eq, and, ilike, or, desc, sql } from "@workspace/db";
+import { db, swatchOrdersTable,clientsTable, eq, and, ilike, or, desc, sql, exists, entityTagsTable } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
 import { logger } from "../lib/logger";
 import { generateOrderCode } from "../services/orderCodeService";
@@ -8,7 +8,7 @@ import { generateOrderCode } from "../services/orderCodeService";
 const router: IRouter = Router();
 
 router.get("/swatch-orders", requireAuth, async (req, res): Promise<void> => {
-  const { search = "", status = "all", priority = "all", chargeable = "all", page = "1", limit = "20" } = req.query as Record<string, string>;
+  const { search = "", status = "all", priority = "all", chargeable = "all",   tag = "", page = "1", limit = "20" } = req.query as Record<string, string>;
   const pg = Math.max(1, parseInt(page));
   const lim = Math.min(100, Math.max(1, parseInt(limit)));
   const offset = (pg - 1) * lim;
@@ -21,6 +21,18 @@ router.get("/swatch-orders", requireAuth, async (req, res): Promise<void> => {
         ilike(swatchOrdersTable.swatchName, `%${q}%`),
         ilike(swatchOrdersTable.clientName, `%${q}%`),
         ilike(swatchOrdersTable.orderCode, `%${q}%`),
+        exists(
+          db
+            .select({ one: sql`1` })
+            .from(entityTagsTable)
+            .where(
+              and(
+                eq(entityTagsTable.entityType, "swatch_order"),
+                eq(entityTagsTable.entityId, swatchOrdersTable.id),
+                ilike(entityTagsTable.tag, `%${q}%`)
+              )
+            )
+        )
       )!,
     );
   }
@@ -31,6 +43,22 @@ router.get("/swatch-orders", requireAuth, async (req, res): Promise<void> => {
   const { inhouse = "all" } = req.query as Record<string, string>;
   if (inhouse === "yes") conditions.push(eq(swatchOrdersTable.isInhouse, true));
   if (inhouse === "no") conditions.push(eq(swatchOrdersTable.isInhouse, false));
+  if (tag.trim()) {
+    conditions.push(
+      exists(
+        db
+          .select({ one: sql`1` })
+          .from(entityTagsTable)
+          .where(
+            and(
+              eq(entityTagsTable.entityType, "swatch_order"),
+              eq(entityTagsTable.entityId, swatchOrdersTable.id),
+              ilike(entityTagsTable.tag, `%${tag.trim()}%`)
+            )
+          )
+      )
+    );
+  }
 
   const where = and(...conditions);
   const [rows, countRow] = await Promise.all([
@@ -48,7 +76,24 @@ router.get("/swatch-orders/:id", requireAuth, async (req, res): Promise<void> =>
     and(eq(swatchOrdersTable.id, id), eq(swatchOrdersTable.isDeleted, false))
   );
   if (!row) { res.status(404).json({ error: "Not found" }); return; }
-  res.json({ data: row });
+
+  const tags = await db
+    .select({ tag: entityTagsTable.tag })
+    .from(entityTagsTable)
+    .where(
+      and(
+        eq(entityTagsTable.entityType, "swatch_order"),
+        eq(entityTagsTable.entityId, id)
+      )
+    );
+
+  res.json({
+    data: {
+      ...row,
+      tags: tags.map(t => t.tag),
+    },
+  });
+
 });
 
 router.post("/swatch-orders", requireAuth, async (req, res): Promise<void> => {
@@ -72,54 +117,87 @@ router.post("/swatch-orders", requireAuth, async (req, res): Promise<void> => {
     "order_code"
   );
 
-  const [row] = await db.insert(swatchOrdersTable).values({
-    orderCode,
-    swatchName: body.swatchName as string,
-    clientId: (body.clientId as string) || null,
-    clientName: (body.clientName as string) || null,
-    isChargeable: Boolean(body.isChargeable),
-    isInhouse: Boolean(body.isInhouse),
-    quantity: (body.quantity as string) || null,
-    priority: (body.priority as string) || "Medium",
-    orderStatus: (body.orderStatus as string) || "Draft",
-    styleReferences: (body.styleReferences as object[]) || [],
-    swatchReferences: (body.swatchReferences as object[]) || [],
-    fabricId: (body.fabricId as string) || null,
-    fabricName: (body.fabricName as string) || null,
-    hasLining: Boolean(body.hasLining),
-    liningFabricId: (body.liningFabricId as string) || null,
-    liningFabricName: (body.liningFabricName as string) || null,
-    unitLength: (body.unitLength as string) || null,
-    unitWidth: (body.unitWidth as string) || null,
-    unitType: (body.unitType as string) || null,
-    orderIssueDate: (body.orderIssueDate as string) || null,
-    deliveryDate: (body.deliveryDate as string) || null,
-    targetHours: (body.targetHours as string) || null,
-    issuedTo: (body.issuedTo as string) || null,
-    department: (body.department as string) || null,
-    description: (body.description as string) || null,
-    internalNotes: (body.internalNotes as string) || null,
-    clientInstructions: (body.clientInstructions as string) || null,
-    refDocs: (body.refDocs as object[]) || [],
-    refImages: (body.refImages as object[]) || [],
-    wipImages: (body.wipImages as object[]) || [],
-    finalImages: (body.finalImages as object[]) || [],
-    wipVideos: (body.wipVideos as object[]) || [],
-    finalVideos: (body.finalVideos as object[]) || [],
-    estimate: (body.estimate as object[]) || [],
-    actualStartDate: (body.actualStartDate as string) || null,
-    actualStartTime: (body.actualStartTime as string) || null,
-    tentativeDeliveryDate: (body.tentativeDeliveryDate as string) || null,
-    actualCompletionDate: (body.actualCompletionDate as string) || null,
-    actualCompletionTime: (body.actualCompletionTime as string) || null,
-    delayReason: (body.delayReason as string) || null,
-    approvalDate: (body.approvalDate as string) || null,
-    revisionCount: Number(body.revisionCount) || 0,
-    createdBy: user?.email ?? "system",
-  }).returning();
+  const tags = Array.isArray(body.tags)
+  ? [
+      ...new Set(
+        body.tags
+          .filter((t): t is string => typeof t === "string")
+          .map(tag => tag.trim())
+          .filter(tag => tag.length > 0)
+      ),
+    ]
+  : [];
 
-  logger.info({ id: row.id, orderCode }, "Swatch order created");
-  res.status(201).json({ data: row });
+  try {
+    const row = await db.transaction(async (tx) => {
+      const [order] = await tx
+        .insert(swatchOrdersTable)
+        .values({
+          orderCode,
+          swatchName: body.swatchName as string,
+          clientId: (body.clientId as string) || null,
+          clientName: (body.clientName as string) || null,
+          isChargeable: Boolean(body.isChargeable),
+          isInhouse: Boolean(body.isInhouse),
+          quantity: (body.quantity as string) || null,
+          priority: (body.priority as string) || "Medium",
+          orderStatus: (body.orderStatus as string) || "Draft",
+          styleReferences: (body.styleReferences as object[]) || [],
+          swatchReferences: (body.swatchReferences as object[]) || [],
+          fabricId: (body.fabricId as string) || null,
+          fabricName: (body.fabricName as string) || null,
+          hasLining: Boolean(body.hasLining),
+          liningFabricId: (body.liningFabricId as string) || null,
+          liningFabricName: (body.liningFabricName as string) || null,
+          unitLength: (body.unitLength as string) || null,
+          unitWidth: (body.unitWidth as string) || null,
+          unitType: (body.unitType as string) || null,
+          orderIssueDate: (body.orderIssueDate as string) || null,
+          deliveryDate: (body.deliveryDate as string) || null,
+          targetHours: (body.targetHours as string) || null,
+          issuedTo: (body.issuedTo as string) || null,
+          department: (body.department as string) || null,
+          description: (body.description as string) || null,
+          internalNotes: (body.internalNotes as string) || null,
+          clientInstructions: (body.clientInstructions as string) || null,
+          refDocs: (body.refDocs as object[]) || [],
+          refImages: (body.refImages as object[]) || [],
+          wipImages: (body.wipImages as object[]) || [],
+          finalImages: (body.finalImages as object[]) || [],
+          wipVideos: (body.wipVideos as object[]) || [],
+          finalVideos: (body.finalVideos as object[]) || [],
+          estimate: (body.estimate as object[]) || [],
+          actualStartDate: (body.actualStartDate as string) || null,
+          actualStartTime: (body.actualStartTime as string) || null,
+          tentativeDeliveryDate: (body.tentativeDeliveryDate as string) || null,
+          actualCompletionDate: (body.actualCompletionDate as string) || null,
+          actualCompletionTime: (body.actualCompletionTime as string) || null,
+          delayReason: (body.delayReason as string) || null,
+          approvalDate: (body.approvalDate as string) || null,
+          revisionCount: Number(body.revisionCount) || 0,
+          createdBy: user?.email ?? "system",
+        })
+        .returning();
+
+      if (tags.length > 0) {
+        await tx.insert(entityTagsTable).values(
+          tags.map(tag => ({
+            entityType: "swatch_order",
+            entityId: order.id,
+            tag,
+          }))
+        );
+      }
+
+      return order;
+    });
+
+    res.status(201).json({ data: row });
+
+  } catch (error) {
+    logger.error(error, "Failed to create swatch order");
+    res.status(500).json({ error: "Failed to create swatch order" });
+  }
 });
 
 router.put("/swatch-orders/:id", requireAuth, async (req, res): Promise<void> => {
@@ -128,57 +206,116 @@ router.put("/swatch-orders/:id", requireAuth, async (req, res): Promise<void> =>
   const user = (req as typeof req & { user?: { email: string } }).user;
   const body = req.body as Record<string, unknown>;
 
-  const [existing] = await db.select({ id: swatchOrdersTable.id })
-    .from(swatchOrdersTable).where(and(eq(swatchOrdersTable.id, id), eq(swatchOrdersTable.isDeleted, false)));
-  if (!existing) { res.status(404).json({ error: "Not found" }); return; }
+  const tags = Array.isArray(body.tags)
+  ? [
+      ...new Set(
+        body.tags
+          .filter((t): t is string => typeof t === "string")
+          .map(tag => tag.trim())
+          .filter(tag => tag.length > 0)
+      ),
+    ]
+  : [];
 
-  const [row] = await db.update(swatchOrdersTable).set({
-    swatchName: body.swatchName as string || undefined,
-    clientId: (body.clientId as string) ?? null,
-    clientName: (body.clientName as string) ?? null,
-    isChargeable: body.isChargeable !== undefined ? Boolean(body.isChargeable) : undefined,
-    isInhouse: body.isInhouse !== undefined ? Boolean(body.isInhouse) : undefined,
-    quantity: (body.quantity as string) ?? null,
-    priority: (body.priority as string) || undefined,
-    orderStatus: (body.orderStatus as string) || undefined,
-    styleReferences: (body.styleReferences as object[]) ?? undefined,
-    swatchReferences: (body.swatchReferences as object[]) ?? undefined,
-    fabricId: (body.fabricId as string) ?? null,
-    fabricName: (body.fabricName as string) ?? null,
-    hasLining: body.hasLining !== undefined ? Boolean(body.hasLining) : undefined,
-    liningFabricId: (body.liningFabricId as string) ?? null,
-    liningFabricName: (body.liningFabricName as string) ?? null,
-    unitLength: (body.unitLength as string) ?? null,
-    unitWidth: (body.unitWidth as string) ?? null,
-    unitType: (body.unitType as string) ?? null,
-    orderIssueDate: (body.orderIssueDate as string) ?? null,
-    deliveryDate: (body.deliveryDate as string) ?? null,
-    targetHours: (body.targetHours as string) ?? null,
-    issuedTo: (body.issuedTo as string) ?? null,
-    department: (body.department as string) ?? null,
-    description: (body.description as string) ?? null,
-    internalNotes: (body.internalNotes as string) ?? null,
-    clientInstructions: (body.clientInstructions as string) ?? null,
-    refDocs: (body.refDocs as object[]) ?? undefined,
-    refImages: (body.refImages as object[]) ?? undefined,
-    wipImages: (body.wipImages as object[]) ?? undefined,
-    finalImages: (body.finalImages as object[]) ?? undefined,
-    wipVideos: (body.wipVideos as object[]) ?? undefined,
-    finalVideos: (body.finalVideos as object[]) ?? undefined,
-    estimate: (body.estimate as object[]) ?? undefined,
-    actualStartDate: (body.actualStartDate as string) ?? null,
-    actualStartTime: (body.actualStartTime as string) ?? null,
-    tentativeDeliveryDate: (body.tentativeDeliveryDate as string) ?? null,
-    actualCompletionDate: (body.actualCompletionDate as string) ?? null,
-    actualCompletionTime: (body.actualCompletionTime as string) ?? null,
-    delayReason: (body.delayReason as string) ?? null,
-    approvalDate: (body.approvalDate as string) ?? null,
-    revisionCount: body.revisionCount !== undefined ? Number(body.revisionCount) : undefined,
-    updatedBy: user?.email ?? "system",
-    updatedAt: new Date(),
-  }).where(eq(swatchOrdersTable.id, id)).returning();
+  try {
+    const row = await db.transaction(async (tx) => {
+      const [existing] = await tx
+        .select({ id: swatchOrdersTable.id })
+        .from(swatchOrdersTable)
+        .where(
+          and(
+            eq(swatchOrdersTable.id, id),
+            eq(swatchOrdersTable.isDeleted, false)
+          )
+        );
 
-  res.json({ data: row });
+      if (!existing) { res.status(404).json({ error: "Not found" }); return; }
+
+      const [updated] = await tx
+        .update(swatchOrdersTable)
+        .set({
+          swatchName: body.swatchName as string || undefined,
+          clientId: (body.clientId as string) ?? null,
+          clientName: (body.clientName as string) ?? null,
+          isChargeable: body.isChargeable !== undefined ? Boolean(body.isChargeable) : undefined,
+          isInhouse: body.isInhouse !== undefined ? Boolean(body.isInhouse) : undefined,
+          quantity: (body.quantity as string) ?? null,
+          priority: (body.priority as string) || undefined,
+          orderStatus: (body.orderStatus as string) || undefined,
+          styleReferences: (body.styleReferences as object[]) ?? undefined,
+          swatchReferences: (body.swatchReferences as object[]) ?? undefined,
+          fabricId: (body.fabricId as string) ?? null,
+          fabricName: (body.fabricName as string) ?? null,
+          hasLining: body.hasLining !== undefined ? Boolean(body.hasLining) : undefined,
+          liningFabricId: (body.liningFabricId as string) ?? null,
+          liningFabricName: (body.liningFabricName as string) ?? null,
+          unitLength: (body.unitLength as string) ?? null,
+          unitWidth: (body.unitWidth as string) ?? null,
+          unitType: (body.unitType as string) ?? null,
+          orderIssueDate: (body.orderIssueDate as string) ?? null,
+          deliveryDate: (body.deliveryDate as string) ?? null,
+          targetHours: (body.targetHours as string) ?? null,
+          issuedTo: (body.issuedTo as string) ?? null,
+          department: (body.department as string) ?? null,
+          description: (body.description as string) ?? null,
+          internalNotes: (body.internalNotes as string) ?? null,
+          clientInstructions: (body.clientInstructions as string) ?? null,
+          refDocs: (body.refDocs as object[]) ?? undefined,
+          refImages: (body.refImages as object[]) ?? undefined,
+          wipImages: (body.wipImages as object[]) ?? undefined,
+          finalImages: (body.finalImages as object[]) ?? undefined,
+          wipVideos: (body.wipVideos as object[]) ?? undefined,
+          finalVideos: (body.finalVideos as object[]) ?? undefined,
+          estimate: (body.estimate as object[]) ?? undefined,
+          actualStartDate: (body.actualStartDate as string) ?? null,
+          actualStartTime: (body.actualStartTime as string) ?? null,
+          tentativeDeliveryDate: (body.tentativeDeliveryDate as string) ?? null,
+          actualCompletionDate: (body.actualCompletionDate as string) ?? null,
+          actualCompletionTime: (body.actualCompletionTime as string) ?? null,
+          delayReason: (body.delayReason as string) ?? null,
+          approvalDate: (body.approvalDate as string) ?? null,
+          revisionCount: body.revisionCount !== undefined ? Number(body.revisionCount) : undefined,
+          updatedBy: user?.email ?? "system",
+          updatedAt: new Date(),
+        })
+        .where(eq(swatchOrdersTable.id, id))
+        .returning();
+
+      // Remove existing tags
+      await tx
+        .delete(entityTagsTable)
+        .where(
+          and(
+            eq(entityTagsTable.entityType, "swatch_order"),
+            eq(entityTagsTable.entityId, id)
+          )
+        );
+
+      // Insert new tags
+      if (tags.length > 0) {
+        await tx.insert(entityTagsTable).values(
+          tags.map(tag => ({
+            entityType: "swatch_order",
+            entityId: id,
+            tag,
+          }))
+        );
+      }
+
+      return updated;
+    });
+
+    res.json({ data: row });
+
+  } catch (error) {
+    if (error instanceof Error && error.message === "SWATCH_ORDER_NOT_FOUND") {
+      res.status(404).json({ error: "Not found" });
+      return;
+    }
+
+    logger.error(error, "Failed to update swatch order");
+    res.status(500).json({ error: "Failed to update swatch order" });
+  }
 });
 
 router.patch("/swatch-orders/:id/status", requireAuth, async (req, res): Promise<void> => {
@@ -224,8 +361,35 @@ router.delete("/swatch-orders/:id", requireAuth, async (req, res): Promise<void>
   }
 
   const user = (req as typeof req & { user?: { email: string } }).user;
-  await db.update(swatchOrdersTable).set({ isDeleted: true, updatedBy: user?.email ?? "system", updatedAt: new Date(), deletedBy: user?.email ?? "system", deletedAt: new Date() })
-    .where(eq(swatchOrdersTable.id, id));
+  try {
+    await db.transaction(async (tx) => {
+      await tx
+        .update(swatchOrdersTable)
+        .set({
+          isDeleted: true,
+          updatedBy:user?.email ?? "system",
+          updatedAt: new Date(),
+          deletedBy: user?.email ?? "system",
+          deletedAt: new Date(),
+        })
+        .where(eq(swatchOrdersTable.id, id));
+
+      await tx
+        .delete(entityTagsTable)
+        .where(
+          and(
+            eq(entityTagsTable.entityType, "swatch_order"),
+            eq(entityTagsTable.entityId, id)
+          )
+        );
+    });
+
+    res.json({ message: "Deleted" });
+  } catch (error) {
+    logger.error(error, "Failed to delete swatch order");
+    res.status(500).json({ error: "Failed to delete swatch order" });
+  }
+
   res.json({ message: "Deleted" });
 });
 
