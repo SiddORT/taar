@@ -274,9 +274,9 @@ export default function PurchaseReceiptForm() {
     const validLines = lines.filter(l => parseFloat(l.quantity) > 0);
     if (!validLines.length) { toast({ title: "Enter at least one received quantity", variant: "destructive" }); return; }
     for (const l of validLines) {
-      if (parseFloat(l.quantity) > parseFloat(l.pendingQty) + 0.001) {
-        toast({ title: `Quantity for "${l.itemName}" exceeds pending (${parseFloat(l.pendingQty).toFixed(2)})`, variant: "destructive" }); return;
-      }
+      // if (parseFloat(l.quantity) > parseFloat(l.pendingQty) + 0.001) {
+      //   toast({ title: `Quantity for "${l.itemName}" exceeds pending (${parseFloat(l.pendingQty).toFixed(2)})`, variant: "destructive" }); return;
+      // }
       if (l.inventoryItemId == null) {
         toast({ title: `Map "${l.itemName}" to an inventory item before receiving`, variant: "destructive" }); return;
       }
@@ -1084,7 +1084,7 @@ export default function PurchaseReceiptForm() {
                       const receivedRate = parseFloat(line.unitPrice) || 0;
                       const targetRate = parseFloat(line.targetPrice) || 0;
                       const variance = receivedRate - targetRate;
-                      const isOver = nowNum > pendingNum + 0.001;
+                      // const isOver = nowNum > pendingNum + 0.001;
                       return (
                         <tr key={line.poItemId} className="hover:bg-gray-50">
                           <td className="px-3 py-3 text-xs text-gray-400">{idx+1}</td>
@@ -1123,8 +1123,8 @@ export default function PurchaseReceiptForm() {
                               onChange={e => updateLine(idx, "quantity", e.target.value)}
                               placeholder="0.000"
                               className={`w-full px-2 py-1.5 text-sm text-gray-900 border rounded-lg focus:outline-none focus:ring-2 text-right
-                                ${isOver ? "border-red-400 focus:ring-red-200" : "border-gray-200 focus:ring-[#C6AF4B]/30"}`} />
-                            {isOver && <p className="text-[10px] text-red-500 mt-0.5">Exceeds pending</p>}
+                                "border-red-400 focus:ring-red-200" : "border-gray-200 focus:ring-[#C6AF4B]/30"}`} />
+                            {/* {isOver && <p className="text-[10px] text-red-500 mt-0.5">Exceeds pending</p>} */}
                           </td>
                           <td className="px-3 py-3">
                             <div className="text-sm font-mono text-amber-700 font-semibold text-right pr-1">{fmt(targetRate)}</div>
