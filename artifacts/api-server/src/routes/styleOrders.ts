@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db, styleOrdersTable, eq, and, ilike, or, desc, sql } from "@workspace/db";
+import { db, styleOrdersTable, eq, and, ilike, or, desc, sql,  entityTagsTable, exists } from "@workspace/db";
 // import { eq, and, ilike, or, desc, sql } from "drizzle-orm";
 import { requireAuth } from "../middlewares/requireAuth";
 import { insertStyleOrderSchema, updateStyleOrderSchema, clientsTable } from "@workspace/db";
@@ -9,7 +9,7 @@ const router = Router();
 
 // List
 router.get("/style-orders", requireAuth, async (req, res) => {
-  const { search = "", status = "all", priority = "all", chargeable = "all", page = "1", limit = "24" } = req.query as Record<string, string>;
+  const { search = "", status = "all", priority = "all", chargeable = "all",   tag = "", page = "1", limit = "24" } = req.query as Record<string, string>;
   const pageNum = Math.max(1, parseInt(page));
   const limitNum = Math.min(100, parseInt(limit));
   const offset = (pageNum - 1) * limitNum;
@@ -24,6 +24,18 @@ router.get("/style-orders", requireAuth, async (req, res) => {
         ilike(styleOrdersTable.styleNo, `%${q}%`),
         ilike(styleOrdersTable.clientName, `%${q}%`),
         ilike(styleOrdersTable.orderCode, `%${q}%`),
+        exists(
+          db
+            .select({ one: sql`1` })
+            .from(entityTagsTable)
+            .where(
+              and(
+                eq(entityTagsTable.entityType, "style_order"),
+                eq(entityTagsTable.entityId, styleOrdersTable.id),
+                ilike(entityTagsTable.tag, `%${q}%`)
+              )
+            )
+        )
       )!,
     );
   }
@@ -34,6 +46,22 @@ router.get("/style-orders", requireAuth, async (req, res) => {
   const { inhouse = "all" } = req.query as Record<string, string>;
   if (inhouse === "yes") conditions.push(eq(styleOrdersTable.isInhouse, true));
   if (inhouse === "no") conditions.push(eq(styleOrdersTable.isInhouse, false));
+  if (tag.trim()) {
+    conditions.push(
+      exists(
+        db
+          .select({ one: sql`1` })
+          .from(entityTagsTable)
+          .where(
+            and(
+              eq(entityTagsTable.entityType, "style_order"),
+              eq(entityTagsTable.entityId, styleOrdersTable.id),
+              ilike(entityTagsTable.tag, `%${tag.trim()}%`)
+            )
+          )
+      )
+    );
+  }
 
   const where = and(...conditions);
 
@@ -49,9 +77,30 @@ router.get("/style-orders", requireAuth, async (req, res) => {
 router.get("/style-orders/:id", requireAuth, async (req, res) => {
   const id = parseInt(String(req.params.id));
   if (isNaN(id)) return res.status(400).json({ error: "Invalid id" });
-  const [row] = await db.select().from(styleOrdersTable).where(eq(styleOrdersTable.id, id));
-  if (!row || row.isDeleted) return res.status(404).json({ error: "Not found" });
-  return res.json({ data: row });
+
+  const [row, tags] = await Promise.all([
+    db.select().from(styleOrdersTable).where(eq(styleOrdersTable.id, id)),
+    db
+      .select({ tag: entityTagsTable.tag })
+      .from(entityTagsTable)
+      .where(
+        and(
+          eq(entityTagsTable.entityType, "style_order"),
+          eq(entityTagsTable.entityId, id)
+        )
+      ),
+  ]);
+
+  if (!row.length || row[0].isDeleted)
+    return res.status(404).json({ error: "Not found" });
+
+  return res.json({
+    data: {
+      ...row[0],
+      tags: tags.map(t => t.tag),
+    },
+  });
+
 });
 
 // Create
@@ -68,12 +117,36 @@ router.post("/style-orders", requireAuth, async (req, res) => {
     "order_code"
   );
   const user = (req as any).user;
+  const tags = [
+    ...new Set(
+      parsed.data.tags
+        .map(tag => tag.trim())
+        .filter(tag => tag.length > 0)
+    ),
+  ];
 
-  const [row] = await db.insert(styleOrdersTable).values({
-    ...parsed.data,
-    orderCode,
-    createdBy: user?.username ?? "system",
-  }).returning();
+  const row = await db.transaction(async tx => {
+    const [order] = await tx
+      .insert(styleOrdersTable)
+      .values({
+        ...parsed.data,
+        orderCode,
+        createdBy: user?.username ?? "system",
+      })
+      .returning();
+
+    if (tags.length) {
+      await tx.insert(entityTagsTable).values(
+        tags.map(tag => ({
+          entityType: "style_order",
+          entityId: order.id,
+          tag,
+        }))
+      );
+    }
+
+    return order;
+  });
 
   return res.status(201).json({ data: row });
 });
@@ -85,16 +158,64 @@ router.put("/style-orders/:id", requireAuth, async (req, res) => {
 
   const parsed = updateStyleOrderSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: parsed.error.issues });
-
   const user = (req as any).user;
-  const [row] = await db.update(styleOrdersTable).set({
-    ...parsed.data,
-    updatedBy: user?.username ?? "system",
-    updatedAt: new Date(),
-  }).where(eq(styleOrdersTable.id, id)).returning();
 
-  if (!row) return res.status(404).json({ error: "Not found" });
-  return res.json({ data: row });
+  const tags = [
+    ...new Set(
+      (parsed.data.tags ?? [])
+        .map(tag => tag.trim())
+        .filter(tag => tag.length > 0)
+    ),
+  ];
+
+  try {
+    const row = await db.transaction(async (tx) => {
+      const [updated] = await tx
+        .update(styleOrdersTable)
+        .set({
+          ...parsed.data,
+          updatedBy: user?.username ?? "system",
+          updatedAt: new Date(),
+        })
+        .where(eq(styleOrdersTable.id, id))
+        .returning();
+
+      if (!updated) {
+        return res.status(404).json({ error: "Not found" });
+      }
+
+      // Remove existing tags
+      await tx
+        .delete(entityTagsTable)
+        .where(
+          and(
+            eq(entityTagsTable.entityType, "style_order"),
+            eq(entityTagsTable.entityId, id)
+          )
+        );
+
+      // Insert latest tags
+      if (tags.length > 0) {
+        await tx.insert(entityTagsTable).values(
+          tags.map(tag => ({
+            entityType: "style_order",
+            entityId: id,
+            tag,
+          }))
+        );
+      }
+
+      return updated;
+    });
+
+    return res.json({ data: row });
+
+  } catch (error) {
+    
+    console.error(error);
+    return res.status(500).json({ error: "Failed to update style order" });
+  }
+
 });
 
 // Patch status (cancel / priority change)
@@ -140,7 +261,25 @@ router.delete("/style-orders/:id", requireAuth, async (req, res) => {
   }
 
   const user = (req as any).user;
-  await db.update(styleOrdersTable).set({ isDeleted: true, deletedBy: user?.email ?? "system", deletedAt: new Date() }).where(eq(styleOrdersTable.id, id));
+  await db.transaction(async tx => {
+    await tx
+      .update(styleOrdersTable)
+      .set({
+        isDeleted: true,
+        deletedBy: user?.email ?? "system",
+        deletedAt: new Date(),
+      })
+      .where(eq(styleOrdersTable.id, id));
+
+    await tx
+      .delete(entityTagsTable)
+      .where(
+        and(
+          eq(entityTagsTable.entityType, "style_order"),
+          eq(entityTagsTable.entityId, id)
+        )
+      );
+  });
   return res.json({ message: "Deleted" });
 });
 

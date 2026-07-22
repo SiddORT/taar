@@ -68,6 +68,7 @@ export const insertStyleOrderSchema = z.object({
   styleNo: z.string().optional(),
   clientId: z.string().optional(),
   clientName: z.string().optional(),
+  tags: z.array(z.string()).optional().default([]),
   quantity: z.string().optional(),
   priority: z.string().default("Medium"),
   orderStatus: z.string().default("Draft"),
