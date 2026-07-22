@@ -10,6 +10,7 @@ export type SwatchOrderRecord = {
   swatchName: string;
   clientId: string | null;
   clientName: string | null;
+  tags: string[] | [];
   isChargeable: boolean;
   isInhouse: boolean;
   quantity: string | null;
