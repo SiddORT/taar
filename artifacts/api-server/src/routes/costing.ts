@@ -1051,7 +1051,12 @@ router.get("/bom/:id/log", requireAuth, async (req, res) => {
       `SELECT * FROM bom_change_log WHERE bom_row_id = $1 AND is_deleted = false ORDER BY changed_at DESC`,
       [Number(String(req.params.id))]
     );
-    return res.json({ data: rows.rows });
+    const data = rows.rows.map((row) => ({
+      ...row,
+      old_qty : isNaN(Number(row.old_qty)) ? "0" : row.old_qty,
+      delta: isNaN(Number(row.delta)) ? "0" : row.delta,
+    }));
+    return res.json({ data });
   } catch (err: any) {
     return res.status(500).json({ error: err.message });
   }
