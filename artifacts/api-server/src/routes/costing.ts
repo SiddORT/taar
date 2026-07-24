@@ -785,7 +785,7 @@ router.get("/bom/:swatchOrderId", requireAuth, async (req, res) => {
 
   const enriched = await Promise.all(rows.map(async (r) => {
     const invRows = await db
-      .select({ id: inventoryItemsTable.id, currentStock: inventoryItemsTable.currentStock, availableStock: inventoryItemsTable.availableStock })
+      .select({ id: inventoryItemsTable.id, currentStock: inventoryItemsTable.currentStock, availableStock: inventoryItemsTable.availableStock, averagePrice: inventoryItemsTable.averagePrice })
       .from(inventoryItemsTable)
       .where(and(
         eq(inventoryItemsTable.sourceType, r.materialType ?? ""),
@@ -812,8 +812,8 @@ router.get("/bom/:swatchOrderId", requireAuth, async (req, res) => {
       requiredQty: r.requiredQty || "0",    
       consumedQty: r.consumedQty || "0",       
       currentStock: r.currentStock || "0",     
-      avgUnitPrice: r.avgUnitPrice || "0",     
       estimatedAmount: r.estimatedAmount || "0", 
+      avgUnitPrice: live ? live.averagePrice : "0",     
       liveCurrentStock: live ? live.currentStock : null,
       liveAvailableStock: live ? live.availableStock : null,
       liveReservedQty,
