@@ -1,0 +1,1 @@
+ALTER TABLE "client_links" ADD COLUMN "client_id" integer;

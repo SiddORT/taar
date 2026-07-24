@@ -15,8 +15,19 @@ router.get("/client-links/swatch/:swatchOrderId", requireAuth, async (req, res):
 
   let [link] = await db.select().from(clientLinksTable).where(and(eq(clientLinksTable.swatchOrderId, id), eq(clientLinksTable.isDeleted, false)));
   if (!link) {
+    // Get client_id from swatch order
+    const [swatchOrder] = await db
+      .select({ clientId: swatchOrdersTable.clientId })
+      .from(swatchOrdersTable)
+      .where(eq(swatchOrdersTable.id, id));
+
+    if (!swatchOrder) {
+      res.status(404).json({ error: "Swatch order not found" });
+      return;
+    }
+    const clientId = swatchOrder.clientId ? Number(swatchOrder.clientId) : null;
     const token = randomBytes(16).toString("hex");
-    const [created] = await db.insert(clientLinksTable).values({ swatchOrderId: id, token }).returning();
+    const [created] = await db.insert(clientLinksTable).values({ swatchOrderId: id, token, clientId }).returning();
     link = created;
   }
   res.json({ data: link });
@@ -28,8 +39,13 @@ router.get("/client-links/style/:styleOrderId", requireAuth, async (req, res): P
 
   let [link] = await db.select().from(clientLinksTable).where(and(eq(clientLinksTable.styleOrderId, id), eq(clientLinksTable.isDeleted, false)));
   if (!link) {
+    const [styleOrder] = await db
+      .select({ clientId: styleOrdersTable.clientId })
+      .from(styleOrdersTable)
+      .where(eq(styleOrdersTable.id, id));
+    const clientId = styleOrder.clientId ? Number(styleOrder.clientId) : null;
     const token = randomBytes(16).toString("hex");
-    const [created] = await db.insert(clientLinksTable).values({ styleOrderId: id, token }).returning();
+    const [created] = await db.insert(clientLinksTable).values({ styleOrderId: id, token, clientId }).returning();
     link = created;
   }
   res.json({ data: link });

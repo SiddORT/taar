@@ -5,6 +5,7 @@ export const clientLinksTable = pgTable("client_links", {
   id: serial("id").primaryKey(),
   swatchOrderId: integer("swatch_order_id"),
   styleOrderId: integer("style_order_id"),
+  clientId: integer("client_id"),
   token: text("token").notNull().unique(),
   isPublished: boolean("is_published").notNull().default(false),
   hiddenImages: jsonb("hidden_images").default([]),
