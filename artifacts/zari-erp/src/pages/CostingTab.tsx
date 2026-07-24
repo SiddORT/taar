@@ -1760,14 +1760,18 @@ function PoSection({ swatchOrderId, orderCode, swatchName, clientName }: {
           poDate: po.poDate,
           status: po.status,
           notes: po.notes,
-          items: (po.bomItems ?? []).map(i => ({
-            materialCode: i.materialCode,
-            materialName: i.materialName,
-            unitType: i.unitType,
-            quantity: i.quantity,
-            targetPrice: i.targetPrice,
-            targetVendorName: i.targetVendorName,
-          })),
+          items: (po.bomItems ?? []).map(i => {
+            const bomRow = bomRows.find(row => row.id === i.bomRowId);
+            return {
+              materialCode: i.materialCode,
+              materialName: i.materialName,
+              unitType: i.unitType,
+              quantity: i.quantity,
+              targetPrice: i.targetPrice,
+              averagePrice: i.avgUnitPrice ?? bomRow?.avgUnitPrice ?? "",
+              targetVendorName: i.targetVendorName,
+            };
+          }),
         }],
       });
       logActivity(`Downloaded PO PDF ${po.poNumber} for Swatch Order ${orderCode}${clientName ? ` — ${clientName}` : ""}`);

@@ -41,6 +41,7 @@ export interface PoLineItem {
   unitType: string;
   targetPrice: string;
   quantity: string;
+  avgUnitPrice?: string;
   targetVendorId?: number | null;
   targetVendorName?: string | null;
 }
