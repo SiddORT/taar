@@ -1051,7 +1051,12 @@ router.get("/bom/:id/log", requireAuth, async (req, res) => {
       `SELECT * FROM bom_change_log WHERE bom_row_id = $1 AND is_deleted = false ORDER BY changed_at DESC`,
       [Number(String(req.params.id))]
     );
-    return res.json({ data: rows.rows });
+    const data = rows.rows.map((row) => ({
+      ...row,
+      old_qty : isNaN(Number(row.old_qty)) ? "0" : row.old_qty,
+      delta: isNaN(Number(row.delta)) ? "0" : row.delta,
+    }));
+    return res.json({ data });
   } catch (err: any) {
     return res.status(500).json({ error: err.message });
   }
@@ -1532,13 +1537,15 @@ router.post("/pr", requireAuth, async (req, res) => {
           error: `This item is already fully received (${alreadyReceived} / ${orderedQty}). No further PR is allowed.`
         });
       }
-      const remaining = orderedQty - alreadyReceived;
-      if (newQty > remaining) {
-        await client.query('ROLLBACK');
-        return res.status(400).json({
-          error: `Received quantity (${newQty}) exceeds remaining ordered quantity. Max allowed: ${remaining.toFixed(4)}`
-        });
-      }
+      // const remaining = orderedQty - alreadyReceived;
+      const remaining = Math.max( 0, orderedQty - alreadyReceived );
+
+      // if (newQty > remaining) {
+      //   await client.query('ROLLBACK');
+      //   return res.status(400).json({
+      //     error: `Received quantity (${newQty}) exceeds remaining ordered quantity. Max allowed: ${remaining.toFixed(4)}`
+      //   });
+      // }
     }
 
     // 7. Generate PR number and insert the new Purchase Receipt
@@ -2630,16 +2637,15 @@ router.post("/style-pr", requireAuth, async (req, res) => {
         });
       }
 
-      const remaining = orderedQty - alreadyReceived;
-
-      if (newQty > remaining) {
-        await client.query("ROLLBACK");
-        return res.status(400).json({
-          error: `Received quantity (${newQty}) exceeds remaining ordered quantity. Max allowed: ${remaining.toFixed(
-            4
-          )}`,
-        });
-      }
+      const remaining = Math.max( 0, orderedQty - alreadyReceived );
+      // if (newQty > remaining) {
+      //   await client.query("ROLLBACK");
+      //   return res.status(400).json({
+      //     error: `Received quantity (${newQty}) exceeds remaining ordered quantity. Max allowed: ${remaining.toFixed(
+      //       4
+      //     )}`,
+      //   });
+      // }
     }
 
     // Generate PR Number
@@ -2705,14 +2711,7 @@ router.post("/style-pr", requireAuth, async (req, res) => {
     }
 
     // Update PO Status
-    if (po.status === "Approved") {
-      await client.query(
-        `UPDATE purchase_orders
-         SET status = 'In Process'
-         WHERE id = $1`,
-        [Number(poId)]
-      );
-    }
+    await recalcPoStatus(client, Number(poId));
 
     await client.query("COMMIT");
 

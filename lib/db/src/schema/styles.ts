@@ -38,6 +38,7 @@ export const insertStyleSchema = z.object({
   shippingDate: z.string().optional(),
   styleCategory: z.string().min(1, "Style Category is required"),
   referenceSwatchId: z.string().optional(),
+  tags: z.array(z.string()).optional().default([]),
   isActive: z.boolean().default(true),
 });
 

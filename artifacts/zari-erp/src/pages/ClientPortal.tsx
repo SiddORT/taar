@@ -1,12 +1,13 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRoute } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   ChevronLeft, ChevronRight, ZoomIn, Send, Paperclip, X,
-  CheckCheck, Loader2, ChevronDown, ChevronUp, CheckCircle,
-  RotateCcw, Clock, Sparkles,
+  CheckCheck, Loader2, ChevronDown, CheckCircle,
+  RotateCcw, Clock, Sparkles, Search, MessageSquare, Layers, Calendar, User, Tag
 } from "lucide-react";
 
+// --- Types ---
 interface FileAttachment { name: string; type: string; data: string; size: number }
 
 interface PortalMessage {
@@ -33,6 +34,7 @@ interface PortalOrder {
   id: number;
   orderCode: string;
   swatchName: string;
+  styleName: string;
   clientName: string | null;
   description: string | null;
   quantity: string | null;
@@ -45,54 +47,92 @@ interface PortalOrder {
 }
 
 interface PortalData {
-  link: { id: number; token: string; portalTitle: string | null };
+  link: { id: number; token: string; portalTitle: string | null; orderType: "swatch" | "style" };
   order: PortalOrder;
   artworks: PortalArtwork[];
   messages: PortalMessage[];
 }
 
+interface ReferenceOrder {
+  id: number;
+  orderCode: string;
+  orderName: string;
+  token: string;
+  portalTitle: string | null;
+}
+
+// --- Lightbox Modal ---
 function Lightbox({ images, startIndex, onClose }: { images: FileAttachment[]; startIndex: number; onClose: () => void }) {
   const [idx, setIdx] = useState(startIndex);
   const img = images[idx];
+
   return (
-    <div className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center" onClick={onClose}>
-      <div className="relative w-full h-full flex items-center justify-center" onClick={e => e.stopPropagation()}>
-        {idx > 0 && (
-          <button onClick={() => setIdx(i => i - 1)}
-            className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/10 hover:bg-white/25 rounded-full p-3 z-10 transition-colors">
-            <ChevronLeft className="h-6 w-6 text-white" />
-          </button>
-        )}
-        <img src={img.data} alt={img.name} className="max-h-[85vh] max-w-[85vw] object-contain rounded-2xl shadow-2xl" />
-        {idx < images.length - 1 && (
-          <button onClick={() => setIdx(i => i + 1)}
-            className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/10 hover:bg-white/25 rounded-full p-3 z-10 transition-colors">
-            <ChevronRight className="h-6 w-6 text-white" />
-          </button>
-        )}
-        <button onClick={onClose}
-          className="absolute top-4 right-4 bg-white/10 hover:bg-white/25 rounded-full p-2 transition-colors">
-          <X className="h-5 w-5 text-white" />
+    <div className="fixed inset-0 z-50 bg-black/95 backdrop-blur-md flex flex-col justify-between p-3 sm:p-6 md:p-10" onClick={onClose}>
+      <div className="flex items-center justify-between z-20 w-full" onClick={e => e.stopPropagation()}>
+        <span className="text-white/70 text-xs sm:text-sm font-mono font-medium truncate max-w-[200px] sm:max-w-md">
+          {img.name}
+        </span>
+        <button
+          onClick={onClose}
+          className="bg-white/10 hover:bg-white/20 text-white rounded-full p-2 sm:p-2.5 transition-all active:scale-95"
+        >
+          <X className="h-5 w-5" />
         </button>
-        <div className="absolute bottom-6 text-white/50 text-xs">{img.name} &middot; {idx + 1} / {images.length}</div>
+      </div>
+
+      <div className="relative flex-1 flex items-center justify-center my-auto overflow-hidden" onClick={e => e.stopPropagation()}>
+        {idx > 0 && (
+          <button
+            onClick={() => setIdx(i => i - 1)}
+            className="absolute left-1 sm:left-4 md:left-8 top-1/2 -translate-y-1/2 bg-black/50 text-white rounded-full p-2.5 sm:p-3 z-10 border border-white/10 active:scale-90 hover:bg-black/70 transition-colors"
+          >
+            <ChevronLeft className="h-5 w-5 sm:h-6 sm:w-6" />
+          </button>
+        )}
+
+        <img
+          src={img.data}
+          alt={img.name}
+          className="max-h-[70vh] sm:max-h-[75vh] md:max-h-[82vh] max-w-full object-contain rounded-lg shadow-2xl transition-all"
+        />
+
+        {idx < images.length - 1 && (
+          <button
+            onClick={() => setIdx(i => i + 1)}
+            className="absolute right-1 sm:right-4 md:right-8 top-1/2 -translate-y-1/2 bg-black/50 text-white rounded-full p-2.5 sm:p-3 z-10 border border-white/10 active:scale-90 hover:bg-black/70 transition-colors"
+          >
+            <ChevronRight className="h-5 w-5 sm:h-6 sm:w-6" />
+          </button>
+        )}
+      </div>
+
+      <div className="text-center pb-2 z-20" onClick={e => e.stopPropagation()}>
+        <span className="bg-white/10 text-white/90 text-[11px] sm:text-xs font-semibold px-3 py-1 rounded-full border border-white/10">
+          {idx + 1} of {images.length}
+        </span>
       </div>
     </div>
   );
 }
 
+// --- Image Grid Component ---
 function ImageStrip({ images, label }: { images: FileAttachment[]; label: string }) {
   const [lightbox, setLightbox] = useState<number | null>(null);
   if (!images.length) return null;
+
   return (
-    <div>
-      <p className="text-[11px] font-semibold text-[#a8922e] uppercase tracking-widest mb-2.5">{label}</p>
-      <div className="flex flex-wrap gap-2.5">
+    <div className="space-y-2">
+      <p className="text-[10px] sm:text-[11px] font-bold text-[#a8922e] uppercase tracking-wider">{label}</p>
+      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2 sm:gap-2.5">
         {images.map((img, i) => (
-          <button key={i} onClick={() => setLightbox(i)}
-            className="relative w-24 h-24 rounded-2xl overflow-hidden border-2 border-[#e8dfc0] hover:border-[#C6AF4B] transition-all group shadow-md hover:shadow-lg">
+          <button
+            key={i}
+            onClick={() => setLightbox(i)}
+            className="group relative aspect-square w-full rounded-xl overflow-hidden border border-[#e8dfc0] bg-stone-100 hover:border-[#C6AF4B] transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C6AF4B]"
+          >
             <img src={img.data} alt={img.name} className="w-full h-full object-cover" />
-            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/25 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
-              <ZoomIn className="h-6 w-6 text-white drop-shadow" />
+            <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 sm:flex hidden items-center justify-center transition-opacity">
+              <ZoomIn className="h-4 w-4 text-white" />
             </div>
           </button>
         ))}
@@ -102,48 +142,76 @@ function ImageStrip({ images, label }: { images: FileAttachment[]; label: string
   );
 }
 
+// --- Chat Bubble Component ---
 function ChatBubble({ msg }: { msg: PortalMessage }) {
   const isTeam = msg.sender === "team";
   return (
-    <div className={`flex gap-2.5 ${isTeam ? "justify-start" : "justify-end"}`}>
+    <div className={`flex items-end gap-1.5 sm:gap-2 ${isTeam ? "justify-start" : "justify-end"}`}>
       {isTeam && (
-        <div className="h-7 w-7 rounded-full flex items-center justify-center shrink-0 mt-0.5 text-[10px] font-bold text-[#C6AF4B]"
-          style={{ background: "linear-gradient(135deg, #1a1a1a, #333)" }}>Z</div>
+        <div
+          className="h-6 w-6 sm:h-7 sm:w-7 rounded-full flex items-center justify-center shrink-0 text-[9px] sm:text-[10px] font-extrabold text-[#C6AF4B] mb-1"
+          style={{ background: "linear-gradient(135deg, #111, #333)" }}
+        >
+          Z
+        </div>
       )}
-      <div className={`max-w-[78%] rounded-2xl px-4 py-3 space-y-1.5 shadow-sm ${
-        isTeam ? "bg-white text-gray-900 rounded-tl-sm border border-gray-100" : "rounded-tr-sm text-white"
-      }`} style={!isTeam ? { background: "linear-gradient(135deg, #C6AF4B, #a8922e)" } : {}}>
-        {msg.message && <p className="text-sm leading-snug">{msg.message}</p>}
-        {msg.attachment && (
-          <div className={`rounded-xl overflow-hidden border ${isTeam ? "border-gray-100" : "border-white/20"}`}>
-            {msg.attachment.type.startsWith("image/") ? (
-              <img src={msg.attachment.data} alt={msg.attachment.name} className="max-w-[180px] object-cover" />
-            ) : (
-              <a href={msg.attachment.data} download={msg.attachment.name}
-                className={`flex items-center gap-2 px-3 py-2 text-xs hover:underline ${isTeam ? "text-[#a8922e]" : "text-white/90"}`}>
-                <Paperclip className="h-3.5 w-3.5" />{msg.attachment.name}
-              </a>
-            )}
-          </div>
-        )}
-        <p className={`text-[10px] ${isTeam ? "text-gray-400" : "text-white/60 text-right"}`}>
-          {isTeam ? "ZARI Team" : "You"} &middot; {new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+      <div className={`max-w-[88%] sm:max-w-[75%] md:max-w-[65%] space-y-1 ${isTeam ? "items-start" : "items-end"}`}>
+        <div
+          className={`rounded-2xl px-3.5 py-2 sm:px-4 sm:py-2.5 text-xs sm:text-sm shadow-2xs ${
+            isTeam
+              ? "bg-white text-stone-900 rounded-bl-xs border border-stone-200/80"
+              : "text-white rounded-br-xs"
+          }`}
+          style={!isTeam ? { background: "linear-gradient(135deg, #C6AF4B, #a8922e)" } : {}}
+        >
+          {msg.message && <p className="leading-relaxed whitespace-pre-wrap break-words">{msg.message}</p>}
+
+          {msg.attachment && (
+            <div className={`mt-1.5 rounded-lg overflow-hidden border ${isTeam ? "border-stone-200" : "border-white/20"}`}>
+              {msg.attachment.type.startsWith("image/") ? (
+                <img src={msg.attachment.data} alt={msg.attachment.name} className="max-w-full max-h-40 sm:max-h-56 object-cover rounded" />
+              ) : (
+                <a
+                  href={msg.attachment.data}
+                  download={msg.attachment.name}
+                  className={`flex items-center gap-1.5 p-1.5 text-[11px] sm:text-xs font-medium hover:underline ${isTeam ? "text-[#a8922e]" : "text-white"}`}
+                >
+                  <Paperclip className="h-3 w-3 shrink-0" />
+                  <span className="truncate">{msg.attachment.name}</span>
+                </a>
+              )}
+            </div>
+          )}
+        </div>
+
+        <p className={`text-[9px] sm:text-[10px] font-medium px-1 ${isTeam ? "text-stone-400" : "text-stone-400 text-right"}`}>
+          {isTeam ? "ZARI Team" : "You"} &bull; {new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
         </p>
       </div>
+
       {!isTeam && (
-        <div className="h-7 w-7 rounded-full bg-gray-200 flex items-center justify-center shrink-0 mt-0.5 text-[9px] font-bold text-gray-600">YOU</div>
+        <div className="h-6 w-6 sm:h-7 sm:w-7 rounded-full bg-stone-200 flex items-center justify-center shrink-0 text-[8px] sm:text-[9px] font-bold text-stone-600 mb-1">
+          YOU
+        </div>
       )}
     </div>
   );
 }
 
-function ArtworkThread({ artwork, messages, token, onRefetch }: {
+// --- Active Focused Artwork Card Component ---
+function ActiveArtworkCard({
+  artwork,
+  messages,
+  token,
+  onRefetch,
+  onNext
+}: {
   artwork: PortalArtwork;
   messages: PortalMessage[];
   token: string;
   onRefetch: () => void;
+  onNext: () => void;
 }) {
-  const [open, setOpen] = useState(!artwork.isClosed);
   const [text, setText] = useState("");
   const [attachFile, setAttachFile] = useState<FileAttachment | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -154,7 +222,12 @@ function ArtworkThread({ artwork, messages, token, onRefetch }: {
       const r = await fetch(`/api/client-portal/${token}/message`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ artworkId: artwork.id, artworkName: artwork.artworkName, message: text.trim() || undefined, attachment: attachFile ?? undefined }),
+        body: JSON.stringify({
+          artworkId: artwork.id,
+          artworkName: artwork.artworkName,
+          message: text.trim() || undefined,
+          attachment: attachFile ?? undefined
+        }),
       });
       if (!r.ok) { const j = await r.json() as { error?: string }; throw new Error(j.error ?? "Failed"); }
     },
@@ -170,7 +243,10 @@ function ArtworkThread({ artwork, messages, token, onRefetch }: {
       });
       if (!r.ok) { const j = await r.json() as { error?: string }; throw new Error(j.error ?? "Failed"); }
     },
-    onSuccess: () => { onRefetch(); },
+    onSuccess: () => { 
+      onRefetch();
+      onNext();
+    },
   });
 
   function pickFile(e: React.ChangeEvent<HTMLInputElement>) {
@@ -182,149 +258,152 @@ function ArtworkThread({ artwork, messages, token, onRefetch }: {
   }
 
   return (
-    <div className={`rounded-3xl overflow-hidden shadow-md transition-all ${
+    <div className={`rounded-2xl sm:rounded-3xl border transition-all overflow-hidden ${
       artwork.isClosed
-        ? "border border-green-100 bg-white/60"
-        : "border border-[#e8dfc0] bg-white"
+        ? "border-emerald-200/80 bg-emerald-50/20"
+        : "border-[#e8dfc0] bg-white shadow-xs"
     }`}>
-      {/* Artwork header */}
-      <button onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center gap-3 px-5 py-4 text-left hover:bg-[#fdfaf4] transition-colors">
-        <div className={`h-10 w-10 rounded-2xl flex items-center justify-center shrink-0 text-xs font-bold ${
-          artwork.isClosed ? "bg-green-100 text-green-600" : "bg-[#f5edcc] text-[#a8922e]"
-        }`}>
-          {artwork.isClosed ? <CheckCheck className="h-5 w-5" /> : <Sparkles className="h-4 w-4" />}
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <h3 className={`text-sm font-bold truncate ${artwork.isClosed ? "text-gray-400" : "text-gray-900"}`}>
-              {artwork.artworkName}
-            </h3>
-            <span className="text-[10px] font-mono text-gray-400">{artwork.artworkCode}</span>
+      {/* Header */}
+      <div className="p-3.5 sm:p-5 md:p-6 flex items-center justify-between border-b border-[#f0e8d0]">
+        <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+          <div className={`h-9 w-9 sm:h-11 sm:w-11 rounded-xl flex items-center justify-center shrink-0 ${
+            artwork.isClosed ? "bg-emerald-100 text-emerald-600" : "bg-[#f5edcc] text-[#a8922e]"
+          }`}>
+            {artwork.isClosed ? <CheckCheck className="h-4 w-4 sm:h-5 sm:w-5" /> : <Sparkles className="h-4 w-4 sm:h-5 sm:w-5" />}
           </div>
-          <div className="flex items-center gap-2 mt-0.5">
-            {artwork.isClosed ? (
-              <span className="text-[11px] font-semibold text-green-600 flex items-center gap-1">
-                <CheckCircle className="h-3 w-3" /> Approved
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <h3 className={`text-sm sm:text-base md:text-lg font-bold truncate ${artwork.isClosed ? "text-stone-400 line-through" : "text-stone-900"}`}>
+                {artwork.artworkName}
+              </h3>
+              <span className="text-[9px] sm:text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded bg-stone-100 text-stone-500 border border-stone-200/60">
+                {artwork.artworkCode}
               </span>
-            ) : artwork.decision === "Rework" ? (
-              <span className="text-[11px] font-semibold text-orange-500 flex items-center gap-1">
-                <RotateCcw className="h-3 w-3" /> Rework Requested
-              </span>
-            ) : (
-              <span className="text-[11px] font-semibold text-[#a8922e] flex items-center gap-1">
-                <Clock className="h-3 w-3" /> Awaiting Your Review
-              </span>
-            )}
-            {messages.length > 0 && (
-              <span className="text-[10px] text-gray-400">&middot; {messages.length} message{messages.length !== 1 ? "s" : ""}</span>
-            )}
-          </div>
-        </div>
-        <div className="shrink-0 text-gray-300">
-          {open ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-        </div>
-      </button>
-
-      {open && (
-        <div className="border-t border-[#f0e8d0]">
-
-          {/* Images */}
-          {hasImages && (
-            <div className="px-5 py-5 space-y-4 bg-[#fdfaf4]">
-              <ImageStrip images={artwork.wipImages} label="Work in Progress" />
-              <ImageStrip images={artwork.finalImages} label="Final Artwork" />
             </div>
+
+            <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+              {artwork.isClosed ? (
+                <span className="text-[11px] sm:text-xs font-bold text-emerald-600 flex items-center gap-1">
+                  <CheckCircle className="h-3 w-3" /> Approved
+                </span>
+              ) : artwork.decision === "Rework" ? (
+                <span className="text-[11px] sm:text-xs font-bold text-amber-600 flex items-center gap-1">
+                  <RotateCcw className="h-3 w-3" /> Rework Requested
+                </span>
+              ) : (
+                <span className="text-[11px] sm:text-xs font-bold text-[#a8922e] flex items-center gap-1">
+                  <Clock className="h-3 w-3" /> Awaiting Feedback
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Body: Work in progress images */}
+      {hasImages && (
+        <div className="p-3.5 sm:p-5 md:p-6 space-y-3 sm:space-y-4 bg-stone-50/60 border-b border-[#f0e8d0] max-h-72 sm:max-h-80 lg:max-h-96 overflow-y-auto custom-scrollbar">
+          <ImageStrip images={artwork.wipImages} label="Work in Progress" />
+          <ImageStrip images={artwork.finalImages} label="Final Artwork" />
+        </div>
+      )}
+
+      {/* Chat log */}
+      <div className="p-3.5 sm:p-5 md:p-6">
+        <p className="text-[10px] sm:text-[11px] font-bold text-stone-400 uppercase tracking-wider mb-2">Discussion & Comments</p>
+        <div className="max-h-72 sm:max-h-80 lg:max-h-96 overflow-y-auto space-y-2.5 sm:space-y-3 pr-2 custom-scrollbar">
+          {messages.length === 0 && !artwork.isClosed && (
+            <p className="text-xs sm:text-sm text-stone-400 italic text-center py-4 bg-stone-50/50 rounded-xl border border-dashed border-stone-200">
+              No comments yet for this artwork.
+            </p>
           )}
 
-          {/* Chat */}
-          <div className="px-5 py-4 space-y-3 min-h-[60px]">
-            {messages.length === 0 && !artwork.isClosed && (
-              <p className="text-sm text-gray-400 italic text-center py-3">
-                No messages yet — use the chat below or submit your decision.
-              </p>
+          {messages.map((m) => (
+            <ChatBubble key={m.id} msg={m} />
+          ))}
+        </div>
+      </div>
+
+      {/* Inputs & Actions */}
+      {artwork.isClosed ? (
+        <div className="m-3.5 sm:m-5 md:m-6 p-3.5 rounded-xl bg-emerald-50 border border-emerald-200/80 flex items-center gap-2.5">
+          <CheckCircle className="h-4 w-4 text-emerald-600 shrink-0" />
+          <p className="text-xs sm:text-sm font-bold text-emerald-800">This artwork has been approved.</p>
+        </div>
+      ) : (
+        <div className="p-3.5 sm:p-5 md:p-6 space-y-3 bg-stone-50/30 border-t border-stone-100">
+
+          {/* Input Area */}
+          <div className="space-y-1.5">
+            {attachFile && (
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#fdf6e0] border border-[#e8dfc0] text-[11px] sm:text-xs text-[#a8922e]">
+                <Paperclip className="h-3 w-3 shrink-0" />
+                <span className="truncate max-w-[150px] sm:max-w-[220px]">{attachFile.name}</span>
+                <button onClick={() => setAttachFile(null)} className="p-0.5 hover:text-red-500">
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
             )}
-            {messages.map(m => <ChatBubble key={m.id} msg={m} />)}
+
+            <div className="flex items-end gap-1.5 sm:gap-2">
+              <textarea
+                value={text}
+                onChange={e => setText(e.target.value)}
+                placeholder="Send a comment..."
+                rows={1}
+                className="flex-1 text-xs sm:text-sm text-stone-900 border border-stone-200 rounded-xl px-3 py-2.5 sm:px-3.5 sm:py-3 focus:outline-none focus:ring-1 focus:ring-[#C6AF4B] focus:border-[#C6AF4B] resize-none placeholder:text-stone-400 bg-white"
+              />
+              <button
+                type="button"
+                onClick={() => fileRef.current?.click()}
+                className="flex items-center justify-center h-9 w-9 sm:h-10 sm:w-10 rounded-xl border border-stone-200 text-stone-500 bg-white active:bg-stone-100 hover:bg-stone-50 shrink-0"
+              >
+                <Paperclip className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => sendMsg.mutate()}
+                disabled={sendMsg.isPending || (!text.trim() && !attachFile)}
+                style={{ background: "linear-gradient(135deg, #C6AF4B, #a8922e)" }}
+                className="flex items-center justify-center h-9 w-9 sm:h-10 sm:w-10 rounded-xl text-white disabled:opacity-40 shrink-0 active:scale-95 transition-transform"
+              >
+                {sendMsg.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              </button>
+              <input ref={fileRef} type="file" className="hidden" onChange={pickFile} />
+            </div>
           </div>
 
-          {artwork.isClosed ? (
-            <div className="mx-5 mb-5 flex items-center gap-3 px-4 py-3.5 rounded-2xl bg-green-50 border border-green-100">
-              <CheckCircle className="h-5 w-5 text-green-500 shrink-0" />
-              <div>
-                <p className="text-sm font-bold text-green-700">Artwork Approved</p>
-                <p className="text-xs text-green-600 mt-0.5">Your approval has been recorded. Thank you!</p>
-              </div>
-            </div>
-          ) : (
-            <div className="px-5 pb-5 space-y-4">
-              {/* Chat input */}
-              <div className="space-y-2">
-                {attachFile && (
-                  <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[#fdf6e0] border border-[#e8dfc0] text-xs text-[#a8922e]">
-                    <Paperclip className="h-3.5 w-3.5 shrink-0" />
-                    <span className="truncate flex-1">{attachFile.name}</span>
-                    <button onClick={() => setAttachFile(null)} className="shrink-0 hover:text-red-500"><X className="h-3.5 w-3.5" /></button>
-                  </div>
+          {/* Action Buttons */}
+          <div className="pt-2 border-t border-stone-200/60 space-y-1.5">
+            <div className="grid grid-cols-2 gap-2 sm:gap-3 sm:max-w-md">
+              <button
+                onClick={() => submitDecision.mutate("Approve")}
+                disabled={submitDecision.isPending}
+                style={{ background: "linear-gradient(135deg, #C6AF4B, #a8922e)" }}
+                className="flex items-center justify-center gap-1.5 py-2.5 sm:py-3 rounded-xl text-white text-xs sm:text-sm font-bold shadow-xs active:scale-[0.98] transition-all disabled:opacity-60"
+              >
+                {submitDecision.isPending && submitDecision.variables === "Approve" ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <CheckCircle className="h-3.5 w-3.5" />
                 )}
-                <div className="flex gap-2 items-end">
-                  <textarea
-                    value={text}
-                    onChange={e => setText(e.target.value)}
-                    onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMsg.mutate(); } }}
-                    placeholder="Leave a comment or question…"
-                    rows={2}
-                    className="flex-1 text-sm text-gray-900 border border-[#e0d5b0] rounded-2xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30 resize-none placeholder:text-gray-400 bg-[#fdfaf4]"
-                  />
-                  <div className="flex flex-col gap-1.5 shrink-0">
-                    <button onClick={() => fileRef.current?.click()}
-                      className="flex items-center justify-center h-10 w-10 rounded-xl border border-[#e0d5b0] text-gray-400 hover:bg-[#fdfaf4] transition-colors">
-                      <Paperclip className="h-4 w-4" />
-                    </button>
-                    <button
-                      onClick={() => sendMsg.mutate()}
-                      disabled={sendMsg.isPending || (!text.trim() && !attachFile)}
-                      style={{ background: "linear-gradient(135deg, #C6AF4B, #a8922e)" }}
-                      className="flex items-center justify-center h-10 w-10 rounded-xl text-white disabled:opacity-40 transition-all">
-                      {sendMsg.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                    </button>
-                  </div>
-                  <input ref={fileRef} type="file" className="hidden" onChange={pickFile} />
-                </div>
-              </div>
+                Approve
+              </button>
 
-              {/* Decision buttons */}
-              <div className="border-t border-[#f0e8d0] pt-4 space-y-3">
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest text-center">Submit Your Decision</p>
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => submitDecision.mutate("Approve")}
-                    disabled={submitDecision.isPending}
-                    style={{ background: "linear-gradient(135deg, #C6AF4B, #a8922e)" }}
-                    className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl text-white text-sm font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-60 hover:brightness-105">
-                    {submitDecision.isPending && submitDecision.variables === "Approve"
-                      ? <Loader2 className="h-4 w-4 animate-spin" />
-                      : <CheckCircle className="h-4 w-4" />}
-                    Approve Artwork
-                  </button>
-                  <button
-                    onClick={() => submitDecision.mutate("Rework")}
-                    disabled={submitDecision.isPending}
-                    className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl border-2 border-gray-200 bg-white text-gray-600 text-sm font-bold hover:border-gray-300 hover:bg-gray-50 transition-all disabled:opacity-60">
-                    {submitDecision.isPending && submitDecision.variables === "Rework"
-                      ? <Loader2 className="h-4 w-4 animate-spin" />
-                      : <RotateCcw className="h-4 w-4" />}
-                    Request Rework
-                  </button>
-                </div>
-                {artwork.decision === "Rework" && (
-                  <div className="flex items-center gap-2 px-4 py-3 rounded-2xl bg-amber-50 border border-amber-100 text-xs text-amber-700">
-                    <RotateCcw className="h-3.5 w-3.5 shrink-0" />
-                    <span>Rework requested — continue chatting or approve when ready.</span>
-                  </div>
+              <button
+                onClick={() => submitDecision.mutate("Rework")}
+                disabled={submitDecision.isPending}
+                className="flex items-center justify-center gap-1.5 py-2.5 sm:py-3 rounded-xl border border-stone-300 bg-white text-stone-700 text-xs sm:text-sm font-bold active:scale-[0.98] transition-all disabled:opacity-60 hover:bg-stone-50"
+              >
+                {submitDecision.isPending && submitDecision.variables === "Rework" ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <RotateCcw className="h-3.5 w-3.5" />
                 )}
-              </div>
+                Request Rework
+              </button>
             </div>
-          )}
+          </div>
         </div>
       )}
     </div>
@@ -332,6 +411,11 @@ function ArtworkThread({ artwork, messages, token, onRefetch }: {
 }
 
 export default function ClientPortal() {
+  const [referenceSearch, setReferenceSearch] = useState("");
+  const [referenceType, setReferenceType] = useState<"swatch" | "style">("swatch");
+  const [searchInput, setSearchInput] = useState("");
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const pillRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const [, params] = useRoute("/client/:token");
   const token = params?.token ?? "";
   const qc = useQueryClient();
@@ -347,20 +431,56 @@ export default function ClientPortal() {
     },
   });
 
+  const { data: referenceOrders = [], isFetching: referenceLoading } = useQuery<ReferenceOrder[]>({
+    queryKey: ["client-reference-orders", token, referenceType, referenceSearch],
+    enabled: !!token,
+    queryFn: async () => {
+      const queryParams = new URLSearchParams({ type: referenceType });
+      if (referenceSearch.trim()) queryParams.set("search", referenceSearch);
+
+      const r = await fetch(`/api/client-portal/${token}/reference-orders?${queryParams}`);
+      if (!r.ok) throw new Error("Failed");
+      const j = await r.json();
+      return j.data;
+    },
+  });
+
+  function changeTab(type: "swatch" | "style") {
+    setReferenceType(type);
+    setReferenceSearch("");
+    setSearchInput("");
+  }
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setReferenceSearch(searchInput);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
+
+  useEffect(() => {
+    pillRefs.current[currentIndex]?.scrollIntoView({
+      behavior: "smooth",
+      inline: "nearest",
+      block: "nearest",
+    });
+  }, [currentIndex]);
+
   function refetch() { void qc.invalidateQueries({ queryKey: ["client-portal", token] }); }
 
   if (!token) return null;
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: "#F8F6F0" }}>
-        <div className="flex flex-col items-center gap-5 text-gray-500">
-          <div className="h-14 w-14 rounded-2xl flex items-center justify-center text-2xl font-bold text-[#C6AF4B]"
-            style={{ background: "linear-gradient(135deg, #1a1a1a, #2d2d2d)" }}>Z</div>
-          <div className="flex flex-col items-center gap-2">
-            <div className="h-6 w-6 rounded-full border-2 border-[#C6AF4B]/30 border-t-[#C6AF4B] animate-spin" />
-            <p className="text-sm text-gray-400">Loading your review portal…</p>
+      <div className="min-h-screen flex items-center justify-center p-4 bg-[#F8F6F0]">
+        <div className="flex flex-col items-center gap-3">
+          <div
+            className="h-12 w-12 sm:h-14 sm:w-14 rounded-xl flex items-center justify-center text-xl sm:text-2xl font-black text-[#C6AF4B] shadow-md"
+            style={{ background: "linear-gradient(135deg, #111, #222)" }}
+          >
+            Z
           </div>
+          <Loader2 className="h-5 w-5 text-[#C6AF4B] animate-spin" />
         </div>
       </div>
     );
@@ -370,17 +490,14 @@ export default function ClientPortal() {
     const msg = error instanceof Error ? error.message : "Something went wrong";
     const notPublished = msg === "This link is not yet published";
     return (
-      <div className="min-h-screen flex items-center justify-center px-4" style={{ background: "#F8F6F0" }}>
-        <div className="text-center max-w-sm">
-          <div className="h-20 w-20 rounded-3xl mx-auto mb-6 flex items-center justify-center text-3xl"
-            style={{ background: notPublished ? "#fef3c7" : "#fee2e2" }}>
-            {notPublished ? "⏳" : "🔒"}
-          </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-3">{notPublished ? "Not Yet Active" : "Link Not Found"}</h1>
-          <p className="text-sm text-gray-500 leading-relaxed">
+      <div className="min-h-screen flex items-center justify-center p-4 bg-[#F8F6F0]">
+        <div className="text-center max-w-xs sm:max-w-sm bg-white p-6 sm:p-8 rounded-2xl border border-stone-200 shadow-md space-y-2">
+          <div className="text-3xl sm:text-4xl">{notPublished ? "⏳" : "🔒"}</div>
+          <h1 className="text-base sm:text-lg font-bold text-stone-900">{notPublished ? "Not Active Yet" : "Invalid Link"}</h1>
+          <p className="text-xs sm:text-sm text-stone-500 leading-relaxed">
             {notPublished
-              ? "This review link hasn't been published yet. Please contact the ZARI team."
-              : "This link may be invalid or has expired. Please request a new link."}
+              ? "This portal link hasn't been activated by the team yet."
+              : "This review link is invalid or expired."}
           </p>
         </div>
       </div>
@@ -390,137 +507,284 @@ export default function ClientPortal() {
   if (!data) return null;
 
   const { order, artworks, messages = [] } = data;
-  const openArtworks = artworks.filter(a => !a.isClosed);
-  const closedArtworks = artworks.filter(a => a.isClosed);
-  const sortedArtworks = [...openArtworks, ...closedArtworks];
-  const pendingCount = openArtworks.filter(a => !a.decision).length;
-  const allApproved = artworks.length > 0 && closedArtworks.length === artworks.length;
+  const totalArtworks = artworks.length;
+  const currentArtwork = artworks[currentIndex] ?? artworks[0];
+
+  const pendingCount = artworks.filter(a => !a.isClosed && !a.decision).length;
+  const approvedCount = artworks.filter(a => a.isClosed).length;
+  const reworkCount = artworks.filter(a => !a.isClosed && a.decision === "Rework").length;
+  const allApproved = totalArtworks > 0 && approvedCount === totalArtworks;
+
+  const handleNext = () => {
+    if (currentIndex < totalArtworks - 1) {
+      setCurrentIndex(prev => prev + 1);
+    }
+  };
+
+  const handlePrev = () => {
+    if (currentIndex > 0) {
+      setCurrentIndex(prev => prev - 1);
+    }
+  };
 
   return (
-    <div className="min-h-screen" style={{ background: "#F8F6F0" }}>
+    <div className="min-h-screen pb-10 bg-[#F8F6F0]">
 
-      {/* Header */}
-      <div className="sticky top-0 z-20 shadow-lg" style={{ background: "linear-gradient(135deg, #111 60%, #222)" }}>
-        <div className="max-w-2xl mx-auto px-5 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="h-9 w-9 rounded-xl flex items-center justify-center text-sm font-bold text-gray-900"
-              style={{ background: "linear-gradient(135deg, #C6AF4B, #a8922e)" }}>Z</div>
-            <div>
-              <p className="text-[10px] text-gray-500 uppercase tracking-widest leading-none">Client Review Portal</p>
-              <p className="text-sm font-bold text-white leading-tight mt-0.5">{data.link.portalTitle ?? "ZARI Embroideries"}</p>
+      {/* Sticky Header */}
+      <header className="sticky top-0 z-30 shadow-xs backdrop-blur-md bg-stone-950/95 border-b border-stone-800">
+        <div className="max-w-xl sm:max-w-2xl md:max-w-4xl lg:max-w-6xl mx-auto px-3.5 sm:px-6 lg:px-8 py-2.5 sm:py-3 flex items-center justify-between">
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+            <div
+              className="h-8 w-8 sm:h-9 sm:w-9 rounded-lg flex items-center justify-center text-xs sm:text-sm font-black text-stone-900 shrink-0"
+              style={{ background: "linear-gradient(135deg, #C6AF4B, #a8922e)" }}
+            >
+              Z
+            </div>
+            <div className="min-w-0">
+              <p className="text-[8px] sm:text-[9px] text-stone-400 uppercase tracking-widest font-semibold leading-none">Review Portal</p>
+              <h2 className="text-xs sm:text-sm md:text-base font-bold text-white truncate max-w-[140px] sm:max-w-xs md:max-w-sm mt-0.5">
+                {data.link.portalTitle ?? "ZARI Embroideries"}
+              </h2>
             </div>
           </div>
-          <div className="text-right">
-            <p className="text-[10px] text-gray-500 uppercase tracking-wide">Order</p>
-            <p className="text-sm font-mono font-bold text-[#C6AF4B]">{order.orderCode}</p>
+          <div className="text-right shrink-0">
+            <p className="text-[8px] sm:text-[9px] text-stone-400 uppercase tracking-wider font-semibold leading-none">Order Code</p>
+            <p className="text-xs sm:text-sm font-mono font-bold text-[#C6AF4B] mt-0.5">{order.orderCode}</p>
           </div>
         </div>
-      </div>
+      </header>
 
-      <div className="max-w-2xl mx-auto px-4 py-6 space-y-4">
+      {/* Main Container */}
+      <main className="max-w-xl sm:max-w-2xl md:max-w-4xl lg:max-w-6xl mx-auto px-3.5 sm:px-6 lg:px-8 pt-4 sm:pt-6 lg:pt-8">
+        <div className="lg:grid lg:grid-cols-12 lg:gap-6 lg:items-start">
 
-        {/* Hero card */}
-        <div className="rounded-3xl overflow-hidden shadow-lg border border-[#e8dfc0]" style={{ background: "linear-gradient(135deg, #fff 60%, #fdfaf4)" }}>
-          <div className="px-6 pt-6 pb-5">
-            <div className="flex items-start justify-between gap-3 mb-4">
-              <div>
-                <p className="text-[11px] font-semibold text-[#a8922e] uppercase tracking-widest mb-1.5">Swatch Order</p>
-                <h1 className="text-2xl font-bold text-gray-900 leading-tight">{order.swatchName}</h1>
+          {/* Sidebar: Order Specs & Reference Orders */}
+          <div className="lg:col-span-4 lg:sticky lg:top-[88px] space-y-3.5 sm:space-y-4">
+
+            {/* Order Card */}
+            <div className="rounded-2xl border border-[#e8dfc0] bg-white shadow-xs p-4 sm:p-5 space-y-3">
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <span className="text-[9px] sm:text-[10px] font-bold text-[#a8922e] uppercase tracking-wider">
+                    {data.link.orderType === "style" ? "Style Order" : "Swatch Order"}
+                  </span>
+                  <h1 className="text-base sm:text-xl font-extrabold text-stone-900 leading-tight mt-0.5">
+                    {data.link.orderType === "style" ? order.styleName : order.swatchName}
+                  </h1>
+                </div>
+                <span className={`shrink-0 text-[10px] sm:text-xs px-2.5 py-0.5 rounded-full font-bold ${
+                  order.orderStatus === "Completed" ? "bg-emerald-100 text-emerald-800" :
+                  order.orderStatus === "In Artwork" ? "bg-sky-100 text-sky-800" :
+                  order.orderStatus === "Pending Approval" ? "bg-amber-100 text-amber-800" :
+                  "bg-stone-100 text-stone-700"
+                }`}>
+                  {order.orderStatus}
+                </span>
               </div>
-              <span className={`shrink-0 text-xs px-3 py-1.5 rounded-full font-semibold mt-1 ${
-                order.orderStatus === "Completed" ? "bg-green-100 text-green-700" :
-                order.orderStatus === "In Artwork" ? "bg-blue-100 text-blue-700" :
-                order.orderStatus === "Pending Approval" ? "bg-amber-100 text-amber-700" :
-                "bg-gray-100 text-gray-600"
-              }`}>{order.orderStatus}</span>
+
+              {/* Specs */}
+              <div className="flex gap-2 overflow-x-auto sm:flex-wrap sm:overflow-visible no-scrollbar pt-2 border-t border-stone-100 text-xs">
+                {order.clientName && (
+                  <div className="bg-stone-50 border border-stone-100 px-2.5 py-1.5 rounded-xl shrink-0 flex items-center gap-1.5">
+                    <User className="h-3 w-3 text-stone-400" />
+                    <span className="text-[11px] sm:text-xs font-medium text-stone-700">{order.clientName}</span>
+                  </div>
+                )}
+                {order.fabricName && (
+                  <div className="bg-stone-50 border border-stone-100 px-2.5 py-1.5 rounded-xl shrink-0 flex items-center gap-1.5">
+                    <Layers className="h-3 w-3 text-stone-400" />
+                    <span className="text-[11px] sm:text-xs font-medium text-stone-700">{order.fabricName}</span>
+                  </div>
+                )}
+                {order.quantity && (
+                  <div className="bg-stone-50 border border-stone-100 px-2.5 py-1.5 rounded-xl shrink-0 flex items-center gap-1.5">
+                    <Tag className="h-3 w-3 text-stone-400" />
+                    <span className="text-[11px] sm:text-xs font-medium text-stone-700">Qty: {order.quantity}</span>
+                  </div>
+                )}
+                {order.deliveryDate && (
+                  <div className="bg-stone-50 border border-stone-100 px-2.5 py-1.5 rounded-xl shrink-0 flex items-center gap-1.5">
+                    <Calendar className="h-3 w-3 text-stone-400" />
+                    <span className="text-[11px] sm:text-xs font-medium text-stone-700">
+                      {new Date(order.deliveryDate).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {allApproved && (
+                <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200/80 flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4 text-emerald-600 shrink-0" />
+                  <p className="text-xs sm:text-sm font-bold text-emerald-900">All artworks approved!</p>
+                </div>
+              )}
             </div>
 
-            {/* Quick details row */}
-            <div className="flex flex-wrap gap-x-5 gap-y-2 text-xs text-gray-500 border-t border-[#f0e8d0] pt-4">
-              {order.clientName && (
-                <span><span className="text-gray-400">Client</span> · <span className="font-semibold text-gray-700">{order.clientName}</span></span>
-              )}
-              {order.fabricName && (
-                <span><span className="text-gray-400">Fabric</span> · <span className="font-semibold text-gray-700">{order.fabricName}</span></span>
-              )}
-              {order.quantity && (
-                <span><span className="text-gray-400">Qty</span> · <span className="font-semibold text-gray-700">{order.quantity}</span></span>
-              )}
-              {order.deliveryDate && (
-                <span><span className="text-gray-400">Delivery</span> · <span className="font-semibold text-gray-700">{new Date(order.deliveryDate).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</span></span>
-              )}
-              {order.priority && order.priority !== "Normal" && (
-                <span className="font-semibold text-red-500">⚡ {order.priority}</span>
-              )}
-            </div>
-          </div>
+            {/* Description */}
+            {order.description && (
+              <div className="bg-white rounded-2xl border border-[#e8dfc0] p-3.5 sm:p-4 shadow-xs space-y-1">
+                <p className="text-[9px] sm:text-[10px] font-bold text-[#a8922e] uppercase tracking-wider">Description</p>
+                <p className="text-xs sm:text-sm text-stone-700 leading-relaxed">{order.description}</p>
+              </div>
+            )}
 
-          {/* All-approved banner */}
-          {allApproved && (
-            <div className="mx-4 mb-4 flex items-center gap-3 px-4 py-3.5 rounded-2xl bg-green-50 border border-green-100">
-              <CheckCircle className="h-5 w-5 text-green-500 shrink-0" />
-              <div>
-                <p className="text-sm font-bold text-green-700">All Artworks Approved!</p>
-                <p className="text-xs text-green-600 mt-0.5">Thank you — the ZARI team has been notified.</p>
+            {/* Reference Orders Search */}
+            <div className="bg-white rounded-2xl border border-[#e8dfc0] p-3.5 sm:p-4 shadow-xs space-y-2.5">
+              <p className="text-[9px] sm:text-[10px] font-bold text-stone-400 uppercase tracking-wider">Orders</p>
+
+              <div className="flex bg-stone-100 p-0.5 rounded-lg">
+                <button
+                  onClick={() => changeTab("swatch")}
+                  className={`flex-1 py-1 sm:py-1.5 text-xs sm:text-sm font-bold rounded-md transition-all ${
+                    referenceType === "swatch" ? "bg-white text-stone-900 shadow-2xs" : "text-stone-500"
+                  }`}
+                >
+                  Swatches
+                </button>
+                <button
+                  onClick={() => changeTab("style")}
+                  className={`flex-1 py-1 sm:py-1.5 text-xs sm:text-sm font-bold rounded-md transition-all ${
+                    referenceType === "style" ? "bg-white text-stone-900 shadow-2xs" : "text-stone-500"
+                  }`}
+                >
+                  Styles
+                </button>
+              </div>
+
+              <div className="relative">
+                <Search className="absolute left-2.5 top-2.5 sm:top-2.5 h-3.5 w-3.5 text-stone-400" />
+                <input
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                  placeholder="Search related..."
+                  className="w-full text-xs sm:text-sm rounded-lg border border-stone-200 pl-8 pr-2.5 py-1.5 sm:py-2 focus:outline-none focus:ring-1 focus:ring-[#C6AF4B]"
+                />
+              </div>
+
+              <div className="max-h-40 sm:max-h-52 lg:max-h-64 overflow-y-auto divide-y divide-stone-100 rounded-lg border border-stone-100">
+                {referenceLoading ? (
+                  <div className="p-3 flex justify-center">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin text-stone-400" />
+                  </div>
+                ) : referenceOrders.length === 0 ? (
+                  <div className="p-3 text-center text-xs sm:text-sm text-stone-400">
+                    No related orders
+                  </div>
+                ) : (
+                  referenceOrders.map((item) => (
+                    <button
+                      key={item.id}
+                      onClick={() => { window.location.href = `/client/${item.token}`; }}
+                      className="w-full p-2 sm:p-2.5 text-left hover:bg-stone-50 transition flex items-center justify-between"
+                    >
+                      <div className="min-w-0">
+                        <p className="font-mono text-[10px] sm:text-xs font-bold text-stone-900">{item.orderCode}</p>
+                        <p className="text-[11px] sm:text-xs text-stone-500 truncate">{item.orderName}</p>
+                      </div>
+                      <ChevronRight className="h-3.5 w-3.5 text-stone-300 shrink-0" />
+                    </button>
+                  ))
+                )}
               </div>
             </div>
-          )}
-        </div>
-
-        {/* Description */}
-        {order.description && (
-          <div className="bg-white rounded-3xl border border-[#e8dfc0] px-6 py-5 shadow-sm">
-            <p className="text-[11px] font-semibold text-[#a8922e] uppercase tracking-widest mb-2">Description</p>
-            <p className="text-sm text-gray-700 leading-relaxed">{order.description}</p>
           </div>
-        )}
 
-        {/* Artworks section header */}
-        <div className="flex items-center justify-between px-1 pt-2">
-          <p className="text-[11px] font-bold text-gray-500 uppercase tracking-widest">
-            Artworks for Review
-          </p>
-          {pendingCount > 0
-            ? <span className="text-xs font-bold text-[#a8922e] bg-[#fdf6e0] px-3 py-1 rounded-full border border-[#e8dfc0]">
-                {pendingCount} awaiting decision
-              </span>
-            : artworks.length > 0
-            ? <span className="text-xs text-green-600 font-semibold">
-                {closedArtworks.length}/{artworks.length} approved
-              </span>
-            : null
-          }
-        </div>
+          {/* Stepper / Wizard Artwork Focus Area */}
+          <div className="lg:col-span-8 mt-3.5 lg:mt-0 space-y-3.5 sm:space-y-4">
 
-        {artworks.length === 0 ? (
-          <div className="bg-white rounded-3xl border border-[#e8dfc0] px-6 py-14 text-center shadow-sm">
-            <div className="text-4xl mb-3">🎨</div>
-            <p className="text-sm font-semibold text-gray-500">No artworks shared yet</p>
-            <p className="text-xs text-gray-400 mt-1">The team will add artworks here for your review.</p>
+            {totalArtworks === 0 ? (
+              <div className="bg-white rounded-2xl border border-[#e8dfc0] p-6 sm:p-8 text-center shadow-xs space-y-1">
+                <div className="text-xl sm:text-2xl">🎨</div>
+                <p className="text-xs sm:text-sm font-bold text-stone-700">No Artworks Shared Yet</p>
+                <p className="text-[11px] sm:text-xs text-stone-400">Artworks will appear here once ready.</p>
+              </div>
+            ) : (
+              <>
+                {/* Stepper Top Bar & Pagination Controls */}
+                <div className="bg-white rounded-2xl border border-[#e8dfc0] p-3 sm:p-4 shadow-xs space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs sm:text-sm font-bold text-stone-900">
+                        Artwork {currentIndex + 1} of {totalArtworks}
+                      </span>
+                      {pendingCount > 0 && (
+                        <span className="text-[10px] sm:text-xs font-bold text-[#a8922e] bg-[#fdf6e0] px-2 py-0.5 rounded-full border border-[#e8dfc0]">
+                          {pendingCount} Pending
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Prev / Next Buttons */}
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={handlePrev}
+                        disabled={currentIndex === 0}
+                        className="p-1.5 sm:p-2 rounded-xl border border-stone-200 text-stone-700 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-stone-50 active:scale-95 transition"
+                        title="Previous Artwork"
+                      >
+                        <ChevronLeft className="h-4 w-4 sm:h-5 sm:w-5" />
+                      </button>
+                      <button
+                        onClick={handleNext}
+                        disabled={currentIndex === totalArtworks - 1}
+                        className="p-1.5 sm:p-2 rounded-xl border border-stone-200 text-stone-700 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-stone-50 active:scale-95 transition"
+                        title="Next Artwork"
+                      >
+                        <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Horizontal Scrollable Jump Strip */}
+                  <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pt-1 pb-0.5">
+                    {artworks.map((aw, idx) => {
+                      const isActive = idx === currentIndex;
+                      return (
+                        <button
+                          key={aw.id}
+                          ref={(el) => { pillRefs.current[idx] = el; }}
+                          onClick={() => setCurrentIndex(idx)}
+                          className={`shrink-0 text-[10px] sm:text-xs px-2.5 py-1 rounded-xl font-mono font-bold transition-all flex items-center gap-1 border ${
+                            isActive
+                              ? "bg-stone-900 text-white border-stone-900 ring-2 ring-[#C6AF4B]/50"
+                              : aw.isClosed
+                              ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                              : aw.decision === "Rework"
+                              ? "bg-amber-50 text-amber-700 border-amber-200"
+                              : "bg-stone-100 text-stone-600 border-stone-200 hover:bg-stone-200"
+                          }`}
+                        >
+                          {aw.isClosed ? "✓" : aw.decision === "Rework" ? "⟲" : "•"} {aw.artworkCode}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Active Focused Artwork Card */}
+                {currentArtwork && (
+                  <ActiveArtworkCard
+                    key={currentArtwork.id}
+                    artwork={currentArtwork}
+                    messages={messages.filter(m => m.artworkId === currentArtwork.id)}
+                    token={token}
+                    onRefetch={refetch}
+                    onNext={handleNext}
+                  />
+                )}
+              </>
+            )}
+
           </div>
-        ) : (
-          sortedArtworks.map(aw => (
-            <ArtworkThread
-              key={aw.id}
-              artwork={aw}
-              messages={messages.filter(m => m.artworkId === aw.id)}
-              token={token}
-              onRefetch={refetch}
-            />
-          ))
-        )}
+        </div>
 
         {/* Footer */}
-        <div className="text-center py-6 space-y-1">
-          <div className="flex items-center justify-center gap-2">
-            <div className="h-6 w-6 rounded-lg flex items-center justify-center text-[10px] font-bold text-gray-900"
-              style={{ background: "linear-gradient(135deg, #C6AF4B, #a8922e)" }}>Z</div>
-            <span className="text-xs font-semibold text-gray-500">ZARI Embroideries</span>
-          </div>
-          <p className="text-[11px] text-gray-400">Powered by ZARI ERP &middot; Secure Client Review Portal</p>
-        </div>
+        <footer className="pt-6 sm:pt-8 pb-2 text-center space-y-1">
+          <p className="text-[10px] sm:text-xs font-bold text-stone-500 tracking-wide">ZARI EMBROIDERIES</p>
+          <p className="text-[9px] sm:text-[10px] text-stone-400">Powered by ZARI ERP</p>
+        </footer>
 
-      </div>
+      </main>
     </div>
   );
 }

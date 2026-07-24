@@ -11,6 +11,7 @@ export type SwatchRecord = {
   length: string | null; width: string | null; unitType: string | null;
   hours: string | null; attachments: SwatchAttachment[] | null;
   wipMedia: MediaItem[] | null; finalMedia: MediaItem[] | null;
+  tags: string[] | null;
   colorName: string | null; hexCode: string | null; finishType: string | null;
   gsm: string | null; approvalStatus: string; remarks: string | null;
   isActive: boolean; isDeleted: boolean; createdBy: string; createdAt: string;
@@ -29,6 +30,7 @@ export type SwatchFormData = {
   width: string;
   unitType: string;
   hours: string;
+  tags : string[];
   attachments: SwatchAttachment[];
   isActive: boolean;
 };
@@ -46,7 +48,7 @@ const QK = "swatches";
 
 export function useSwatchList(p: {
   search: string; status: StatusFilter;
-  client: string; location: string; swatchCategory: string;
+  client: string; location: string; swatchCategory: string; tag: string;
   page: number; limit: number;
 }) {
   return useQuery({
@@ -55,6 +57,7 @@ export function useSwatchList(p: {
       const qs = new URLSearchParams({
         search: p.search, status: p.status,
         client: p.client, location: p.location, swatchCategory: p.swatchCategory,
+        tag: p.tag,
         page: String(p.page), limit: String(p.limit),
       }).toString();
       return customFetch<{ data: SwatchRecord[]; total: number; page: number; limit: number }>(`${BASE}?${qs}`);

@@ -21,6 +21,8 @@ import {
 } from "@/hooks/useSwatches";
 import { useSwatchCategories } from "@/hooks/useLookups";
 import { useAllClients, type ClientRecord } from "@/hooks/useClients";
+import { SmallSearchSelect } from "@/components/ui/SearchableSelect";
+import { customFetch } from "@workspace/api-client-react";
 
 // ─── Constants ──────────────────────────────────────────────────────────────────
 const LOCATION_OPTIONS = ["Inhouse", "Client"];
@@ -37,6 +39,13 @@ function formatDate(val: string | null | undefined) {
 }
 
 const asSwatch = (r: TableRow) => r as unknown as SwatchRecord;
+
+interface Tags{
+  id: number;
+  entity_id: number;
+  entity_type: string;
+  tag: string;  
+}
 
 // ─── Main Page ──────────────────────────────────────────────────────────────────
 export default function SwatchMaster() {
@@ -62,6 +71,8 @@ export default function SwatchMaster() {
   const [clientFilter, setClientFilter] = useState("");
   const [locationFilter, setLocationFilter] = useState("");
   const [swatchCategoryFilter, setSwatchCategoryFilter] = useState("");
+  const [tags, setTags] = useState<Tags[]>([]);
+  const [tagFilter, setTagFilter] = useState(""); 
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
 
@@ -78,7 +89,7 @@ export default function SwatchMaster() {
   const [exporting, setExporting] = useState(false);
 
   // ── Data ──
-  const { data, isLoading } = useSwatchList({ search, status, client: clientFilter, location: locationFilter, swatchCategory: swatchCategoryFilter, page, limit });
+  const { data, isLoading } = useSwatchList({ search, status, client: clientFilter, location: locationFilter, swatchCategory: swatchCategoryFilter, tag: tagFilter ,page, limit });
   const { data: clientsData } = useAllClients();
   const { data: swatchCatsData } = useSwatchCategories();
 
@@ -105,9 +116,39 @@ export default function SwatchMaster() {
   }
 
   function clearFilters() {
-    setSearch(""); setStatus("all"); setClientFilter(""); setLocationFilter(""); setSwatchCategoryFilter(""); setPage(1);
+    setSearch(""); setStatus("all"); setClientFilter(""); setLocationFilter(""); setSwatchCategoryFilter(""); setTagFilter(""); setPage(1);
   }
-  const hasFilters = search || status !== "all" || clientFilter || locationFilter || swatchCategoryFilter;
+  const hasFilters = search || status !== "all" || clientFilter || locationFilter || swatchCategoryFilter || tagFilter;
+
+  const fetchTags = (searchString = "") => {
+    customFetch(
+      `/api/entity-tags?entityType=swatch_master&search=${encodeURIComponent(searchString)}&_t=${Date.now()}`
+    )
+      .then((r: unknown) => {
+        const fetched = (r as { data: Tags[] }).data ?? [];
+        setTags(fetched);
+      })
+      .catch(() => {
+        setTags([]);
+      });
+  };
+
+  const tagOptions = tags.map(tag => ({
+    value: tag.tag,
+    label: tag.tag,
+  }));
+
+  if (tagFilter && !tags.some(t => t.tag === tagFilter)) {
+    tagOptions.unshift({
+      value: tagFilter,
+      label: tagFilter,
+    });
+  }
+
+  // Initial Data Load
+  useEffect(() => {
+    fetchTags();
+  }, []);
 
   // ── Import ──
   async function handleImportFile(e: React.ChangeEvent<HTMLInputElement>) {
@@ -283,6 +324,17 @@ export default function SwatchMaster() {
             <option value="">All Categories</option>
             {swatchCatOptions.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
           </select>
+          <SmallSearchSelect
+            options={tagOptions}
+            value={tagFilter}
+            onSearch={fetchTags}
+            onChange={(value) => {
+              setTagFilter(value);
+              setPage(1);
+              fetchTags(""); 
+            }}
+            placeholder="All Tags"
+          />
           <select value={status} onChange={e => { setStatus(e.target.value as StatusFilter); setPage(1); }}
             className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 shadow-sm outline-none focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10">
             {STATUS_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}

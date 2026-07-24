@@ -10,6 +10,7 @@ export type StyleRecord = {
   referenceSwatchId: string | null;
   referenceSwatchCode: string | null;
   wipMedia: MediaItem[] | null; finalMedia: MediaItem[] | null;
+  tags: string[] | null;
   isActive: boolean; isDeleted: boolean;
   createdBy: string; createdAt: string; updatedBy: string | null; updatedAt: string | null;
 };
@@ -20,6 +21,7 @@ export type StyleFormData = {
   attachLink: string; placeOfIssue: string; vendorPoNo: string; shippingDate: string;
   referenceSwatchId: string;
   isActive: boolean;
+  tags : string[];
 };
 
 export type StyleImportResult = {
@@ -33,11 +35,11 @@ export type StatusFilter = "all" | "active" | "inactive";
 const BASE = "/api/styles";
 const QK = "styles";
 
-export function useStyleList(p: { search: string; status: StatusFilter; client: string; location: string; category: string; page: number; limit: number }) {
+export function useStyleList(p: { search: string; status: StatusFilter; client: string; location: string; category: string; tag: string; page: number; limit: number }) {
   return useQuery({
     queryKey: [QK, p],
     queryFn: () => customFetch<{ data: StyleRecord[]; total: number; page: number; limit: number }>(
-      `${BASE}?search=${encodeURIComponent(p.search)}&status=${p.status}&client=${encodeURIComponent(p.client)}&location=${encodeURIComponent(p.location)}&category=${encodeURIComponent(p.category)}&page=${p.page}&limit=${p.limit}`),
+      `${BASE}?search=${encodeURIComponent(p.search)}&status=${p.status}&client=${encodeURIComponent(p.client)}&location=${encodeURIComponent(p.location)}&category=${encodeURIComponent(p.category)}&tag=${encodeURIComponent(p.tag ?? "")}&page=${p.page}&limit=${p.limit}`),
     placeholderData: (prev) => prev,
   });
 }

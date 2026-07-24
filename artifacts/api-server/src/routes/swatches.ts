@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 // import { eq, ilike, or, and, desc, ne } from "drizzle-orm";
 import { mediaUploadMiddleware, uploadFile, deleteUpload } from "../utils/uploadHelper";
-import { db, pool, swatchesTable, entityTagsTable } from "@workspace/db";
+import { db, pool, exists, sql, swatchesTable, entityTagsTable } from "@workspace/db";
 import { insertSwatchSchema, updateSwatchSchema, eq, ilike, or, and, desc, ne } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
 import { logger } from "../lib/logger";
@@ -20,6 +20,7 @@ function buildConditions(req: Request) {
   const clientFilter = (req.query.client as string) ?? "";
   const locationFilter = (req.query.location as string) ?? "";
   const swatchCategoryFilter = (req.query.swatchCategory as string) ?? "";
+  const tagFilter = (req.query.tag as string) ?? "";
 
   const conditions = [eq(swatchesTable.isDeleted, false)];
   if (status === "active") conditions.push(eq(swatchesTable.isActive, true));
@@ -27,12 +28,40 @@ function buildConditions(req: Request) {
   if (clientFilter) conditions.push(ilike(swatchesTable.client, `%${clientFilter}%`));
   if (locationFilter) conditions.push(eq(swatchesTable.location, locationFilter));
   if (swatchCategoryFilter) conditions.push(eq(swatchesTable.swatchCategory, swatchCategoryFilter));
+  if (tagFilter) {
+    conditions.push(
+      exists(
+        db
+          .select({ one: sql`1` })
+          .from(entityTagsTable)
+          .where(
+            and(
+              eq(entityTagsTable.entityType, "swatch_master"),
+              eq(entityTagsTable.entityId, swatchesTable.id),
+              eq(entityTagsTable.tag, tagFilter)
+            )
+          )
+      )
+    );
+  }
+
   if (search) {
     conditions.push(or(
       ilike(swatchesTable.swatchCode, `%${search}%`),
       ilike(swatchesTable.swatchName, `%${search}%`),
       ilike(swatchesTable.client, `%${search}%`),
       ilike(swatchesTable.fabric, `%${search}%`),
+      exists( db
+            .select({ one: sql`1` })
+            .from(entityTagsTable)
+            .where(
+              and(
+                eq(entityTagsTable.entityType, "swatch_master"),
+                eq(entityTagsTable.entityId, swatchesTable.id),
+                ilike(entityTagsTable.tag, `%${search}%`)
+              )
+            )
+          )
     )!);
   }
   return conditions;
@@ -212,8 +241,58 @@ router.put("/swatches/:id", requireAuth, async (req: AuthRequest, res): Promise<
   }
 
   const updatedBy = req.user?.email ?? "system";
-  const [record] = await db.update(swatchesTable).set({ ...parsed.data, updatedBy, updatedAt: new Date() })
-    .where(and(eq(swatchesTable.id, id), eq(swatchesTable.isDeleted, false))).returning();
+  const record = await db.transaction(async (tx) => {
+    const [updated] = await tx
+      .update(swatchesTable)
+      .set({
+        ...parsed.data,
+        updatedBy,
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(swatchesTable.id, id),
+          eq(swatchesTable.isDeleted, false)
+        )
+      )
+      .returning();
+
+    if (!updated) {
+      return null;
+    }
+
+    // Delete existing tags
+    await tx
+      .delete(entityTagsTable)
+      .where(
+        and(
+          eq(entityTagsTable.entityType, "swatch_master"),
+          eq(entityTagsTable.entityId, id)
+        )
+      );
+
+    // Insert new tags
+    const tags = [
+      ...new Set(
+        (parsed.data.tags ?? [])
+          .map(tag => tag.trim())
+          .filter(tag => tag.length > 0)
+      ),
+    ];
+
+    if (tags.length > 0) {
+      await tx.insert(entityTagsTable).values(
+        tags.map(tag => ({
+          entityType: "swatch_master",
+          entityId: id,
+          tag,
+        }))
+      );
+    }
+
+    return updated;
+  });
+
   if (!record) { res.status(404).json({ error: "Swatch not found" }); return; }
   res.json(record);
 });
@@ -232,9 +311,36 @@ router.delete("/swatches/:id", requireAuth, async (req: AuthRequest, res): Promi
   const id = parseInt(String(req.params.id), 10);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid ID" }); return; }
   const updatedBy = req.user?.email ?? "system";
-  const [record] = await db.update(swatchesTable).set({ isDeleted: true, updatedBy, updatedAt: new Date(), deletedBy: updatedBy, deletedAt: new Date() })
-    .where(and(eq(swatchesTable.id, id), eq(swatchesTable.isDeleted, false))).returning();
-  if (!record) { res.status(404).json({ error: "Swatch not found" }); return; }
+  await db.transaction(async (tx) => {
+    const [record] = await tx
+      .update(swatchesTable)
+      .set({
+        isDeleted: true,
+        updatedBy,
+        updatedAt: new Date(),
+        deletedBy: updatedBy,
+        deletedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(swatchesTable.id, id),
+          eq(swatchesTable.isDeleted, false)
+        )
+      )
+      .returning();
+
+    if (!record) { res.status(404).json({ error: "Swatch not found" }); return; }
+
+    await tx
+      .delete(entityTagsTable)
+      .where(
+        and(
+          eq(entityTagsTable.entityType, "swatch_master"),
+          eq(entityTagsTable.entityId, id)
+        )
+      );
+  });
+
   res.json({ message: "Swatch deleted" });
 });
 

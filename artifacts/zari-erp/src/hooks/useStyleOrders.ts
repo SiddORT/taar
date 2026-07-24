@@ -11,6 +11,7 @@ export type StyleOrderRecord = {
   styleNo: string | null;
   clientId: string | null;
   clientName: string | null;
+  tags: string[] | [];
   quantity: string | null;
   priority: string;
   orderStatus: string;
@@ -55,12 +56,12 @@ export type StyleOrderRecord = {
 const BASE = "/api/style-orders";
 const QK = "style-orders";
 
-export function useStyleOrderList(params: { search: string; status: string; priority: string; chargeable: string; inhouse: string; page: number; limit: number }) {
+export function useStyleOrderList(params: { search: string; status: string; priority: string; chargeable: string; inhouse: string; tag:string; page: number; limit: number }) {
   return useQuery({
     queryKey: [QK, params],
     queryFn: () =>
       customFetch<{ data: StyleOrderRecord[]; total: number; page: number; limit: number }>(
-        `${BASE}?search=${encodeURIComponent(params.search)}&status=${params.status}&priority=${params.priority}&chargeable=${params.chargeable}&inhouse=${params.inhouse}&page=${params.page}&limit=${params.limit}`,
+        `${BASE}?search=${encodeURIComponent(params.search)}&status=${params.status}&priority=${params.priority}&chargeable=${params.chargeable}&inhouse=${params.inhouse}&tag=${params.tag}&page=${params.page}&limit=${params.limit}`,
       ),
     placeholderData: (prev) => prev,
   });

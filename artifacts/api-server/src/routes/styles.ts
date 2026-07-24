@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 // import { eq, ilike, or, and, desc, ne, sql } from "drizzle-orm";
-import { db, pool, stylesTable, swatchesTable, eq, ilike, or, and, desc, ne, sql } from "@workspace/db";
+import { db, pool, stylesTable, swatchesTable,entityTagsTable, eq, ilike, or, and, desc, ne, sql, exists } from "@workspace/db";
 import { insertStyleSchema, updateStyleSchema } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
 import { logger } from "../lib/logger";
@@ -112,6 +112,7 @@ router.get("/styles", requireAuth, async (req: AuthRequest, res): Promise<void> 
   const clientFilter = (req.query.client as string) ?? "";
   const locationFilter = (req.query.location as string) ?? "";
   const categoryFilter = (req.query.category as string) ?? "";
+  const tagFilter = (req.query.tag as string) ?? "";
   const page = Math.max(1, parseInt((req.query.page as string) ?? "1", 10));
   const limit = Math.min(100, Math.max(1, parseInt((req.query.limit as string) ?? "10", 10)));
   const offset = (page - 1) * limit;
@@ -122,11 +123,39 @@ router.get("/styles", requireAuth, async (req: AuthRequest, res): Promise<void> 
   if (clientFilter) conditions.push(ilike(stylesTable.client, `%${clientFilter}%`));
   if (locationFilter) conditions.push(ilike(stylesTable.placeOfIssue, `%${locationFilter}%`));
   if (categoryFilter) conditions.push(ilike(stylesTable.styleCategory, `%${categoryFilter}%`));
+  if (tagFilter) {
+    conditions.push(
+      exists(
+        db
+          .select({ one: sql`1` })
+          .from(entityTagsTable)
+          .where(
+            and(
+              eq(entityTagsTable.entityType, "style_master"),
+              eq(entityTagsTable.entityId, stylesTable.id),
+              eq(entityTagsTable.tag, tagFilter)
+            )
+          )
+      )
+    );
+  }
+
   if (search) {
     conditions.push(or(
       ilike(stylesTable.styleNo, `%${search}%`),
       ilike(stylesTable.client, `%${search}%`),
       ilike(stylesTable.description, `%${search}%`),
+      exists( db
+          .select({ one: sql`1` })
+          .from(entityTagsTable)
+          .where(
+            and(
+              eq(entityTagsTable.entityType, "style_master"),
+              eq(entityTagsTable.entityId, stylesTable.id),
+              ilike(entityTagsTable.tag, `%${search}%`)
+            )
+          )
+        )
     )!);
   }
 
@@ -199,7 +228,22 @@ router.get("/styles/:id", requireAuth, async (req: AuthRequest, res): Promise<vo
   if (isNaN(id)) { res.status(400).json({ error: "Invalid ID" }); return; }
   const [record] = await db.select().from(stylesTable).where(and(eq(stylesTable.id, id), eq(stylesTable.isDeleted, false)));
   if (!record) { res.status(404).json({ error: "Style not found" }); return; }
-  res.json(record);
+  const tagRows = await db
+    .select({
+      tag: entityTagsTable.tag,
+    })
+    .from(entityTagsTable)
+    .where(
+      and(
+        eq(entityTagsTable.entityType, "style_master"),
+        eq(entityTagsTable.entityId, id)
+      )
+    );
+
+  res.json({
+    ...record,
+    tags: tagRows.map(row => row.tag),
+  });
 });
 
 router.post("/styles", requireAuth, async (req: AuthRequest, res): Promise<void> => {
@@ -231,7 +275,38 @@ router.post("/styles", requireAuth, async (req: AuthRequest, res): Promise<void>
     return;
   }
 
-  const [record] = await db.insert(stylesTable).values({ ...parsed.data, styleNo, createdBy }).returning();
+  const { tags = [], ...styleData } = parsed.data;
+  const record = await db.transaction(async (tx) => {
+    const [style] = await tx
+      .insert(stylesTable)
+      .values({
+        ...styleData,
+        styleNo,
+        createdBy,
+      })
+      .returning();
+
+    const uniqueTags = [
+      ...new Set(
+        tags
+          .map(tag => tag.trim())
+          .filter(tag => tag.length > 0)
+      ),
+    ];
+
+    if (uniqueTags.length > 0) {
+      await tx.insert(entityTagsTable).values(
+        uniqueTags.map(tag => ({
+          entityType: "style_master",
+          entityId: style.id,
+          tag,
+        }))
+      );
+    }
+
+    return style;
+  });
+
   logger.info({ id: record.id }, "Style created");
   res.status(201).json(record);
 });
@@ -251,8 +326,58 @@ router.put("/styles/:id", requireAuth, async (req: AuthRequest, res): Promise<vo
 
   const updatedBy = req.user?.email ?? "system";
   const { styleNo: _ignored, ...updateData } = parsed.data;
-  const [record] = await db.update(stylesTable).set({ ...updateData, updatedBy, updatedAt: new Date() })
-    .where(and(eq(stylesTable.id, id), eq(stylesTable.isDeleted, false))).returning();
+  const record = await db.transaction(async (tx) => {
+    const [updated] = await tx
+      .update(stylesTable)
+      .set({
+        ...updateData,
+        updatedBy,
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(stylesTable.id, id),
+          eq(stylesTable.isDeleted, false)
+        )
+      )
+      .returning();
+
+    if (!updated) {
+      return null;
+    }
+
+    // Delete existing tags
+    await tx
+      .delete(entityTagsTable)
+      .where(
+        and(
+          eq(entityTagsTable.entityType, "style_master"),
+          eq(entityTagsTable.entityId, id)
+        )
+      );
+
+    // Insert new tags
+    const tags = [
+      ...new Set(
+        (parsed.data.tags ?? [])
+          .map(tag => tag.trim())
+          .filter(tag => tag.length > 0)
+      ),
+    ];
+
+    if (tags.length > 0) {
+      await tx.insert(entityTagsTable).values(
+        tags.map(tag => ({
+          entityType: "style_master",
+          entityId: id,
+          tag,
+        }))
+      );
+    }
+
+    return updated;
+  });
+
   if (!record) { res.status(404).json({ error: "Style not found" }); return; }
   res.json(record);
 });
@@ -271,9 +396,39 @@ router.delete("/styles/:id", requireAuth, async (req: AuthRequest, res): Promise
   const id = parseInt(String(req.params.id), 10);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid ID" }); return; }
   const updatedBy = req.user?.email ?? "system";
-  const [record] = await db.update(stylesTable).set({ isDeleted: true, updatedBy, updatedAt: new Date(), deletedBy: updatedBy, deletedAt: new Date() })
-    .where(and(eq(stylesTable.id, id), eq(stylesTable.isDeleted, false))).returning();
-  if (!record) { res.status(404).json({ error: "Style not found" }); return; }
+
+  await db.transaction(async (tx) => {
+    const [record] = await tx
+      .update(stylesTable)
+      .set({
+        isDeleted: true,
+        updatedBy,
+        updatedAt: new Date(),
+        deletedBy: updatedBy,
+        deletedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(stylesTable.id, id),
+          eq(stylesTable.isDeleted, false)
+        )
+      )
+      .returning();
+
+    if (!record) {
+      res.status(404).json({ error: "Style not found" });
+      return;
+    }
+
+    await tx
+      .delete(entityTagsTable)
+      .where(
+        and(
+          eq(entityTagsTable.entityType, "style_master"),
+          eq(entityTagsTable.entityId, id)
+        )
+      );
+  });
   res.json({ message: "Style deleted" });
 });
 

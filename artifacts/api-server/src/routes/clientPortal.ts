@@ -1,8 +1,8 @@
 import { Router, type IRouter } from "express";
-// import { eq, and, asc } from "drizzle-orm";
 import {
   db, clientLinksTable, clientMessagesTable, clientFeedbackTable,
-  artworksTable, swatchOrdersTable,eq, and, asc 
+  artworksTable, swatchOrdersTable, styleOrdersTable, styleOrderArtworksTable, eq, and, asc,
+  desc, or, ilike, ne
 } from "@workspace/db";
 
 const SWATCH_REWORK_REVERT_STATUSES = ["Pending Approval", "Completed"];
@@ -12,18 +12,77 @@ const router: IRouter = Router();
 router.get("/client-portal/:token", async (req, res): Promise<void> => {
   const { token } = req.params;
 
-  const [link] = await db.select().from(clientLinksTable).where(eq(clientLinksTable.token, token));
-  if (!link) { res.status(404).json({ error: "Link not found" }); return; }
-  if (!link.isPublished) { res.status(403).json({ error: "This link is not yet published" }); return; }
-  if (!link.swatchOrderId) { res.status(404).json({ error: "No swatch order linked" }); return; }
-
-  const [order] = await db.select().from(swatchOrdersTable).where(eq(swatchOrdersTable.id, link.swatchOrderId));
-  if (!order) { res.status(404).json({ error: "Order not found" }); return; }
-
-  const artworks = await db
+  const [link] = await db
     .select()
-    .from(artworksTable)
-    .where(and(eq(artworksTable.swatchOrderId, link.swatchOrderId), eq(artworksTable.isDeleted, false)));
+    .from(clientLinksTable)
+    .where(eq(clientLinksTable.token, token));
+
+  if (!link) {
+    res.status(404).json({ error: "Link not found" });
+    return;
+  }
+
+  if (!link.isPublished) {
+    res.status(403).json({ error: "This link is not yet published" });
+    return;
+  }
+
+  const isSwatch = !!link.swatchOrderId;
+  const isStyle = !!link.styleOrderId;
+
+  if (!isSwatch && !isStyle) {
+    res.status(404).json({ error: "No order linked" });
+    return;
+  }
+
+  let order: any = null;
+  let artworks: any[] = [];
+
+  if (isSwatch) {
+    const [swatchOrder] = await db
+      .select()
+      .from(swatchOrdersTable)
+      .where(eq(swatchOrdersTable.id, link.swatchOrderId!));
+
+    if (!swatchOrder) {
+      res.status(404).json({ error: "Swatch order not found" });
+      return;
+    }
+
+    order = swatchOrder;
+
+    artworks = await db
+      .select()
+      .from(artworksTable)
+      .where(
+        and(
+          eq(artworksTable.swatchOrderId, link.swatchOrderId!),
+          eq(artworksTable.isDeleted, false)
+        )
+      );
+  } else {
+    const [styleOrder] = await db
+      .select()
+      .from(styleOrdersTable)
+      .where(eq(styleOrdersTable.id, link.styleOrderId!));
+
+    if (!styleOrder) {
+      res.status(404).json({ error: "Style order not found" });
+      return;
+    }
+
+    order = styleOrder;
+
+    artworks = await db
+      .select()
+      .from(styleOrderArtworksTable)
+      .where(
+        and(
+          eq(styleOrderArtworksTable.styleOrderId, link.styleOrderId!),
+          eq(styleOrderArtworksTable.isDeleted, false)
+        )
+      );
+  }
 
   const feedbackRows = await db
     .select()
@@ -31,17 +90,37 @@ router.get("/client-portal/:token", async (req, res): Promise<void> => {
     .where(eq(clientFeedbackTable.clientLinkId, link.id))
     .orderBy(asc(clientFeedbackTable.createdAt));
 
-  const hidden = (link.hiddenImages as Array<{ artworkId: number; imageType: string; imageIndex: number }>) || [];
+  const hidden =
+    (link.hiddenImages as Array<{
+      artworkId: number;
+      imageType: string;
+      imageIndex: number;
+    }>) || [];
+
   const closedThreads = (link.closedThreads as number[]) || [];
 
-  const filteredArtworks = artworks.map(aw => {
-    const wipImages = ((aw.wipImages as Array<unknown>) || []).filter((_img, idx) =>
-      !hidden.some(h => h.artworkId === aw.id && h.imageType === "wip" && h.imageIndex === idx)
+  const filteredArtworks = artworks.map((aw) => {
+    const wipImages = ((aw.wipImages as any[]) || []).filter(
+      (_img, idx) =>
+        !hidden.some(
+          (h) =>
+            h.artworkId === aw.id &&
+            h.imageType === "wip" &&
+            h.imageIndex === idx
+        )
     );
-    const finalImages = ((aw.finalImages as Array<unknown>) || []).filter((_img, idx) =>
-      !hidden.some(h => h.artworkId === aw.id && h.imageType === "final" && h.imageIndex === idx)
+
+    const finalImages = ((aw.finalImages as any[]) || []).filter(
+      (_img, idx) =>
+        !hidden.some(
+          (h) =>
+            h.artworkId === aw.id &&
+            h.imageType === "final" &&
+            h.imageIndex === idx
+        )
     );
-    const awFeedback = feedbackRows.filter(f => f.artworkId === aw.id);
+
+    const awFeedback = feedbackRows.filter((f) => f.artworkId === aw.id);
     const latestFeedback = awFeedback[awFeedback.length - 1] ?? null;
     return {
       id: aw.id,
@@ -63,26 +142,19 @@ router.get("/client-portal/:token", async (req, res): Promise<void> => {
 
   res.json({
     data: {
-      link: { id: link.id, token: link.token, portalTitle: link.portalTitle },
-      order: {
-        id: order.id,
-        orderCode: order.orderCode,
-        swatchName: order.swatchName,
-        clientName: order.clientName,
-        description: order.description,
-        quantity: order.quantity,
-        fabricName: order.fabricName,
-        deliveryDate: order.deliveryDate,
-        orderStatus: order.orderStatus,
-        priority: order.priority,
-        isChargeable: order.isChargeable,
-        department: order.department,
+      link: {
+        id: link.id,
+        token: link.token,
+        portalTitle: link.portalTitle,
+        orderType: isSwatch ? "swatch" : "style",
       },
+      order,
       artworks: filteredArtworks,
       messages,
     },
   });
 });
+
 
 router.post("/client-portal/:token/message", async (req, res): Promise<void> => {
   const { token } = req.params;
@@ -174,6 +246,118 @@ router.post("/client-portal/:token/feedback", async (req, res): Promise<void> =>
   }
 
   res.status(201).json({ data: created });
+});
+
+router.get("/client-portal/:token/reference-orders", async (req, res): Promise<void> => {
+  try {
+    const { token } = req.params;
+    const search = String(req.query.search ?? "").trim();
+    const type = String(req.query.type ?? "swatch").toLowerCase();
+
+    if (!["swatch", "style"].includes(type)) {
+      res.status(400).json({ error: "Invalid type" });
+      return;
+    }
+
+    const [link] = await db
+      .select()
+      .from(clientLinksTable)
+      .where(eq(clientLinksTable.token, token));
+
+    if (!link) {
+      res.status(404).json({ error: "Link not found" });
+      return;
+    }
+
+    if (!link.isPublished) {
+      res.status(403).json({ error: "This link is not yet published" });
+      return;
+    }
+
+    if (!link.clientId) {
+      res.json({ data: [] });
+      return;
+    }
+
+    if (type === "swatch") {
+      const conditions = [
+        eq(clientLinksTable.clientId, link.clientId),
+        eq(clientLinksTable.isPublished, true),
+        eq(clientLinksTable.isDeleted, false),
+        ne(clientLinksTable.id, link.id),
+      ];
+
+      if (search) {
+        conditions.push(
+          or(
+            ilike(swatchOrdersTable.orderCode, `%${search}%`),
+            ilike(swatchOrdersTable.swatchName, `%${search}%`)
+          )!
+        );
+      }
+
+      const orders = await db
+        .select({
+          id: swatchOrdersTable.id,
+          orderCode: swatchOrdersTable.orderCode,
+          orderName: swatchOrdersTable.swatchName,
+          token: clientLinksTable.token,
+          portalTitle: clientLinksTable.portalTitle,
+        })
+        .from(clientLinksTable)
+        .innerJoin(
+          swatchOrdersTable,
+          eq(clientLinksTable.swatchOrderId, swatchOrdersTable.id)
+        )
+        .where(and(...conditions))
+        .orderBy(desc(swatchOrdersTable.createdAt))
+        .limit(10);
+
+      res.json({ data: orders });
+      return;
+    }
+
+    // Style Orders
+    const conditions = [
+      eq(clientLinksTable.clientId, link.clientId),
+      eq(clientLinksTable.isPublished, true),
+      eq(clientLinksTable.isDeleted, false),
+      ne(clientLinksTable.id, link.id),
+    ];
+
+    if (search) {
+      conditions.push(
+        or(
+          ilike(styleOrdersTable.orderCode, `%${search}%`),
+          ilike(styleOrdersTable.styleName, `%${search}%`)
+        )!
+      );
+    }
+
+    const orders = await db
+      .select({
+        id: styleOrdersTable.id,
+        orderCode: styleOrdersTable.orderCode,
+        orderName: styleOrdersTable.styleName,
+        token: clientLinksTable.token,
+        portalTitle: clientLinksTable.portalTitle,
+      })
+      .from(clientLinksTable)
+      .innerJoin(
+        styleOrdersTable,
+        eq(clientLinksTable.styleOrderId, styleOrdersTable.id)
+      )
+      .where(and(...conditions))
+      .orderBy(desc(styleOrdersTable.createdAt))
+      .limit(10);
+
+    res.json({ data: orders });
+  } catch (err: any) {
+    console.error(err);
+    res.status(500).json({
+      error: err.message ?? "Internal Server Error",
+    });
+  }
 });
 
 export default router;

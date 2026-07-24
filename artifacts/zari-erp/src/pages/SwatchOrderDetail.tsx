@@ -28,6 +28,7 @@ import CostSheetTab from "@/pages/CostSheetTab";
 import ShippingTab from "@/pages/ShippingTab";
 import LinkedInvoicesPanel from "@/components/LinkedInvoicesPanel";
 import { useCurrency } from "@/contexts/CurrencyContext";
+import TagInput from "@/components/ui/TagInput";
 
 const PRIORITIES = ["Low", "Medium", "High", "Urgent"];
 const ORDER_STATUSES = ["Draft", "Issued", "In Sampling", "In Artwork", "Pending Approval", "Completed", "Rejected"];
@@ -85,6 +86,7 @@ type FormState = {
   clientName: string;
   isChargeable: boolean;
   isInhouse: boolean;
+  tags: string[];
   quantity: string;
   priority: string;
   orderStatus: string;
@@ -124,7 +126,7 @@ type FormState = {
 };
 
 const EMPTY_FORM: FormState = {
-  swatchName: "", clientId: "", clientName: "", isChargeable: false, isInhouse: false,
+  swatchName: "", clientId: "", clientName: "", tags:[], isChargeable: false, isInhouse: false,
   quantity: "", priority: "Medium", orderStatus: "Draft",
   styleReferences: [], swatchReferences: [],
   fabricId: "", fabricName: "", hasLining: false, liningFabricId: "", liningFabricName: "",
@@ -159,9 +161,9 @@ function SectionCard({ icon, title, subtitle, accentColor, children }: {
   );
 }
 
-function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
+function Field({ label, hint, children, className = "" }: { label: string; hint?: string; children: React.ReactNode; className?: string; }) {
   return (
-    <div>
+    <div className={className}>
       <label className="flex items-center gap-1 text-xs font-medium text-gray-600 mb-1.5">
         {label}
         {hint && (
@@ -394,6 +396,7 @@ export default function SwatchOrderDetail() {
       const o = orderData.data;
       const loaded: FormState = {
         swatchName: o.swatchName ?? "", clientId: o.clientId ?? "", clientName: o.clientName ?? "",
+        tags: o.tags ?? [],
         isChargeable: o.isChargeable, isInhouse: o.isInhouse ?? false, quantity: o.quantity ?? "", priority: o.priority,
         orderStatus: o.orderStatus, styleReferences: o.styleReferences ?? [], swatchReferences: o.swatchReferences ?? [],
         fabricId: o.fabricId ?? "", fabricName: o.fabricName ?? "", hasLining: o.hasLining,
@@ -743,6 +746,14 @@ export default function SwatchOrderDetail() {
                   </div>
                 </div>
               )} */}
+              
+              <Field label="Tags" className="col-span-2">
+                <TagInput
+                  value={form.tags}
+                  onChange={tags => set("tags", tags)}
+                  placeholder="Add a tag..."
+                />
+              </Field>
 
               <Field label="Quantity">
                 <input className={inputCls} type="number" min="0" placeholder="e.g. 10"
