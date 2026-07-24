@@ -655,6 +655,7 @@ export interface PoPdfLineItem {
   unitType: string;
   quantity: string;
   targetPrice: string;
+  averagePrice?: string;
   targetVendorName?: string | null;
 }
 
@@ -791,22 +792,24 @@ export function downloadCostingPoPdf(data: PoPdfData) {
     const SQ = 34;
     autoTable(doc, {
       startY: y,
-      head: [["Code", "Material / Fabric", "Qty & Unit", "Preferred Vendor", "Sample"]],
+      head: [["Code", "Material / Fabric", "Qty & Unit", "Avg Price", "Preferred Vendor", "Sample"]],
       body: po.items.length > 0
         ? po.items.map(i => {
             const qty = parseFloat(i.quantity) || 0;
             const qtyUnit = qty > 0
               ? `${qty.toFixed(3)}${i.unitType ? ` ${i.unitType}` : ""}`
               : "—";
+            const avgPrice = i.averagePrice ? parseFloat(i.averagePrice).toFixed(2) : "—";
             return [
               i.materialCode || "—",
               i.materialName || "—",
               qtyUnit,
+              avgPrice,
               i.targetVendorName || po.vendorName || "—",
               "",
             ];
           })
-        : [["—", "No line items", "—", "—", ""]],
+        : [["—", "No line items", "—", "—", "—", ""]],
       styles: {
         fontSize: 8.5,
         cellPadding: { top: 4, right: 4, bottom: 4, left: 4 },
@@ -827,11 +830,12 @@ export function downloadCostingPoPdf(data: PoPdfData) {
         valign: "middle",
       },
       columnStyles: {
-        0: { cellWidth: 22 },
-        1: { cellWidth: 60 },
-        2: { cellWidth: 28, halign: "center" },
-        3: { cellWidth: 38 },
-        4: { cellWidth: SQ, halign: "center" },
+        0: { cellWidth: 18 },
+        1: { cellWidth: 46 },
+        2: { cellWidth: 24, halign: "center" },
+        3: { cellWidth: 24, halign: "center" },
+        4: { cellWidth: 34 },
+        5: { cellWidth: SQ, halign: "center" },
       },
       alternateRowStyles: { fillColor: [252, 249, 242] },
       margin: { left: 14, right: 14 },
