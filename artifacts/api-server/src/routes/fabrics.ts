@@ -7,6 +7,7 @@ import { logger } from "../lib/logger";
 import { ensureInventoryRecord, updateInventoryImages, updateInventoryStockLevels } from "../services/inventoryService";
 import { persistImageArray } from "../utils/uploadHelper";
 import type { Request } from "express";
+import { buildMasterLocationStockData } from "../utils/masters/locationStock";
 
 const router: IRouter = Router();
 type AuthRequest = Request & { user?: { userId: number; email: string; role: string } };
@@ -193,22 +194,25 @@ router.post("/fabrics", requireAuth, async (req: AuthRequest, res): Promise<void
   const [{ total }] = await db.select({ total: count() }).from(fabricsTable);
   const fabricCode = `FAB${String(total + 1).padStart(4, "0")}`;
 
-  const ls = parsed.data.locationStocks ?? [];
-  if (ls.length === 0) {
-    ls.push({
-      location: "Unallocated",
-      stock: parsed.data.currentStock,
-    });
-  }
+
+  const {
+      locationStocks,
+      currentStock,
+      warehouseLocation,
+    } = buildMasterLocationStockData(
+      parsed.data.locationStocks ?? [],
+      parsed.data.currentStock
+    );
+
   
   const images = await persistImageArray(parsed.data.images, { entity: "fabrics", category: "images" });
-  const [record] = await db.insert(fabricsTable).values({ ...parsed.data, images, fabricCode, createdBy }).returning();
+  const [record] = await db.insert(fabricsTable).values({ ...parsed.data, locationStocks, currentStock, images, fabricCode, createdBy }).returning();
   logger.info({ id: record.id, fabricCode }, "Fabric created");
   ensureInventoryRecord("fabric", record.id, {
     itemName: [record.fabricType, record.quality, record.colorName].filter(Boolean).join(" - "),
     itemCode: record.fabricCode,
     category: record.fabricType,
-    warehouseLocation: record.location ?? undefined,
+    warehouseLocation: warehouseLocation ?? undefined,
     unitType: record.unitType,
     averagePrice: record.pricePerMeter,
     preferredVendor: record.vendor ?? undefined,
@@ -242,6 +246,15 @@ router.put("/fabrics/:id", requireAuth, async (req: AuthRequest, res): Promise<v
     if (dupFabric.length > 0) { res.status(409).json({ error: `A fabric with the same Type "${parsed.data.fabricType}", Quality "${parsed.data.quality}", and Color "${parsed.data.colorName}" already exists.` }); return; }
   }
 
+  const {
+    locationStocks,
+    currentStock,
+    warehouseLocation,
+  } = buildMasterLocationStockData(
+    parsed.data.locationStocks ?? [],
+    parsed.data.currentStock
+  );
+
   const updatedBy = req.user?.email ?? "system";
   const { images: rawImages, ...rest } = parsed.data;
   const images = rawImages !== undefined
@@ -249,7 +262,7 @@ router.put("/fabrics/:id", requireAuth, async (req: AuthRequest, res): Promise<v
     : undefined;
   const [record] = await db
     .update(fabricsTable)
-    .set({ ...rest, ...(images !== undefined ? { images } : {}), updatedBy, updatedAt: new Date() })
+    .set({ ...rest, locationStocks, currentStock, ...(images !== undefined ? { images } : {}), updatedBy, updatedAt: new Date() })
     .where(and(eq(fabricsTable.id, id), eq(fabricsTable.isDeleted, false)))
     .returning();
 
@@ -258,9 +271,21 @@ router.put("/fabrics/:id", requireAuth, async (req: AuthRequest, res): Promise<v
   if (parsed.data.images !== undefined) {
     updateInventoryImages("fabric", record.id, (record.images as { id: string; name: string; url: string; size: number }[]) ?? []);
   }
-  if (parsed.data.reorderLevel !== undefined || parsed.data.minimumLevel !== undefined || parsed.data.maximumLevel !== undefined) {
-    updateInventoryStockLevels("fabric", record.id, parsed.data.reorderLevel, parsed.data.minimumLevel, parsed.data.maximumLevel);
-  }
+
+  updateInventoryStockLevels("fabric", record.id, {
+    itemName: [record.fabricType, record.quality, record.colorName].filter(Boolean).join(" - "),
+    itemCode: record.fabricCode,
+    category: record.fabricType,
+    warehouseLocation: warehouseLocation ?? undefined,
+    unitType: record.unitType,
+    averagePrice: record.pricePerMeter,
+    preferredVendor: record.vendor ?? undefined,
+    images: (record.images as { id: string; name: string; url: string; size: number }[]) ?? [],
+    currentStock: record.currentStock,
+    reorderLevel: record.reorderLevel,
+    minimumLevel: record.minimumLevel,
+    maximumLevel: record.maximumLevel,
+  });
   res.json(record);
 });
 
