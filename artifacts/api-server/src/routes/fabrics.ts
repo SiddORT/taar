@@ -4,7 +4,7 @@ import { db, fabricsTable , eq, ilike, or, and, desc, count, asc, ne} from "@wor
 import { insertFabricSchema, updateFabricSchema } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
 import { logger } from "../lib/logger";
-import { ensureInventoryRecord, updateInventoryImages, updateInventoryStockLevels } from "../services/inventoryService";
+import { ensureInventoryRecord, updateInventoryImages, updateInventoryStockLevels, softDeleteInventoryItem } from "../services/inventoryService";
 import { persistImageArray } from "../utils/uploadHelper";
 import type { Request } from "express";
 import { buildMasterLocationStockData } from "../utils/masters/locationStock";
@@ -320,6 +320,14 @@ router.delete("/fabrics/:id", requireAuth, async (req: AuthRequest, res): Promis
 
   if (!record) { res.status(404).json({ error: "Fabric not found" }); return; }
   logger.info({ id: record.id }, "Fabric soft-deleted");
+
+  // Delete Inventory Item Record as well to maintain data sync
+  await softDeleteInventoryItem(
+    "fabric",
+    record.id,
+    updatedBy
+  );
+
   res.json({ message: "Fabric deleted", record });
 });
 

@@ -4,7 +4,7 @@ import { db, materialsTable , insertMaterialSchema, updateMaterialSchema,  eq, i
 // import { insertMaterialSchema, updateMaterialSchema } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
 import { logger } from "../lib/logger";
-import { ensureInventoryRecord, updateInventoryImages, updateInventoryStockLevels } from "../services/inventoryService";
+import { ensureInventoryRecord, updateInventoryImages, updateInventoryStockLevels, softDeleteInventoryItem } from "../services/inventoryService";
 import { persistImageArray } from "../utils/uploadHelper";
 import type { Request } from "express";
 import * as XLSX from "xlsx";
@@ -351,6 +351,12 @@ router.delete("/materials/:id", requireAuth, async (req: AuthRequest, res): Prom
 
   if (!record) { res.status(404).json({ error: "Material not found" }); return; }
   logger.info({ id: record.id }, "Material soft-deleted");
+  // Delete Inventory Item Record as well to maintain data sync
+  await softDeleteInventoryItem(
+    "material",
+    record.id,
+    updatedBy
+  );
   res.json({ message: "Material deleted", record });
 });
 

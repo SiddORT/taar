@@ -175,7 +175,6 @@ export async function updateInventoryStockLevels(
         reorder_level = COALESCE(NULLIF($13, '')::numeric, reorder_level),
         maximum_level = COALESCE(NULLIF($14, '')::numeric, maximum_level),
         preferred_vendor = COALESCE($15, preferred_vendor),
-        images = COALESCE($16, images),
         last_updated_at = NOW()
     WHERE source_type = $1
       AND source_id = $2;
@@ -196,7 +195,6 @@ export async function updateInventoryStockLevels(
         data.reorderLevel ?? "",        // $13
         data.maximumLevel ?? "",        // $14
         data.preferredVendor ?? null,   // $15
-        data.images ?? null,            // $16
       ]
     );
   } catch (err) {
@@ -329,6 +327,33 @@ export async function syncAllFromMasters(): Promise<{ synced: number; updated: n
     return { synced: newCount, updated: updCount };
   } catch (err) {
     console.error("[InventoryService] Sync failed:", err);
+    throw err;
+  }
+}
+
+// SoftDelte the inventory Item as well in ort to be sync with the master of material and fabric
+export async function softDeleteInventoryItem(
+  sourceType: InventorySourceType,
+  sourceId: number,
+  deletedBy: string
+): Promise<void> {
+  try {
+    await pool.query(
+      `
+      UPDATE inventory_items
+      SET
+        is_deleted = TRUE,
+        deleted_by = $3,
+        deleted_at = NOW(),
+        last_updated_at = NOW()
+      WHERE source_type = $1
+        AND source_id = $2
+        AND is_deleted = FALSE
+      `,
+      [sourceType, sourceId, deletedBy]
+    );
+  } catch (err) {
+    console.error("[InventoryService] Failed to delete inventory item:", err);
     throw err;
   }
 }
