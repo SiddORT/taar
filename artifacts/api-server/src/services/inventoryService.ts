@@ -159,8 +159,8 @@ export async function updateInventoryStockLevels(
   try {
     await pool.query(
       `
-      UPDATE inventory_items
-      SET
+    UPDATE inventory_items
+    SET
         item_name = COALESCE($3, item_name),
         item_code = COALESCE($4, item_code),
         category = COALESCE($5, category),
@@ -168,36 +168,35 @@ export async function updateInventoryStockLevels(
         warehouse_location = COALESCE($7, warehouse_location),
         unit_type = COALESCE($8, unit_type),
         current_stock = COALESCE($9, current_stock),
-        available_stock = COALESCE($10, available_stock),
-        average_price = COALESCE($11, average_price),
-        last_purchase_price = COALESCE($12, last_purchase_price),
-        minimum_level = COALESCE(NULLIF($13, '')::numeric, minimum_level),
-        reorder_level = COALESCE(NULLIF($14, '')::numeric, reorder_level),
-        maximum_level = COALESCE(NULLIF($15, '')::numeric, maximum_level),
-        preferred_vendor = COALESCE($16, preferred_vendor),
-        images = COALESCE($17, images),
+        available_stock = available_stock + COALESCE($9::numeric, 0),
+        average_price = COALESCE($10, average_price),
+        last_purchase_price = COALESCE($11, last_purchase_price),
+        minimum_level = COALESCE(NULLIF($12, '')::numeric, minimum_level),
+        reorder_level = COALESCE(NULLIF($13, '')::numeric, reorder_level),
+        maximum_level = COALESCE(NULLIF($14, '')::numeric, maximum_level),
+        preferred_vendor = COALESCE($15, preferred_vendor),
+        images = COALESCE($16, images),
         last_updated_at = NOW()
-      WHERE source_type = $1
-        AND source_id = $2
+    WHERE source_type = $1
+      AND source_id = $2;
       `,
       [
-        sourceType,
-        sourceId,
-        data.itemName ?? null,
-        data.itemCode ?? null,
-        data.category ?? null,
-        data.department ?? null,
-        data.warehouseLocation ?? null,
-        data.unitType ?? null,
-        data.currentStock ?? null,
-        data.availableStock ?? null,
-        data.averagePrice ?? null,
-        data.lastPurchasePrice ?? null,
-        data.minimumLevel ?? "",
-        data.reorderLevel ?? "",
-        data.maximumLevel ?? "",
-        data.preferredVendor ?? null,
-        data.images ?? null,
+        sourceType,              // $1
+        sourceId,                // $2
+        data.itemName ?? null,   // $3
+        data.itemCode ?? null,   // $4
+        data.category ?? null,   // $5
+        data.department ?? null, // $6
+        data.warehouseLocation ?? null, // $7
+        data.unitType ?? null,   // $8
+        data.currentStock ?? null, // $9
+        data.averagePrice ?? null,      // $10
+        data.lastPurchasePrice ?? null, // $11
+        data.minimumLevel ?? "",        // $12
+        data.reorderLevel ?? "",        // $13
+        data.maximumLevel ?? "",        // $14
+        data.preferredVendor ?? null,   // $15
+        data.images ?? null,            // $16
       ]
     );
   } catch (err) {
