@@ -18,6 +18,23 @@ export interface InventoryAutoCreateData {
   maximumLevel?: string | number | null;
 }
 
+export interface InventoryAutoUpdateData {
+  itemName?: string | null;
+  itemCode?: string | null;
+  category?: string | null;
+  department?: string | null;
+  warehouseLocation?: string | null;
+  unitType?: string | null;
+  currentStock?: string | number | null;
+  availableStock?: number | null;
+  averagePrice?: string | number | null;
+  lastPurchasePrice?: number | null;
+  minimumLevel?: string | null;
+  reorderLevel?: string | null;
+  maximumLevel?: string | null;
+  preferredVendor?: string | null;
+  images?: { id: string; name: string; url: string; size: number }[] | null;
+}
 export async function ensureInventoryRecord(
   sourceType: InventorySourceType,
   sourceId: number,
@@ -137,28 +154,55 @@ export async function appendImageToInventoryAndMaster(
 export async function updateInventoryStockLevels(
   sourceType: InventorySourceType,
   sourceId: number,
-  reorderLevel?: string | null,
-  minimumLevel?: string | null,
-  maximumLevel?: string | null
+  data: InventoryAutoUpdateData
 ): Promise<void> {
   try {
     await pool.query(
-      `UPDATE inventory_items
-       SET reorder_level  = COALESCE(NULLIF($3,'')::numeric, reorder_level),
-           minimum_level  = COALESCE(NULLIF($4,'')::numeric, minimum_level),
-           maximum_level  = COALESCE(NULLIF($5,'')::numeric, maximum_level),
-           last_updated_at = NOW()
-       WHERE source_type = $1 AND source_id = $2`,
+      `
+      UPDATE inventory_items
+      SET
+        item_name = COALESCE($3, item_name),
+        item_code = COALESCE($4, item_code),
+        category = COALESCE($5, category),
+        department = COALESCE($6, department),
+        warehouse_location = COALESCE($7, warehouse_location),
+        unit_type = COALESCE($8, unit_type),
+        current_stock = COALESCE($9, current_stock),
+        available_stock = COALESCE($10, available_stock),
+        average_price = COALESCE($11, average_price),
+        last_purchase_price = COALESCE($12, last_purchase_price),
+        minimum_level = COALESCE(NULLIF($13, '')::numeric, minimum_level),
+        reorder_level = COALESCE(NULLIF($14, '')::numeric, reorder_level),
+        maximum_level = COALESCE(NULLIF($15, '')::numeric, maximum_level),
+        preferred_vendor = COALESCE($16, preferred_vendor),
+        images = COALESCE($17, images),
+        last_updated_at = NOW()
+      WHERE source_type = $1
+        AND source_id = $2
+      `,
       [
         sourceType,
         sourceId,
-        reorderLevel ?? "",
-        minimumLevel ?? "",
-        maximumLevel ?? "",
+        data.itemName ?? null,
+        data.itemCode ?? null,
+        data.category ?? null,
+        data.department ?? null,
+        data.warehouseLocation ?? null,
+        data.unitType ?? null,
+        data.currentStock ?? null,
+        data.availableStock ?? null,
+        data.averagePrice ?? null,
+        data.lastPurchasePrice ?? null,
+        data.minimumLevel ?? "",
+        data.reorderLevel ?? "",
+        data.maximumLevel ?? "",
+        data.preferredVendor ?? null,
+        data.images ?? null,
       ]
     );
   } catch (err) {
-    console.error("[InventoryService] Failed to update stock levels:", err);
+    console.error("[InventoryService] Failed to update inventory item:", err);
+    throw err;
   }
 }
 

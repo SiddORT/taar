@@ -8,6 +8,7 @@ import { ensureInventoryRecord, updateInventoryImages, updateInventoryStockLevel
 import { persistImageArray } from "../utils/uploadHelper";
 import type { Request } from "express";
 import * as XLSX from "xlsx";
+import { buildMasterLocationStockData } from "../utils/masters/locationStock";
 
 const router: IRouter = Router();
 type AuthRequest = Request & { user?: { userId: number; email: string; role: string } };
@@ -215,20 +216,19 @@ router.post("/materials", requireAuth, async (req: AuthRequest, res): Promise<vo
   const [{ total }] = await db.select({ total: count() }).from(materialsTable);
   const materialCode = `MAT${String(total + 1).padStart(4, "0")}`;
 
-  const ls = parsed.data.locationStocks ?? [];
-  if (ls.length === 0) {
-    ls.push({
-      location: "Unallocated",
-      stock: parsed.data.currentStock,
-    });
-  }
-
-  const totalStock = ls.reduce((sum, s) => sum + (parseFloat(s.stock) || 0), 0);
-  const currentStock = ls.length > 0 ? String(totalStock) : parsed.data.currentStock;
+  const {
+    locationStocks,
+    currentStock,
+    warehouseLocation,
+  } = buildMasterLocationStockData(
+    parsed.data.locationStocks ?? [],
+    parsed.data.currentStock
+  );
 
   const images = await persistImageArray(parsed.data.images, { entity: "materials", category: "images" });
   const [record] = await db.insert(materialsTable).values({
     ...parsed.data,
+    locationStocks,
     images,
     materialCode,
     currentStock,
@@ -240,7 +240,7 @@ router.post("/materials", requireAuth, async (req: AuthRequest, res): Promise<vo
     itemName: record.materialName || [record.type, record.quality, record.colorName].filter(Boolean).join(" - "),
     itemCode: record.materialCode,
     category: record.type,
-    warehouseLocation: record.location ?? undefined,
+    warehouseLocation: warehouseLocation ?? undefined,
     unitType: record.unitType,
     averagePrice: record.unitPrice,
     preferredVendor: record.vendor ?? undefined,
@@ -278,12 +278,14 @@ router.put("/materials/:id", requireAuth, async (req: AuthRequest, res): Promise
 
   const updatedBy = req.user?.email ?? "system";
 
-  const ls = parsed.data.locationStocks;
-  let currentStock = parsed.data.currentStock;
-  if (ls && ls.length > 0) {
-    const total = ls.reduce((sum, s) => sum + (parseFloat(s.stock) || 0), 0);
-    currentStock = String(total);
-  }
+  const {
+      locationStocks,
+      currentStock,
+      warehouseLocation,
+    } = buildMasterLocationStockData(
+      parsed.data.locationStocks ?? [],
+      parsed.data.currentStock
+    );
 
   const { images: rawImages, ...rest } = parsed.data;
   const images = rawImages !== undefined
@@ -291,7 +293,7 @@ router.put("/materials/:id", requireAuth, async (req: AuthRequest, res): Promise
     : undefined;
   const [record] = await db
     .update(materialsTable)
-    .set({ ...rest, ...(images !== undefined ? { images } : {}), currentStock, updatedBy, updatedAt: new Date() })
+    .set({ ...rest, locationStocks, ...(images !== undefined ? { images } : {}), currentStock, updatedBy, updatedAt: new Date() })
     .where(and(eq(materialsTable.id, id), eq(materialsTable.isDeleted, false)))
     .returning();
 
@@ -300,9 +302,21 @@ router.put("/materials/:id", requireAuth, async (req: AuthRequest, res): Promise
   if (parsed.data.images !== undefined) {
     updateInventoryImages("material", record.id, (record.images as { id: string; name: string; url: string; size: number }[]) ?? []);
   }
-  if (parsed.data.reorderLevel !== undefined || parsed.data.minimumLevel !== undefined || parsed.data.maximumLevel !== undefined) {
-    updateInventoryStockLevels("material", record.id, parsed.data.reorderLevel, parsed.data.minimumLevel, parsed.data.maximumLevel);
-  }
+
+  updateInventoryStockLevels("material", record.id, {
+    itemName: record.materialName || [record.type, record.quality, record.colorName].filter(Boolean).join(" - "),
+    itemCode: record.materialCode,
+    category: record.type,
+    warehouseLocation: warehouseLocation ?? undefined,
+    unitType: record.unitType,
+    averagePrice: record.unitPrice,
+    preferredVendor: record.vendor ?? undefined,
+    images: (record.images as { id: string; name: string; url: string; size: number }[]) ?? [],
+    currentStock: record.currentStock,
+    reorderLevel: record.reorderLevel,
+    minimumLevel: record.minimumLevel,
+    maximumLevel: record.maximumLevel,
+  });
   res.json(record);
 });
 
