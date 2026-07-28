@@ -1,4 +1,5 @@
 import { pool } from "@workspace/db";
+import { eq, and, inventoryItemsTable } from "@workspace/db";
 
 export type InventorySourceType = "fabric" | "material" | "packaging";
 
@@ -333,27 +334,24 @@ export async function syncAllFromMasters(): Promise<{ synced: number; updated: n
 
 // SoftDelte the inventory Item as well in ort to be sync with the master of material and fabric
 export async function softDeleteInventoryItem(
+  tx: any,
   sourceType: InventorySourceType,
   sourceId: number,
   deletedBy: string
 ): Promise<void> {
-  try {
-    await pool.query(
-      `
-      UPDATE inventory_items
-      SET
-        is_deleted = TRUE,
-        deleted_by = $3,
-        deleted_at = NOW(),
-        last_updated_at = NOW()
-      WHERE source_type = $1
-        AND source_id = $2
-        AND is_deleted = FALSE
-      `,
-      [sourceType, sourceId, deletedBy]
+  await tx
+    .update(inventoryItemsTable)
+    .set({
+      isDeleted: true,
+      deletedBy,
+      deletedAt: new Date(),
+      lastUpdatedAt: new Date(),
+    })
+    .where(
+      and(
+        eq(inventoryItemsTable.sourceType, sourceType),
+        eq(inventoryItemsTable.sourceId, sourceId),
+        eq(inventoryItemsTable.isDeleted, false)
+      )
     );
-  } catch (err) {
-    console.error("[InventoryService] Failed to delete inventory item:", err);
-    throw err;
-  }
 }

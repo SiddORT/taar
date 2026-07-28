@@ -309,26 +309,65 @@ router.patch("/fabrics/:id/status", requireAuth, async (req: AuthRequest, res): 
 
 router.delete("/fabrics/:id", requireAuth, async (req: AuthRequest, res): Promise<void> => {
   const id = parseInt(String(req.params.id), 10);
-  if (isNaN(id)) { res.status(400).json({ error: "Invalid ID" }); return; }
+
+  if (isNaN(id)) {
+    res.status(400).json({ error: "Invalid ID" });
+    return;
+  }
 
   const updatedBy = req.user?.email ?? "system";
-  const [record] = await db
-    .update(fabricsTable)
-    .set({ isDeleted: true, updatedBy, updatedAt: new Date(), deletedBy: updatedBy, deletedAt: new Date() })
-    .where(and(eq(fabricsTable.id, id), eq(fabricsTable.isDeleted, false)))
-    .returning();
 
-  if (!record) { res.status(404).json({ error: "Fabric not found" }); return; }
-  logger.info({ id: record.id }, "Fabric soft-deleted");
+  try {
+    const record = await db.transaction(async (tx) => {
+      const [fabric] = await tx
+        .update(fabricsTable)
+        .set({
+          isDeleted: true,
+          updatedBy,
+          updatedAt: new Date(),
+          deletedBy: updatedBy,
+          deletedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(fabricsTable.id, id),
+            eq(fabricsTable.isDeleted, false)
+          )
+        )
+        .returning();
 
-  // Delete Inventory Item Record as well to maintain data sync
-  await softDeleteInventoryItem(
-    "fabric",
-    record.id,
-    updatedBy
-  );
+      if (!fabric) {
+        throw new Error("FABRIC_NOT_FOUND");
+      }
 
-  res.json({ message: "Fabric deleted", record });
+      await softDeleteInventoryItem(
+        tx,
+        "fabric",
+        fabric.id,
+        updatedBy
+      );
+
+      return fabric;
+    });
+
+    logger.info({ id: record.id }, "Fabric soft-deleted");
+
+    res.json({
+      message: "Fabric deleted",
+      record,
+    });
+  } catch (err: any) {
+    if (err.message === "FABRIC_NOT_FOUND") {
+      res.status(404).json({ error: "Fabric not found" });
+      return;
+    }
+
+    logger.error(err, "Failed to delete fabric");
+
+    res.status(500).json({
+      error: "Failed to delete fabric",
+    });
+  }
 });
 
 export default router;

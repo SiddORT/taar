@@ -340,24 +340,66 @@ router.patch("/materials/:id/status", requireAuth, async (req: AuthRequest, res)
 
 router.delete("/materials/:id", requireAuth, async (req: AuthRequest, res): Promise<void> => {
   const id = parseInt(String(req.params.id), 10);
-  if (isNaN(id)) { res.status(400).json({ error: "Invalid ID" }); return; }
+
+  if (isNaN(id)) {
+    res.status(400).json({ error: "Invalid ID" });
+    return;
+  }
 
   const updatedBy = req.user?.email ?? "system";
-  const [record] = await db
-    .update(materialsTable)
-    .set({ isDeleted: true, updatedBy, updatedAt: new Date(), deletedBy: updatedBy, deletedAt: new Date() })
-    .where(and(eq(materialsTable.id, id), eq(materialsTable.isDeleted, false)))
-    .returning();
 
-  if (!record) { res.status(404).json({ error: "Material not found" }); return; }
-  logger.info({ id: record.id }, "Material soft-deleted");
-  // Delete Inventory Item Record as well to maintain data sync
-  await softDeleteInventoryItem(
-    "material",
-    record.id,
-    updatedBy
-  );
-  res.json({ message: "Material deleted", record });
+  try {
+    const record = await db.transaction(async (tx) => {
+      const [material] = await tx
+        .update(materialsTable)
+        .set({
+          isDeleted: true,
+          updatedBy,
+          updatedAt: new Date(),
+          deletedBy: updatedBy,
+          deletedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(materialsTable.id, id),
+            eq(materialsTable.isDeleted, false)
+          )
+        )
+        .returning();
+
+      if (!material) {
+        throw new Error("MATERIAL_NOT_FOUND");
+      }
+
+      // Delete Inventory Item Record as well to maintain data sync
+      await softDeleteInventoryItem(
+        tx,
+        "material",
+        material.id,
+        updatedBy
+      );
+
+      return material;
+    });
+
+    logger.info({ id: record.id }, "Material soft-deleted");
+
+    res.json({
+      message: "Material deleted",
+      record,
+    });
+  } catch (err: any) {
+    if (err.message === "MATERIAL_NOT_FOUND") {
+      res.status(404).json({ error: "Material not found" });
+      return;
+    }
+
+    logger.error(err, "Failed to delete material");
+
+    res.status(500).json({
+      error: "Failed to delete material",
+    });
+  }
 });
 
 export default router;
