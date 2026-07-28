@@ -1,4 +1,5 @@
 import { pool } from "@workspace/db";
+import { eq, and, inventoryItemsTable } from "@workspace/db";
 
 export type InventorySourceType = "fabric" | "material" | "packaging";
 
@@ -18,6 +19,23 @@ export interface InventoryAutoCreateData {
   maximumLevel?: string | number | null;
 }
 
+export interface InventoryAutoUpdateData {
+  itemName?: string | null;
+  itemCode?: string | null;
+  category?: string | null;
+  department?: string | null;
+  warehouseLocation?: string | null;
+  unitType?: string | null;
+  currentStock?: string | number | null;
+  availableStock?: number | null;
+  averagePrice?: string | number | null;
+  lastPurchasePrice?: number | null;
+  minimumLevel?: string | null;
+  reorderLevel?: string | null;
+  maximumLevel?: string | null;
+  preferredVendor?: string | null;
+  images?: { id: string; name: string; url: string; size: number }[] | null;
+}
 export async function ensureInventoryRecord(
   sourceType: InventorySourceType,
   sourceId: number,
@@ -137,28 +155,52 @@ export async function appendImageToInventoryAndMaster(
 export async function updateInventoryStockLevels(
   sourceType: InventorySourceType,
   sourceId: number,
-  reorderLevel?: string | null,
-  minimumLevel?: string | null,
-  maximumLevel?: string | null
+  data: InventoryAutoUpdateData
 ): Promise<void> {
   try {
     await pool.query(
-      `UPDATE inventory_items
-       SET reorder_level  = COALESCE(NULLIF($3,'')::numeric, reorder_level),
-           minimum_level  = COALESCE(NULLIF($4,'')::numeric, minimum_level),
-           maximum_level  = COALESCE(NULLIF($5,'')::numeric, maximum_level),
-           last_updated_at = NOW()
-       WHERE source_type = $1 AND source_id = $2`,
+      `
+    UPDATE inventory_items
+    SET
+        item_name = COALESCE($3, item_name),
+        item_code = COALESCE($4, item_code),
+        category = COALESCE($5, category),
+        department = COALESCE($6, department),
+        warehouse_location = COALESCE($7, warehouse_location),
+        unit_type = COALESCE($8, unit_type),
+        current_stock = COALESCE($9, current_stock),
+        available_stock = available_stock + COALESCE($9::numeric, 0),
+        average_price = COALESCE($10, average_price),
+        last_purchase_price = COALESCE($11, last_purchase_price),
+        minimum_level = COALESCE(NULLIF($12, '')::numeric, minimum_level),
+        reorder_level = COALESCE(NULLIF($13, '')::numeric, reorder_level),
+        maximum_level = COALESCE(NULLIF($14, '')::numeric, maximum_level),
+        preferred_vendor = COALESCE($15, preferred_vendor),
+        last_updated_at = NOW()
+    WHERE source_type = $1
+      AND source_id = $2;
+      `,
       [
-        sourceType,
-        sourceId,
-        reorderLevel ?? "",
-        minimumLevel ?? "",
-        maximumLevel ?? "",
+        sourceType,              // $1
+        sourceId,                // $2
+        data.itemName ?? null,   // $3
+        data.itemCode ?? null,   // $4
+        data.category ?? null,   // $5
+        data.department ?? null, // $6
+        data.warehouseLocation ?? null, // $7
+        data.unitType ?? null,   // $8
+        data.currentStock ?? null, // $9
+        data.averagePrice ?? null,      // $10
+        data.lastPurchasePrice ?? null, // $11
+        data.minimumLevel ?? "",        // $12
+        data.reorderLevel ?? "",        // $13
+        data.maximumLevel ?? "",        // $14
+        data.preferredVendor ?? null,   // $15
       ]
     );
   } catch (err) {
-    console.error("[InventoryService] Failed to update stock levels:", err);
+    console.error("[InventoryService] Failed to update inventory item:", err);
+    throw err;
   }
 }
 
@@ -288,4 +330,28 @@ export async function syncAllFromMasters(): Promise<{ synced: number; updated: n
     console.error("[InventoryService] Sync failed:", err);
     throw err;
   }
+}
+
+// SoftDelte the inventory Item as well in ort to be sync with the master of material and fabric
+export async function softDeleteInventoryItem(
+  tx: any,
+  sourceType: InventorySourceType,
+  sourceId: number,
+  deletedBy: string
+): Promise<void> {
+  await tx
+    .update(inventoryItemsTable)
+    .set({
+      isDeleted: true,
+      deletedBy,
+      deletedAt: new Date(),
+      lastUpdatedAt: new Date(),
+    })
+    .where(
+      and(
+        eq(inventoryItemsTable.sourceType, sourceType),
+        eq(inventoryItemsTable.sourceId, sourceId),
+        eq(inventoryItemsTable.isDeleted, false)
+      )
+    );
 }

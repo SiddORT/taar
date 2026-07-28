@@ -4,10 +4,11 @@ import { db, materialsTable , insertMaterialSchema, updateMaterialSchema,  eq, i
 // import { insertMaterialSchema, updateMaterialSchema } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
 import { logger } from "../lib/logger";
-import { ensureInventoryRecord, updateInventoryImages, updateInventoryStockLevels } from "../services/inventoryService";
+import { ensureInventoryRecord, updateInventoryImages, updateInventoryStockLevels, softDeleteInventoryItem } from "../services/inventoryService";
 import { persistImageArray } from "../utils/uploadHelper";
 import type { Request } from "express";
 import * as XLSX from "xlsx";
+import { buildMasterLocationStockData } from "../utils/masters/locationStock";
 
 const router: IRouter = Router();
 type AuthRequest = Request & { user?: { userId: number; email: string; role: string } };
@@ -215,20 +216,19 @@ router.post("/materials", requireAuth, async (req: AuthRequest, res): Promise<vo
   const [{ total }] = await db.select({ total: count() }).from(materialsTable);
   const materialCode = `MAT${String(total + 1).padStart(4, "0")}`;
 
-  const ls = parsed.data.locationStocks ?? [];
-  if (ls.length === 0) {
-    ls.push({
-      location: "Unallocated",
-      stock: parsed.data.currentStock,
-    });
-  }
-
-  const totalStock = ls.reduce((sum, s) => sum + (parseFloat(s.stock) || 0), 0);
-  const currentStock = ls.length > 0 ? String(totalStock) : parsed.data.currentStock;
+  const {
+    locationStocks,
+    currentStock,
+    warehouseLocation,
+  } = buildMasterLocationStockData(
+    parsed.data.locationStocks ?? [],
+    parsed.data.currentStock
+  );
 
   const images = await persistImageArray(parsed.data.images, { entity: "materials", category: "images" });
   const [record] = await db.insert(materialsTable).values({
     ...parsed.data,
+    locationStocks,
     images,
     materialCode,
     currentStock,
@@ -240,7 +240,7 @@ router.post("/materials", requireAuth, async (req: AuthRequest, res): Promise<vo
     itemName: record.materialName || [record.type, record.quality, record.colorName].filter(Boolean).join(" - "),
     itemCode: record.materialCode,
     category: record.type,
-    warehouseLocation: record.location ?? undefined,
+    warehouseLocation: warehouseLocation ?? undefined,
     unitType: record.unitType,
     averagePrice: record.unitPrice,
     preferredVendor: record.vendor ?? undefined,
@@ -278,12 +278,14 @@ router.put("/materials/:id", requireAuth, async (req: AuthRequest, res): Promise
 
   const updatedBy = req.user?.email ?? "system";
 
-  const ls = parsed.data.locationStocks;
-  let currentStock = parsed.data.currentStock;
-  if (ls && ls.length > 0) {
-    const total = ls.reduce((sum, s) => sum + (parseFloat(s.stock) || 0), 0);
-    currentStock = String(total);
-  }
+  const {
+      locationStocks,
+      currentStock,
+      warehouseLocation,
+    } = buildMasterLocationStockData(
+      parsed.data.locationStocks ?? [],
+      parsed.data.currentStock
+    );
 
   const { images: rawImages, ...rest } = parsed.data;
   const images = rawImages !== undefined
@@ -291,7 +293,7 @@ router.put("/materials/:id", requireAuth, async (req: AuthRequest, res): Promise
     : undefined;
   const [record] = await db
     .update(materialsTable)
-    .set({ ...rest, ...(images !== undefined ? { images } : {}), currentStock, updatedBy, updatedAt: new Date() })
+    .set({ ...rest, locationStocks, ...(images !== undefined ? { images } : {}), currentStock, updatedBy, updatedAt: new Date() })
     .where(and(eq(materialsTable.id, id), eq(materialsTable.isDeleted, false)))
     .returning();
 
@@ -300,9 +302,21 @@ router.put("/materials/:id", requireAuth, async (req: AuthRequest, res): Promise
   if (parsed.data.images !== undefined) {
     updateInventoryImages("material", record.id, (record.images as { id: string; name: string; url: string; size: number }[]) ?? []);
   }
-  if (parsed.data.reorderLevel !== undefined || parsed.data.minimumLevel !== undefined || parsed.data.maximumLevel !== undefined) {
-    updateInventoryStockLevels("material", record.id, parsed.data.reorderLevel, parsed.data.minimumLevel, parsed.data.maximumLevel);
-  }
+
+  updateInventoryStockLevels("material", record.id, {
+    itemName: record.materialName || [record.type, record.quality, record.colorName].filter(Boolean).join(" - "),
+    itemCode: record.materialCode,
+    category: record.type,
+    warehouseLocation: warehouseLocation ?? undefined,
+    unitType: record.unitType,
+    averagePrice: record.unitPrice,
+    preferredVendor: record.vendor ?? undefined,
+    images: (record.images as { id: string; name: string; url: string; size: number }[]) ?? [],
+    currentStock: record.currentStock,
+    reorderLevel: record.reorderLevel,
+    minimumLevel: record.minimumLevel,
+    maximumLevel: record.maximumLevel,
+  });
   res.json(record);
 });
 
@@ -326,18 +340,66 @@ router.patch("/materials/:id/status", requireAuth, async (req: AuthRequest, res)
 
 router.delete("/materials/:id", requireAuth, async (req: AuthRequest, res): Promise<void> => {
   const id = parseInt(String(req.params.id), 10);
-  if (isNaN(id)) { res.status(400).json({ error: "Invalid ID" }); return; }
+
+  if (isNaN(id)) {
+    res.status(400).json({ error: "Invalid ID" });
+    return;
+  }
 
   const updatedBy = req.user?.email ?? "system";
-  const [record] = await db
-    .update(materialsTable)
-    .set({ isDeleted: true, updatedBy, updatedAt: new Date(), deletedBy: updatedBy, deletedAt: new Date() })
-    .where(and(eq(materialsTable.id, id), eq(materialsTable.isDeleted, false)))
-    .returning();
 
-  if (!record) { res.status(404).json({ error: "Material not found" }); return; }
-  logger.info({ id: record.id }, "Material soft-deleted");
-  res.json({ message: "Material deleted", record });
+  try {
+    const record = await db.transaction(async (tx) => {
+      const [material] = await tx
+        .update(materialsTable)
+        .set({
+          isDeleted: true,
+          updatedBy,
+          updatedAt: new Date(),
+          deletedBy: updatedBy,
+          deletedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(materialsTable.id, id),
+            eq(materialsTable.isDeleted, false)
+          )
+        )
+        .returning();
+
+      if (!material) {
+        throw new Error("MATERIAL_NOT_FOUND");
+      }
+
+      // Delete Inventory Item Record as well to maintain data sync
+      await softDeleteInventoryItem(
+        tx,
+        "material",
+        material.id,
+        updatedBy
+      );
+
+      return material;
+    });
+
+    logger.info({ id: record.id }, "Material soft-deleted");
+
+    res.json({
+      message: "Material deleted",
+      record,
+    });
+  } catch (err: any) {
+    if (err.message === "MATERIAL_NOT_FOUND") {
+      res.status(404).json({ error: "Material not found" });
+      return;
+    }
+
+    logger.error(err, "Failed to delete material");
+
+    res.status(500).json({
+      error: "Failed to delete material",
+    });
+  }
 });
 
 export default router;

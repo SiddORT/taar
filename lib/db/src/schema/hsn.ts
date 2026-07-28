@@ -3,7 +3,7 @@ import { z } from "zod/v4";
 
 export const hsnTable = pgTable("hsn_master", {
   id: serial("id").primaryKey(),
-  hsnCode: text("hsn_code").notNull().unique(),
+  hsnCode: text("hsn_code").notNull(),
   gstPercentage: text("gst_percentage").notNull(),
   govtDescription: text("govt_description"),
   remarks: text("remarks"),

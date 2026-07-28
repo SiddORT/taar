@@ -1,0 +1,1 @@
+ALTER TABLE "hsn_master" DROP CONSTRAINT "hsn_master_hsn_code_unique";

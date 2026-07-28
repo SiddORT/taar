@@ -70,9 +70,14 @@ router.post("/hsn", requireAuth, async (req: AuthRequest, res): Promise<void> =>
   const createdBy = req.user?.email ?? "system";
 
   const [existing] = await db
-    .select({ id: hsnTable.id })
-    .from(hsnTable)
-    .where(eq(hsnTable.hsnCode, parsed.data.hsnCode));
+  .select({ id: hsnTable.id })
+  .from(hsnTable)
+  .where(
+    and(
+      eq(hsnTable.hsnCode, parsed.data.hsnCode),
+      eq(hsnTable.isDeleted, false)
+    )
+  );
 
   if (existing) {
     res.status(409).json({ error: "HSN Code already exists." });
