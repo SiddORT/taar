@@ -183,7 +183,7 @@ export default function Orders() {
     },
     {
       key: "orderId", label: "Order ID",
-      render: (r) => <span className="font-mono font-semibold text-gray-900">{asOrd(r).orderId}</span>,
+      render: (r) => <span className="font-mono font-semibold text-cyan-900">{asOrd(r).orderId}</span>,
     },
     {
       key: "orderType", label: "Type",
@@ -196,7 +196,7 @@ export default function Orders() {
         </span>
       ),
     },
-    { key: "client", label: "Client", render: (r) => <span className="text-gray-700 font-medium">{asOrd(r).client}</span> },
+    { key: "client", label: "Client", render: (r) => <span className="text-slate-500 font-medium">{asOrd(r).client}</span> },
     { key: "referenceItem", label: "Reference Item", render: (r) => <span className="text-gray-600">{referenceItem(asOrd(r))}</span> },
     {
       key: "status", label: "Status",
@@ -232,7 +232,7 @@ export default function Orders() {
           </button>
           <button
             onClick={() => setLocation(`/orders/${asOrd(r).id}`)}
-            className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors" title="Edit"
+            className="p-1.5 rounded-lg text-gray-400 hover:text-slate-500 hover:bg-gray-100 transition-colors" title="Edit"
           >
             <Pencil className="h-4 w-4" />
           </button>
@@ -260,13 +260,13 @@ export default function Orders() {
             <SearchBar value={search} onChange={(v) => { setSearch(v); setPage(1); }} placeholder="Search by order ID, client, fabric, product..." />
           </div>
           <select value={typeFilter} onChange={(e) => { setTypeFilter(e.target.value); setPage(1); }}
-            className="sm:w-40 rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-700 shadow-sm outline-none transition focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10">
+            className="sm:w-40 rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-slate-500 shadow-sm outline-none transition focus:border-cyan-900 focus:ring-2 focus:ring-cyan-900/10">
             <option value="all">All Types</option>
             <option value="swatch">Swatch</option>
             <option value="style">Style</option>
           </select>
           <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-            className="sm:w-44 rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-700 shadow-sm outline-none transition focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10">
+            className="sm:w-44 rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-slate-500 shadow-sm outline-none transition focus:border-cyan-900 focus:ring-2 focus:ring-cyan-900/10">
             <option value="all">All Status</option>
             <option value="Pending">Pending</option>
             <option value="In Progress">In Progress</option>
@@ -298,10 +298,10 @@ export default function Orders() {
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
               <div className="flex items-center gap-3">
                 <div className="flex gap-2">
-                  <span className={`h-2.5 w-2.5 rounded-full ${step >= 1 ? "bg-gray-900" : "bg-gray-200"}`} />
-                  <span className={`h-2.5 w-2.5 rounded-full ${step >= 2 ? "bg-gray-900" : "bg-gray-200"}`} />
+                  <span className={`h-2.5 w-2.5 rounded-full ${step >= 1 ? "bg-cyan-900" : "bg-gray-200"}`} />
+                  <span className={`h-2.5 w-2.5 rounded-full ${step >= 2 ? "bg-cyan-900" : "bg-gray-200"}`} />
                 </div>
-                <h2 className="text-lg font-semibold text-gray-900">
+                <h2 className="text-lg font-semibold text-cyan-900">
                   {step === 1 ? "Select Order Type" : `Create ${form.orderType === "swatch" ? "Swatch" : "Style"} Order`}
                 </h2>
               </div>
@@ -321,7 +321,7 @@ export default function Orders() {
                       key={type}
                       type="button"
                       onClick={() => { setForm((f) => ({ ...f, orderType: type })); setStep(2); }}
-                      className="group flex flex-col items-center gap-4 p-8 rounded-2xl border-2 border-gray-200 hover:border-gray-900 hover:bg-gray-50 transition-all"
+                      className="group flex flex-col items-center gap-4 p-8 rounded-2xl border-2 border-gray-200 hover:border-cyan-900 hover:bg-gray-50 transition-all"
                     >
                       <div className={`h-14 w-14 rounded-2xl flex items-center justify-center transition-colors ${
                         type === "swatch" ? "bg-violet-100 group-hover:bg-violet-200" : "bg-sky-100 group-hover:bg-sky-200"
@@ -331,7 +331,7 @@ export default function Orders() {
                           : <Scissors className="h-7 w-7 text-sky-600" />}
                       </div>
                       <div className="text-center">
-                        <p className="text-base font-semibold text-gray-900 capitalize">{type}</p>
+                        <p className="text-base font-semibold text-cyan-900 capitalize">{type}</p>
                         <p className="text-sm text-gray-500 mt-0.5">
                           {type === "swatch" ? "Fabric swatch with dimensions & references" : "Style order with products & patterns"}
                         </p>
@@ -352,10 +352,10 @@ export default function Orders() {
                         onChange={(e) => setForm((f) => ({ ...f, client: e.target.value }))} error={errors.client} />
 
                       <div className="flex flex-col gap-1.5">
-                        <label className="text-sm font-medium text-gray-700">Priority</label>
+                        <label className="text-sm font-medium text-slate-500">Priority</label>
                         <select value={form.priority}
                           onChange={(e) => setForm((f) => ({ ...f, priority: e.target.value }))}
-                          className="rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 shadow-sm outline-none transition focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10">
+                          className="rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-cyan-900 shadow-sm outline-none transition focus:border-cyan-900 focus:ring-2 focus:ring-cyan-900/10">
                           {PRIORITIES.map((p) => <option key={p} value={p}>{p}</option>)}
                         </select>
                       </div>
@@ -367,14 +367,14 @@ export default function Orders() {
                         onChange={(e) => setForm((f) => ({ ...f, deliveryDate: e.target.value }))} />
 
                       <div className="flex flex-col gap-1.5">
-                        <label className="text-sm font-medium text-gray-700">Production Mode</label>
+                        <label className="text-sm font-medium text-slate-500">Production Mode</label>
                         <div className="flex gap-2">
                           {PROD_MODES.map((m) => (
                             <button key={m} type="button"
                               onClick={() => setForm((f) => ({ ...f, productionMode: m }))}
                               className={`flex-1 py-2 rounded-lg text-xs font-medium border transition-all capitalize ${
                                 form.productionMode === m
-                                  ? "bg-gray-900 text-[#C9B45C] border-gray-900"
+                                  ? "bg-cyan-900 text-[#C9B45C] border-cyan-900"
                                   : "bg-white text-gray-600 border-gray-300 hover:border-gray-400"
                               }`}>
                               {m === "in-house" ? "In-house" : m.charAt(0).toUpperCase() + m.slice(1)}
@@ -416,18 +416,18 @@ export default function Orders() {
                         <InputField label="Pattern" placeholder="e.g. Floral Embroidery" value={form.pattern ?? ""}
                           onChange={(e) => setForm((f) => ({ ...f, pattern: e.target.value }))} />
                         <div className="col-span-2">
-                          <label className="text-sm font-medium text-gray-700 block mb-1.5">Size Breakdown</label>
+                          <label className="text-sm font-medium text-slate-500 block mb-1.5">Size Breakdown</label>
                           <textarea rows={2} placeholder="e.g. S:2, M:3, L:2, XL:1"
                             value={form.sizeBreakdown ?? ""}
                             onChange={(e) => setForm((f) => ({ ...f, sizeBreakdown: e.target.value }))}
-                            className="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm shadow-sm outline-none transition focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10 resize-none" />
+                            className="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm shadow-sm outline-none transition focus:border-cyan-900 focus:ring-2 focus:ring-cyan-900/10 resize-none" />
                         </div>
                         <div className="col-span-2">
-                          <label className="text-sm font-medium text-gray-700 block mb-1.5">Color Variants</label>
+                          <label className="text-sm font-medium text-slate-500 block mb-1.5">Color Variants</label>
                           <textarea rows={2} placeholder="e.g. Royal Blue, Ivory White, Crimson Red"
                             value={form.colorVariants ?? ""}
                             onChange={(e) => setForm((f) => ({ ...f, colorVariants: e.target.value }))}
-                            className="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm shadow-sm outline-none transition focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10 resize-none" />
+                            className="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm shadow-sm outline-none transition focus:border-cyan-900 focus:ring-2 focus:ring-cyan-900/10 resize-none" />
                         </div>
                         <InputField label="Reference Swatch ID" placeholder="e.g. SW-001" value={form.referenceSwatchId ?? ""}
                           onChange={(e) => setForm((f) => ({ ...f, referenceSwatchId: e.target.value }))} />
@@ -437,11 +437,11 @@ export default function Orders() {
 
                   {/* Remarks */}
                   <div>
-                    <label className="text-sm font-medium text-gray-700 block mb-1.5">Remarks</label>
+                    <label className="text-sm font-medium text-slate-500 block mb-1.5">Remarks</label>
                     <textarea rows={2} placeholder="Any special notes..."
                       value={form.remarks ?? ""}
                       onChange={(e) => setForm((f) => ({ ...f, remarks: e.target.value }))}
-                      className="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm shadow-sm outline-none transition focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10 resize-none" />
+                      className="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm shadow-sm outline-none transition focus:border-cyan-900 focus:ring-2 focus:ring-cyan-900/10 resize-none" />
                   </div>
                 </div>
               )}
@@ -456,7 +456,7 @@ export default function Orders() {
                 </button>
                 <button type="button" onClick={handleCreate}
                   disabled={createMutation.isPending}
-                  className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-semibold bg-gray-900 text-[#C9B45C] hover:bg-gray-800 disabled:opacity-50 transition-colors">
+                  className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-semibold bg-cyan-900 text-[#C9B45C] hover:bg-cyan-900 disabled:opacity-50 transition-colors">
                   {createMutation.isPending ? "Creating..." : "Create Order"}
                   {!createMutation.isPending && <ChevronRight className="h-4 w-4" />}
                 </button>

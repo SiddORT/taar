@@ -1,4 +1,4 @@
--- Seed the unit_types lookup table with the standard values used in ZARI ERP.
+-- Seed the unit_types lookup table with the standard values used in ERP.
 -- Safe to run multiple times: existing names are skipped (idempotent).
 --
 -- Run on the VPS from the project root, e.g.:

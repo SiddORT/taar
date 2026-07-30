@@ -1,6 +1,6 @@
 ---
 name: Media/upload storage strategy (dual)
-description: Where uploaded images/files actually live in ZARI ERP — base64 blobs in DB vs disk-path text columns. Not uniform.
+description: Where uploaded images/files actually live in ERP — base64 blobs in DB vs disk-path text columns. Not uniform.
 ---
 
 # Media storage is split TWO ways — there is NO single rule

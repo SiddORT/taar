@@ -14,8 +14,8 @@ import { useCurrency } from "@/contexts/CurrencyContext";
 /* ── styles ─────────────────────────────────────────── */
 const CARD = "rounded-2xl bg-white border border-[#C6AF4B]/15 shadow-[0_2px_16px_rgba(198,175,75,0.12),0_1px_3px_rgba(0,0,0,0.06)]";
 const TH   = "px-3 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap";
-const TD   = "px-3 py-3 text-sm text-gray-800";
-const INP  = "w-full border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30";
+const TD   = "px-3 py-3 text-sm text-cyan-900";
+const INP  = "w-full border border-gray-200 rounded-xl px-3 py-2 text-sm text-cyan-900 bg-white focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30";
 const LBL  = "block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5";
 const G    = "#C6AF4B";
 
@@ -121,7 +121,7 @@ function ExpenseModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
       <div className={`${CARD} w-full max-w-2xl max-h-[90vh] overflow-y-auto`}>
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-          <h2 className="text-base font-bold text-gray-900">
+          <h2 className="text-base font-bold text-cyan-900">
             {initial ? "Edit Expense" : "Add Other Expense"}
           </h2>
           <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100">
@@ -280,7 +280,7 @@ function ViewModal({ row, onClose }: { row: any; onClose: () => void }) {
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
           <div>
             <p className="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-0.5">Other Expense</p>
-            <h2 className="text-base font-bold text-gray-900">{row.expense_number}</h2>
+            <h2 className="text-base font-bold text-cyan-900">{row.expense_number}</h2>
           </div>
           <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100">
             <X size={16} className="text-gray-500" />
@@ -292,7 +292,7 @@ function ViewModal({ row, onClose }: { row: any; onClose: () => void }) {
             ["Date",           fmtDate(row.expense_date)],
             ["Amount",         fmtAmt(row.amount, sym)],
             ["Currency",       row.currency_code],
-            ["Payment Status", <span key="ps">{badge(row.payment_status, STATUS_STYLES[row.payment_status] ?? "bg-gray-100 text-gray-700")}</span>],
+            ["Payment Status", <span key="ps">{badge(row.payment_status, STATUS_STYLES[row.payment_status] ?? "bg-gray-100 text-slate-500")}</span>],
             ["Payment Type",   row.payment_type || "—"],
             ["Vendor",         (row.vendor_display_name ?? row.vendor_name) || "—"],
             ["Reference",      row.reference_type !== "Manual" ? `${row.reference_type} — ${row.reference_id || "—"}` : "Manual"],
@@ -302,7 +302,7 @@ function ViewModal({ row, onClose }: { row: any; onClose: () => void }) {
           ].map(([label, value]) => (
             <div key={String(label)} className="flex items-start">
               <span className="w-36 text-xs font-semibold text-gray-400 uppercase tracking-wide shrink-0 pt-0.5">{label}</span>
-              <span className="text-sm text-gray-800">{value}</span>
+              <span className="text-sm text-cyan-900">{value}</span>
             </div>
           ))}
           {row.attachment && (
@@ -480,7 +480,7 @@ export default function OtherExpenses() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-bold text-gray-900">Other Expenses</h1>
+            <h1 className="text-xl font-bold text-cyan-900">Other Expenses</h1>
             <p className="text-sm text-gray-500 mt-0.5">{total} record{total !== 1 ? "s" : ""}</p>
           </div>
           <button onClick={() => setCreateModal(true)}
@@ -501,7 +501,7 @@ export default function OtherExpenses() {
               <div className={`w-10 h-10 rounded-xl ${bg} flex items-center justify-center shrink-0`}>{icon}</div>
               <div>
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">{label}</p>
-                <p className="text-lg font-bold text-gray-900 mt-0.5">{value}</p>
+                <p className="text-lg font-bold text-cyan-900 mt-0.5">{value}</p>
               </div>
             </div>
           ))}
@@ -601,7 +601,7 @@ export default function OtherExpenses() {
                 ) : rows.map(row => (
                   <tr key={row.expense_id} className="hover:bg-gray-50/60 transition-colors">
                     <td className={TD}>
-                      <span className="font-mono text-xs font-semibold text-gray-700">{row.expense_number}</span>
+                      <span className="font-mono text-xs font-semibold text-slate-500">{row.expense_number}</span>
                     </td>
                     <td className={TD}>{row.expense_category}</td>
                     <td className={TD}>{(row.vendor_display_name ?? row.vendor_name) || <span className="text-gray-400">—</span>}</td>
@@ -610,7 +610,7 @@ export default function OtherExpenses() {
                       {parseFloat(row.amount).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </td>
                     <td className={TD}>{row.currency_code}</td>
-                    <td className={TD}>{badge(row.payment_status, STATUS_STYLES[row.payment_status] ?? "bg-gray-100 text-gray-700")}</td>
+                    <td className={TD}>{badge(row.payment_status, STATUS_STYLES[row.payment_status] ?? "bg-gray-100 text-slate-500")}</td>
                     <td className={TD}>{row.payment_type || <span className="text-gray-400">—</span>}</td>
                     <td className={`${TD} whitespace-nowrap`}>{fmtDate(row.expense_date)}</td>
                     <td className={TD}>

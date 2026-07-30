@@ -43,8 +43,8 @@ const STATUS_BADGE: Record<string, string> = {
 };
 
 // ── Shared style tokens ────────────────────────────────────────────────────────
-const inputCls  = "w-full px-3 py-2.5 text-sm text-gray-900 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-gray-900/10 placeholder:text-gray-400";
-const selectCls = "w-full px-3 py-2.5 text-sm text-gray-900 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-gray-900/10 appearance-none cursor-pointer";
+const inputCls  = "w-full px-3 py-2.5 text-sm text-cyan-900 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-cyan-900/10 placeholder:text-gray-400";
+const selectCls = "w-full px-3 py-2.5 text-sm text-cyan-900 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-cyan-900/10 appearance-none cursor-pointer";
 
 // ── Helpers defined OUTSIDE the page component (prevents focus-loss on re-render) ──
 
@@ -70,7 +70,7 @@ function SectionCard({
           {icon}
         </div>
         <div>
-          <h2 className="text-sm font-semibold text-gray-900">{title}</h2>
+          <h2 className="text-sm font-semibold text-cyan-900">{title}</h2>
           <p className="text-xs text-gray-400">{subtitle}</p>
         </div>
       </div>
@@ -88,7 +88,7 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
         {hint && (
           <span className="group relative cursor-pointer">
             <Info className="h-3.5 w-3.5 text-gray-400" />
-            <span className="absolute left-5 top-0 w-44 bg-gray-800 text-white text-xs rounded-lg px-3 py-2 hidden group-hover:block z-10 shadow-lg">{hint}</span>
+            <span className="absolute left-5 top-0 w-44 bg-cyan-900 text-white text-xs rounded-lg px-3 py-2 hidden group-hover:block z-10 shadow-lg">{hint}</span>
           </span>
         )}
       </label>
@@ -123,7 +123,7 @@ function FileUploadZone({
       >
         <div className="flex flex-col items-center gap-2">
           <div className="h-9 w-9 rounded-xl bg-gray-100 flex items-center justify-center text-gray-400">{icon}</div>
-          <p className="text-xs font-medium text-gray-700">{label}</p>
+          <p className="text-xs font-medium text-slate-500">{label}</p>
           <p className="text-xs text-gray-400">Click or drag & drop</p>
         </div>
         <input
@@ -138,7 +138,7 @@ function FileUploadZone({
               {f.type.startsWith("image/") ? (
                 <img src={f.data} alt={f.name} className="h-12 w-12 rounded-lg object-cover border border-gray-200 shrink-0" />
               ) : f.type.startsWith("video/") ? (
-                <div className="h-10 w-10 rounded-lg bg-gray-900 flex items-center justify-center shrink-0">
+                <div className="h-10 w-10 rounded-lg bg-cyan-900 flex items-center justify-center shrink-0">
                   <Video className="h-4 w-4 text-[#C9B45C]" />
                 </div>
               ) : (
@@ -147,7 +147,7 @@ function FileUploadZone({
                 </div>
               )}
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-medium text-gray-700 truncate">{f.name}</p>
+                <p className="text-xs font-medium text-slate-500 truncate">{f.name}</p>
                 <p className="text-xs text-gray-400">{(f.size / 1024).toFixed(0)} KB</p>
               </div>
               <button
@@ -171,7 +171,7 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean
     <button
       type="button"
       onClick={() => onChange(!checked)}
-      className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors focus:outline-none ${checked ? "bg-gray-900" : "bg-gray-200"}`}
+      className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors focus:outline-none ${checked ? "bg-cyan-900" : "bg-gray-200"}`}
     >
       <span className={`inline-block h-4 w-4 rounded-full shadow transform transition-transform ${checked ? "translate-x-6 bg-[#C9B45C]" : "translate-x-1 bg-white"}`} />
     </button>
@@ -459,7 +459,7 @@ export default function ProductsTab({
         <div className="flex items-center justify-between">
           <button
             onClick={cancelForm}
-            className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-900 transition-colors"
+            className="flex items-center gap-2 text-sm text-gray-500 hover:text-cyan-900 transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />
             Back to Products
@@ -474,7 +474,7 @@ export default function ProductsTab({
             <button
               onClick={() => { void handleSave(); }}
               disabled={saving}
-              className="flex items-center gap-2 px-5 py-2 rounded-xl bg-gray-900 text-[#C9B45C] text-sm font-medium hover:bg-black transition-colors disabled:opacity-60 shadow-sm"
+              className="flex items-center gap-2 px-5 py-2 rounded-xl bg-cyan-900 text-[#C9B45C] text-sm font-medium hover:bg-cyan-900 transition-colors disabled:opacity-60 shadow-sm"
             >
               {saving && <Loader2 className="h-4 w-4 animate-spin" />}
               {saving ? "Saving…" : editingId ? "Update Product" : "Add Product"}
@@ -485,7 +485,7 @@ export default function ProductsTab({
         {/* ── Card 1: Identity ─────────────────────────────────────────────── */}
         <SectionCard
           icon={<Package className="h-4 w-4 text-[#C9B45C]" />}
-          accentColor="bg-gray-900"
+          accentColor="bg-cyan-900"
           title="Product Identity"
           subtitle="Name, category and current status"
         >
@@ -528,7 +528,7 @@ export default function ProductsTab({
         {/* ── Card 2: Material ─────────────────────────────────────────────── */}
         <SectionCard
           icon={<Scissors className="h-4 w-4 text-[#C9B45C]" />}
-          accentColor="bg-gray-900"
+          accentColor="bg-cyan-900"
           title="Material"
           subtitle="Fabric, lining and unit dimensions"
         >
@@ -549,7 +549,7 @@ export default function ProductsTab({
             {/* Lining toggle row */}
             <div className="flex items-center gap-4 py-1">
               <Toggle checked={form.hasLining} onChange={v => set("hasLining", v)} />
-              <span className={`text-sm font-medium ${form.hasLining ? "text-gray-900" : "text-gray-400"}`}>
+              <span className={`text-sm font-medium ${form.hasLining ? "text-cyan-900" : "text-gray-400"}`}>
                 {form.hasLining ? "Has Lining" : "No Lining"}
               </span>
             </div>
@@ -599,7 +599,7 @@ export default function ProductsTab({
         {/* ── Card 3: Planning ─────────────────────────────────────────────── */}
         <SectionCard
           icon={<CalendarDays className="h-4 w-4 text-[#C9B45C]" />}
-          accentColor="bg-gray-900"
+          accentColor="bg-cyan-900"
           title="Planning"
           subtitle="Dates, assignment and department"
         >
@@ -639,7 +639,7 @@ export default function ProductsTab({
         {/* ── Card 4: Pattern ──────────────────────────────────────────────── */}
         <SectionCard
           icon={<Layout className="h-4 w-4 text-[#C9B45C]" />}
-          accentColor="bg-gray-900"
+          accentColor="bg-cyan-900"
           title="Pattern"
           subtitle="Pattern making details and documents"
         >
@@ -652,7 +652,7 @@ export default function ProductsTab({
                     onClick={() => set("patternType", form.patternType === type.value ? "" : type.value)}
                     className={`flex-1 py-2 rounded-xl text-sm font-semibold ring-1 transition-all ${
                       form.patternType === type.value
-                        ? "bg-gray-900 text-[#C9B45C] ring-gray-900"
+                        ? "bg-cyan-900 text-[#C9B45C] ring-cyan-900"
                         : "bg-white text-gray-500 ring-gray-200 hover:ring-gray-400"
                     }`}>
                     {type.label}
@@ -764,7 +764,7 @@ export default function ProductsTab({
         {/* ── Card 5: Attachments ──────────────────────────────────────────── */}
         <SectionCard
           icon={<FileText className="h-4 w-4 text-[#C9B45C]" />}
-          accentColor="bg-gray-900"
+          accentColor="bg-cyan-900"
           title="Attachments"
           subtitle="Reference documents, images and videos for this product"
         >
@@ -813,7 +813,7 @@ export default function ProductsTab({
           <button
             onClick={() => { void handleSave(); }}
             disabled={saving}
-            className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gray-900 text-[#C9B45C] text-sm font-medium hover:bg-black transition-colors disabled:opacity-60 shadow-sm"
+            className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-cyan-900 text-[#C9B45C] text-sm font-medium hover:bg-cyan-900 transition-colors disabled:opacity-60 shadow-sm"
           >
             {saving && <Loader2 className="h-4 w-4 animate-spin" />}
             {saving ? "Saving…" : editingId ? "Update Product" : "Add Product"}
@@ -870,7 +870,7 @@ export default function ProductsTab({
     <>
       <SectionCard
         icon={<Package className="h-4 w-4 text-[#C9B45C]" />}
-        accentColor="bg-gray-900"
+        accentColor="bg-cyan-900"
         title="Products"
         subtitle={`${products.length} product${products.length !== 1 ? "s" : ""} linked to this style order`}
       >
@@ -890,7 +890,7 @@ export default function ProductsTab({
           {/* Add Product button */}
           <button
             onClick={openAdd}
-            className="flex items-center gap-2 px-4 py-3 rounded-xl border-2 border-dashed border-gray-300 text-sm text-gray-500 hover:border-gray-900 hover:text-gray-900 transition-colors w-full justify-center font-medium"
+            className="flex items-center gap-2 px-4 py-3 rounded-xl border-2 border-dashed border-gray-300 text-sm text-gray-500 hover:border-cyan-900 hover:text-cyan-900 transition-colors w-full justify-center font-medium"
           >
             <Plus className="h-4 w-4" /> Add Product
           </button>
@@ -901,7 +901,7 @@ export default function ProductsTab({
       {deleteConfirmId !== null && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
           <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm mx-4">
-            <h3 className="text-sm font-semibold text-gray-900 mb-2">Remove Product</h3>
+            <h3 className="text-sm font-semibold text-cyan-900 mb-2">Remove Product</h3>
             <p className="text-sm text-gray-500 mb-5">This product will be permanently removed from the order.</p>
             <div className="flex justify-end gap-2">
               <button
@@ -941,12 +941,12 @@ function ProductCard({
       {/* Row 1: identity + badges + actions */}
       <div className="flex items-center gap-3 px-4 pt-3 pb-2">
         {/* Icon */}
-        <div className="h-8 w-8 rounded-lg bg-gray-900 flex items-center justify-center shrink-0">
+        <div className="h-8 w-8 rounded-lg bg-cyan-900 flex items-center justify-center shrink-0">
           <Package className="h-4 w-4 text-[#C9B45C]" />
         </div>
         {/* Name */}
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-gray-900 truncate">{p.productName}</p>
+          <p className="text-sm font-semibold text-cyan-900 truncate">{p.productName}</p>
           {p.styleCategoryName && (
             <p className="text-xs text-gray-400">{p.styleCategoryName}</p>
           )}
@@ -973,7 +973,7 @@ function ProductCard({
           </button>
           <button
             onClick={() => onEdit(p)}
-            className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-200 transition-colors"
+            className="p-1.5 rounded-lg text-gray-400 hover:text-slate-500 hover:bg-gray-200 transition-colors"
             title="Edit product"
           >
             <Pencil className="h-3.5 w-3.5" />
@@ -1029,11 +1029,11 @@ function MiniModal({
   title: string; value: string; onChange: (v: string) => void; error: string;
   onCancel: () => void; onConfirm: () => void; loading: boolean; placeholder: string;
 }) {
-  const inputCls2 = "w-full px-3 py-2.5 text-sm text-gray-900 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-gray-900/10 placeholder:text-gray-400";
+  const inputCls2 = "w-full px-3 py-2.5 text-sm text-cyan-900 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-cyan-900/10 placeholder:text-gray-400";
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
       <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm mx-4">
-        <h3 className="text-sm font-semibold text-gray-900 mb-4">{title}</h3>
+        <h3 className="text-sm font-semibold text-cyan-900 mb-4">{title}</h3>
         <input
           autoFocus
           className={inputCls2}
@@ -1053,7 +1053,7 @@ function MiniModal({
           <button
             onClick={onConfirm}
             disabled={loading}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gray-900 text-[#C9B45C] text-sm font-medium hover:bg-black transition-colors disabled:opacity-60"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-cyan-900 text-[#C9B45C] text-sm font-medium hover:bg-cyan-900 transition-colors disabled:opacity-60"
           >
             {loading && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
             Add

@@ -84,7 +84,7 @@ function Lightbox({ images, startIndex, onClose }: { images: FileAttachment[]; s
         {idx > 0 && (
           <button
             onClick={() => setIdx(i => i - 1)}
-            className="absolute left-1 sm:left-4 md:left-8 top-1/2 -translate-y-1/2 bg-black/50 text-white rounded-full p-2.5 sm:p-3 z-10 border border-white/10 active:scale-90 hover:bg-black/70 transition-colors"
+            className="absolute left-1 sm:left-4 md:left-8 top-1/2 -translate-y-1/2 bg-black/50 text-white rounded-full p-2.5 sm:p-3 z-10 border border-white/10 active:scale-90 hover:bg-cyan-900/70 transition-colors"
           >
             <ChevronLeft className="h-5 w-5 sm:h-6 sm:w-6" />
           </button>
@@ -99,7 +99,7 @@ function Lightbox({ images, startIndex, onClose }: { images: FileAttachment[]; s
         {idx < images.length - 1 && (
           <button
             onClick={() => setIdx(i => i + 1)}
-            className="absolute right-1 sm:right-4 md:right-8 top-1/2 -translate-y-1/2 bg-black/50 text-white rounded-full p-2.5 sm:p-3 z-10 border border-white/10 active:scale-90 hover:bg-black/70 transition-colors"
+            className="absolute right-1 sm:right-4 md:right-8 top-1/2 -translate-y-1/2 bg-black/50 text-white rounded-full p-2.5 sm:p-3 z-10 border border-white/10 active:scale-90 hover:bg-cyan-900/70 transition-colors"
           >
             <ChevronRight className="h-5 w-5 sm:h-6 sm:w-6" />
           </button>
@@ -780,8 +780,8 @@ export default function ClientPortal() {
 
         {/* Footer */}
         <footer className="pt-6 sm:pt-8 pb-2 text-center space-y-1">
-          <p className="text-[10px] sm:text-xs font-bold text-stone-500 tracking-wide">ZARI EMBROIDERIES</p>
-          <p className="text-[9px] sm:text-[10px] text-stone-400">Powered by ZARI ERP</p>
+          <p className="text-[10px] sm:text-xs font-bold text-stone-500 tracking-wide">ERP</p>
+          <p className="text-[9px] sm:text-[10px] text-stone-400">Powered by ERP</p>
         </footer>
 
       </main>

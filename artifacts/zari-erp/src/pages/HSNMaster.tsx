@@ -368,7 +368,7 @@ export default function HSNMaster() {
       key: "hsnCode",
       label: "HSN Code",
       render: (r) => (
-        <span className="font-mono font-semibold text-gray-900">{asHsn(r).hsnCode}</span>
+        <span className="font-mono font-semibold text-cyan-900">{asHsn(r).hsnCode}</span>
       ),
     },
     {
@@ -427,7 +427,7 @@ export default function HSNMaster() {
         <div className="flex items-center gap-2">
           <button
             onClick={() => openEdit(asHsn(r))}
-            className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+            className="p-1.5 rounded-lg text-gray-400 hover:text-slate-500 hover:bg-gray-100 transition-colors"
             title="Edit"
           >
             <Pencil className="h-4 w-4" />
@@ -475,7 +475,7 @@ export default function HSNMaster() {
             <select
               value={statusFilter}
               onChange={(e) => { setStatusFilter(e.target.value as StatusFilter); setPage(1); }}
-              className="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-700 shadow-sm outline-none transition focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10"
+              className="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-slate-500 shadow-sm outline-none transition focus:border-cyan-900 focus:ring-2 focus:ring-cyan-900/10"
             >
               {STATUS_FILTER_OPTIONS.map((o) => (
                 <option key={o.value} value={o.value}>{o.label}</option>
@@ -495,7 +495,7 @@ export default function HSNMaster() {
           <button
             onClick={handleExportAll}
             disabled={exportLoading || isLoading}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border border-gray-300 bg-white text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 hover:border-gray-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border border-gray-300 bg-white text-sm font-medium text-slate-500 shadow-sm hover:bg-gray-50 hover:border-gray-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <FileDown className="h-4 w-4" />
             {exportLoading ? "Exporting…" : "Export to Excel"}
@@ -506,7 +506,7 @@ export default function HSNMaster() {
             <button
               onClick={() => setImportMenuOpen((v) => !v)}
               disabled={importLoading}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border border-[#C9B45C]/50 bg-white text-sm font-medium text-gray-700 shadow-sm hover:border-[#C9B45C] hover:bg-amber-50/40 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border border-[#C9B45C]/50 bg-white text-sm font-medium text-slate-500 shadow-sm hover:border-[#C9B45C] hover:bg-amber-50/40 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <FileInput className="h-4 w-4 text-[#C6AF4B]" />
               {importLoading ? "Importing…" : "Import Data"}
@@ -516,7 +516,7 @@ export default function HSNMaster() {
               <div className="absolute right-0 top-full mt-1.5 w-52 bg-white rounded-xl border border-gray-200 shadow-lg z-50 overflow-hidden">
                 <button
                   onClick={downloadSample}
-                  className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors text-left"
+                  className="w-full flex items-center gap-3 px-4 py-3 text-sm text-slate-500 hover:bg-gray-50 transition-colors text-left"
                 >
                   <FileSpreadsheet className="h-4 w-4 text-emerald-600 shrink-0" />
                   <div>
@@ -527,7 +527,7 @@ export default function HSNMaster() {
                 <div className="border-t border-gray-100" />
                 <button
                   onClick={() => { setImportMenuOpen(false); importFileRef.current?.click(); }}
-                  className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors text-left"
+                  className="w-full flex items-center gap-3 px-4 py-3 text-sm text-slate-500 hover:bg-gray-50 transition-colors text-left"
                 >
                   <FileUp className="h-4 w-4 text-blue-600 shrink-0" />
                   <div>
@@ -644,12 +644,12 @@ export default function HSNMaster() {
 
         {/* Status toggle */}
         <div className="flex items-center gap-3 pt-1">
-          <label className="text-sm font-medium text-gray-700">Status</label>
+          <label className="text-sm font-medium text-slate-500">Status</label>
           <button
             type="button"
             onClick={() => setForm((f) => ({ ...f, isActive: !f.isActive }))}
-            className={`relative inline-flex h-5 w-9 shrink-0 rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-gray-900/20 ${
-              form.isActive ? "bg-gray-900" : "bg-gray-300"
+            className={`relative inline-flex h-5 w-9 shrink-0 rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-cyan-900/20 ${
+              form.isActive ? "bg-cyan-900" : "bg-gray-300"
             }`}
             role="switch"
             aria-checked={form.isActive}

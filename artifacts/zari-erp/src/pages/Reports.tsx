@@ -24,7 +24,7 @@ const card = [
   "shadow-[0_2px_16px_rgba(198,175,75,0.12),0_1px_3px_rgba(0,0,0,0.06)]",
 ].join(" ");
 
-const inp = "border border-gray-300 rounded-lg px-3 py-1.5 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/40 min-w-[160px]";
+const inp = "border border-gray-300 rounded-lg px-3 py-1.5 text-sm text-cyan-900 bg-white focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/40 min-w-[160px]";
 
 // fmtCurr replaced per-component via useCurrency()
 const fmtNum  = (n: number | string) => parseFloat(String(n ?? 0)).toLocaleString("en-IN", { maximumFractionDigits: 3 });
@@ -394,7 +394,7 @@ export default function Reports() {
               <div className="h-px w-6 rounded-full" style={{ background: `linear-gradient(90deg, ${G}, transparent)` }} />
               <p className="text-[10px] font-black uppercase tracking-[0.2em]" style={{ color: G }}>REPORTS</p>
             </div>
-            <h1 className="text-2xl font-bold text-gray-900">Reports</h1>
+            <h1 className="text-2xl font-bold text-cyan-900">Reports</h1>
             <p className="text-sm text-gray-500 mt-0.5">Select a report, apply filters, and export data</p>
           </div>
           {selected && (
@@ -438,7 +438,7 @@ export default function Reports() {
                         <Icon className="h-4.5 w-4.5" style={{ color: rc.color }} />
                       </div>
                       <div className="min-w-0">
-                        <p className="text-sm font-bold text-gray-900 leading-tight">{rc.name}</p>
+                        <p className="text-sm font-bold text-cyan-900 leading-tight">{rc.name}</p>
                         <p className="text-[11px] text-gray-500 mt-0.5 leading-snug">{rc.desc}</p>
                       </div>
                     </div>
@@ -467,7 +467,7 @@ export default function Reports() {
                     )}
                     <div>
                       <p className="text-[9px] font-black uppercase tracking-[0.18em] mb-0.5" style={{ color: G }}>REPORT VIEWER</p>
-                      <h2 className="text-sm font-bold text-gray-900">{selectedCard?.name}</h2>
+                      <h2 className="text-sm font-bold text-cyan-900">{selectedCard?.name}</h2>
                     </div>
                   </div>
                   {loaded && <span className="text-xs text-gray-400 font-medium">{rows.length} records</span>}
@@ -580,7 +580,7 @@ export default function Reports() {
                           <div className="h-7 w-7 rounded-lg bg-teal-50 flex items-center justify-center">
                             <CheckCircle className="h-3.5 w-3.5 text-teal-600" />
                           </div>
-                          <p className="text-xs font-bold text-gray-700">GST Collected</p>
+                          <p className="text-xs font-bold text-slate-500">GST Collected</p>
                         </div>
                         <p className="text-xl font-black text-teal-700 mb-2">{fmtCurr(gstSummary.collected.total)}</p>
                         <div className="space-y-1 text-xs text-gray-500">
@@ -596,7 +596,7 @@ export default function Reports() {
                           <div className="h-7 w-7 rounded-lg bg-violet-50 flex items-center justify-center">
                             <Receipt className="h-3.5 w-3.5 text-violet-600" />
                           </div>
-                          <p className="text-xs font-bold text-gray-700">GST Paid</p>
+                          <p className="text-xs font-bold text-slate-500">GST Paid</p>
                         </div>
                         <p className="text-xl font-black text-violet-700 mb-2">{fmtCurr(gstSummary.paid.total)}</p>
                         <div className="space-y-1 text-xs text-gray-500">
@@ -620,7 +620,7 @@ export default function Reports() {
                               gstNet !== null && gstNet >= 0 ? "text-amber-700" : "text-emerald-700"
                             }`} />
                           </div>
-                          <p className="text-xs font-bold text-gray-700">Net GST Liability</p>
+                          <p className="text-xs font-bold text-slate-500">Net GST Liability</p>
                         </div>
                         <p className={`text-xl font-black mb-1 ${
                           gstNet !== null && gstNet >= 0 ? "text-amber-700" : "text-emerald-700"
@@ -717,7 +717,7 @@ export default function Reports() {
                                         {val}
                                       </span>
                                     ) : (
-                                      <span className={`text-sm ${isNeg ? "text-red-600 font-semibold" : ci === 0 ? "font-medium text-gray-900" : "text-gray-700"}`}>
+                                      <span className={`text-sm ${isNeg ? "text-red-600 font-semibold" : ci === 0 ? "font-medium text-cyan-900" : "text-slate-500"}`}>
                                         {val}
                                       </span>
                                     )}

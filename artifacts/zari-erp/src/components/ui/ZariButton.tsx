@@ -24,7 +24,7 @@ export default function ZariButton({
     primary:
       "text-white focus:ring-[#C6AF4B]/40",
     secondary:
-      "bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 focus:ring-gray-900/20 shadow-none",
+        "bg-white border border-gray-200 text-slate-500 hover:bg-gray-50 focus:ring-cyan-900/20 shadow-none",
   };
 
   return (

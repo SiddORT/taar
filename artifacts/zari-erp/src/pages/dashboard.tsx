@@ -56,7 +56,7 @@ function GoldTooltip({ active, payload, label }: any) {
       style={{ border: `1px solid ${G}40`, boxShadow: `0 4px 20px ${G_GLOW}` }}>
       <p className="font-bold mb-2" style={{ color: G }}>{label}</p>
       {payload.map((p: any, i: number) => (
-        <p key={i} className="text-gray-500">{p.name}: <span className="font-bold text-gray-800">{p.value}</span></p>
+        <p key={i} className="text-gray-500">{p.name}: <span className="font-bold text-cyan-900">{p.value}</span></p>
       ))}
     </div>
   );
@@ -69,7 +69,7 @@ function PieTooltip({ active, payload }: any) {
     <div className="rounded-xl px-3 py-2 text-xs bg-white"
       style={{ border: `1px solid ${G}40`, boxShadow: `0 4px 20px ${G_GLOW}` }}>
       <span className="font-bold" style={{ color: d.payload.color }}>{d.name}: </span>
-      <span className="font-black text-gray-800">{d.value}</span>
+      <span className="font-black text-cyan-900">{d.value}</span>
     </div>
   );
 }
@@ -79,7 +79,7 @@ function StatusDonut({ title, subtitle, data }: { title: string; subtitle: strin
   return (
     <div className="flex-1 min-w-0">
       <p className="text-[8px] font-black uppercase tracking-[0.15em] mb-0.5" style={{ color: G }}>{title}</p>
-      <p className="text-xs font-bold text-gray-700 mb-3">{subtitle}</p>
+      <p className="text-xs font-bold text-slate-500 mb-3">{subtitle}</p>
       <div className="flex justify-center mb-3">
         <div className="relative">
           <PieChart width={120} height={120}>
@@ -90,7 +90,7 @@ function StatusDonut({ title, subtitle, data }: { title: string; subtitle: strin
             <ReTooltip content={<PieTooltip />} />
           </PieChart>
           <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-            <span className="text-xl font-black text-gray-900">{total}</span>
+            <span className="text-xl font-black text-cyan-900">{total}</span>
             <span className="text-[8px] uppercase tracking-widest font-bold" style={{ color: G }}>Total</span>
           </div>
         </div>
@@ -104,7 +104,7 @@ function StatusDonut({ title, subtitle, data }: { title: string; subtitle: strin
               <div className="h-full rounded-full transition-all duration-700"
                 style={{ width: `${total > 0 ? (s.value / total) * 100 : 0}%`, background: s.color }} />
             </div>
-            <span className="text-[10px] font-bold text-gray-700 w-4 text-right">{s.value}</span>
+            <span className="text-[10px] font-bold text-slate-500 w-4 text-right">{s.value}</span>
           </div>
         ))}
       </div>
@@ -310,9 +310,9 @@ export default function Dashboard() {
           <div>
             <div className="flex items-center gap-2 mb-1.5">
               <div className="h-px w-8 rounded-full" style={{ background: `linear-gradient(90deg, ${G}, transparent)` }} />
-              <p className="text-[10px] font-black uppercase tracking-[0.25em]" style={{ color: G }}>ZARI ERP · OVERVIEW</p>
+              <p className="text-[10px] font-black uppercase tracking-[0.25em]" style={{ color: G }}> OVERVIEW</p>
             </div>
-            <h1 className="text-2xl font-bold tracking-tight text-gray-900">
+            <h1 className="text-2xl font-bold tracking-tight text-cyan-900">
               Welcome back, <span style={{ color: G_DIM }}>{user.username}</span>.
             </h1>
             <div className="flex items-center gap-3 mt-0.5">
@@ -335,7 +335,7 @@ export default function Dashboard() {
             </div>
             <div>
               <p className="text-[9px] font-black uppercase tracking-widest mb-0.5" style={{ color: G }}>LAST LOGIN</p>
-              <p className="text-xs font-bold text-gray-800">{user.username}</p>
+              <p className="text-xs font-bold text-cyan-900">{user.username}</p>
               <p className="text-[10px] text-gray-400">Today</p>
             </div>
             {user.role === "admin" && (
@@ -370,7 +370,7 @@ export default function Dashboard() {
                 </div>
                 {ovLoading
                   ? <Skeleton className="h-10 w-16 mb-2" />
-                  : <p className="text-[2.6rem] font-black leading-none tracking-tight text-gray-900">{c.value}</p>}
+                  : <p className="text-[2.6rem] font-black leading-none tracking-tight text-cyan-900">{c.value}</p>}
                 <p className="text-[11px] mt-1 mb-3 text-gray-400">{c.sub}</p>
                 {c.change !== null
                   ? (
@@ -395,7 +395,7 @@ export default function Dashboard() {
             <div className="flex items-center justify-between mb-5">
               <div>
                 <p className="text-[9px] font-black uppercase tracking-[0.18em] mb-1" style={{ color: G }}>ORDER TREND</p>
-                <h3 className="text-sm font-bold text-gray-800">Monthly Orders — Last 6 Months</h3>
+                <h3 className="text-sm font-bold text-cyan-900">Monthly Orders — Last 6 Months</h3>
               </div>
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-2 text-xs">
@@ -428,7 +428,7 @@ export default function Dashboard() {
           {/* Two Status Donuts */}
           <div className={`${card} fade-up p-5`} style={{ animationDelay: "400ms" }}>
             <p className="text-[9px] font-black uppercase tracking-[0.18em] mb-0.5" style={{ color: G }}>STATUS TRACKER</p>
-            <h3 className="text-sm font-bold text-gray-800 mb-4">Current Pipeline</h3>
+            <h3 className="text-sm font-bold text-cyan-900 mb-4">Current Pipeline</h3>
             {ovLoading ? (
               <Skeleton className="h-40" />
             ) : (
@@ -449,7 +449,7 @@ export default function Dashboard() {
             <div className="flex items-center justify-between mb-5">
               <div>
                 <p className="text-[9px] font-black uppercase tracking-[0.18em] mb-0.5" style={{ color: G }}>RECENT STYLE ORDERS</p>
-                <h3 className="text-sm font-bold text-gray-800">Latest 5</h3>
+                <h3 className="text-sm font-bold text-cyan-900">Latest 5</h3>
               </div>
               <button onClick={() => setLocation("/style-orders")}
                 className="flex items-center gap-1 text-[10px] font-black uppercase tracking-widest transition-colors"
@@ -473,10 +473,10 @@ export default function Dashboard() {
                     <div className="flex items-center gap-1.5">
                       <span className="h-1.5 w-1.5 rounded-full shrink-0"
                         style={{ background: order.priority === "Urgent" ? "#EF4444" : order.priority === "High" ? G : order.priority === "Medium" ? "#60A5FA" : "#9CA3AF" }} />
-                      <span className="text-xs font-bold font-mono text-gray-800">{order.code}</span>
+                      <span className="text-xs font-bold font-mono text-cyan-900">{order.code}</span>
                     </div>
                     <div>
-                      <p className="text-[10px] text-gray-600 truncate font-medium">{order.client}</p>
+                      <p className="text-[10px] text-slate-500 truncate font-medium">{order.client}</p>
                       <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${statusPill[order.status] ?? "bg-gray-100 text-gray-500"}`}>
                         {order.status}
                       </span>
@@ -491,7 +491,7 @@ export default function Dashboard() {
           {/* Invoice Status Panel */}
           <div className={`${card} fade-up p-6`} style={{ animationDelay: "540ms" }}>
             <p className="text-[9px] font-black uppercase tracking-[0.18em] mb-0.5" style={{ color: G }}>INVOICE STATUS</p>
-            <h3 className="text-sm font-bold text-gray-800 mb-4">Billing Overview</h3>
+            <h3 className="text-sm font-bold text-cyan-900 mb-4">Billing Overview</h3>
             {ovLoading ? (
               <div className="space-y-3">{Array(4).fill(0).map((_, i) => <Skeleton key={i} className="h-14" />)}</div>
             ) : (
@@ -529,7 +529,7 @@ export default function Dashboard() {
             <div className="flex items-center justify-between mb-4">
               <div>
                 <p className="text-[9px] font-black uppercase tracking-[0.18em] mb-0.5" style={{ color: G }}>ACTIVITY FEED</p>
-                <h3 className="text-sm font-bold text-gray-800">Recent Actions</h3>
+                <h3 className="text-sm font-bold text-cyan-900">Recent Actions</h3>
               </div>
             </div>
             <div className="relative flex-1 overflow-hidden">
@@ -547,8 +547,8 @@ export default function Dashboard() {
                         {item.initials}
                       </div>
                       <div className="flex-1 min-w-0 pt-0.5">
-                        <p className="text-[10px] font-semibold text-gray-700 truncate">
-                          <span className="font-black text-gray-900">{item.user}</span> {item.action}
+                        <p className="text-[10px] font-semibold text-slate-500 truncate">
+                          <span className="font-black text-cyan-900">{item.user}</span> {item.action}
                         </p>
                         <div className="flex items-center gap-2 mt-0.5">
                           <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded" style={{ background: `${G}12`, color: G_DIM }}>{item.ref}</span>
@@ -573,7 +573,7 @@ export default function Dashboard() {
           {/* Vendor Payment Pending */}
           <div className={`${card} fade-up p-5`} style={{ animationDelay: "660ms" }}>
             <p className="text-[9px] font-black uppercase tracking-[0.18em] mb-0.5" style={{ color: G }}>VENDOR PAYMENTS</p>
-            <h3 className="text-sm font-bold text-gray-800 mb-4">Pending Clearance</h3>
+            <h3 className="text-sm font-bold text-cyan-900 mb-4">Pending Clearance</h3>
             <div className="flex items-center gap-4 mb-4">
               <div className="h-12 w-12 rounded-2xl flex items-center justify-center shrink-0"
                 style={{ background: `${G}15`, border: `1px solid ${G}30` }}>
@@ -582,7 +582,7 @@ export default function Dashboard() {
               <div>
                 {ovLoading
                   ? <Skeleton className="h-8 w-28 mb-1" />
-                  : <p className="text-2xl font-black text-gray-900">{ov?.vendorPending?.formatted ?? `${dc.symbol}0`}</p>}
+                  : <p className="text-2xl font-black text-cyan-900">{ov?.vendorPending?.formatted ?? `${dc.symbol}0`}</p>}
                 <p className="text-[10px] text-gray-400 font-medium">Total pending amount</p>
               </div>
             </div>
@@ -590,7 +590,7 @@ export default function Dashboard() {
               style={{ background: "rgba(198,175,75,0.07)", border: `1px solid ${G}20` }}>
               <Receipt className="h-4 w-4 shrink-0" style={{ color: G_DIM }} />
               <div className="flex-1">
-                <p className="text-[10px] font-black text-gray-700">Open Purchase Receipts</p>
+                <p className="text-[10px] font-black text-slate-500">Open Purchase Receipts</p>
                 <p className="text-[10px] text-gray-400">Awaiting vendor confirmation</p>
               </div>
               <span className="text-lg font-black" style={{ color: G }}>
@@ -607,7 +607,7 @@ export default function Dashboard() {
           {/* Artwork Pipeline */}
           <div className={`${card} fade-up p-5`} style={{ animationDelay: "720ms" }}>
             <p className="text-[9px] font-black uppercase tracking-[0.18em] mb-0.5" style={{ color: G }}>ARTWORK PIPELINE</p>
-            <h3 className="text-sm font-bold text-gray-800 mb-4">Current Status</h3>
+            <h3 className="text-sm font-bold text-cyan-900 mb-4">Current Status</h3>
             {ovLoading ? (
               <div className="space-y-3">{Array(4).fill(0).map((_, i) => <Skeleton key={i} className="h-8" />)}</div>
             ) : artworkStats.length === 0 ? (
@@ -633,7 +633,7 @@ export default function Dashboard() {
           {/* Quick Actions */}
           <div className={`${card} fade-up p-5`} style={{ animationDelay: "780ms" }}>
             <p className="text-[9px] font-black uppercase tracking-[0.18em] mb-0.5" style={{ color: G }}>QUICK ACTIONS</p>
-            <h3 className="text-sm font-bold text-gray-800 mb-4">Jump Right In</h3>
+            <h3 className="text-sm font-bold text-cyan-900 mb-4">Jump Right In</h3>
             <div className="space-y-1.5">
               {[
                 { label: "New Style Order",      icon: Star,         path: "/style-orders"         },
@@ -651,7 +651,7 @@ export default function Dashboard() {
                     style={{ background: `${G}15`, border: `1px solid ${G}25` }}>
                     <action.icon className="h-3.5 w-3.5" style={{ color: G_DIM }} />
                   </div>
-                  <span className="text-sm font-medium text-gray-600 flex-1 group-hover:text-gray-900 transition-colors">
+                  <span className="text-sm font-medium text-slate-500 flex-1 group-hover:text-cyan-900 transition-colors">
                     {action.label}
                   </span>
                   <ChevronRight className="h-3.5 w-3.5 text-gray-300 group-hover:text-amber-500 transition-colors" />
@@ -666,7 +666,7 @@ export default function Dashboard() {
           <div className="flex items-center justify-between mb-5">
             <div>
               <p className="text-[9px] font-black uppercase tracking-[0.18em] mb-0.5" style={{ color: G }}>ORDER METRICS</p>
-              <h3 className="text-sm font-bold text-gray-800">Style Orders by Priority &amp; Status</h3>
+              <h3 className="text-sm font-bold text-cyan-900">Style Orders by Priority &amp; Status</h3>
             </div>
             <div className="flex items-center gap-2">
               <TrendingUp className="h-4 w-4" style={{ color: G }} />
@@ -698,7 +698,7 @@ export default function Dashboard() {
                         <td className="py-2 pr-4">
                           <div className="flex items-center gap-2">
                             <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ background: dotColors[row.priority] ?? "#9CA3AF" }} />
-                            <span className="font-bold text-gray-600">{row.priority}</span>
+                            <span className="font-bold text-slate-500">{row.priority}</span>
                           </div>
                         </td>
                         {row.values.map((v: number, i: number) => {

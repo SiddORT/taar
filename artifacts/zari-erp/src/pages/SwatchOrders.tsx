@@ -90,7 +90,7 @@ function OrderCard({ order, onView, onDelete, onCancel, onCopy }: {
               <span className="text-xs font-mono font-semibold text-gray-400 bg-gray-50 px-2 py-0.5 rounded border border-gray-100">{order.orderCode}</span>
               <PriorityDot priority={order.priority} />
             </div>
-            <h3 className="text-sm font-semibold text-gray-900 truncate">{order.swatchName}</h3>
+            <h3 className="text-sm font-semibold text-cyan-900 truncate">{order.swatchName}</h3>
             {order.clientName && (
               <p className="text-xs text-gray-500 mt-0.5 flex items-center gap-1">
                 <User className="h-3 w-3" />{order.clientName}
@@ -136,7 +136,7 @@ function OrderCard({ order, onView, onDelete, onCancel, onCopy }: {
 
         <div className="flex items-center gap-2 pt-3 border-t border-gray-100">
           <button onClick={onView}
-            className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-medium bg-gray-900 hover:bg-black transition-colors"
+            className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-medium bg-cyan-900 hover:bg-cyan-900 transition-colors"
             style={{ color: G }}>
             <Eye className="h-3.5 w-3.5" /> View / Edit
           </button>
@@ -292,7 +292,7 @@ export default function SwatchOrders() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-semibold text-gray-900">Swatch Orders</h1>
+            <h1 className="text-xl font-semibold text-cyan-900">Swatch Orders</h1>
             <p className="text-sm text-gray-400 mt-0.5">
               {total} order{total !== 1 ? "s" : ""} total
             </p>
@@ -300,11 +300,11 @@ export default function SwatchOrders() {
           <div className="flex items-center gap-2">
             <div className="flex rounded-xl border border-gray-200 overflow-hidden">
               <button onClick={() => setView("grid")} title="Grid view"
-                className={`p-2 transition-colors ${view === "grid" ? "bg-gray-900 text-white" : "bg-white text-gray-400 hover:bg-gray-50"}`}>
+                className={`p-2 transition-colors ${view === "grid" ? "bg-cyan-900 text-white" : "bg-white text-gray-400 hover:bg-gray-50"}`}>
                 <LayoutGrid className="h-4 w-4" />
               </button>
               <button onClick={() => setView("table")} title="Table view"
-                className={`p-2 transition-colors ${view === "table" ? "bg-gray-900 text-white" : "bg-white text-gray-400 hover:bg-gray-50"}`}>
+                className={`p-2 transition-colors ${view === "table" ? "bg-cyan-900 text-white" : "bg-white text-gray-400 hover:bg-gray-50"}`}>
                 <LayoutList className="h-4 w-4" />
               </button>
             </div>
@@ -321,12 +321,12 @@ export default function SwatchOrders() {
         {/* Status pills quick filter */}
         <div className="flex flex-wrap gap-2">
           <button onClick={() => { setStatusFilter("all"); setPage(1); }}
-            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors border ${statusFilter === "all" ? "bg-gray-900 border-gray-900 text-white" : "border-gray-200 text-gray-900 hover:border-gray-400"}`}>
+            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors border ${statusFilter === "all" ? "bg-cyan-900 border-cyan-900 text-white" : "border-gray-200 text-cyan-900 hover:border-gray-400"}`}>
             All
           </button>
           {ORDER_STATUSES.map(s => (
             <button key={s} onClick={() => { setStatusFilter(s); setPage(1); }}
-              className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors border ${statusFilter === s ? `${STATUS_COLORS[s]} font-semibold` : "border-gray-200 text-gray-900 hover:border-gray-400"}`}>
+              className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors border ${statusFilter === s ? `${STATUS_COLORS[s]} font-semibold` : "border-gray-200 text-cyan-900 hover:border-gray-400"}`}>
               {s}
             </button>
           ))}
@@ -341,22 +341,22 @@ export default function SwatchOrders() {
               placeholder="Search swatch name, client…"
               value={search}
               onChange={e => { setSearch(e.target.value); setPage(1); }}
-              className="w-full pl-9 pr-4 py-2.5 text-sm border border-gray-200 rounded-xl bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30 focus:border-[#C6AF4B]/50"
+              className="w-full pl-9 pr-4 py-2.5 text-sm border border-gray-200 rounded-xl bg-white text-cyan-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30 focus:border-[#C6AF4B]/50"
             />
           </div>
           <select value={priorityFilter} onChange={e => { setPriorityFilter(e.target.value); setPage(1); }}
-            className="px-3 py-2.5 text-sm border border-gray-200 rounded-xl bg-white text-gray-900 font-medium focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30 focus:border-[#C6AF4B]/50">
+            className="px-3 py-2.5 text-sm border border-gray-200 rounded-xl bg-white text-cyan-900 font-medium focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30 focus:border-[#C6AF4B]/50">
             <option value="all">All Priorities</option>
             {PRIORITIES.map(p => <option key={p} value={p}>{p}</option>)}
           </select>
           <select value={chargeableFilter} onChange={e => { setChargeableFilter(e.target.value); setPage(1); }}
-            className="px-3 py-2.5 text-sm border border-gray-200 rounded-xl bg-white text-gray-900 font-medium focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30 focus:border-[#C6AF4B]/50">
+            className="px-3 py-2.5 text-sm border border-gray-200 rounded-xl bg-white text-cyan-900 font-medium focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30 focus:border-[#C6AF4B]/50">
             <option value="all">All (Chargeable)</option>
             <option value="yes">Chargeable</option>
             <option value="no">Not Chargeable</option>
           </select>
           <select value={inhouseFilter} onChange={e => { setInhouseFilter(e.target.value); setPage(1); }}
-            className="px-3 py-2.5 text-sm border border-gray-200 rounded-xl bg-white text-gray-900 font-medium focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30 focus:border-[#C6AF4B]/50">
+            className="px-3 py-2.5 text-sm border border-gray-200 rounded-xl bg-white text-cyan-900 font-medium focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30 focus:border-[#C6AF4B]/50">
             <option value="all">All Orders</option>
             <option value="yes">In-house Only</option>
             <option value="no">Client Orders Only</option>
@@ -425,7 +425,7 @@ export default function SwatchOrders() {
                 {orders.map(order => (
                   <tr key={order.id} className="hover:bg-[#C6AF4B]/04 transition-colors">
                     <td className="px-4 py-3 font-mono text-xs text-gray-400 whitespace-nowrap">{order.orderCode}</td>
-                    <td className="px-4 py-3 font-medium text-gray-900">{order.swatchName}</td>
+                    <td className="px-4 py-3 font-medium text-cyan-900">{order.swatchName}</td>
                     <td className="px-4 py-3 text-gray-600">{order.clientName ?? "—"}</td>
                     <td className="px-4 py-3"><StatusBadge status={order.orderStatus} /></td>
                     <td className="px-4 py-3"><PriorityDot priority={order.priority} /></td>
@@ -435,7 +435,7 @@ export default function SwatchOrders() {
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-2">
                         <button onClick={() => setLocation(`/swatch-orders/${order.id}`)}
-                          className="p-1.5 rounded-lg text-gray-400 hover:text-gray-900 hover:bg-gray-100 transition-colors">
+                          className="p-1.5 rounded-lg text-gray-400 hover:text-cyan-900 hover:bg-gray-100 transition-colors">
                           <Eye className="h-3.5 w-3.5" />
                         </button>
                         <button onClick={() => void handleCopy(order)} title="Copy order"

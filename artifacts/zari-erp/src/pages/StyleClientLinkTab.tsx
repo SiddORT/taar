@@ -47,7 +47,7 @@ function ChatBubble({ msg }: { msg: ClientMessageRecord }) {
       {!isTeam && (
         <div className="h-7 w-7 rounded-full bg-gray-200 flex items-center justify-center shrink-0 mt-0.5 text-xs font-bold text-gray-500">C</div>
       )}
-      <div className={`max-w-[75%] rounded-2xl px-3.5 py-2.5 space-y-1.5 ${isTeam ? "bg-gray-900 text-white rounded-tr-sm" : "bg-gray-100 text-gray-900 rounded-tl-sm"}`}>
+      <div className={`max-w-[75%] rounded-2xl px-3.5 py-2.5 space-y-1.5 ${isTeam ? "bg-cyan-900 text-white rounded-tr-sm" : "bg-gray-100 text-cyan-900 rounded-tl-sm"}`}>
         {msg.message && <p className="text-sm leading-snug">{msg.message}</p>}
         {msg.attachment && (
           <div className={`rounded-xl overflow-hidden border ${isTeam ? "border-white/10" : "border-gray-200"}`}>
@@ -67,7 +67,7 @@ function ChatBubble({ msg }: { msg: ClientMessageRecord }) {
         </p>
       </div>
       {isTeam && (
-        <div className="h-7 w-7 rounded-full bg-gray-900 flex items-center justify-center shrink-0 mt-0.5 text-[10px] font-bold text-[#C9B45C]">Z</div>
+        <div className="h-7 w-7 rounded-full bg-cyan-900 flex items-center justify-center shrink-0 mt-0.5 text-[10px] font-bold text-[#C9B45C]">Z</div>
       )}
     </div>
   );
@@ -134,7 +134,7 @@ function StyleArtworkAccordion({
         className="w-full flex items-center gap-3 px-5 py-3.5 text-left hover:bg-gray-50 transition-colors">
         <div className="flex-1 flex items-center gap-2 min-w-0">
           <span className="text-xs font-mono text-gray-400 shrink-0">{aw.artworkCode}</span>
-          <span className={`text-sm font-semibold truncate ${isClosed ? "text-gray-400" : "text-gray-900"}`}>{aw.artworkName}</span>
+          <span className={`text-sm font-semibold truncate ${isClosed ? "text-gray-400" : "text-cyan-900"}`}>{aw.artworkName}</span>
           {showProduct && aw.styleOrderProductName && (
             <span className="shrink-0 text-[10px] px-2 py-0.5 rounded-full bg-[#C9B45C]/15 text-[#8a7a30] font-medium border border-[#C9B45C]/25">
               {aw.styleOrderProductName}
@@ -213,7 +213,7 @@ function StyleArtworkAccordion({
               <CheckCheck className="h-4 w-4 text-green-600 shrink-0" />
               <p className="text-xs text-green-700 font-medium">Thread is marked Done — client can no longer send messages.</p>
               <button onClick={handleToggleClose} disabled={toggleThread.isPending}
-                className="ml-auto shrink-0 flex items-center gap-1 text-xs text-gray-500 hover:text-gray-800 disabled:opacity-60">
+                className="ml-auto shrink-0 flex items-center gap-1 text-xs text-gray-500 hover:text-cyan-900 disabled:opacity-60">
                 <UnlockKeyhole className="h-3.5 w-3.5" /> Reopen
               </button>
             </div>
@@ -233,7 +233,7 @@ function StyleArtworkAccordion({
                   onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
                   placeholder="Reply to client…"
                   rows={2}
-                  className="flex-1 text-sm text-gray-900 border border-gray-200 rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-gray-900/10 resize-none placeholder:text-gray-400"
+                  className="flex-1 text-sm text-cyan-900 border border-gray-200 rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-cyan-900/10 resize-none placeholder:text-gray-400"
                 />
                 <div className="flex flex-col gap-1.5 shrink-0">
                   <button onClick={() => fileRef.current?.click()}
@@ -243,7 +243,7 @@ function StyleArtworkAccordion({
                   <button
                     onClick={handleSend}
                     disabled={sendMsg.isPending || (!text.trim() && !attachFile)}
-                    className="flex items-center justify-center h-9 w-9 rounded-xl bg-gray-900 text-[#C9B45C] hover:bg-black transition-colors disabled:opacity-50">
+                    className="flex items-center justify-center h-9 w-9 rounded-xl bg-cyan-900 text-[#C9B45C] hover:bg-cyan-900 transition-colors disabled:opacity-50">
                     {sendMsg.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                   </button>
                 </div>
@@ -251,7 +251,7 @@ function StyleArtworkAccordion({
               </div>
               <div className="flex justify-end">
                 <button onClick={handleToggleClose} disabled={toggleThread.isPending}
-                  className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-gray-900 text-[#C9B45C] font-medium hover:bg-black transition-colors disabled:opacity-60">
+                  className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-cyan-900 text-[#C9B45C] font-medium hover:bg-cyan-900 transition-colors disabled:opacity-60">
                   {toggleThread.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <LockKeyhole className="h-3 w-3" />}
                   Mark Thread Done
                 </button>
@@ -346,11 +346,11 @@ export default function StyleClientLinkTab({ styleOrderId }: { styleOrderId: num
       {/* ── Link Management ── */}
       <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
         <div className="flex items-center gap-3 px-6 py-4 border-b border-gray-200 bg-gray-50/50">
-          <div className="flex items-center justify-center h-8 w-8 rounded-xl bg-gray-900">
+          <div className="flex items-center justify-center h-8 w-8 rounded-xl bg-cyan-900">
             <Link2 className="h-4 w-4 text-[#C9B45C]" />
           </div>
           <div className="flex-1">
-            <h2 className="text-sm font-semibold text-gray-900">Shareable Client Link</h2>
+            <h2 className="text-sm font-semibold text-cyan-900">Shareable Client Link</h2>
             <p className="text-xs text-gray-400">Share this link with the client to collect their feedback</p>
           </div>
           {link && (
@@ -364,17 +364,17 @@ export default function StyleClientLinkTab({ styleOrderId }: { styleOrderId: num
             <div className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5">
               <span className="text-xs text-gray-500 font-mono break-all">{portalUrl}</span>
             </div>
-            <button onClick={copyLink} className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors shrink-0">
+            <button onClick={copyLink} className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-slate-500 hover:bg-gray-50 transition-colors shrink-0">
               {copied ? <><Check className="h-4 w-4 text-green-600" /> Copied!</> : <><Copy className="h-4 w-4" /> Copy</>}
             </button>
             <a href={portalUrl} target="_blank" rel="noopener noreferrer"
-              className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors shrink-0">
+              className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-slate-500 hover:bg-gray-50 transition-colors shrink-0">
               <ExternalLink className="h-4 w-4" /> Preview
             </a>
           </div>
           <div className="flex items-center gap-3">
             <button onClick={togglePublish} disabled={updateLink.isPending}
-              className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium transition-colors disabled:opacity-60 shadow-sm ${link?.isPublished ? "bg-red-50 text-red-600 border border-red-200 hover:bg-red-100" : "bg-gray-900 text-[#C9B45C] hover:bg-black"}`}>
+              className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium transition-colors disabled:opacity-60 shadow-sm ${link?.isPublished ? "bg-red-50 text-red-600 border border-red-200 hover:bg-red-100" : "bg-cyan-900 text-[#C9B45C] hover:bg-cyan-900"}`}>
               {updateLink.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : link?.isPublished ? <GlobeLock className="h-4 w-4" /> : <Globe className="h-4 w-4" />}
               {link?.isPublished ? "Unpublish" : "Publish Link"}
             </button>
@@ -388,7 +388,7 @@ export default function StyleClientLinkTab({ styleOrderId }: { styleOrderId: num
                 <button onClick={handleRegenerate} disabled={regenLink.isPending} className="px-3 py-1.5 text-xs bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 disabled:opacity-60">
                   {regenLink.isPending ? "…" : "Confirm"}
                 </button>
-                <button onClick={() => setConfirmRegen(false)} className="px-3 py-1.5 text-xs text-gray-500 hover:text-gray-700">Cancel</button>
+                <button onClick={() => setConfirmRegen(false)} className="px-3 py-1.5 text-xs text-gray-500 hover:text-slate-500">Cancel</button>
               </div>
             )}
           </div>
@@ -402,7 +402,7 @@ export default function StyleClientLinkTab({ styleOrderId }: { styleOrderId: num
           <div className="flex flex-wrap gap-2">
             <button
               onClick={() => setSelectedProductId("all")}
-              className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors ${selectedProductId === "all" ? "bg-gray-900 text-[#C9B45C]" : "border border-gray-200 text-gray-600 hover:bg-gray-50"}`}>
+              className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors ${selectedProductId === "all" ? "bg-cyan-900 text-[#C9B45C]" : "border border-gray-200 text-gray-600 hover:bg-gray-50"}`}>
               All Products
               {selectedProductId === "all" && totalUnread > 0 && (
                 <span className="ml-1.5 inline-flex items-center justify-center h-4 min-w-4 px-1 rounded-full bg-orange-500 text-white text-[9px] font-bold">{totalUnread}</span>
@@ -416,7 +416,7 @@ export default function StyleClientLinkTab({ styleOrderId }: { styleOrderId: num
               return (
                 <button key={p.id}
                   onClick={() => setSelectedProductId(String(p.id))}
-                  className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors ${selectedProductId === String(p.id) ? "bg-gray-900 text-[#C9B45C]" : "border border-gray-200 text-gray-600 hover:bg-gray-50"}`}>
+                  className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors ${selectedProductId === String(p.id) ? "bg-cyan-900 text-[#C9B45C]" : "border border-gray-200 text-gray-600 hover:bg-gray-50"}`}>
                   {p.productName}
                   {prodUnread > 0 && (
                     <span className="ml-1.5 inline-flex items-center justify-center h-4 min-w-4 px-1 rounded-full bg-orange-500 text-white text-[9px] font-bold">{prodUnread}</span>
@@ -433,11 +433,11 @@ export default function StyleClientLinkTab({ styleOrderId }: { styleOrderId: num
         <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
           <button onClick={() => setShowImageControls(o => !o)}
             className="w-full flex items-center gap-3 px-6 py-4 bg-gray-50/50 hover:bg-gray-100/50 transition-colors">
-            <div className="flex items-center justify-center h-8 w-8 rounded-xl bg-gray-900">
+            <div className="flex items-center justify-center h-8 w-8 rounded-xl bg-cyan-900">
               <Eye className="h-4 w-4 text-[#C9B45C]" />
             </div>
             <div className="flex-1 text-left">
-              <h2 className="text-sm font-semibold text-gray-900">Image Visibility</h2>
+              <h2 className="text-sm font-semibold text-cyan-900">Image Visibility</h2>
               <p className="text-xs text-gray-400">Toggle which images are visible to the client</p>
             </div>
             {showImageControls ? <ChevronUp className="h-4 w-4 text-gray-400" /> : <ChevronDown className="h-4 w-4 text-gray-400" />}
@@ -451,7 +451,7 @@ export default function StyleClientLinkTab({ styleOrderId }: { styleOrderId: num
                 return (
                   <div key={aw.id} className="py-4 first:pt-0 last:pb-0 space-y-3">
                     <div className="flex items-center gap-2">
-                      <p className="text-xs font-semibold text-gray-700">{aw.artworkCode} · {aw.artworkName}</p>
+                      <p className="text-xs font-semibold text-slate-500">{aw.artworkCode} · {aw.artworkName}</p>
                       {showProduct && aw.styleOrderProductName && (
                         <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#C9B45C]/15 text-[#8a7a30] font-medium">{aw.styleOrderProductName}</span>
                       )}
@@ -511,11 +511,11 @@ export default function StyleClientLinkTab({ styleOrderId }: { styleOrderId: num
       {/* ── Artwork Threads ── */}
       <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
         <div className="flex items-center gap-3 px-6 py-4 border-b border-gray-200 bg-gray-50/50">
-          <div className="flex items-center justify-center h-8 w-8 rounded-xl bg-gray-900">
+          <div className="flex items-center justify-center h-8 w-8 rounded-xl bg-cyan-900">
             <MessageSquare className="h-4 w-4 text-[#C9B45C]" />
           </div>
           <div className="flex-1">
-            <h2 className="text-sm font-semibold text-gray-900">Artwork Threads</h2>
+            <h2 className="text-sm font-semibold text-cyan-900">Artwork Threads</h2>
             <p className="text-xs text-gray-400">
               {selectedProductId === "all" ? "All artworks" : products.find(p => String(p.id) === selectedProductId)?.productName ?? ""}
               {" · "}

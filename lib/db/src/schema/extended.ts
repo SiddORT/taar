@@ -84,7 +84,7 @@ export const companyGstSettings = pgTable("company_gst_settings", {
         defaultServiceGstRate: numeric("default_service_gst_rate", { precision: 5, scale:  2 }).default('18').notNull(),
         createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
         updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
-        companyName: text("company_name").default('ZARI EMBROIDERIES').notNull(),
+        companyName: text("company_name").default('ERP').notNull(),
         companyAddress: text("company_address").default('').notNull(),
         companyPhone: text("company_phone").default('').notNull(),
         companyEmail: text("company_email").default('').notNull(),

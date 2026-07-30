@@ -1,9 +1,9 @@
 openapi: 3.0.3
 info:
-  title: ZARI ERP API
+  title: ERP API
   version: 1.0.0
   description: >-
-    Complete API reference for the ZARI ERP backend (Express 5 + PostgreSQL + Drizzle ORM).
+    Complete API reference for the ERP backend (Express 5 + PostgreSQL + Drizzle ORM).
 
 
     **Authentication.** Most endpoints require a Bearer JWT obtained from `POST /api/auth/login`. Send the token in the

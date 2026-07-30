@@ -1115,7 +1115,7 @@ CREATE TABLE "company_gst_settings" (
 	"default_service_gst_rate" numeric(5, 2) DEFAULT '18' NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
-	"company_name" text DEFAULT 'ZARI EMBROIDERIES' NOT NULL,
+	"company_name" text DEFAULT 'ERP' NOT NULL,
 	"company_address" text DEFAULT '' NOT NULL,
 	"company_phone" text DEFAULT '' NOT NULL,
 	"company_email" text DEFAULT '' NOT NULL

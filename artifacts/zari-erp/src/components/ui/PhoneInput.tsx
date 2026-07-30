@@ -115,7 +115,7 @@ export default function PhoneInput({ label, value, onChange, required, error, pl
           <button key={c.code} type="button" onClick={() => selectCC(c.dialCode)}
             className={`w-full flex items-center gap-2 px-3 py-2 text-sm text-left hover:bg-gray-50 transition-colors ${c.dialCode === parsed.dialCode ? "bg-gray-50 font-medium" : ""}`}>
             <span className="text-base">{c.flag}</span>
-            <span className="flex-1 text-gray-700 truncate">{c.name}</span>
+            <span className="flex-1 text-slate-500 truncate">{c.name}</span>
             <span className="text-gray-400 font-mono text-xs shrink-0">{c.dialCode}</span>
           </button>
         ))}
@@ -126,7 +126,7 @@ export default function PhoneInput({ label, value, onChange, required, error, pl
   return (
     <div className="flex flex-col gap-1.5">
       {label && (
-        <label className="text-sm font-medium text-gray-700">
+        <label className="text-sm font-medium text-slate-500">
           {label}{required && <span className="text-red-500 ml-0.5">*</span>}
         </label>
       )}
@@ -134,7 +134,7 @@ export default function PhoneInput({ label, value, onChange, required, error, pl
         <div className="relative">
           <button ref={buttonRef} type="button" onClick={openDropdown}
             className={`flex items-center gap-1 rounded-lg border px-2.5 py-2.5 text-sm bg-white shadow-sm transition outline-none
-              ${open ? "border-gray-900 ring-2 ring-gray-900/10" : "border-gray-300 hover:border-gray-400"}`}>
+              ${open ? "border-cyan-900 ring-2 ring-cyan-900/10" : "border-gray-300 hover:border-gray-400"}`}>
             {selectedCountry ? (
                 <>
                   <span>{selectedCountry.flag}</span>
@@ -150,8 +150,8 @@ export default function PhoneInput({ label, value, onChange, required, error, pl
         </div>
         <input type="tel" value={parsed.number} onChange={(e) => handleNumberChange(e.target.value)}
           placeholder={placeholder ?? "Phone number"}
-          className={`flex-1 rounded-lg border px-3 py-2.5 text-sm text-gray-900 shadow-sm outline-none transition
-            ${error ? "border-red-400 focus:border-red-400 focus:ring-2 focus:ring-red-200" : "border-gray-300 focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10"}`} />
+          className={`flex-1 rounded-lg border px-3 py-2.5 text-sm text-cyan-900 shadow-sm outline-none transition
+            ${error ? "border-red-400 focus:border-red-400 focus:ring-2 focus:ring-red-200" : "border-gray-300 focus:border-cyan-900 focus:ring-2 focus:ring-cyan-900/10"}`} />
       </div>
       {error && <p className="text-xs text-red-500">{error}</p>}
       {typeof document !== "undefined" && createPortal(dropdown, document.body)}

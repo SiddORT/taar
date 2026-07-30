@@ -219,7 +219,7 @@ export default function InvoiceList() {
   }
 
   const card = "rounded-2xl bg-white border border-[#C6AF4B]/15 shadow-[0_2px_16px_rgba(198,175,75,0.12),0_1px_3px_rgba(0,0,0,0.06)]";
-  const sel = "rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:outline-none focus:border-[#C6AF4B] bg-white";
+  const sel = "rounded-xl border border-gray-200 px-3 py-2 text-sm text-slate-500 focus:outline-none focus:border-[#C6AF4B] bg-white";
 
   const totalPending = invoices.reduce((s, i) => s + parseFloat(String(i.pendingAmount ?? 0)), 0);
   const totalReceived = invoices.reduce((s, i) => s + parseFloat(String(i.receivedAmount ?? 0)), 0);
@@ -235,7 +235,7 @@ export default function InvoiceList() {
               <FileText size={20} style={{ color: G }} />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-gray-900">Invoices</h1>
+              <h1 className="text-xl font-bold text-cyan-900">Invoices</h1>
               <p className="text-sm text-gray-400 mt-0.5">Manage client &amp; vendor invoices</p>
             </div>
           </div>
@@ -251,7 +251,7 @@ export default function InvoiceList() {
         {/* Summary cards */}
         <div className="grid grid-cols-3 gap-4">
           {[
-            { label: "Total Invoice Value", val: totalValue, color: "text-gray-900" },
+            { label: "Total Invoice Value", val: totalValue, color: "text-cyan-900" },
             { label: "Amount Received", val: totalReceived, color: "text-emerald-600" },
             { label: "Amount Pending", val: totalPending, color: "text-amber-600" },
           ].map(c => (
@@ -308,7 +308,7 @@ export default function InvoiceList() {
               value={filterOrderId}
               onChange={e => setFilterOrderId(e.target.value)}
               placeholder={`${filterRefType} reference ID…`}
-              className="rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:outline-none focus:border-[#C6AF4B] w-44"
+              className="rounded-xl border border-gray-200 px-3 py-2 text-sm text-slate-500 focus:outline-none focus:border-[#C6AF4B] w-44"
             />
           )}
           {(filterDir || filterType || filterStatus || filterRefType || filterOrderId || search) && (
@@ -373,7 +373,7 @@ export default function InvoiceList() {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-gray-600 text-xs whitespace-nowrap">{inv.invoiceType}</td>
-                    <td className="px-4 py-3 text-gray-700 text-xs max-w-[120px] truncate">{inv.clientName || "—"}</td>
+                    <td className="px-4 py-3 text-slate-500 text-xs max-w-[120px] truncate">{inv.clientName || "—"}</td>
                     <td className="px-4 py-3">
                       {inv.referenceId ? (
                         <span className="text-xs text-gray-500">
@@ -382,7 +382,7 @@ export default function InvoiceList() {
                       ) : <span className="text-gray-300 text-xs">—</span>}
                     </td>
                     <td className="px-4 py-3 font-mono text-xs text-gray-600">{inv.currencyCode}</td>
-                    <td className="px-4 py-3 font-semibold text-gray-900 text-xs">{fmt(inv.totalAmount)}</td>
+                    <td className="px-4 py-3 font-semibold text-cyan-900 text-xs">{fmt(inv.totalAmount)}</td>
                     <td className="px-4 py-3 text-emerald-600 font-medium text-xs">{fmt(inv.receivedAmount)}</td>
                     <td className="px-4 py-3 text-amber-600 font-medium text-xs">{fmt(inv.pendingAmount)}</td>
                     <td className="px-4 py-3 text-gray-500 text-xs whitespace-nowrap">{fmtDate(inv.invoiceDate)}</td>
@@ -420,13 +420,13 @@ export default function InvoiceList() {
           >
             <button
               onClick={() => { setOpenActionId(null); navigate(`/accounts/invoices/${inv.id}`); }}
-              className="w-full text-left px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 flex items-center gap-2.5"
+              className="w-full text-left px-3 py-2 text-xs text-slate-500 hover:bg-gray-50 flex items-center gap-2.5"
             >
               <Eye className="h-3.5 w-3.5" /> View Invoice
             </button>
             <button
               onClick={() => { setOpenActionId(null); navigate(`/accounts/invoices/${inv.id}/edit`); }}
-              className="w-full text-left px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 flex items-center gap-2.5"
+              className="w-full text-left px-3 py-2 text-xs text-slate-500 hover:bg-gray-50 flex items-center gap-2.5"
             >
               <Edit2 className="h-3.5 w-3.5" /> Edit Invoice
             </button>
@@ -462,7 +462,7 @@ export default function InvoiceList() {
           <div className="rounded-2xl bg-white border border-[#C6AF4B]/15 shadow-xl w-full max-w-lg" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
               <div>
-                <h2 className="text-base font-bold text-gray-900">Record Payment</h2>
+                <h2 className="text-base font-bold text-cyan-900">Record Payment</h2>
                 <p className="text-xs text-gray-400 mt-0.5">
                   {payTarget.invoiceNo} · Pending: {payTarget.currencyCode} {parseFloat(String(payTarget.pendingAmount ?? 0)).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
                 </p>
@@ -520,7 +520,7 @@ export default function InvoiceList() {
               </div>
               <div className="flex gap-3 pt-1">
                 <button type="button" onClick={() => setPayTarget(null)}
-                  className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50">
+                  className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-slate-500 hover:bg-gray-50">
                   Cancel
                 </button>
                 <button type="submit" disabled={addPmt.isPending}
@@ -547,7 +547,7 @@ export default function InvoiceList() {
       {deleteTarget && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm">
-            <h3 className="font-bold text-gray-900 mb-2">Delete Invoice</h3>
+            <h3 className="font-bold text-cyan-900 mb-2">Delete Invoice</h3>
             <p className="text-sm text-gray-600 mb-5">
               Are you sure you want to delete <strong>{deleteTarget.invoiceNo}</strong>? This cannot be undone.
             </p>

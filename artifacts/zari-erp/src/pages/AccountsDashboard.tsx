@@ -27,7 +27,7 @@ const card = [
 ].join(" ");
 
 const INP = [
-  "border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 bg-white",
+  "border border-gray-200 rounded-xl px-3 py-2 text-sm text-cyan-900 bg-white",
   "focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30",
 ].join(" ");
 
@@ -59,7 +59,7 @@ function GoldTooltip({ active, payload, label, fmtFull }: any) {
       <p className="font-bold mb-2" style={{ color: G }}>{label}</p>
       {payload.map((p: any, i: number) => (
         <p key={i} className="text-gray-500">
-          {p.name}: <span className="font-bold text-gray-800">{fmtFull ? fmtFull(p.value) : p.value}</span>
+          {p.name}: <span className="font-bold text-cyan-900">{fmtFull ? fmtFull(p.value) : p.value}</span>
         </p>
       ))}
     </div>
@@ -89,7 +89,7 @@ function KpiCard({ label, value, sub, change, up = true, Icon, delay = "0ms", ac
             <Icon className="h-4 w-4" style={{ color: accent === G ? G_DIM : accent }} />
           </div>
         </div>
-        <p className="text-[2.2rem] font-black leading-none tracking-tight text-gray-900">{value}</p>
+        <p className="text-[2.2rem] font-black leading-none tracking-tight text-cyan-900">{value}</p>
         <p className="text-[11px] mt-1 mb-3 text-gray-400">{sub}</p>
         {change !== undefined && (
           <div className={`flex items-center gap-1 text-[11px] font-bold ${up ? "text-emerald-600" : "text-red-500"}`}>
@@ -107,7 +107,7 @@ function Section({ eyebrow, title, delay = "0ms" }: { eyebrow: string; title: st
   return (
     <div className="fade-up mt-1" style={{ animationDelay: delay }}>
       <p className="text-[9px] font-black uppercase tracking-[0.25em] mb-0.5" style={{ color: G }}>{eyebrow}</p>
-      <h2 className="text-sm font-bold text-gray-800">{title}</h2>
+      <h2 className="text-sm font-bold text-cyan-900">{title}</h2>
     </div>
   );
 }
@@ -216,10 +216,10 @@ export default function AccountsDashboard() {
             <div className="flex items-center gap-2 mb-1.5">
               <div className="h-px w-8 rounded-full" style={{ background: `linear-gradient(90deg, ${G}, transparent)` }} />
               <p className="text-[10px] font-black uppercase tracking-[0.25em]" style={{ color: G }}>
-                ZARI ERP · ACCOUNTS
+                ACCOUNTS
               </p>
             </div>
-            <h1 className="text-2xl font-bold tracking-tight text-gray-900">Accounts Dashboard</h1>
+            <h1 className="text-2xl font-bold tracking-tight text-cyan-900">Accounts Dashboard</h1>
             <p className="text-xs text-gray-400 mt-0.5">
               {loading ? "Refreshing live data…" : "All figures in INR · Real-time"}
             </p>
@@ -436,13 +436,13 @@ export default function AccountsDashboard() {
                       Full: {fmtFull(netRevenue)}
                     </p>
                     <div className="flex flex-wrap gap-4 mt-4 text-[11px] text-gray-400">
-                      <span>Received <strong className="text-gray-800">{fmtCrLk(sales.totalReceived ?? 0)}</strong></span>
+                      <span>Received <strong className="text-cyan-900">{fmtCrLk(sales.totalReceived ?? 0)}</strong></span>
                       <span className="text-gray-300">−</span>
-                      <span>Vendor Paid <strong className="text-gray-800">{fmtCrLk(purchases.totalPaidVendors ?? 0)}</strong></span>
+                      <span>Vendor Paid <strong className="text-cyan-900">{fmtCrLk(purchases.totalPaidVendors ?? 0)}</strong></span>
                       <span className="text-gray-300">−</span>
-                      <span>Expenses <strong className="text-gray-800">{fmtCrLk(expenses.totalExpenses ?? 0)}</strong></span>
+                      <span>Expenses <strong className="text-cyan-900">{fmtCrLk(expenses.totalExpenses ?? 0)}</strong></span>
                       <span className="text-gray-300">−</span>
-                      <span>Outsource <strong className="text-gray-800">{fmtCrLk(data.costingPaid ?? 0)}</strong></span>
+                      <span>Outsource <strong className="text-cyan-900">{fmtCrLk(data.costingPaid ?? 0)}</strong></span>
                     </div>
                   </div>
                   <div className="shrink-0 h-20 w-20 rounded-2xl flex items-center justify-center"
@@ -463,7 +463,7 @@ export default function AccountsDashboard() {
                   <p className="text-[9px] font-black uppercase tracking-[0.18em] mb-1" style={{ color: G }}>
                     SALES VS PURCHASES
                   </p>
-                  <h3 className="text-sm font-bold text-gray-800">Monthly comparison</h3>
+                  <h3 className="text-sm font-bold text-cyan-900">Monthly comparison</h3>
                 </div>
                 <div className="flex items-center gap-4">
                   <div className="flex items-center gap-2 text-xs">
@@ -505,7 +505,7 @@ export default function AccountsDashboard() {
                   <div className="flex items-center justify-between mb-4">
                     <div>
                       <p className="text-[9px] font-black uppercase tracking-[0.18em] mb-0.5" style={{ color: G }}>CLIENTS</p>
-                      <h3 className="text-sm font-bold text-gray-800">Top 5 Pending Receivables</h3>
+                      <h3 className="text-sm font-bold text-cyan-900">Top 5 Pending Receivables</h3>
                     </div>
                     <div className="h-8 w-8 rounded-xl flex items-center justify-center"
                       style={{ background: `${G}15`, border: `1px solid ${G}30` }}>
@@ -528,7 +528,7 @@ export default function AccountsDashboard() {
                           className="grid grid-cols-[1fr_auto] py-2.5 items-center hover:bg-amber-50/60 rounded-xl px-1 -mx-1 transition-colors"
                           style={{ borderBottom: i < topClients.length - 1 ? "1px solid #F3F4F6" : "none" }}>
                           <div>
-                            <p className="text-xs font-bold text-gray-800">{c.clientName}</p>
+                            <p className="text-xs font-bold text-cyan-900">{c.clientName}</p>
                             <p className="text-[10px] text-gray-400">{c.invoiceCount} invoice{c.invoiceCount !== 1 ? "s" : ""} · total {fmtCrLk(c.totalInvoiced)}</p>
                           </div>
                           <div className="text-right">
@@ -549,7 +549,7 @@ export default function AccountsDashboard() {
                   <div className="flex items-center justify-between mb-4">
                     <div>
                       <p className="text-[9px] font-black uppercase tracking-[0.18em] mb-0.5" style={{ color: G }}>VENDORS</p>
-                      <h3 className="text-sm font-bold text-gray-800">Top 5 Pending Payables</h3>
+                      <h3 className="text-sm font-bold text-cyan-900">Top 5 Pending Payables</h3>
                     </div>
                     <div className="h-8 w-8 rounded-xl flex items-center justify-center"
                       style={{ background: `${G}15`, border: `1px solid ${G}30` }}>
@@ -572,7 +572,7 @@ export default function AccountsDashboard() {
                           className="grid grid-cols-[1fr_auto] py-2.5 items-center hover:bg-amber-50/60 rounded-xl px-1 -mx-1 transition-colors"
                           style={{ borderBottom: i < topVendors.length - 1 ? "1px solid #F3F4F6" : "none" }}>
                           <div>
-                            <p className="text-xs font-bold text-gray-800">{v.vendorName}</p>
+                            <p className="text-xs font-bold text-cyan-900">{v.vendorName}</p>
                             <p className="text-[10px] text-gray-400">{v.billCount} bill{v.billCount !== 1 ? "s" : ""}</p>
                           </div>
                           <p className="text-sm font-black text-red-500">{fmtCrLk(v.pendingAmount)}</p>

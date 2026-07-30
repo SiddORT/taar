@@ -22,14 +22,14 @@ const CAT_COLORS: Record<string, string> = {
 };
 const STATUSES = ["Draft", "Sent", "Paid", "Cancelled"];
 const STATUS_COLORS: Record<string, string> = {
-  Draft:     "bg-gray-100 text-gray-700 border-gray-300",
+  Draft:     "bg-gray-100 text-slate-500 border-gray-300",
   Sent:      "bg-blue-50 text-blue-700 border-blue-300",
   Paid:      "bg-emerald-50 text-emerald-700 border-emerald-300",
   Cancelled: "bg-red-50 text-red-600 border-red-300",
 };
 
-const inputCls = "w-full px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900/20 bg-white placeholder:text-gray-300";
-const printInputCls = "w-full px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900/20 bg-white placeholder:text-gray-300 print:border-transparent print:bg-transparent print:px-0 print:py-0";
+const inputCls = "w-full px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs text-cyan-900 focus:outline-none focus:ring-2 focus:ring-cyan-900/20 bg-white placeholder:text-gray-300";
+const printInputCls = "w-full px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs text-cyan-900 focus:outline-none focus:ring-2 focus:ring-cyan-900/20 bg-white placeholder:text-gray-300 print:border-transparent print:bg-transparent print:px-0 print:py-0";
 
 function blankItem(): InvoiceLineItem {
   return { id: uid(), description: "", category: "Other", quantity: 1, unitPrice: 0, total: 0 };
@@ -268,7 +268,7 @@ export default function InvoiceTab({
       <div className="no-print flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
           <div>
-            <h2 className="text-sm font-bold text-gray-900">Invoice</h2>
+            <h2 className="text-sm font-bold text-cyan-900">Invoice</h2>
             <p className="text-xs text-gray-400">{invoiceNo} · {swatchName ?? orderCode}</p>
           </div>
           <span className={`text-[10px] px-2 py-0.5 rounded-full border font-semibold ${STATUS_COLORS[form.status]}`}>{form.status}</span>
@@ -280,12 +280,12 @@ export default function InvoiceTab({
             <Download className="h-3.5 w-3.5" /> Re-import from Cost Sheet
           </button>
           <button onClick={() => { void handleSave(); }} disabled={saving}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-gray-200 bg-white text-gray-700 text-xs font-semibold hover:bg-gray-50 transition-colors disabled:opacity-50">
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-gray-200 bg-white text-slate-500 text-xs font-semibold hover:bg-gray-50 transition-colors disabled:opacity-50">
             {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
             {saving ? "Saving…" : "Save"}
           </button>
           <button onClick={() => window.print()}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gray-900 text-[#C9B45C] text-xs font-semibold hover:bg-black transition-colors">
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-cyan-900 text-[#C9B45C] text-xs font-semibold hover:bg-cyan-900 transition-colors">
             <Printer className="h-3.5 w-3.5" /> Print / PDF
           </button>
         </div>
@@ -293,7 +293,7 @@ export default function InvoiceTab({
 
       {/* ── Invoice Document ─────────────────────────────────────────────── */}
       <div id="invoice-print" className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
-        <div className="h-1.5 bg-gradient-to-r from-gray-900 via-[#C9B45C] to-gray-900" />
+        <div className="h-1.5 bg-gradient-to-r from-cyan-900 via-[#C9B45C] to-cyan-900" />
 
         <div className="p-8 space-y-7">
 
@@ -301,13 +301,13 @@ export default function InvoiceTab({
           <div className="flex items-start justify-between">
             <div>
               <div className="flex items-baseline gap-2 mb-0.5">
-                <span className="text-2xl font-black tracking-wider text-gray-900">ZARI</span>
+                <span className="text-2xl font-black tracking-wider text-cyan-900">ZARI</span>
                 <span className="text-xs font-light tracking-[0.3em] text-gray-400 uppercase">Embroideries</span>
               </div>
               <p className="text-[10px] text-gray-400 leading-relaxed">Enterprise Resource Planning</p>
             </div>
             <div className="text-right space-y-1">
-              <p className="text-3xl font-black text-gray-900 tracking-tight">INVOICE</p>
+              <p className="text-3xl font-black text-cyan-900 tracking-tight">INVOICE</p>
               <p className="text-sm font-mono font-bold text-[#C9B45C]">{invoiceNo}</p>
               <div className="no-print">
                 <select value={form.status} onChange={e => setField("status", e.target.value)}
@@ -327,7 +327,7 @@ export default function InvoiceTab({
             {/* FROM — Company */}
             <div>
               <p className="text-[10px] font-bold uppercase tracking-widest text-[#C9B45C] mb-3">From</p>
-              <p className="text-sm font-black text-gray-900 mb-0.5">ZARI Embroideries</p>
+              <p className="text-sm font-black text-cyan-900 mb-0.5">ZARI Embroideries</p>
               <p className="text-xs text-gray-500 leading-relaxed">
                 [Your Company Address]<br />
                 City, State — PIN<br />
@@ -340,7 +340,7 @@ export default function InvoiceTab({
             <div>
               <p className="text-[10px] font-bold uppercase tracking-widest text-[#C9B45C] mb-3">Bill To</p>
               <div className="space-y-2">
-                <input className={`${printInputCls} font-semibold text-gray-900`} placeholder="Client Name *"
+                <input className={`${printInputCls} font-semibold text-cyan-900`} placeholder="Client Name *"
                   value={form.clientName} onChange={e => setField("clientName", e.target.value)} />
                 <textarea rows={2} className={`${printInputCls} resize-none`} placeholder="Full Address"
                   value={form.clientAddress} onChange={e => setField("clientAddress", e.target.value)} />
@@ -364,7 +364,7 @@ export default function InvoiceTab({
           <div className="grid grid-cols-4 gap-4 text-xs border-y border-gray-100 py-4">
             <div>
               <p className="text-[10px] text-gray-400 font-medium mb-1">Invoice No</p>
-              <p className="font-mono font-bold text-gray-900">{invoiceNo}</p>
+              <p className="font-mono font-bold text-cyan-900">{invoiceNo}</p>
             </div>
             <div>
               <p className="text-[10px] text-gray-400 font-medium mb-1">Invoice Date</p>
@@ -391,7 +391,7 @@ export default function InvoiceTab({
             </div>
             <table className="w-full text-xs border-collapse">
               <thead>
-                <tr className="bg-gray-900 text-[#C9B45C]">
+                <tr className="bg-cyan-900 text-[#C9B45C]">
                   <th className="text-left px-3 py-2 font-semibold rounded-tl-lg w-6">#</th>
                   <th className="text-left px-3 py-2 font-semibold">Description</th>
                   <th className="text-left px-3 py-2 font-semibold w-28">Category</th>
@@ -407,7 +407,7 @@ export default function InvoiceTab({
                     <td className="px-3 py-2 text-gray-400 border-b border-gray-100">{idx + 1}</td>
                     <td className="px-2 py-1 border-b border-gray-100">
                       <input
-                        className="w-full px-2 py-1 text-xs text-gray-900 border border-transparent rounded-lg focus:border-gray-300 focus:outline-none bg-transparent hover:bg-white focus:bg-white transition-colors"
+                        className="w-full px-2 py-1 text-xs text-cyan-900 border border-transparent rounded-lg focus:border-gray-300 focus:outline-none bg-transparent hover:bg-white focus:bg-white transition-colors"
                         value={item.description} placeholder="Description…"
                         onChange={e => updateItem(item.id, "description", e.target.value)}
                       />
@@ -420,17 +420,17 @@ export default function InvoiceTab({
                     </td>
                     <td className="px-2 py-1 border-b border-gray-100">
                       <input type="number" min="0" step="0.001"
-                        className="w-full px-2 py-1 text-xs text-right text-gray-900 border border-transparent rounded-lg focus:border-gray-300 focus:outline-none bg-transparent hover:bg-white focus:bg-white transition-colors"
+                        className="w-full px-2 py-1 text-xs text-right text-cyan-900 border border-transparent rounded-lg focus:border-gray-300 focus:outline-none bg-transparent hover:bg-white focus:bg-white transition-colors"
                         value={item.quantity} onChange={e => updateItem(item.id, "quantity", e.target.value)} />
                     </td>
                     <td className="px-2 py-1 border-b border-gray-100">
                       <input type="number" min="0" step="0.01"
-                        className="w-full px-2 py-1 text-xs text-right text-gray-900 border border-transparent rounded-lg focus:border-gray-300 focus:outline-none bg-transparent hover:bg-white focus:bg-white transition-colors"
+                        className="w-full px-2 py-1 text-xs text-right text-cyan-900 border border-transparent rounded-lg focus:border-gray-300 focus:outline-none bg-transparent hover:bg-white focus:bg-white transition-colors"
                         value={item.unitPrice} onChange={e => updateItem(item.id, "unitPrice", e.target.value)} />
                     </td>
                     <td className="px-2 py-1 border-b border-gray-100">
                       <input type="number" min="0" step="0.01"
-                        className="w-full px-2 py-1 text-xs text-right font-semibold text-gray-900 border border-transparent rounded-lg focus:border-[#C9B45C] focus:ring-1 focus:ring-[#C9B45C]/30 focus:outline-none bg-transparent hover:bg-amber-50/40 focus:bg-amber-50/40 transition-colors"
+                        className="w-full px-2 py-1 text-xs text-right font-semibold text-cyan-900 border border-transparent rounded-lg focus:border-[#C9B45C] focus:ring-1 focus:ring-[#C9B45C]/30 focus:outline-none bg-transparent hover:bg-amber-50/40 focus:bg-amber-50/40 transition-colors"
                         value={item.total} onChange={e => updateItem(item.id, "total", e.target.value)} />
                     </td>
                     <td className="px-1 py-1 border-b border-gray-100 no-print">
@@ -469,7 +469,7 @@ export default function InvoiceTab({
                     {/* Subtotal */}
                     <tr className="border-b border-gray-100">
                       <td className="px-4 py-2.5 text-gray-500 font-medium">Subtotal</td>
-                      <td className="px-4 py-2.5 text-right font-semibold text-gray-900">{rupee(subtotal)}</td>
+                      <td className="px-4 py-2.5 text-right font-semibold text-cyan-900">{rupee(subtotal)}</td>
                     </tr>
 
                     {/* Discount */}
@@ -480,7 +480,7 @@ export default function InvoiceTab({
                           <div className="no-print flex rounded-lg border border-gray-200 overflow-hidden text-[10px]">
                             {(["flat", "percent"] as const).map(t => (
                               <button key={t} onClick={() => setField("discountType", t)}
-                                className={`px-2 py-0.5 transition-colors ${form.discountType === t ? "bg-gray-900 text-[#C9B45C]" : "bg-white text-gray-500 hover:bg-gray-50"}`}>
+                                className={`px-2 py-0.5 transition-colors ${form.discountType === t ? "bg-cyan-900 text-[#C9B45C]" : "bg-white text-gray-500 hover:bg-gray-50"}`}>
                                 {t === "flat" ? dc.symbol : "%"}
                               </button>
                             ))}
@@ -490,7 +490,7 @@ export default function InvoiceTab({
                       <td className="px-4 py-2 text-right">
                         <div className="flex items-center justify-end gap-1.5">
                           <input type="number" min="0" step="0.01"
-                            className="w-20 px-2 py-1 text-right text-gray-900 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-gray-900/20 text-xs"
+                            className="w-20 px-2 py-1 text-right text-cyan-900 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-cyan-900/20 text-xs"
                             value={form.discountValue} onChange={e => setField("discountValue", e.target.value)} />
                           {discountAmt > 0 && <span className="text-red-400 text-[10px] whitespace-nowrap">− {rupee(discountAmt)}</span>}
                         </div>
@@ -503,7 +503,7 @@ export default function InvoiceTab({
                       <td className="px-4 py-2 text-right">
                         <div className="flex items-center justify-end gap-1.5">
                           <input type="number" min="0" max="100" step="0.5"
-                            className="w-16 px-2 py-1 text-right text-gray-900 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-gray-900/20 text-xs"
+                            className="w-16 px-2 py-1 text-right text-cyan-900 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-cyan-900/20 text-xs"
                             value={form.cgstRate} onChange={e => setField("cgstRate", e.target.value)} />
                           <span className="text-gray-400 text-[10px] whitespace-nowrap">= {rupee(cgstAmt)}</span>
                         </div>
@@ -516,7 +516,7 @@ export default function InvoiceTab({
                       <td className="px-4 py-2 text-right">
                         <div className="flex items-center justify-end gap-1.5">
                           <input type="number" min="0" max="100" step="0.5"
-                            className="w-16 px-2 py-1 text-right text-gray-900 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-gray-900/20 text-xs"
+                            className="w-16 px-2 py-1 text-right text-cyan-900 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-cyan-900/20 text-xs"
                             value={form.sgstRate} onChange={e => setField("sgstRate", e.target.value)} />
                           <span className="text-gray-400 text-[10px] whitespace-nowrap">= {rupee(sgstAmt)}</span>
                         </div>
@@ -524,7 +524,7 @@ export default function InvoiceTab({
                     </tr>
                   </tbody>
                   <tfoot>
-                    <tr className="bg-gray-900">
+                    <tr className="bg-cyan-900">
                       <td className="px-4 py-3 text-xs font-bold text-white tracking-wide">GRAND TOTAL</td>
                       <td className="px-4 py-3 text-right text-base font-black text-[#C9B45C]">{rupee(grandTotal)}</td>
                     </tr>
@@ -584,7 +584,7 @@ export default function InvoiceTab({
           </div>
 
         </div>
-        <div className="h-1 bg-gradient-to-r from-gray-900 via-[#C9B45C] to-gray-900" />
+        <div className="h-1 bg-gradient-to-r from-cyan-900 via-[#C9B45C] to-cyan-900" />
       </div>
     </>
   );

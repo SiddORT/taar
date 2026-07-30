@@ -8,7 +8,7 @@ const WHITE_RGB: [number, number, number] = [255, 255, 255];
 const GRAY_RGB: [number, number, number] = [120, 120, 120];
 const LIGHT_RGB: [number, number, number] = [245, 244, 240];
 
-const COMPANY = "ZARI EMBROIDERIES";
+const COMPANY = "ERP";
 const TAGLINE = "Premium Custom Embroidery";
 
 export interface QuotationPdfData {

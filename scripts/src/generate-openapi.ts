@@ -1,7 +1,7 @@
 #!/usr/bin/env tsx
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /**
- * ZARI ERP — OpenAPI generator.
+ * ERP — OpenAPI generator.
  *
  * Parses artifacts/api-server/src/routes/*.ts via the TypeScript compiler API
  * and produces a richly-typed OpenAPI 3.0 spec with real request/response shapes
@@ -10,12 +10,12 @@
  * be inferred.
  *
  * Outputs (overwrites):
- *   exports/ZARI_ERP_API.openapi.yaml
- *   exports/ZARI_ERP_API.openapi.json
- *   exports/ZARI_ERP_API.md
- *   exports/ZARI_ERP_API.postman_collection.json
- *   exports/ZARI_ERP_API_docs.html
- *   exports/ZARI_ERP_API_docs.zip
+ *   exports/ERP_API.openapi.yaml
+ *   exports/ERP_API.openapi.json
+ *   exports/ERP_API.md
+ *   exports/ERP_API.postman_collection.json
+ *   exports/ERP_API_docs.html
+ *   exports/ERP_API_docs.zip
  */
 
 import * as fs from "node:fs";
@@ -906,10 +906,10 @@ function buildOpenApi(endpoints: Endpoint[]) {
   return {
     openapi: "3.0.3",
     info: {
-      title: "ZARI ERP API",
+      title: "ERP API",
       version: "1.0.0",
       description: [
-        `Complete API reference for the ZARI ERP backend (Express 5 + PostgreSQL + Drizzle ORM).`,
+        `Complete API reference for the ERP backend (Express 5 + PostgreSQL + Drizzle ORM).`,
         ``,
         `**Authentication.** Most endpoints require a Bearer JWT obtained from \`POST /api/auth/login\`. Send the token in the \`Authorization: Bearer <token>\` header.`,
         ``,
@@ -966,9 +966,9 @@ function buildMarkdown(endpoints: Endpoint[]): string {
   const tags = Array.from(byTag.keys()).sort();
 
   const lines: string[] = [];
-  lines.push(`# ZARI ERP — API Reference`);
+  lines.push(`# ERP — API Reference`);
   lines.push(``);
-  lines.push(`Auto-generated reference for the ZARI ERP backend. ${endpoints.length} endpoints across ${byTag.size} modules.`);
+  lines.push(`Auto-generated reference for the ERP backend. ${endpoints.length} endpoints across ${byTag.size} modules.`);
   lines.push(``);
   lines.push(`## Authentication`);
   lines.push(``);
@@ -1055,7 +1055,7 @@ function buildPostman(endpoints: Endpoint[]) {
 
   return {
     info: {
-      name: "ZARI ERP API",
+      name: "ERP API",
       description: `Auto-generated Postman collection. ${endpoints.length} endpoints across ${byTag.size} modules.`,
       schema: "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     },
@@ -1120,7 +1120,7 @@ function buildRedocHtml(): string {
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>ZARI ERP API — Reference</title>
+  <title>ERP API — Reference</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="robots" content="noindex, nofollow" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -1168,14 +1168,14 @@ function buildRedocHtml(): string {
 
 function buildZipBundle() {
   const files = [
-    "ZARI_ERP_API.md",
-    "ZARI_ERP_API.openapi.json",
-    "ZARI_ERP_API.openapi.yaml",
-    "ZARI_ERP_API.postman_collection.json",
-    "ZARI_ERP_API_docs.html",
+    "ERP_API.md",
+    "ERP_API.openapi.json",
+    "ERP_API.openapi.yaml",
+    "ERP_API.postman_collection.json",
+    "ERP_API_docs.html",
   ];
   const py = `import zipfile
-with zipfile.ZipFile('ZARI_ERP_API_docs.zip','w',zipfile.ZIP_DEFLATED) as z:
+with zipfile.ZipFile('ERP_API_docs.zip','w',zipfile.ZIP_DEFLATED) as z:
 ${files.map(f => `  z.write('${f}')`).join("\n")}`;
   execSync(`cd ${EXPORTS_DIR} && python3 -c "${py.replace(/"/g, '\\"')}"`);
 }
@@ -1203,17 +1203,17 @@ function main() {
   if (!fs.existsSync(EXPORTS_DIR)) fs.mkdirSync(EXPORTS_DIR, { recursive: true });
 
   console.log("→ Writing OpenAPI YAML/JSON…");
-  fs.writeFileSync(path.join(EXPORTS_DIR, "ZARI_ERP_API.openapi.yaml"), yaml.dump(oas, { lineWidth: 120, noRefs: true }));
-  fs.writeFileSync(path.join(EXPORTS_DIR, "ZARI_ERP_API.openapi.json"), JSON.stringify(oas, null, 2));
+  fs.writeFileSync(path.join(EXPORTS_DIR, "ERP_API.openapi.yaml"), yaml.dump(oas, { lineWidth: 120, noRefs: true }));
+  fs.writeFileSync(path.join(EXPORTS_DIR, "ERP_API.openapi.json"), JSON.stringify(oas, null, 2));
 
   console.log("→ Writing Markdown reference…");
-  fs.writeFileSync(path.join(EXPORTS_DIR, "ZARI_ERP_API.md"), buildMarkdown(endpoints));
+  fs.writeFileSync(path.join(EXPORTS_DIR, "ERP_API.md"), buildMarkdown(endpoints));
 
   console.log("→ Writing Postman collection…");
-  fs.writeFileSync(path.join(EXPORTS_DIR, "ZARI_ERP_API.postman_collection.json"), JSON.stringify(buildPostman(endpoints), null, 2));
+  fs.writeFileSync(path.join(EXPORTS_DIR, "ERP_API.postman_collection.json"), JSON.stringify(buildPostman(endpoints), null, 2));
 
   console.log("→ Writing Redoc HTML wrapper…");
-  fs.writeFileSync(path.join(EXPORTS_DIR, "ZARI_ERP_API_docs.html"), buildRedocHtml());
+  fs.writeFileSync(path.join(EXPORTS_DIR, "ERP_API_docs.html"), buildRedocHtml());
 
   console.log("→ Bundling ZIP…");
   buildZipBundle();

@@ -201,7 +201,7 @@ function InvoicePaymentsPanel({
         <button onClick={() => setExpanded(p => !p)} className="flex items-center gap-2 text-left group">
           {expanded ? <ChevronDown size={15} className="text-gray-400" /> : <ChevronRight size={15} className="text-gray-400" />}
           <Wallet size={15} style={{ color: G }} />
-          <span className="font-bold text-sm text-gray-900">Payments</span>
+          <span className="font-bold text-sm text-cyan-900">Payments</span>
           {payments.length > 0 && (
             <span className="ml-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full text-white" style={{ backgroundColor: G }}>
               {payments.length}
@@ -213,7 +213,7 @@ function InvoicePaymentsPanel({
         <div className="flex items-center gap-6">
           <div className="text-right">
             <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Total</p>
-            <p className="text-sm font-bold text-gray-900">{currencyCode} {fmtN(totalAmount)}</p>
+            <p className="text-sm font-bold text-cyan-900">{currencyCode} {fmtN(totalAmount)}</p>
           </div>
           <div className="text-right">
             <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Received</p>
@@ -276,10 +276,10 @@ function InvoicePaymentsPanel({
                   return (
                   <tr key={p.payment_id} className="border-b border-gray-50 last:border-0 hover:bg-amber-50/30 transition-colors">
                     <td className="py-2 text-gray-400">{i + 1}</td>
-                    <td className="py-2 text-gray-700">{fmtDt(p.payment_date)}</td>
-                    <td className="py-2 text-gray-700">{p.payment_type}</td>
+                    <td className="py-2 text-slate-500">{fmtDt(p.payment_date)}</td>
+                    <td className="py-2 text-slate-500">{p.payment_type}</td>
                     <td className="py-2 text-right tabular-nums">
-                      <span className="font-medium text-gray-900">{currencyCode} {fmtN(pmtInInvCcy)}</span>
+                      <span className="font-medium text-cyan-900">{currencyCode} {fmtN(pmtInInvCcy)}</span>
                       {showOriginal && (
                         <div className="text-[10px] text-gray-400 mt-0.5">{p.currency_code} {fmtN(p.payment_amount)}</div>
                       )}
@@ -311,7 +311,7 @@ function InvoicePaymentsPanel({
           <div className="rounded-2xl bg-white border border-[#C6AF4B]/15 shadow-xl w-full max-w-lg" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
               <div>
-                <h2 className="text-base font-bold text-gray-900">Record Payment</h2>
+                <h2 className="text-base font-bold text-cyan-900">Record Payment</h2>
                 <p className="text-xs text-gray-400 mt-0.5">Pending: {currencyCode} {fmtN(pendingAmt)}</p>
               </div>
               <button onClick={() => setShowModal(false)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400"><X size={15} /></button>
@@ -382,7 +382,7 @@ function InvoicePaymentsPanel({
               </div>
               <div className="flex gap-3 pt-1">
                 <button type="button" onClick={() => setShowModal(false)}
-                  className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50">
+                  className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-slate-500 hover:bg-gray-50">
                   Cancel
                 </button>
                 <button type="submit" disabled={addPmt.isPending}
@@ -800,7 +800,7 @@ export default function InvoiceForm() {
   }
 
   const card = "rounded-2xl bg-white border border-[#C6AF4B]/15 shadow-[0_2px_16px_rgba(198,175,75,0.12),0_1px_3px_rgba(0,0,0,0.06)]";
-  const inp = "w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-sm text-gray-900 focus:outline-none focus:border-[#C6AF4B] bg-white";
+  const inp = "w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-sm text-cyan-900 focus:outline-none focus:border-[#C6AF4B] bg-white";
   const lbl = "block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide";
   const selClass = `${inp} cursor-pointer`;
 
@@ -809,11 +809,11 @@ export default function InvoiceForm() {
       <div className="py-6 px-6 max-w-screen-xl mx-auto space-y-5">
         {/* Header */}
         <div className="flex items-center gap-4">
-          <button onClick={() => navigate("/accounts/invoices")} className="p-2 rounded-xl text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition">
+          <button onClick={() => navigate("/accounts/invoices")} className="p-2 rounded-xl text-gray-400 hover:text-slate-500 hover:bg-gray-100 transition">
             <ArrowLeft size={18} />
           </button>
           <div>
-            <h1 className="text-xl font-bold text-gray-900">{isEdit ? "Edit Invoice" : "New Invoice"}</h1>
+            <h1 className="text-xl font-bold text-cyan-900">{isEdit ? "Edit Invoice" : "New Invoice"}</h1>
             <p className="text-sm text-gray-400 mt-0.5">{form.invoiceNo || "Invoice number will be auto-generated"}</p>
           </div>
         </div>
@@ -830,7 +830,7 @@ export default function InvoiceForm() {
 
             {/* Invoice Header */}
             <div className={`${card} p-6`}>
-              <h2 className="font-bold text-gray-900 text-sm mb-4 border-b border-gray-100 pb-3">Invoice Details</h2>
+              <h2 className="font-bold text-cyan-900 text-sm mb-4 border-b border-gray-100 pb-3">Invoice Details</h2>
               <div className="grid grid-cols-3 gap-4">
                 <div>
                   <label className={lbl}>Invoice No</label>
@@ -874,7 +874,7 @@ export default function InvoiceForm() {
 
             {/* Party */}
             <div className={`${card} p-6`}>
-              <h2 className="font-bold text-gray-900 text-sm mb-4 border-b border-gray-100 pb-3">
+              <h2 className="font-bold text-cyan-900 text-sm mb-4 border-b border-gray-100 pb-3">
                 {form.invoiceDirection === "Vendor" ? "Vendor Details" : "Client Details"}
               </h2>
               {form.invoiceDirection === "Client" ? (
@@ -1012,7 +1012,7 @@ export default function InvoiceForm() {
 
             {/* Reference */}
             <div className={`${card} p-6`}>
-              <h2 className="font-bold text-gray-900 text-sm mb-4 border-b border-gray-100 pb-3">Reference Linking</h2>
+              <h2 className="font-bold text-cyan-900 text-sm mb-4 border-b border-gray-100 pb-3">Reference Linking</h2>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className={lbl}>Reference Type</label>
@@ -1050,7 +1050,7 @@ export default function InvoiceForm() {
 
             {/* Remarks & Notes */}
             <div className={`${card} p-6`}>
-              <h2 className="font-bold text-gray-900 text-sm mb-4 border-b border-gray-100 pb-3">Remarks & Notes</h2>
+              <h2 className="font-bold text-cyan-900 text-sm mb-4 border-b border-gray-100 pb-3">Remarks & Notes</h2>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className={lbl}>Remarks</label>
@@ -1070,7 +1070,7 @@ export default function InvoiceForm() {
             {/* Shipping Address */}
             <div className={`${card} p-6`}>
               <div className="flex items-center justify-between mb-4 border-b border-gray-100 pb-3">
-                <h2 className="font-bold text-gray-900 text-sm">Shipping Address</h2>
+                <h2 className="font-bold text-cyan-900 text-sm">Shipping Address</h2>
                 {form.clientId && (
                   <button
                     type="button"
@@ -1117,7 +1117,7 @@ export default function InvoiceForm() {
 
             {/* Tracking Details */}
             <div className={`${card} p-6`}>
-              <h2 className="font-bold text-gray-900 text-sm mb-4 border-b border-gray-100 pb-3">Tracking Details</h2>
+              <h2 className="font-bold text-cyan-900 text-sm mb-4 border-b border-gray-100 pb-3">Tracking Details</h2>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className={lbl}>Carrier / Courier</label>
@@ -1164,7 +1164,7 @@ export default function InvoiceForm() {
           <div className="space-y-5">
             {/* Currency */}
             <div className={`${card} p-5`}>
-              <h2 className="font-bold text-gray-900 text-sm mb-4 border-b border-gray-100 pb-3">Currency</h2>
+              <h2 className="font-bold text-cyan-900 text-sm mb-4 border-b border-gray-100 pb-3">Currency</h2>
               <div className="space-y-4">
                 <div>
                   <label className={lbl}>Invoice Currency</label>
@@ -1203,11 +1203,11 @@ export default function InvoiceForm() {
 
             {/* Totals */}
             <div className={`${card} p-5`}>
-              <h2 className="font-bold text-gray-900 text-sm mb-4 border-b border-gray-100 pb-3">Totals</h2>
+              <h2 className="font-bold text-cyan-900 text-sm mb-4 border-b border-gray-100 pb-3">Totals</h2>
               <div className="space-y-3">
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-500">Subtotal</span>
-                  <span className="font-medium text-gray-900">{totals.subtotal.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</span>
+                  <span className="font-medium text-cyan-900">{totals.subtotal.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <select value={form.discountType} onChange={e => setF("discountType", e.target.value)} className="rounded-lg border border-gray-200 px-2 py-1.5 text-xs text-gray-600 focus:outline-none focus:border-[#C6AF4B]">
@@ -1228,7 +1228,7 @@ export default function InvoiceForm() {
                       setF("discountValue", String(clamped));
                     }}
                     onKeyDown={e => { if (e.key === "-" || e.key === "e" || e.key === "E") e.preventDefault(); }}
-                    className="flex-1 rounded-lg border border-gray-200 px-2.5 py-1.5 text-sm text-gray-900 bg-white focus:outline-none focus:border-[#C6AF4B] text-right"
+                    className="flex-1 rounded-lg border border-gray-200 px-2.5 py-1.5 text-sm text-cyan-900 bg-white focus:outline-none focus:border-[#C6AF4B] text-right"
                   />
                 </div>
                 {totals.discount > 0 && (
@@ -1240,13 +1240,13 @@ export default function InvoiceForm() {
                 <div className="grid grid-cols-2 gap-2">
                   <div>
                     <label className="text-xs text-gray-600">CGST <span className="text-[10px] text-gray-400">(auto)</span></label>
-                    <div className="w-full rounded-lg border border-gray-100 bg-gray-50 px-2.5 py-1.5 text-sm text-gray-900 text-right mt-1">
+                    <div className="w-full rounded-lg border border-gray-100 bg-gray-50 px-2.5 py-1.5 text-sm text-cyan-900 text-right mt-1">
                       {totals.cgstAmt.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
                     </div>
                   </div>
                   <div>
                     <label className="text-xs text-gray-600">SGST <span className="text-[10px] text-gray-400">(auto)</span></label>
-                    <div className="w-full rounded-lg border border-gray-100 bg-gray-50 px-2.5 py-1.5 text-sm text-gray-900 text-right mt-1">
+                    <div className="w-full rounded-lg border border-gray-100 bg-gray-50 px-2.5 py-1.5 text-sm text-cyan-900 text-right mt-1">
                       {totals.sgstAmt.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
                     </div>
                   </div>
@@ -1268,15 +1268,15 @@ export default function InvoiceForm() {
                       setF("shippingAmount", String(Math.max(0, raw)));
                     }}
                     onKeyDown={e => { if (e.key === "-" || e.key === "e" || e.key === "E") e.preventDefault(); }}
-                    className="w-full rounded-lg border border-gray-200 px-2.5 py-1.5 text-sm text-gray-900 bg-white focus:outline-none focus:border-[#C6AF4B] text-right mt-1"
+                    className="w-full rounded-lg border border-gray-200 px-2.5 py-1.5 text-sm text-cyan-900 bg-white focus:outline-none focus:border-[#C6AF4B] text-right mt-1"
                   />
                 </div>
                 <div>
                   <label className="text-xs text-gray-600">Adjustment (+ / −)</label>
-                  <input type="number" step="0.01" value={form.adjustmentAmount} onChange={e => setF("adjustmentAmount", e.target.value)} className="w-full rounded-lg border border-gray-200 px-2.5 py-1.5 text-sm text-gray-900 bg-white focus:outline-none focus:border-[#C6AF4B] text-right mt-1" />
+                  <input type="number" step="0.01" value={form.adjustmentAmount} onChange={e => setF("adjustmentAmount", e.target.value)} className="w-full rounded-lg border border-gray-200 px-2.5 py-1.5 text-sm text-cyan-900 bg-white focus:outline-none focus:border-[#C6AF4B] text-right mt-1" />
                 </div>
                 <div className="border-t border-gray-100 pt-3 flex justify-between items-center">
-                  <span className="font-bold text-gray-900">Total ({form.currencyCode})</span>
+                  <span className="font-bold text-cyan-900">Total ({form.currencyCode})</span>
                   <span className="text-lg font-bold" style={{ color: G }}>
                     {sym}{toInvCcy(totals.total).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
@@ -1286,7 +1286,7 @@ export default function InvoiceForm() {
 
             {/* Bank Details */}
             <div className={`${card} p-5`}>
-              <h2 className="font-bold text-gray-900 text-sm mb-4 border-b border-gray-100 pb-3">Bank Details</h2>
+              <h2 className="font-bold text-cyan-900 text-sm mb-4 border-b border-gray-100 pb-3">Bank Details</h2>
               {bankAccounts.length > 0 && (
                 <div className="mb-4">
                   <label className={lbl}>Select Saved Bank Account</label>
@@ -1331,7 +1331,7 @@ export default function InvoiceForm() {
         {/* Line Items — full width */}
         <div className={`${card} overflow-hidden`}>
           <div className="px-6 pt-5 pb-4 border-b border-gray-100 flex items-center justify-between">
-            <h2 className="font-bold text-gray-900 text-sm">Line Items</h2>
+            <h2 className="font-bold text-cyan-900 text-sm">Line Items</h2>
             <div className="flex items-center gap-3">
               <label className="flex items-center gap-1.5 text-xs text-gray-500 cursor-pointer select-none">
                 <input
@@ -1421,7 +1421,7 @@ export default function InvoiceForm() {
                                   updateItem(it.id, "description", label);
                                 }
                               }}
-                              className="w-full rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs text-gray-900 bg-white focus:outline-none focus:border-[#C6AF4B] cursor-pointer"
+                              className="w-full rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs text-cyan-900 bg-white focus:outline-none focus:border-[#C6AF4B] cursor-pointer"
                             >
                               <option value="">— Select Fabric —</option>
                               {fabricMaster.map(f => {
@@ -1444,7 +1444,7 @@ export default function InvoiceForm() {
                                   updateItem(it.id, "description", label);
                                 }
                               }}
-                              className="w-full rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs text-gray-900 bg-white focus:outline-none focus:border-[#C6AF4B] cursor-pointer"
+                              className="w-full rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs text-cyan-900 bg-white focus:outline-none focus:border-[#C6AF4B] cursor-pointer"
                             >
                               <option value="">— Select {it.category} —</option>
                               {materialMaster.map(m => {
@@ -1453,7 +1453,7 @@ export default function InvoiceForm() {
                               })}
                             </select>
                           ) : (
-                            <input value={it.description} onChange={e => updateItem(it.id, "description", e.target.value)} className="w-full rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs text-gray-900 bg-white focus:outline-none focus:border-[#C6AF4B]" placeholder="Item description" />
+                            <input value={it.description} onChange={e => updateItem(it.id, "description", e.target.value)} className="w-full rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs text-cyan-900 bg-white focus:outline-none focus:border-[#C6AF4B]" placeholder="Item description" />
                           )}
                         </td>
                         {/* Category */}
@@ -1464,7 +1464,7 @@ export default function InvoiceForm() {
                               const cat = e.target.value;
                               setItems(prev => prev.map(x => x.id !== it.id ? x : { ...x, category: cat }));
                             }}
-                            className="w-full rounded-lg border border-gray-200 px-2 py-1.5 text-xs text-gray-900 bg-white focus:outline-none focus:border-[#C6AF4B] cursor-pointer"
+                            className="w-full rounded-lg border border-gray-200 px-2 py-1.5 text-xs text-cyan-900 bg-white focus:outline-none focus:border-[#C6AF4B] cursor-pointer"
                           >
                             {ITEM_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
                           </select>
@@ -1476,7 +1476,7 @@ export default function InvoiceForm() {
                             value={it.quantity}
                             onChange={e => updateItem(it.id, "quantity", Math.max(0, parseFloat(e.target.value) || 0))}
                             onKeyDown={e => { if (e.key === "-" || e.key === "e" || e.key === "E") e.preventDefault(); }}
-                            className="w-full rounded-lg border border-gray-200 px-2 py-1.5 text-xs text-gray-900 bg-white focus:outline-none focus:border-[#C6AF4B] text-right"
+                            className="w-full rounded-lg border border-gray-200 px-2 py-1.5 text-xs text-cyan-900 bg-white focus:outline-none focus:border-[#C6AF4B] text-right"
                           />
                         </td>
                         {/* Rate */}
@@ -1486,7 +1486,7 @@ export default function InvoiceForm() {
                             value={parseFloat(toInvCcy(it.unitPrice).toFixed(2))}
                             onChange={e => updateItem(it.id, "unitPrice", Math.max(0, parseFloat(e.target.value) || 0) * rate)}
                             onKeyDown={e => { if (e.key === "-" || e.key === "e" || e.key === "E") e.preventDefault(); }}
-                            className="w-full rounded-lg border border-gray-200 px-2 py-1.5 text-xs text-gray-900 bg-white focus:outline-none focus:border-[#C6AF4B] text-right"
+                            className="w-full rounded-lg border border-gray-200 px-2 py-1.5 text-xs text-cyan-900 bg-white focus:outline-none focus:border-[#C6AF4B] text-right"
                           />
                         </td>
                         {/* HSN Code — pick from HSN master only */}
@@ -1501,7 +1501,7 @@ export default function InvoiceForm() {
                                 hsnGstPct: hsn ? hsn.gstPercentage : "",
                               }));
                             }}
-                            className="w-full rounded-lg border border-gray-200 px-2 py-1.5 text-xs text-gray-900 bg-white focus:outline-none focus:border-[#C6AF4B] cursor-pointer"
+                            className="w-full rounded-lg border border-gray-200 px-2 py-1.5 text-xs text-cyan-900 bg-white focus:outline-none focus:border-[#C6AF4B] cursor-pointer"
                           >
                             <option value="">— Select HSN —</option>
                             {hsnList.map(h => (
@@ -1528,7 +1528,7 @@ export default function InvoiceForm() {
                           }
                         </td>
                         {/* Amount */}
-                        <td className="px-3 py-2 font-semibold text-gray-900 text-right text-xs">
+                        <td className="px-3 py-2 font-semibold text-cyan-900 text-right text-xs">
                           {toInvCcy(it.total).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
                         </td>
                         {/* Total w/ GST */}
@@ -1554,7 +1554,7 @@ export default function InvoiceForm() {
                 const fmt = (n: number) => toInvCcy(n).toLocaleString("en-IN", { minimumFractionDigits: 2 });
                 return (
                   <tfoot>
-                    <tr className="border-t-2 border-gray-900 bg-gray-900">
+                    <tr className="border-t-2 border-cyan-900 bg-cyan-900">
                       <td colSpan={6} className="px-3 py-2.5 text-right text-[10px] font-bold text-gray-300 uppercase tracking-wide">Grand Total (Amt + GST) {sym}</td>
                       <td className="px-3 py-2.5 text-right text-[10px] font-semibold text-gray-500">{fmt(totalGst)}</td>
                       <td className="px-3 py-2.5 text-right text-[10px] font-semibold text-gray-500">{fmt(totalAmt)}</td>
@@ -1597,14 +1597,14 @@ export default function InvoiceForm() {
             <button
               onClick={() => handleSave("Draft")}
               disabled={saving}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 transition disabled:opacity-60"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold border border-gray-300 text-slate-500 bg-white hover:bg-gray-50 transition disabled:opacity-60"
             >
               {saving ? <span className="h-3.5 w-3.5 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" /> : <FileText size={14} />}
               Save as Draft
             </button>
             <button
               onClick={() => setShowPreview(true)}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 transition"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold border border-gray-300 text-slate-500 bg-white hover:bg-gray-50 transition"
             >
               <Eye size={14} /> Preview Invoice
             </button>
@@ -1669,7 +1669,7 @@ export default function InvoiceForm() {
       {showCostSheetConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
           <div className="bg-white rounded-2xl shadow-xl border border-gray-100 w-full max-w-md mx-4 p-6">
-            <h3 className="font-bold text-gray-900 text-base mb-2">Replace existing line items?</h3>
+            <h3 className="font-bold text-cyan-900 text-base mb-2">Replace existing line items?</h3>
             <p className="text-sm text-gray-500 mb-5">
               Cost sheet items are already loaded. Reloading will clear the current {items.length} line item{items.length !== 1 ? "s" : ""} and replace them with the latest cost sheet data.
             </p>

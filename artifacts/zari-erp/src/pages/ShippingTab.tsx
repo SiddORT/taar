@@ -200,7 +200,7 @@ export default function ShippingTab({ referenceType, referenceId, clientName, or
   const fmtDate = (d: string | null) => d ? new Date(d).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—";
 
   const card = "rounded-2xl bg-white border border-[#C6AF4B]/15 shadow-[0_2px_16px_rgba(198,175,75,0.12),0_1px_3px_rgba(0,0,0,0.06)]";
-  const inp = "w-full rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:border-[#C6AF4B] focus:ring-2 focus:ring-[#C6AF4B]/20 transition";
+  const inp = "w-full rounded-xl border border-gray-200 px-3 py-2 text-sm text-cyan-900 placeholder-gray-400 focus:outline-none focus:border-[#C6AF4B] focus:ring-2 focus:ring-[#C6AF4B]/20 transition";
   const sel = inp + " appearance-none cursor-pointer";
 
   return (
@@ -209,7 +209,7 @@ export default function ShippingTab({ referenceType, referenceId, clientName, or
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Truck size={18} style={{ color: G }} />
-          <h3 className="font-bold text-gray-900">Shipping Details</h3>
+          <h3 className="font-bold text-cyan-900">Shipping Details</h3>
           {!canAdd && (
             <span className="ml-2 text-xs text-amber-600 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
               Available after order is Approved
@@ -242,7 +242,7 @@ export default function ShippingTab({ referenceType, referenceId, clientName, or
                     <Truck size={16} style={{ color: G }} />
                   </div>
                   <div>
-                    <p className="font-bold text-gray-900">{r.vendor_name ?? "Unknown Vendor"}</p>
+                    <p className="font-bold text-cyan-900">{r.vendor_name ?? "Unknown Vendor"}</p>
                     {r.tracking_number && (
                       <div className="flex items-center gap-1 mt-0.5">
                         <span className="font-mono text-xs text-gray-500">{r.tracking_number}</span>
@@ -290,7 +290,7 @@ export default function ShippingTab({ referenceType, referenceId, clientName, or
                 ].map(({ label, value, highlight }) => (
                   <div key={label}>
                     <p className="text-xs text-gray-400 font-semibold uppercase tracking-wide">{label}</p>
-                    <p className={`text-sm mt-0.5 ${highlight ? "font-bold" : "text-gray-700"}`} style={highlight ? { color: G } : undefined}>{value}</p>
+                    <p className={`text-sm mt-0.5 ${highlight ? "font-bold" : "text-slate-500"}`} style={highlight ? { color: G } : undefined}>{value}</p>
                   </div>
                 ))}
               </div>
@@ -320,7 +320,7 @@ export default function ShippingTab({ referenceType, referenceId, clientName, or
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 overflow-y-auto">
           <div className={`${card} w-full max-w-lg my-6`}>
             <div className="p-6 border-b border-gray-100">
-              <h2 className="text-lg font-bold text-gray-900">{editing ? "Edit Shipping Details" : "Add Shipping Details"}</h2>
+              <h2 className="text-lg font-bold text-cyan-900">{editing ? "Edit Shipping Details" : "Add Shipping Details"}</h2>
             </div>
             <div className="p-6 space-y-4">
               {/* Vendor */}
@@ -363,8 +363,8 @@ export default function ShippingTab({ referenceType, referenceId, clientName, or
                 <div className="rounded-xl bg-[#C6AF4B]/8 border border-[#C6AF4B]/20 px-4 py-3">
                   <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Cost Calculation</p>
                   <div className="grid grid-cols-3 gap-3 text-sm">
-                    <div><p className="text-xs text-gray-400">Calculated</p><p className="font-medium text-gray-700">{fmt(calcAmount)}</p></div>
-                    <div><p className="text-xs text-gray-400">Override</p><p className="font-medium text-gray-700">{override > 0 ? fmt(override) : "—"}</p></div>
+                    <div><p className="text-xs text-gray-400">Calculated</p><p className="font-medium text-slate-500">{fmt(calcAmount)}</p></div>
+                    <div><p className="text-xs text-gray-400">Override</p><p className="font-medium text-slate-500">{override > 0 ? fmt(override) : "—"}</p></div>
                     <div><p className="text-xs text-gray-400">Final Amount</p><p className="font-bold" style={{ color: G }}>{fmt(finalAmount)}</p></div>
                   </div>
                   {minCharge > 0 && calcAmount === minCharge && <p className="text-xs text-amber-600 mt-1">Minimum charge of {fmt(minCharge)} applied</p>}

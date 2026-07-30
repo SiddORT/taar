@@ -91,7 +91,7 @@ export default function MasterTable({
                     </td>
                   )}
                   {columns.map((col) => (
-                    <td key={col.key} className={`px-4 py-3 align-middle text-gray-700 ${col.className ?? ""}`}>
+                    <td key={col.key} className={`px-4 py-3 align-middle text-slate-500 ${col.className ?? ""}`}>
                       {col.render ? col.render(row) : String(row[col.key] ?? "")}
                     </td>
                   ))}
@@ -109,7 +109,7 @@ export default function MasterTable({
           <select
             value={limit}
             onChange={(e) => { onLimitChange(Number(e.target.value)); onPageChange(1); }}
-            className="rounded-md border border-gray-300 bg-white px-2 py-1 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-900/10"
+            className="rounded-md border border-gray-300 bg-white px-2 py-1 text-sm text-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-900/10"
           >
             {[10, 25, 50].map((n) => (
               <option key={n} value={n}>{n}</option>
@@ -127,7 +127,7 @@ export default function MasterTable({
           <PageBtn onClick={() => onPageChange(page - 1)} disabled={page === 1} title="Previous page">
             <ChevronLeft className="h-4 w-4" />
           </PageBtn>
-          <span className="px-3 py-1.5 text-sm font-medium text-gray-700">
+          <span className="px-3 py-1.5 text-sm font-medium text-slate-500">
             {page} / {totalPages}
           </span>
           <PageBtn onClick={() => onPageChange(page + 1)} disabled={page >= totalPages} title="Next page">
@@ -158,7 +158,7 @@ function PageBtn({
       onClick={onClick}
       disabled={disabled}
       title={title}
-      className="p-1.5 rounded-md text-gray-500 hover:bg-gray-200 hover:text-gray-800 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+      className="p-1.5 rounded-md text-gray-500 hover:bg-gray-200 hover:text-cyan-900 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
     >
       {children}
     </button>

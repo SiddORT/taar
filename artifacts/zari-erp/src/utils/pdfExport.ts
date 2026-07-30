@@ -17,7 +17,7 @@ function addHeader(doc: jsPDF, title: string, subtitle: string) {
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(13);
   doc.setFont("helvetica", "bold");
-  doc.text("ZARI EMBROIDERIES", 14, 9);
+  doc.text("ERP", 14, 9);
   doc.setFontSize(8);
   doc.setFont("helvetica", "normal");
   doc.text(title, 14, 14);
@@ -410,7 +410,7 @@ function addFooter(doc: jsPDF) {
     doc.setFontSize(7);
     doc.setFont("helvetica", "normal");
     doc.setTextColor(160, 160, 160);
-    doc.text(`Page ${i} of ${pageCount}  ·  ZARI EMBROIDERIES  ·  Confidential`, 14, 290);
+    doc.text(`Page ${i} of ${pageCount}  ·  ERP  ·  Confidential`, 14, 290);
   }
 }
 
@@ -444,7 +444,7 @@ export function downloadBomPdf(data: BomPdfData) {
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(13);
   doc.setFont("helvetica", "bold");
-  doc.text("ZARI EMBROIDERIES", 14, 9);
+  doc.text("ERP", 14, 9);
   doc.setFontSize(8);
   doc.setFont("helvetica", "normal");
   doc.text("SAMPLING DOCUMENTATION", 14, 14);
@@ -637,7 +637,7 @@ export function downloadBomPdf(data: BomPdfData) {
     doc.setFont("helvetica", "normal");
     doc.setTextColor(160, 160, 160);
     doc.text(
-      `Page ${i} of ${pageCount}  ·  ZARI EMBROIDERIES  ·  Bill of Materials  ·  Confidential`,
+      `Page ${i} of ${pageCount}  ·  ERP  ·  Bill of Materials  ·  Confidential`,
       14, 290,
     );
   }
@@ -695,7 +695,7 @@ export function downloadCostingPoPdf(data: PoPdfData) {
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(15);
     doc.setFont("helvetica", "bold");
-    doc.text("ZARI EMBROIDERIES", 14, 11);
+    doc.text("ERP", 14, 11);
     doc.setFontSize(7.5);
     doc.setFont("helvetica", "normal");
     doc.setTextColor(255, 245, 210);
@@ -904,7 +904,7 @@ export function downloadCostingPoPdf(data: PoPdfData) {
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(13);
     doc.setFont("helvetica", "bold");
-    doc.text("ZARI EMBROIDERIES", 14, 9);
+    doc.text("ERP", 14, 9);
     doc.setFontSize(8);
     doc.setFont("helvetica", "normal");
     doc.text("PURCHASE ORDER", 14, 14);
@@ -924,7 +924,7 @@ export function downloadCostingPoPdf(data: PoPdfData) {
     doc.setFont("helvetica", "normal");
     doc.setTextColor(160, 160, 160);
     doc.text(
-      `Page ${i} of ${pageCount}  ·  ZARI EMBROIDERIES  ·  Purchase Order  ·  Confidential`,
+      `Page ${i} of ${pageCount}  ·  ERP  ·  Purchase Order  ·  Confidential`,
       14, 290,
     );
   }

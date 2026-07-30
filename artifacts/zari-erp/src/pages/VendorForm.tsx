@@ -63,7 +63,7 @@ type FormErrors = Partial<Record<string, string>>;
 
 const card = "bg-white rounded-2xl border border-gray-100 shadow-sm";
 const sectionLabel = "text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3";
-const inputCls = "w-full px-2.5 py-1.5 text-sm text-gray-900 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30";
+const inputCls = "w-full px-2.5 py-1.5 text-sm text-cyan-900 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30";
 
 export default function VendorForm() {
   const params = useParams<{ id: string }>();
@@ -303,12 +303,12 @@ export default function VendorForm() {
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <button onClick={() => setLocation("/masters/vendors")}
-              className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 transition-colors">
+              className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-cyan-900 transition-colors">
               <ArrowLeft className="h-4 w-4" />
               Vendors
             </button>
             <span className="text-gray-300">/</span>
-            <h1 className="text-lg font-bold text-gray-900">
+            <h1 className="text-lg font-bold text-cyan-900">
               {isNew ? "Add Vendor" : `Edit Vendor — ${existingVendor?.vendorCode ?? ""}`}
             </h1>
           </div>
@@ -388,12 +388,12 @@ export default function VendorForm() {
         <div className={`${card} p-5`}>
           <p className={sectionLabel}>GST Details</p>
           <div className="flex items-center gap-6">
-            <label className="text-sm font-medium text-gray-700">GST Registered?</label>
+            <label className="text-sm font-medium text-slate-500">GST Registered?</label>
             {["Yes", "No"].map(opt => (
-              <label key={opt} className="flex items-center gap-2 cursor-pointer text-sm text-gray-700">
+              <label key={opt} className="flex items-center gap-2 cursor-pointer text-sm text-slate-500">
                 <input type="radio" name="vendorHasGst" checked={form.hasGst === (opt === "Yes")}
                   onChange={() => setForm(f => ({ ...f, hasGst: opt === "Yes", gstNo: opt === "No" ? "" : f.gstNo }))}
-                  className="accent-gray-900 w-4 h-4" />
+                  className="accent-cyan-900 w-4 h-4" />
                 {opt}
               </label>
             ))}
@@ -522,7 +522,7 @@ export default function VendorForm() {
                         updateAddress(addr.id, { country: e.target.value, pincode: "", state: "", city: "" });
                         setPincodeAutoFilled(prev => ({ ...prev, [addr.id]: false }));
                       }}
-                      className={`${inputCls} text-gray-900`}>
+                      className={`${inputCls} text-cyan-900`}>
                       <option value="" className="text-gray-500">Select country</option>
                       {COUNTRY_NAMES.map(c => <option key={c} value={c}>{c}</option>)}
                     </select>
@@ -602,9 +602,9 @@ export default function VendorForm() {
         {/* Status + Save */}
         <div className={`${card} p-5 flex items-center justify-between`}>
           <div className="flex items-center gap-3">
-            <label className="text-sm font-medium text-gray-700">Status</label>
+            <label className="text-sm font-medium text-slate-500">Status</label>
             <button type="button" onClick={() => setForm(f => ({ ...f, isActive: !f.isActive }))}
-              className={`relative inline-flex h-5 w-9 shrink-0 rounded-full border-2 border-transparent transition-colors focus:outline-none ${form.isActive ? "bg-gray-900" : "bg-gray-300"}`}
+              className={`relative inline-flex h-5 w-9 shrink-0 rounded-full border-2 border-transparent transition-colors focus:outline-none ${form.isActive ? "bg-cyan-900" : "bg-gray-300"}`}
               role="switch" aria-checked={form.isActive}>
               <span className={`pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow transform transition-transform ${form.isActive ? "translate-x-4" : "translate-x-0"}`} />
             </button>

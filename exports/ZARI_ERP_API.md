@@ -1,6 +1,6 @@
-# ZARI ERP — API Reference
+# ERP — API Reference
 
-Auto-generated reference for the ZARI ERP backend. 436 endpoints across 45 modules.
+Auto-generated reference for the ERP backend. 436 endpoints across 45 modules.
 
 ## Authentication
 

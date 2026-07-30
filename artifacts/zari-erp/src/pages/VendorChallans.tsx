@@ -283,7 +283,7 @@ export default function VendorChallans() {
       <div className="bg-white border-b border-gray-200 px-6 py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
           <div>
-            <h1 className="text-xl font-bold text-gray-900">Vendor Challans</h1>
+            <h1 className="text-xl font-bold text-cyan-900">Vendor Challans</h1>
             <p className="text-sm text-gray-500 mt-0.5">Daily vendor challan entries before PO creation</p>
           </div>
           <div className="flex items-center gap-2">
@@ -306,30 +306,30 @@ export default function VendorChallans() {
           <div className="relative flex-1 min-w-48">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
             <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search challan, vendor, description…"
-              className="pl-9 pr-3 py-2 text-sm text-gray-900 border border-gray-200 rounded-xl w-full focus:outline-none focus:ring-2 focus:ring-gray-300 placeholder-gray-400" />
+              className="pl-9 pr-3 py-2 text-sm text-cyan-900 border border-gray-200 rounded-xl w-full focus:outline-none focus:ring-2 focus:ring-gray-300 placeholder-gray-400" />
           </div>
           <select value={vendorFilter} onChange={e => setVendorFilter(e.target.value)}
-            className="px-3 py-2 text-sm text-gray-900 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-300 min-w-36">
+            className="px-3 py-2 text-sm text-cyan-900 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-300 min-w-36">
             <option value="">All Vendors</option>
             {vendors.map(v => <option key={v.id} value={String(v.id)}>{v.brandName}</option>)}
           </select>
           <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)}
-            className="px-3 py-2 text-sm text-gray-900 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-300 min-w-36">
+            className="px-3 py-2 text-sm text-cyan-900 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-300 min-w-36">
             <option value="">All Types</option>
             {CHALLAN_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
           </select>
           <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
-            className="px-3 py-2 text-sm text-gray-900 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-300 min-w-36">
+            className="px-3 py-2 text-sm text-cyan-900 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-300 min-w-36">
             <option value="">All Statuses</option>
             {STATUS_FILTER_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
           </select>
           <div className="flex flex-col gap-1">
             <div className="flex items-center gap-2">
               <input type="date" value={dateFrom} max={dateTo || undefined} onChange={e => setDateFrom(e.target.value)}
-                className={`px-3 py-2 text-sm text-gray-900 border rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-300 ${dateRangeInvalid ? "border-red-400" : "border-gray-200"}`} />
+                className={`px-3 py-2 text-sm text-cyan-900 border rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-300 ${dateRangeInvalid ? "border-red-400" : "border-gray-200"}`} />
               <span className="text-gray-400 text-xs">to</span>
               <input type="date" value={dateTo} min={dateFrom || undefined} onChange={e => setDateTo(e.target.value)}
-                className={`px-3 py-2 text-sm text-gray-900 border rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-300 ${dateRangeInvalid ? "border-red-400" : "border-gray-200"}`} />
+                className={`px-3 py-2 text-sm text-cyan-900 border rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-300 ${dateRangeInvalid ? "border-red-400" : "border-gray-200"}`} />
             </div>
             {dateRangeInvalid && (
               <span className="text-xs text-red-600">"From" date must be on or before "To" date</span>
@@ -357,7 +357,7 @@ export default function VendorChallans() {
               <FileText className="h-10 w-10 text-gray-200" />
               <p className="text-sm">No challans found</p>
               <button onClick={() => setLocation("/procurement/vendor-challans/new")}
-                className="text-sm text-gray-700 underline">Create your first challan</button>
+                className="text-sm text-slate-500 underline">Create your first challan</button>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -371,7 +371,7 @@ export default function VendorChallans() {
                         checked={allPageSelected}
                         ref={el => { if (el) el.indeterminate = somePageSelected && !allPageSelected; }}
                         onChange={toggleSelectAll}
-                        className="h-4 w-4 rounded border-gray-300 accent-gray-800 cursor-pointer"
+                        className="h-4 w-4 rounded border-gray-300 accent-cyan-900 cursor-pointer"
                       />
                     </th>
                     <th className="px-3 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide w-12">Sr.</th>
@@ -394,7 +394,7 @@ export default function VendorChallans() {
                             disabled={ch.status !== "Verified"}
                             onChange={() => toggleRow(ch.id)}
                             title={ch.status !== "Verified" ? "Only Verified challans can be selected for conversion" : "Select challan"}
-                            className="h-4 w-4 rounded border-gray-300 accent-gray-800 cursor-pointer disabled:cursor-not-allowed disabled:opacity-40"
+                            className="h-4 w-4 rounded border-gray-300 accent-cyan-900 cursor-pointer disabled:cursor-not-allowed disabled:opacity-40"
                           />
                         </td>
                         {/* Sr. No. */}
@@ -403,17 +403,17 @@ export default function VendorChallans() {
                         </td>
                         <td className="px-4 py-3">
                           <button onClick={() => setLocation(`/procurement/vendor-challans/${ch.id}`)}
-                            className="font-mono text-xs font-semibold text-gray-900 hover:text-[#C9B45C] transition-colors">
+                            className="font-mono text-xs font-semibold text-cyan-900 hover:text-[#C9B45C] transition-colors">
                             {ch.challan_number}
                           </button>
                         </td>
                         <td className="px-4 py-3 text-xs text-gray-600 whitespace-nowrap">{ch.challan_date}</td>
-                        <td className="px-4 py-3 text-xs text-gray-700 max-w-32 truncate">{ch.vendor_name ?? "—"}</td>
+                        <td className="px-4 py-3 text-xs text-slate-500 max-w-32 truncate">{ch.vendor_name ?? "—"}</td>
                         <td className="px-4 py-3">
                           <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">{ch.challan_type}</span>
                         </td>
                         <td className="px-4 py-3 text-xs text-gray-600 max-w-48 truncate">{ch.description ?? "—"}</td>
-                        <td className="px-4 py-3 text-xs font-semibold text-gray-900 whitespace-nowrap">
+                        <td className="px-4 py-3 text-xs font-semibold text-cyan-900 whitespace-nowrap">
                           {ch.amount ? `${fmt(parseFloat(ch.amount))}` : "—"}
                         </td>
                         <td className="px-4 py-3">
@@ -498,7 +498,7 @@ export default function VendorChallans() {
       {/* ── Sticky Selection Action Bar ─────────────────────────────────────── */}
       {selectedIds.size > 0 && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40">
-          <div className="flex items-center gap-4 bg-gray-900 text-white rounded-2xl shadow-2xl px-5 py-3 text-sm">
+          <div className="flex items-center gap-4 bg-cyan-900 text-white rounded-2xl shadow-2xl px-5 py-3 text-sm">
             <span className="font-medium">
               {selectedIds.size} challan{selectedIds.size !== 1 ? "s" : ""} selected
               {selectedTotal > 0 && (
@@ -528,7 +528,7 @@ export default function VendorChallans() {
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xl max-h-[85vh] flex flex-col">
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
               <div>
-                <h2 className="text-base font-bold text-gray-900">Convert to Purchase Order</h2>
+                <h2 className="text-base font-bold text-cyan-900">Convert to Purchase Order</h2>
                 <p className="text-xs text-gray-500 mt-0.5">{selectedIds.size} challan{selectedIds.size !== 1 ? "s" : ""} selected for conversion</p>
               </div>
               <button onClick={closeBulkConvert} className="p-2 rounded-xl text-gray-400 hover:bg-gray-100">
@@ -559,14 +559,14 @@ export default function VendorChallans() {
                       <tbody className="divide-y divide-gray-50">
                         {selectedChallans.map(c => (
                           <tr key={c.id}>
-                            <td className="px-3 py-2 font-mono font-semibold text-gray-900">{c.challan_number}</td>
+                            <td className="px-3 py-2 font-mono font-semibold text-cyan-900">{c.challan_number}</td>
                             <td className="px-3 py-2 text-gray-600 max-w-32 truncate">{c.vendor_name ?? "—"}</td>
                             <td className="px-3 py-2">
                               <span className={`inline-block px-1.5 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[c.status] ?? "bg-gray-100 text-gray-600"}`}>
                                 {c.status}
                               </span>
                             </td>
-                            <td className="px-3 py-2 font-semibold text-gray-900 text-right">
+                            <td className="px-3 py-2 font-semibold text-cyan-900 text-right">
                               {c.amount ? `${fmt(parseFloat(c.amount))}` : "—"}
                             </td>
                           </tr>
@@ -574,8 +574,8 @@ export default function VendorChallans() {
                       </tbody>
                       <tfoot className="bg-gray-50 border-t border-gray-100">
                         <tr>
-                          <td colSpan={3} className="px-3 py-2 text-xs font-bold text-gray-700 text-right">Total</td>
-                          <td className="px-3 py-2 text-xs font-bold text-gray-900 text-right">
+                          <td colSpan={3} className="px-3 py-2 text-xs font-bold text-slate-500 text-right">Total</td>
+                          <td className="px-3 py-2 text-xs font-bold text-cyan-900 text-right">
                             {fmt(selectedTotal)}
                           </td>
                         </tr>
@@ -609,7 +609,7 @@ export default function VendorChallans() {
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
               <div>
-                <h2 className="text-base font-bold text-gray-900">Convert Challans to PO</h2>
+                <h2 className="text-base font-bold text-cyan-900">Convert Challans to PO</h2>
                 <p className="text-xs text-gray-500 mt-0.5">Consolidate Verified challans into a Purchase Order</p>
               </div>
               <button onClick={resetConvert} className="p-2 rounded-xl text-gray-400 hover:bg-gray-100">
@@ -622,7 +622,7 @@ export default function VendorChallans() {
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1.5">Vendor *</label>
                   <select value={cvVendorId} onChange={e => { setCvVendorId(e.target.value); setCvPreview([]); setCvSuccess(""); }}
-                    className="w-full px-3 py-2 text-sm text-gray-900 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-300">
+                    className="w-full px-3 py-2 text-sm text-cyan-900 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-300">
                     <option value="">— Select vendor —</option>
                     {vendors.map(v => <option key={v.id} value={String(v.id)}>{v.brandName}</option>)}
                   </select>
@@ -630,7 +630,7 @@ export default function VendorChallans() {
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1.5">Challan Type *</label>
                   <select value={cvType} onChange={e => { setCvType(e.target.value); setCvPreview([]); setCvSuccess(""); }}
-                    className="w-full px-3 py-2 text-sm text-gray-900 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-300">
+                    className="w-full px-3 py-2 text-sm text-cyan-900 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-300">
                     <option value="">— Select type —</option>
                     {CHALLAN_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
                   </select>
@@ -638,14 +638,14 @@ export default function VendorChallans() {
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1.5">Duration Period</label>
                   <select value={cvDuration} onChange={e => { setCvDuration(parseInt(e.target.value, 10)); setCvPreview([]); setCvSuccess(""); }}
-                    className="w-full px-3 py-2 text-sm text-gray-900 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-300">
+                    className="w-full px-3 py-2 text-sm text-cyan-900 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-300">
                     {DURATION_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                   </select>
                 </div>
               </div>
 
               <button onClick={handlePreviewPO} disabled={cvPreviewing || !cvVendorId || !cvType}
-                className="w-full py-2 rounded-xl text-sm font-medium border border-gray-200 text-gray-700 hover:bg-gray-50 disabled:opacity-40 transition-colors flex items-center justify-center gap-2">
+                className="w-full py-2 rounded-xl text-sm font-medium border border-gray-200 text-slate-500 hover:bg-gray-50 disabled:opacity-40 transition-colors flex items-center justify-center gap-2">
                 {cvPreviewing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
                 {cvPreviewing ? "Fetching…" : "Fetch Eligible Challans"}
               </button>
@@ -670,12 +670,12 @@ export default function VendorChallans() {
                       <tbody className="divide-y divide-gray-50">
                         {cvPreview.map((c: any) => (
                           <tr key={c.id}>
-                            <td className="px-3 py-2 font-mono font-semibold text-gray-900">{c.challan_number}</td>
+                            <td className="px-3 py-2 font-mono font-semibold text-cyan-900">{c.challan_number}</td>
                             <td className="px-3 py-2 text-gray-600">{c.challan_date}</td>
                             <td className="px-3 py-2 text-gray-600 max-w-40 truncate">{c.description ?? "—"}</td>
                             <td className="px-3 py-2 text-gray-600">{c.quantity ?? "—"}</td>
                             <td className="px-3 py-2 text-gray-600">{c.rate ?? "—"}</td>
-                            <td className="px-3 py-2 font-semibold text-gray-900">
+                            <td className="px-3 py-2 font-semibold text-cyan-900">
                               {c.amount ? `${fmt(parseFloat(c.amount))}` : "—"}
                             </td>
                           </tr>
@@ -683,8 +683,8 @@ export default function VendorChallans() {
                       </tbody>
                       <tfoot className="bg-gray-50 border-t border-gray-100">
                         <tr>
-                          <td colSpan={5} className="px-3 py-2 text-xs font-bold text-gray-700 text-right">Total</td>
-                          <td className="px-3 py-2 text-xs font-bold text-gray-900">
+                          <td colSpan={5} className="px-3 py-2 text-xs font-bold text-slate-500 text-right">Total</td>
+                          <td className="px-3 py-2 text-xs font-bold text-cyan-900">
                             {fmt(cvPreview.reduce((s, c: any) => s + parseFloat(c.amount ?? "0"), 0))}
                           </td>
                         </tr>
@@ -715,7 +715,7 @@ export default function VendorChallans() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm">
             <div className="px-6 py-4 border-b border-gray-100">
-              <h3 className="text-base font-semibold text-gray-900">Cancel Challan</h3>
+              <h3 className="text-base font-semibold text-cyan-900">Cancel Challan</h3>
             </div>
             <div className="px-6 py-5 text-sm text-gray-600">
               Are you sure you want to cancel this challan? This action cannot be undone.

@@ -119,8 +119,8 @@ export default function ShippingList() {
   const fmtDate = (d: string | null) => d ? new Date(d).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—";
 
   const card = "rounded-2xl bg-white border border-[#C6AF4B]/15 shadow-[0_2px_16px_rgba(198,175,75,0.12),0_1px_3px_rgba(0,0,0,0.06)]";
-  const sel = "rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:outline-none focus:border-[#C6AF4B] bg-white";
-  const inp = "rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:outline-none focus:border-[#C6AF4B] bg-white";
+  const sel = "rounded-xl border border-gray-200 px-3 py-2 text-sm text-slate-500 focus:outline-none focus:border-[#C6AF4B] bg-white";
+  const inp = "rounded-xl border border-gray-200 px-3 py-2 text-sm text-slate-500 focus:outline-none focus:border-[#C6AF4B] bg-white";
 
   const totalPages = Math.ceil(total / LIMIT);
   const startIdx = (page - 1) * LIMIT;
@@ -134,7 +134,7 @@ export default function ShippingList() {
             <Truck size={20} style={{ color: G }} />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Shipments</h1>
+            <h1 className="text-2xl font-bold text-cyan-900">Shipments</h1>
             <p className="text-sm text-gray-500">Track all outbound shipments across Swatch and Style orders</p>
           </div>
           <span className="ml-auto text-sm text-gray-400">{total} total</span>
@@ -202,20 +202,20 @@ export default function ShippingList() {
                     <td className="px-4 py-3">
                       <span className={`px-2 py-0.5 rounded-full text-xs font-semibold border ${r.reference_type === "Swatch" ? "bg-violet-50 text-violet-700 border-violet-200" : "bg-sky-50 text-sky-700 border-sky-200"}`}>{r.reference_type}</span>
                     </td>
-                    <td className="px-4 py-3 font-medium text-gray-900">{r.order_code || `#${r.reference_id}`}</td>
-                    <td className="px-4 py-3 text-gray-700 max-w-[120px] truncate">{r.client_name || "—"}</td>
-                    <td className="px-4 py-3 text-gray-700 whitespace-nowrap">{r.vendor_name || "—"}</td>
+                    <td className="px-4 py-3 font-medium text-cyan-900">{r.order_code || `#${r.reference_id}`}</td>
+                    <td className="px-4 py-3 text-slate-500 max-w-[120px] truncate">{r.client_name || "—"}</td>
+                    <td className="px-4 py-3 text-slate-500 whitespace-nowrap">{r.vendor_name || "—"}</td>
                     <td className="px-4 py-3">
                       {r.tracking_number ? (
                         r.tracking_url ? (
                           <a href={r.tracking_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-blue-600 hover:underline font-mono text-xs">
                             {r.tracking_number} <ExternalLink size={10} />
                           </a>
-                        ) : <span className="font-mono text-xs text-gray-700">{r.tracking_number}</span>
+                        ) : <span className="font-mono text-xs text-slate-500">{r.tracking_number}</span>
                       ) : "—"}
                     </td>
-                    <td className="px-4 py-3 text-gray-700">{parseFloat(r.shipment_weight).toFixed(3)} kg</td>
-                    <td className="px-4 py-3 font-semibold text-gray-900">{fmt(r.final_shipping_amount)}</td>
+                    <td className="px-4 py-3 text-slate-500">{parseFloat(r.shipment_weight).toFixed(3)} kg</td>
+                    <td className="px-4 py-3 font-semibold text-cyan-900">{fmt(r.final_shipping_amount)}</td>
                     <td className="px-4 py-3">
                       <span className={`px-2.5 py-1 rounded-full text-xs font-semibold border ${STATUS_COLORS[r.shipment_status] ?? "bg-gray-50 text-gray-500 border-gray-200"}`}>{r.shipment_status}</span>
                     </td>
@@ -228,7 +228,7 @@ export default function ShippingList() {
                           value={r.shipment_status}
                           disabled={updatingId === r.id}
                           onChange={e => handleStatusChange(r.id, e.target.value)}
-                          className="appearance-none pr-7 pl-3 py-1.5 rounded-lg border border-gray-200 text-xs text-gray-700 bg-white focus:outline-none focus:border-[#C6AF4B] disabled:opacity-50 cursor-pointer"
+                          className="appearance-none pr-7 pl-3 py-1.5 rounded-lg border border-gray-200 text-xs text-slate-500 bg-white focus:outline-none focus:border-[#C6AF4B] disabled:opacity-50 cursor-pointer"
                         >
                           {STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
                         </select>

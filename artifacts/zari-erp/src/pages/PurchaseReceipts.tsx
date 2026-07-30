@@ -14,11 +14,11 @@ import { useToast } from "@/hooks/use-toast";
 const G     = "#C6AF4B";
 const G_DIM = "#A8943E";
 const card  = "rounded-2xl bg-white border border-[#C6AF4B]/15 shadow-[0_2px_16px_rgba(198,175,75,0.12),0_1px_3px_rgba(0,0,0,0.06)]";
-const thCls = "px-3 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wide whitespace-nowrap";
-const tdCls = "px-3 py-3 text-sm text-gray-900";
+const thCls = "px-3 py-3 text-left text-xs font-semibold text-cyan-900 uppercase tracking-wide whitespace-nowrap";
+const tdCls = "px-3 py-3 text-sm text-cyan-900";
 
 const STATUS_MAP: Record<string, { label: string; color: string; Icon: React.ElementType }> = {
-  Open:      { label: "OPEN",      color: "bg-gray-100 text-gray-700",   Icon: Clock },
+  Open:      { label: "OPEN",      color: "bg-gray-100 text-slate-500",   Icon: Clock },
   Received:  { label: "RECEIVED",  color: "bg-green-100 text-green-700", Icon: CheckCircle2 },
   Cancelled: { label: "CANCELLED", color: "bg-red-100 text-red-700",     Icon: XCircle },
 };
@@ -212,9 +212,9 @@ export default function PurchaseReceipts() {
           <div>
             <div className="flex items-center gap-2">
               <PackageCheck className="h-5 w-5" style={{ color: G }} />
-              <h1 className="text-xl font-bold text-gray-900">Purchase Receipts</h1>
+              <h1 className="text-xl font-bold text-cyan-900">Purchase Receipts</h1>
             </div>
-            <p className="text-sm text-gray-700 mt-0.5">All receipts from approved purchase orders</p>
+            <p className="text-sm text-slate-500 mt-0.5">All receipts from approved purchase orders</p>
           </div>
           <button
             onClick={() => navigate("/procurement/purchase-receipts/new")}
@@ -231,11 +231,11 @@ export default function PurchaseReceipts() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
               <input type="text" placeholder="Search PR number or vendor…" value={search}
                 onChange={e => { setSearch(e.target.value); setPage(1); }}
-                className="w-full pl-8 pr-3 py-2 text-sm text-gray-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30" />
+                className="w-full pl-8 pr-3 py-2 text-sm text-cyan-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30" />
             </div>
             <div className="relative">
               <select value={poNumber} onChange={e => { setPoNumber(e.target.value); setPage(1); }}
-                className="appearance-none pl-3 pr-8 py-2 text-sm text-gray-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30 bg-white min-w-[200px]">
+                className="appearance-none pl-3 pr-8 py-2 text-sm text-cyan-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30 bg-white min-w-[200px]">
                 <option value="">All PO Numbers</option>
                 {poNumbers.map(pn => (
                   <option key={pn} value={pn}>{pn}</option>
@@ -246,7 +246,7 @@ export default function PurchaseReceipts() {
 
             <div className="relative">
               <select value={status} onChange={e => { setStatus(e.target.value); setPage(1); }}
-                className="appearance-none pl-3 pr-8 py-2 text-sm text-gray-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30 bg-white min-w-[140px]">
+                className="appearance-none pl-3 pr-8 py-2 text-sm text-cyan-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30 bg-white min-w-[140px]">
                 <option value="all">All Status</option>
                 <option value="Open">Open</option>
                 <option value="Received">Received</option>
@@ -257,7 +257,7 @@ export default function PurchaseReceipts() {
 
             <div className="relative">
               <select value={referenceType} onChange={e => { setReferenceType(e.target.value); setPage(1); }}
-                className="appearance-none pl-3 pr-8 py-2 text-sm text-gray-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30 bg-white min-w-[130px]">
+                className="appearance-none pl-3 pr-8 py-2 text-sm text-cyan-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30 bg-white min-w-[130px]">
                 <option value="all">All Sources</option>
                 <option value="Inventory">Inventory</option>
                 <option value="Swatch">Swatch</option>
@@ -278,7 +278,7 @@ export default function PurchaseReceipts() {
                   }
                   setFromDate(v); setPage(1);
                 }}
-                className="text-xs text-gray-900 border-0 outline-none bg-transparent w-[110px]" />
+                className="text-xs text-cyan-900 border-0 outline-none bg-transparent w-[110px]" />
               <span className="text-gray-300 text-xs">—</span>
               <input type="date" value={toDate} min={fromDate || undefined}
                 onChange={e => {
@@ -289,12 +289,12 @@ export default function PurchaseReceipts() {
                   }
                   setToDate(v); setPage(1);
                 }}
-                className="text-xs text-gray-900 border-0 outline-none bg-transparent w-[110px]" />
+                className="text-xs text-cyan-900 border-0 outline-none bg-transparent w-[110px]" />
             </div>
 
             <div className="relative ml-auto">
               <select value={sort} onChange={e => setSort(e.target.value)}
-                className="appearance-none pl-3 pr-8 py-2 text-sm text-gray-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30 bg-white">
+                className="appearance-none pl-3 pr-8 py-2 text-sm text-cyan-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30 bg-white">
                 <option value="newest">Newest First</option>
                 <option value="oldest">Oldest First</option>
               </select>
@@ -303,7 +303,7 @@ export default function PurchaseReceipts() {
 
             {(search || poNumber || status !== "all" || referenceType !== "all" || fromDate || toDate) && (
               <button onClick={() => { setSearch(""); setPoNumber(""); setStatus("all"); setReferenceType("all"); setFromDate(""); setToDate(""); setPage(1); }}
-                className="flex items-center gap-1 text-xs text-gray-700 px-3 py-2 rounded-xl border border-gray-200 hover:bg-gray-50">
+                className="flex items-center gap-1 text-xs text-slate-500 px-3 py-2 rounded-xl border border-gray-200 hover:bg-gray-50">
                 <X className="h-3.5 w-3.5" /> Clear
               </button>
             )}
@@ -334,13 +334,13 @@ export default function PurchaseReceipts() {
                   <tr><td colSpan={11} className="px-4 py-12 text-center">
                     <div className="flex flex-col items-center gap-2">
                       <div className="h-8 w-8 rounded-full border-2 border-[#C6AF4B] border-t-transparent animate-spin" />
-                      <span className="text-sm text-gray-700">Loading…</span>
+                      <span className="text-sm text-slate-500">Loading…</span>
                     </div>
                   </td></tr>
                 ) : rows.length === 0 ? (
                   <tr><td colSpan={11} className="px-4 py-16 text-center">
                     <FileText className="h-10 w-10 text-gray-300 mx-auto mb-2" />
-                    <p className="text-sm text-gray-700 font-medium">No purchase receipts found</p>
+                    <p className="text-sm text-slate-500 font-medium">No purchase receipts found</p>
                     <p className="text-xs text-gray-400 mt-1">Create a receipt from an approved purchase order</p>
                   </td></tr>
                 ) : rows.map((pr, idx) => {
@@ -369,7 +369,7 @@ export default function PurchaseReceipts() {
                       </td>
                       <td className={tdCls}><span className="text-xs">{pr.vendor_name}</span></td>
                       <td className={tdCls}>
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-gray-100 text-gray-700">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-gray-100 text-slate-500">
                           {pr.item_count} item{pr.item_count !== 1 ? "s" : ""}
                         </span>
                       </td>
@@ -388,7 +388,7 @@ export default function PurchaseReceipts() {
                       <td className={tdCls}>
                         <div className="flex items-center gap-1">
                           <button onClick={() => navigate(`/procurement/purchase-receipts/${pr.id}`)}
-                            className="flex items-center gap-1 text-xs px-2 py-1.5 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-100 transition-colors">
+                            className="flex items-center gap-1 text-xs px-2 py-1.5 rounded-lg border border-gray-200 text-slate-500 hover:bg-gray-100 transition-colors">
                             <Eye className="h-3 w-3" /> View
                           </button>
                           {pr.status !== "Cancelled" && (
@@ -414,19 +414,19 @@ export default function PurchaseReceipts() {
 
           {total > limit && (
             <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200">
-              <span className="text-xs text-gray-700">
+              <span className="text-xs text-slate-500">
                 Showing {(page-1)*limit+1}–{Math.min(page*limit,total)} of {total}
               </span>
               <div className="flex items-center gap-1">
                 <button onClick={() => setPage(p => Math.max(1, p-1))} disabled={page===1}
                   className="p-1.5 rounded-lg hover:bg-gray-100 disabled:opacity-40">
-                  <ChevronLeft className="h-4 w-4 text-gray-700" />
+                  <ChevronLeft className="h-4 w-4 text-slate-500" />
                 </button>
                 {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                   const pg = Math.max(1, Math.min(totalPages-4, page-2)) + i;
                   return (
                     <button key={pg} onClick={() => setPage(pg)}
-                      className={`min-w-[32px] h-8 rounded-lg text-xs font-medium transition-colors ${pg===page ? "text-white" : "text-gray-700 hover:bg-gray-100"}`}
+                      className={`min-w-[32px] h-8 rounded-lg text-xs font-medium transition-colors ${pg===page ? "text-white" : "text-slate-500 hover:bg-gray-100"}`}
                       style={pg===page ? { background: G } : {}}>
                       {pg}
                     </button>
@@ -434,7 +434,7 @@ export default function PurchaseReceipts() {
                 })}
                 <button onClick={() => setPage(p => Math.min(totalPages, p+1))} disabled={page===totalPages}
                   className="p-1.5 rounded-lg hover:bg-gray-100 disabled:opacity-40">
-                  <ChevronRight className="h-4 w-4 text-gray-700" />
+                  <ChevronRight className="h-4 w-4 text-slate-500" />
                 </button>
               </div>
             </div>
@@ -454,7 +454,7 @@ export default function PurchaseReceipts() {
             <div className="flex items-start gap-3 mb-4">
               <div className="p-2 bg-orange-100 rounded-lg flex-shrink-0"><AlertTriangle className="h-5 w-5 text-orange-600" /></div>
               <div>
-                <h3 className="text-sm font-bold text-gray-900">Cancel Purchase Receipt?</h3>
+                <h3 className="text-sm font-bold text-cyan-900">Cancel Purchase Receipt?</h3>
                 <p className="text-xs text-gray-500 mt-1">
                   Cancel <span className="font-semibold">{cancelConfirm.pr_number}</span>?
                   {cancelConfirm.status === "Received" && " This will reverse all inventory changes made by this receipt."}
@@ -463,7 +463,7 @@ export default function PurchaseReceipts() {
             </div>
             <div className="flex gap-2 justify-end">
               <button onClick={() => setCancelConfirm(null)} disabled={actioning}
-                className="px-4 py-2 rounded-xl text-sm font-medium text-gray-700 border border-gray-200 hover:bg-gray-50">No</button>
+                className="px-4 py-2 rounded-xl text-sm font-medium text-slate-500 border border-gray-200 hover:bg-gray-50">No</button>
               <button onClick={() => handleCancel(cancelConfirm)} disabled={actioning}
                 className="px-4 py-2 rounded-xl text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 disabled:opacity-50">
                 {actioning ? "Cancelling…" : "Yes, Cancel"}
@@ -480,7 +480,7 @@ export default function PurchaseReceipts() {
             <div className="flex items-start gap-3 mb-4">
               <div className="p-2 bg-red-100 rounded-lg flex-shrink-0"><AlertTriangle className="h-5 w-5 text-red-600" /></div>
               <div>
-                <h3 className="text-sm font-bold text-gray-900">Delete Purchase Receipt?</h3>
+                <h3 className="text-sm font-bold text-cyan-900">Delete Purchase Receipt?</h3>
                 <p className="text-xs text-gray-500 mt-1">
                   Permanently delete <span className="font-semibold">{deleteConfirm.pr_number}</span>?
                   {deleteConfirm.status === "Received" && " Inventory changes will be reversed."}
@@ -489,7 +489,7 @@ export default function PurchaseReceipts() {
             </div>
             <div className="flex gap-2 justify-end">
               <button onClick={() => setDeleteConfirm(null)} disabled={actioning}
-                className="px-4 py-2 rounded-xl text-sm font-medium text-gray-700 border border-gray-200 hover:bg-gray-50">Cancel</button>
+                className="px-4 py-2 rounded-xl text-sm font-medium text-slate-500 border border-gray-200 hover:bg-gray-50">Cancel</button>
               <button onClick={() => handleDelete(deleteConfirm)} disabled={actioning}
                 className="px-4 py-2 rounded-xl text-sm font-semibold text-white bg-red-600 hover:bg-red-700 disabled:opacity-50">
                 {actioning ? "Deleting…" : "Delete"}

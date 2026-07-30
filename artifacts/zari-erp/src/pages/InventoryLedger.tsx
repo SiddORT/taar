@@ -13,8 +13,8 @@ import { useToast } from "@/hooks/use-toast";
 const G     = "#C6AF4B";
 const G_DIM = "#A8943E";
 const card  = "rounded-2xl bg-white border border-[#C6AF4B]/15 shadow-[0_2px_16px_rgba(198,175,75,0.12),0_1px_3px_rgba(0,0,0,0.06)]";
-const thCls = "px-3 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wide whitespace-nowrap";
-const tdCls = "px-3 py-3 text-sm text-gray-900";
+const thCls = "px-3 py-3 text-left text-xs font-semibold text-cyan-900 uppercase tracking-wide whitespace-nowrap";
+const tdCls = "px-3 py-3 text-sm text-cyan-900";
 
 const TX_TYPES: Record<string, { label: string; color: string }> = {
   opening_stock:          { label: "Opening Stock",          color: "bg-blue-100 text-blue-800" },
@@ -284,9 +284,9 @@ export default function InventoryLedger() {
           <div>
             <div className="flex items-center gap-2">
               <BookOpen className="h-5 w-5" style={{ color: G }} />
-              <h1 className="text-xl font-bold text-gray-900">Stock Ledger</h1>
+              <h1 className="text-xl font-bold text-cyan-900">Stock Ledger</h1>
             </div>
-            <p className="text-sm text-gray-700 mt-0.5">Complete movement history for all inventory items</p>
+            <p className="text-sm text-slate-500 mt-0.5">Complete movement history for all inventory items</p>
           </div>
           {isAdmin && (
             <button
@@ -310,7 +310,7 @@ export default function InventoryLedger() {
                 value={itemSearch}
                 onFocus={() => setItemDropOpen(true)}
                 onChange={e => { setItemSearch(e.target.value); setItemDropOpen(true); }}
-                className="w-full pl-8 pr-3 py-2 text-sm text-gray-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30"
+                className="w-full pl-8 pr-3 py-2 text-sm text-cyan-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30"
               />
               {selectedItem && (
                 <button onClick={() => { setSelectedItem(null); setItemFilter(""); setItemSearch(""); setPage(1); }}
@@ -327,7 +327,7 @@ export default function InventoryLedger() {
                       setItemSearch(it.item_name);
                       setItemDropOpen(false);
                       setPage(1);
-                    }} className="w-full text-left px-3 py-2 text-sm text-gray-900 hover:bg-[#C6AF4B]/10 border-b border-gray-50 last:border-0">
+                    }} className="w-full text-left px-3 py-2 text-sm text-cyan-900 hover:bg-[#C6AF4B]/10 border-b border-gray-50 last:border-0">
                       <span className="font-medium">{it.item_name}</span>
                       <span className="text-xs text-gray-500 ml-2">{it.item_code}</span>
                     </button>
@@ -341,13 +341,13 @@ export default function InventoryLedger() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
               <input type="text" placeholder="Search item name…" value={search}
                 onChange={e => { setSearch(e.target.value); setPage(1); }}
-                className="w-full pl-8 pr-3 py-2 text-sm text-gray-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30" />
+                className="w-full pl-8 pr-3 py-2 text-sm text-cyan-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30" />
             </div>
 
             {/* Transaction type */}
             <div className="relative">
               <select value={txType} onChange={e => { setTxType(e.target.value); setPage(1); }}
-                className="appearance-none pl-3 pr-8 py-2 text-sm text-gray-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30 bg-white min-w-[180px]">
+                className="appearance-none pl-3 pr-8 py-2 text-sm text-cyan-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30 bg-white min-w-[180px]">
                 <option value="all">All Transaction Types</option>
                 {Object.entries(TX_TYPES).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
               </select>
@@ -357,7 +357,7 @@ export default function InventoryLedger() {
             {/* Reference type */}
             <div className="relative">
               <select value={refType} onChange={e => { setRefType(e.target.value); setPage(1); }}
-                className="appearance-none pl-3 pr-8 py-2 text-sm text-gray-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30 bg-white min-w-[160px]">
+                className="appearance-none pl-3 pr-8 py-2 text-sm text-cyan-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30 bg-white min-w-[160px]">
                 <option value="all">All Reference Types</option>
                 {REF_TYPES.map(r => <option key={r} value={r}>{r.replace("_", " ").replace(/\b\w/g, c => c.toUpperCase())}</option>)}
               </select>
@@ -368,16 +368,16 @@ export default function InventoryLedger() {
             <div className="flex items-center gap-1 border border-gray-200 rounded-xl px-2 py-1 bg-white">
               <CalendarRange className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
               <input type="date" value={fromDate} onChange={e => { setFromDate(e.target.value); setPage(1); }}
-                className="text-xs text-gray-900 border-0 outline-none bg-transparent w-[120px]" />
+                className="text-xs text-cyan-900 border-0 outline-none bg-transparent w-[120px]" />
               <span className="text-gray-300 text-xs">—</span>
               <input type="date" value={toDate} onChange={e => { setToDate(e.target.value); setPage(1); }}
-                className="text-xs text-gray-900 border-0 outline-none bg-transparent w-[120px]" />
+                className="text-xs text-cyan-900 border-0 outline-none bg-transparent w-[120px]" />
             </div>
 
             {/* Sort */}
             <div className="relative ml-auto">
               <select value={sortMode} onChange={e => { setSortMode(e.target.value); setPage(1); }}
-                className="appearance-none pl-3 pr-8 py-2 text-sm text-gray-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30 bg-white">
+                className="appearance-none pl-3 pr-8 py-2 text-sm text-cyan-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30 bg-white">
                 {SORT_OPTS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
               <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400 pointer-events-none" />
@@ -386,7 +386,7 @@ export default function InventoryLedger() {
             {/* Clear */}
             {(search || txType !== "all" || refType !== "all" || fromDate || toDate || itemFilter) && (
               <button onClick={() => { setSearch(""); setTxType("all"); setRefType("all"); setFromDate(""); setToDate(""); setItemFilter(""); setItemSearch(""); setSelectedItem(null); setPage(1); }}
-                className="flex items-center gap-1 text-xs text-gray-700 px-3 py-2 rounded-xl border border-gray-200 hover:bg-gray-50">
+                className="flex items-center gap-1 text-xs text-slate-500 px-3 py-2 rounded-xl border border-gray-200 hover:bg-gray-50">
                 <X className="h-3.5 w-3.5" /> Clear
               </button>
             )}
@@ -419,7 +419,7 @@ export default function InventoryLedger() {
                     <td colSpan={isAdmin ? 12 : 11} className="px-4 py-12 text-center">
                       <div className="flex flex-col items-center gap-2">
                         <div className="h-8 w-8 rounded-full border-2 border-[#C6AF4B] border-t-transparent animate-spin" />
-                        <span className="text-sm text-gray-700">Loading ledger…</span>
+                        <span className="text-sm text-slate-500">Loading ledger…</span>
                       </div>
                     </td>
                   </tr>
@@ -427,12 +427,12 @@ export default function InventoryLedger() {
                   <tr>
                     <td colSpan={isAdmin ? 12 : 11} className="px-4 py-16 text-center">
                       <BookOpen className="h-10 w-10 text-gray-300 mx-auto mb-2" />
-                      <p className="text-sm text-gray-700 font-medium">No ledger entries found</p>
+                      <p className="text-sm text-slate-500 font-medium">No ledger entries found</p>
                       <p className="text-xs text-gray-400 mt-1">Stock movements will appear here as they are recorded</p>
                     </td>
                   </tr>
                 ) : rows.map((row, idx) => {
-                  const tx = TX_TYPES[row.transaction_type] ?? { label: row.transaction_type, color: "bg-gray-100 text-gray-800" };
+                  const tx = TX_TYPES[row.transaction_type] ?? { label: row.transaction_type, color: "bg-gray-100 text-cyan-900" };
                   const inQ  = parseFloat(row.in_quantity);
                   const outQ = parseFloat(row.out_quantity);
                   return (
@@ -441,11 +441,11 @@ export default function InventoryLedger() {
                         <span className="text-xs text-gray-400">{(page - 1) * limit + idx + 1}</span>
                       </td>
                       <td className={tdCls}>
-                        <div className="text-xs font-medium text-gray-900">{fmtDate(row.created_at)}</div>
+                        <div className="text-xs font-medium text-cyan-900">{fmtDate(row.created_at)}</div>
                         <div className="text-[11px] text-gray-400">{fmtTime(row.created_at)}</div>
                       </td>
                       <td className={tdCls}>
-                        <span className="font-medium text-gray-900 text-xs">{row.item_name}</span>
+                        <span className="font-medium text-cyan-900 text-xs">{row.item_name}</span>
                       </td>
                       <td className={tdCls}>
                         <span className="text-xs text-gray-500 font-mono">{row.item_code}</span>
@@ -468,7 +468,7 @@ export default function InventoryLedger() {
                           </div>
                         ) : row.reference_number ? (
                           <div>
-                            <div className="text-xs text-gray-700 font-mono">{row.reference_number}</div>
+                            <div className="text-xs text-slate-500 font-mono">{row.reference_number}</div>
                             {row.reference_type && (
                               <div className="text-[11px] text-gray-400 capitalize">{row.reference_type.replace(/_/g, " ")}</div>
                             )}
@@ -492,7 +492,7 @@ export default function InventoryLedger() {
                         )}
                       </td>
                       <td className={`${tdCls} text-right`}>
-                        <span className="text-xs font-bold text-gray-900">{fmt3(row.balance_quantity)}</span>
+                        <span className="text-xs font-bold text-cyan-900">{fmt3(row.balance_quantity)}</span>
                         {row.unit_type && <span className="text-[10px] text-gray-400 ml-0.5">{row.unit_type}</span>}
                       </td>
                       <td className={tdCls}>
@@ -530,19 +530,19 @@ export default function InventoryLedger() {
           {/* Pagination */}
           {total > limit && (
             <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200">
-              <span className="text-xs text-gray-700">
+              <span className="text-xs text-slate-500">
                 Showing {((page - 1) * limit) + 1}–{Math.min(page * limit, total)} of {total} entries
               </span>
               <div className="flex items-center gap-1">
                 <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
                   className="p-1.5 rounded-lg hover:bg-gray-100 disabled:opacity-40 transition-colors">
-                  <ChevronLeft className="h-4 w-4 text-gray-700" />
+                  <ChevronLeft className="h-4 w-4 text-slate-500" />
                 </button>
                 {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                   const pg = Math.max(1, Math.min(totalPages - 4, page - 2)) + i;
                   return (
                     <button key={pg} onClick={() => setPage(pg)}
-                      className={`min-w-[32px] h-8 rounded-lg text-xs font-medium transition-colors ${pg === page ? "text-white" : "text-gray-700 hover:bg-gray-100"}`}
+                      className={`min-w-[32px] h-8 rounded-lg text-xs font-medium transition-colors ${pg === page ? "text-white" : "text-slate-500 hover:bg-gray-100"}`}
                       style={pg === page ? { background: G } : {}}>
                       {pg}
                     </button>
@@ -550,7 +550,7 @@ export default function InventoryLedger() {
                 })}
                 <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
                   className="p-1.5 rounded-lg hover:bg-gray-100 disabled:opacity-40 transition-colors">
-                  <ChevronRight className="h-4 w-4 text-gray-700" />
+                  <ChevronRight className="h-4 w-4 text-slate-500" />
                 </button>
               </div>
             </div>
@@ -569,26 +569,26 @@ export default function InventoryLedger() {
           <div className={`${card} w-full max-w-md`} onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between p-5 border-b border-gray-100">
               <div>
-                <h2 className="text-base font-bold text-gray-900">Add Wastage Entry</h2>
+                <h2 className="text-base font-bold text-cyan-900">Add Wastage Entry</h2>
                 <p className="text-xs text-gray-500 mt-0.5">Record material wastage and reduce stock</p>
               </div>
               <button onClick={() => { setWastageModal(false); setWastageItem(null); setWastageItemSearch(""); }}
                 className="p-1.5 rounded-lg hover:bg-gray-100">
-                <X className="h-4 w-4 text-gray-700" />
+                <X className="h-4 w-4 text-slate-500" />
               </button>
             </div>
 
             <div className="p-5 space-y-4">
               {/* Item select */}
               <div className="relative" ref={wastageItemDropRef}>
-                <label className="block text-xs font-medium text-gray-900 mb-1">Item <span className="text-red-500">*</span></label>
+                <label className="block text-xs font-medium text-cyan-900 mb-1">Item <span className="text-red-500">*</span></label>
                 <input
                   type="text"
                   placeholder="Search and select item…"
                   value={wastageItemSearch}
                   onFocus={() => setWastageItemDrop(true)}
                   onChange={e => { setWastageItemSearch(e.target.value); setWastageItemDrop(true); if (wastageItem) setWastageItem(null); }}
-                  className="w-full px-3 py-2 text-sm text-gray-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30"
+                  className="w-full px-3 py-2 text-sm text-cyan-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30"
                 />
                 {wastageItemDrop && filteredWItems.length > 0 && (
                   <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-30 max-h-48 overflow-y-auto">
@@ -597,7 +597,7 @@ export default function InventoryLedger() {
                         setWastageItem(it);
                         setWastageItemSearch(it.item_name);
                         setWastageItemDrop(false);
-                      }} className="w-full text-left px-3 py-2 text-sm text-gray-900 hover:bg-[#C6AF4B]/10 border-b border-gray-50 last:border-0">
+                      }} className="w-full text-left px-3 py-2 text-sm text-cyan-900 hover:bg-[#C6AF4B]/10 border-b border-gray-50 last:border-0">
                         <span className="font-medium">{it.item_name}</span>
                         <span className="text-xs text-gray-400 ml-2">{it.item_code}</span>
                         <span className="text-xs text-gray-400 ml-2">Avail: {fmt3(it.available_stock)}</span>
@@ -614,19 +614,19 @@ export default function InventoryLedger() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-gray-900 mb-1">Wastage Qty <span className="text-red-500">*</span></label>
+                  <label className="block text-xs font-medium text-cyan-900 mb-1">Wastage Qty <span className="text-red-500">*</span></label>
                   <input type="number" placeholder="e.g. 1 or 0.5" min="0" step="any"
                     value={wastageForm.quantity}
                     onChange={e => setWastageForm(f => ({ ...f, quantity: e.target.value }))}
                     onWheel={e => (e.target as HTMLInputElement).blur()}
-                    className="w-full px-3 py-2 text-sm text-gray-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30" />
+                    className="w-full px-3 py-2 text-sm text-cyan-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30" />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-900 mb-1">Reference # (optional)</label>
+                  <label className="block text-xs font-medium text-cyan-900 mb-1">Reference # (optional)</label>
                   <input type="text" placeholder="e.g. WO-001"
                     value={wastageForm.referenceNumber}
                     onChange={e => setWastageForm(f => ({ ...f, referenceNumber: e.target.value }))}
-                    className="w-full px-3 py-2 text-sm text-gray-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30" />
+                    className="w-full px-3 py-2 text-sm text-cyan-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30" />
                 </div>
               </div>
 
@@ -641,17 +641,17 @@ export default function InventoryLedger() {
               )}
 
               <div>
-                <label className="block text-xs font-medium text-gray-900 mb-1">Reason / Notes</label>
+                <label className="block text-xs font-medium text-cyan-900 mb-1">Reason / Notes</label>
                 <textarea rows={2} placeholder="e.g. Damaged during production, quality rejected…"
                   value={wastageForm.reason}
                   onChange={e => setWastageForm(f => ({ ...f, reason: e.target.value }))}
-                  className="w-full px-3 py-2 text-sm text-gray-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30 resize-none" />
+                  className="w-full px-3 py-2 text-sm text-cyan-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30 resize-none" />
               </div>
             </div>
 
             <div className="flex items-center justify-end gap-2 px-5 pb-5">
               <button onClick={() => { setWastageModal(false); setWastageItem(null); setWastageItemSearch(""); }}
-                className="px-4 py-2 rounded-xl text-sm font-medium text-gray-700 border border-gray-200 hover:bg-gray-50">
+                className="px-4 py-2 rounded-xl text-sm font-medium text-slate-500 border border-gray-200 hover:bg-gray-50">
                 Cancel
               </button>
               <button onClick={handleWastageSubmit} disabled={submitting || !wastageItem || !wastageForm.quantity}
@@ -673,7 +673,7 @@ export default function InventoryLedger() {
                 <AlertTriangle className="h-5 w-5 text-red-600" />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-gray-900">Delete & Reverse Stock?</h3>
+                <h3 className="text-sm font-bold text-cyan-900">Delete & Reverse Stock?</h3>
                 <p className="text-xs text-gray-500 mt-1">
                   This will permanently delete the <span className="font-semibold">{TX_TYPES[deleteConfirm.transaction_type]?.label ?? deleteConfirm.transaction_type}</span> entry for <span className="font-semibold">{deleteConfirm.item_name}</span> and reverse its effect on current stock.
                 </p>
@@ -690,7 +690,7 @@ export default function InventoryLedger() {
             </div>
             <div className="flex gap-2 justify-end">
               <button onClick={() => setDeleteConfirm(null)}
-                className="px-4 py-2 rounded-xl text-sm font-medium text-gray-700 border border-gray-200 hover:bg-gray-50">
+                className="px-4 py-2 rounded-xl text-sm font-medium text-slate-500 border border-gray-200 hover:bg-gray-50">
                 Cancel
               </button>
               <button onClick={() => handleDelete(deleteConfirm)}

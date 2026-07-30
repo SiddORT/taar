@@ -171,8 +171,8 @@ export default function CostingPaymentsPanel({
     } finally { setDeletingId(null); }
   }
 
-  const inpCls = "mt-0.5 w-full border border-gray-200 rounded-lg px-2 py-1.5 text-xs text-gray-900 focus:outline-none focus:border-amber-400";
-  const lblCls = "text-[10px] text-gray-900 font-medium";
+  const inpCls = "mt-0.5 w-full border border-gray-200 rounded-lg px-2 py-1.5 text-xs text-cyan-900 focus:outline-none focus:border-amber-400";
+  const lblCls = "text-[10px] text-cyan-900 font-medium";
 
   return (
     <div className="rounded-xl border border-gray-200 bg-gray-50/60 overflow-hidden">
@@ -180,7 +180,7 @@ export default function CostingPaymentsPanel({
       <div className="flex items-center justify-between px-3 py-2 border-b border-gray-200/60">
         <button
           onClick={() => setCollapsed(v => !v)}
-          className="flex items-center gap-1.5 text-[10px] font-semibold text-gray-500 hover:text-gray-800 transition-colors"
+          className="flex items-center gap-1.5 text-[10px] font-semibold text-gray-500 hover:text-cyan-900 transition-colors"
         >
           {collapsed ? <ChevronDown className="h-3 w-3" /> : <ChevronUp className="h-3 w-3" />}
           Payments{payments.length > 0 ? ` (${payments.length})` : ""}
@@ -191,7 +191,7 @@ export default function CostingPaymentsPanel({
         {!collapsed && !hasCompleted && (
           <button
             onClick={() => { setShowForm(v => !v); setEditingId(null); }}
-            className="flex items-center gap-1 text-[10px] font-semibold px-2.5 py-1 rounded-lg bg-gray-900 text-[#C9B45C] hover:bg-black transition-colors"
+            className="flex items-center gap-1 text-[10px] font-semibold px-2.5 py-1 rounded-lg bg-cyan-900 text-[#C9B45C] hover:bg-cyan-900 transition-colors"
           >
             <Plus className="h-3 w-3" /> Add Payment
           </button>
@@ -273,11 +273,11 @@ export default function CostingPaymentsPanel({
           </div>
           <div className="flex items-center gap-2 pt-1">
             <button onClick={handleSave} disabled={saving}
-              className="flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-lg bg-gray-900 text-[#C9B45C] hover:bg-black disabled:opacity-60 transition-colors">
+              className="flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-lg bg-cyan-900 text-[#C9B45C] hover:bg-cyan-900 disabled:opacity-60 transition-colors">
               {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Plus className="h-3 w-3" />}
               Save Payment
             </button>
-            <button onClick={() => setShowForm(false)} className="text-xs text-gray-500 hover:text-gray-700 px-2 py-1.5">Cancel</button>
+            <button onClick={() => setShowForm(false)} className="text-xs text-gray-500 hover:text-slate-500 px-2 py-1.5">Cancel</button>
           </div>
         </div>
       )}
@@ -363,7 +363,7 @@ export default function CostingPaymentsPanel({
                     {updatingId === p.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
                     Update
                   </button>
-                  <button onClick={() => setEditingId(null)} className="text-xs text-gray-500 hover:text-gray-700 px-2 py-1.5">Cancel</button>
+                  <button onClick={() => setEditingId(null)} className="text-xs text-gray-500 hover:text-slate-500 px-2 py-1.5">Cancel</button>
                 </div>
               </div>
             ) : (
@@ -371,7 +371,7 @@ export default function CostingPaymentsPanel({
                 <div className="flex-1 grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-0.5 min-w-0">
                   <div>
                     <p className="text-[9px] text-gray-400 uppercase tracking-wide font-semibold">Type / Mode</p>
-                    <p className="text-[10px] text-gray-700 font-medium">{p.payment_type ?? "—"} {p.payment_mode ? `· ${p.payment_mode}` : ""}</p>
+                    <p className="text-[10px] text-slate-500 font-medium">{p.payment_type ?? "—"} {p.payment_mode ? `· ${p.payment_mode}` : ""}</p>
                   </div>
                   <div>
                     <p className="text-[9px] text-gray-400 uppercase tracking-wide font-semibold">Amount</p>

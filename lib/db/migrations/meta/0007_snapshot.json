@@ -7677,7 +7677,7 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true,
-          "default": "'ZARI EMBROIDERIES'"
+          "default": "'ERP'"
         },
         "company_address": {
           "name": "company_address",

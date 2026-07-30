@@ -34,10 +34,10 @@ const PRIORITIES = ["Low", "Medium", "High", "Urgent"];
 const ORDER_STATUSES = ["Draft", "Issued", "In Sampling", "In Artwork", "Pending Approval", "Completed", "Rejected"];
 
 const PRIORITY_STYLES: Record<string, string> = {
-  Low: "bg-gray-900 text-[#C9B45C] ring-gray-900",
-  Medium: "bg-gray-900 text-[#C9B45C] ring-gray-900",
-  High: "bg-gray-900 text-[#C9B45C] ring-gray-900",
-  Urgent: "bg-gray-900 text-[#C9B45C] ring-gray-900",
+  Low: "bg-cyan-900 text-[#C9B45C] ring-cyan-900",
+  Medium: "bg-cyan-900 text-[#C9B45C] ring-cyan-900",
+  High: "bg-cyan-900 text-[#C9B45C] ring-cyan-900",
+  Urgent: "bg-cyan-900 text-[#C9B45C] ring-cyan-900",
 };
 
 const STATUS_COLORS: Record<string, string> = {
@@ -152,7 +152,7 @@ function SectionCard({ icon, title, subtitle, accentColor, children }: {
           {icon}
         </div>
         <div>
-          <h2 className="text-sm font-semibold text-gray-900">{title}</h2>
+          <h2 className="text-sm font-semibold text-cyan-900">{title}</h2>
           <p className="text-xs text-gray-400">{subtitle}</p>
         </div>
       </div>
@@ -169,7 +169,7 @@ function Field({ label, hint, children, className = "" }: { label: string; hint?
         {hint && (
           <span className="group relative cursor-pointer">
             <Info className="h-3.5 w-3.5 text-gray-400" />
-            <span className="absolute left-5 top-0 w-44 bg-gray-800 text-white text-xs rounded-lg px-3 py-2 hidden group-hover:block z-10 shadow-lg">{hint}</span>
+            <span className="absolute left-5 top-0 w-44 bg-cyan-900 text-white text-xs rounded-lg px-3 py-2 hidden group-hover:block z-10 shadow-lg">{hint}</span>
           </span>
         )}
       </label>
@@ -178,8 +178,8 @@ function Field({ label, hint, children, className = "" }: { label: string; hint?
   );
 }
 
-const inputCls = "w-full px-3 py-2.5 text-sm text-gray-900 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-gray-900/10 placeholder:text-gray-400";
-const selectCls = "w-full px-3 py-2.5 text-sm text-gray-900 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-gray-900/10 appearance-none cursor-pointer";
+const inputCls = "w-full px-3 py-2.5 text-sm text-cyan-900 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-cyan-900/10 placeholder:text-gray-400";
+const selectCls = "w-full px-3 py-2.5 text-sm text-cyan-900 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-cyan-900/10 appearance-none cursor-pointer";
 
 function fileToAttachment(file: File): Promise<FileAttachment> {
   return new Promise((resolve, reject) => {
@@ -208,9 +208,9 @@ function FilePreviewModal({ file, onClose }: { file: FileAttachment | null; onCl
           ) : (
             <div className="p-8 text-center">
               <FileText className="h-16 w-16 text-gray-300 mx-auto mb-3" />
-              <p className="text-sm font-medium text-gray-700 mb-1">{file.name}</p>
+              <p className="text-sm font-medium text-slate-500 mb-1">{file.name}</p>
               <p className="text-xs text-gray-400 mb-4">Preview not available for this file type</p>
-              <a href={file.data} download={file.name} className="inline-block px-4 py-2 bg-gray-900 text-[#C9B45C] rounded-lg text-sm font-semibold">Download</a>
+              <a href={file.data} download={file.name} className="inline-block px-4 py-2 bg-cyan-900 text-[#C9B45C] rounded-lg text-sm font-semibold">Download</a>
             </div>
           )}
         </div>
@@ -249,7 +249,7 @@ function FileUploadZone({ files, onChange, accept, icon, label }: {
         <div className="flex flex-col items-center gap-2">
           <div className="h-10 w-10 rounded-xl bg-gray-100 flex items-center justify-center text-gray-400">{icon}</div>
           <div>
-            <p className="text-sm font-medium text-gray-700">{label}</p>
+            <p className="text-sm font-medium text-slate-500">{label}</p>
             <p className="text-xs text-gray-400 mt-0.5">Click to browse or drag & drop</p>
           </div>
         </div>
@@ -268,7 +268,7 @@ function FileUploadZone({ files, onChange, accept, icon, label }: {
                   className="h-14 w-14 rounded-lg object-cover border border-gray-200 shrink-0 cursor-pointer hover:opacity-80"
                 />
               ) : f.type.startsWith("video/") ? (
-                <div className="h-10 w-10 rounded-lg bg-gray-900 flex items-center justify-center shrink-0 cursor-pointer hover:opacity-80"
+                <div className="h-10 w-10 rounded-lg bg-cyan-900 flex items-center justify-center shrink-0 cursor-pointer hover:opacity-80"
                   onClick={() => setPreviewFile(f)}>
                   <Video className="h-5 w-5 text-[#C9B45C]" />
                 </div>
@@ -279,10 +279,10 @@ function FileUploadZone({ files, onChange, accept, icon, label }: {
                 </div>
               )}
               <div className="flex-1 min-w-0 flex flex-col justify-center gap-0.5">
-                <span className="text-xs font-medium text-gray-700 truncate">{f.name}</span>
+                <span className="text-xs font-medium text-slate-500 truncate">{f.name}</span>
                 <span className="text-xs text-gray-400">{(f.size / 1024).toFixed(0)} KB</span>
               </div>
-              <button onClick={() => setPreviewFile(f)} className="text-gray-400 hover:text-gray-800 transition-colors mt-1 shrink-0" title="Preview">
+              <button onClick={() => setPreviewFile(f)} className="text-gray-400 hover:text-cyan-900 transition-colors mt-1 shrink-0" title="Preview">
                 <Eye className="h-3.5 w-3.5" />
               </button>
               <button onClick={() => remove(i)} className="text-gray-400 hover:text-red-500 transition-colors mt-1 shrink-0" title="Remove">
@@ -658,12 +658,12 @@ export default function SwatchOrderDetail() {
           <div className="px-6 md:px-8 py-3.5 max-w-6xl mx-auto flex items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               <button onClick={() => setLocation("/swatch-orders")}
-                className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 transition-colors">
+                className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-cyan-900 transition-colors">
                 <ArrowLeft className="h-4 w-4" />
                 Swatch Orders
               </button>
               <span className="text-gray-300">/</span>
-              <span className="text-sm font-bold font-mono text-gray-900">{orderCode}</span>
+              <span className="text-sm font-bold font-mono text-cyan-900">{orderCode}</span>
             </div>
             <div className="flex items-center gap-3">
               <div className="relative shrink-0">
@@ -697,7 +697,7 @@ export default function SwatchOrderDetail() {
                   onClick={() => setActiveTab(tab.label)}
                   className={`flex items-center gap-1.5 px-4 py-2.5 text-xs font-medium whitespace-nowrap border-b-2 transition-colors ${
                     activeTab === tab.label
-                      ? "border-gray-900 text-gray-900"
+                      ? "border-cyan-900 text-cyan-900"
                       : "border-transparent text-gray-400 hover:text-gray-600"
                   }`}
                 >
@@ -714,7 +714,7 @@ export default function SwatchOrderDetail() {
         {activeTab === "Basic Info" && <div className="space-y-5">
 
           {/* ── Section 1: Identity — full width ── */}
-          <SectionCard icon={<User className="h-4 w-4 text-[#C9B45C]" />} accentColor="bg-gray-900"
+          <SectionCard icon={<User className="h-4 w-4 text-[#C9B45C]" />} accentColor="bg-cyan-900"
             title="Identity" subtitle="Core details of this swatch order">
             <div className="grid grid-cols-2 gap-4">
               <Field label="Swatch Name *">
@@ -739,7 +739,7 @@ export default function SwatchOrderDetail() {
               {/* {selectedClient && (
                 <div className="col-span-2 bg-gradient-to-r from-violet-50 to-purple-50 border border-violet-100 rounded-xl px-4 py-2.5">
                   <div className="flex items-center flex-wrap gap-x-2 gap-y-0.5 text-xs text-gray-600">
-                    {selectedClient.contactName && <span className="font-medium text-gray-800">{selectedClient.contactName}</span>}
+                    {selectedClient.contactName && <span className="font-medium text-cyan-900">{selectedClient.contactName}</span>}
                     {selectedClient.email && <><span className="text-gray-300">·</span><span>{selectedClient.email}</span></>}
                     {selectedClient.contactNo && <><span className="text-gray-300">·</span><span>{selectedClient.contactNo}</span></>}
                     {selectedClient.country && <><span className="text-gray-300">·</span><span>{selectedClient.country}</span></>}
@@ -764,10 +764,10 @@ export default function SwatchOrderDetail() {
                 <Field label="Chargeable Swatch" hint="Enable if this swatch requires a client invoice">
                   <div className="flex items-center gap-3 pt-1.5">
                     <button type="button" onClick={() => set("isChargeable", !form.isChargeable)}
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${form.isChargeable ? "bg-gray-900" : "bg-gray-200"}`}>
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${form.isChargeable ? "bg-cyan-900" : "bg-gray-200"}`}>
                       <span className={`inline-block h-4 w-4 rounded-full shadow transform transition-transform ${form.isChargeable ? "translate-x-6 bg-[#C9B45C]" : "translate-x-1 bg-white"}`} />
                     </button>
-                    <span className={`text-sm font-medium ${form.isChargeable ? "text-gray-900" : "text-gray-400"}`}>
+                    <span className={`text-sm font-medium ${form.isChargeable ? "text-cyan-900" : "text-gray-400"}`}>
                       {form.isChargeable ? "Yes — Invoice will be generated" : "No — Non-billable"}
                     </span>
                   </div>
@@ -776,10 +776,10 @@ export default function SwatchOrderDetail() {
                 <Field label="In-house Order" hint="Enable if this is an internal production order (no external client)">
                   <div className="flex items-center gap-3 pt-1.5">
                     <button type="button" onClick={() => set("isInhouse", !form.isInhouse)}
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${form.isInhouse ? "bg-gray-900" : "bg-gray-200"}`}>
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${form.isInhouse ? "bg-cyan-900" : "bg-gray-200"}`}>
                       <span className={`inline-block h-4 w-4 rounded-full shadow transform transition-transform ${form.isInhouse ? "translate-x-6 bg-[#C9B45C]" : "translate-x-1 bg-white"}`} />
                     </button>
-                    <span className={`text-sm font-medium ${form.isInhouse ? "text-gray-900" : "text-gray-400"}`}>
+                    <span className={`text-sm font-medium ${form.isInhouse ? "text-cyan-900" : "text-gray-400"}`}>
                       {form.isInhouse ? "Yes — Internal production order" : "No — Client order"}
                     </span>
                   </div>
@@ -809,7 +809,7 @@ export default function SwatchOrderDetail() {
           <div className="grid grid-cols-2 gap-5">
 
             {/* ── Section 3: Material ── */}
-            <SectionCard icon={<Scissors className="h-4 w-4 text-[#C9B45C]" />} accentColor="bg-gray-900"
+            <SectionCard icon={<Scissors className="h-4 w-4 text-[#C9B45C]" />} accentColor="bg-cyan-900"
               title="Material" subtitle="Fabric specifications and unit sizing">
               <div className="grid grid-cols-2 gap-4">
 
@@ -833,10 +833,10 @@ export default function SwatchOrderDetail() {
                 <Field label="Lining">
                   <div className="flex items-center gap-3 pt-1.5">
                     <button type="button" onClick={() => set("hasLining", !form.hasLining)}
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${form.hasLining ? "bg-gray-900" : "bg-gray-200"}`}>
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${form.hasLining ? "bg-cyan-900" : "bg-gray-200"}`}>
                       <span className={`inline-block h-4 w-4 rounded-full shadow transform transition-transform ${form.hasLining ? "translate-x-6 bg-[#C9B45C]" : "translate-x-1 bg-white"}`} />
                     </button>
-                    <span className={`text-sm font-medium ${form.hasLining ? "text-gray-900" : "text-gray-400"}`}>
+                    <span className={`text-sm font-medium ${form.hasLining ? "text-cyan-900" : "text-gray-400"}`}>
                       {form.hasLining ? "Yes" : "No"}
                     </span>
                   </div>
@@ -884,7 +884,7 @@ export default function SwatchOrderDetail() {
             </SectionCard>
 
             {/* ── Section 4: Planning ── */}
-            <SectionCard icon={<CalendarDays className="h-4 w-4 text-[#C9B45C]" />} accentColor="bg-gray-900"
+            <SectionCard icon={<CalendarDays className="h-4 w-4 text-[#C9B45C]" />} accentColor="bg-cyan-900"
               title="Planning" subtitle="Dates, timing and assignment details">
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-3">
@@ -919,7 +919,7 @@ export default function SwatchOrderDetail() {
           </div>
 
           {/* ── Notes ────────────────────────────────────────────────── */}
-          <SectionCard icon={<MessageSquare className="h-4 w-4 text-[#C9B45C]" />} accentColor="bg-gray-900"
+          <SectionCard icon={<MessageSquare className="h-4 w-4 text-[#C9B45C]" />} accentColor="bg-cyan-900"
             title="Notes" subtitle="Description, internal remarks and client instructions">
             <div className="grid grid-cols-3 gap-4">
               <Field label="Description">
@@ -955,7 +955,7 @@ export default function SwatchOrderDetail() {
         {/* ══ TAB: Completion Tracking ══════════════════════════════════════ */}
         {activeTab === "Completion Tracking" && (
           <div className="space-y-5">
-            <SectionCard icon={<CheckCircle2 className="h-4 w-4 text-[#C9B45C]" />} accentColor="bg-gray-900"
+            <SectionCard icon={<CheckCircle2 className="h-4 w-4 text-[#C9B45C]" />} accentColor="bg-cyan-900"
               title="Completion Tracking" subtitle="Record actual timings, revisions and approval">
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
@@ -976,7 +976,7 @@ export default function SwatchOrderDetail() {
                   <div className="flex items-center gap-3">
                     <button type="button" onClick={() => set("revisionCount", Math.max(0, form.revisionCount - 1))}
                       className="h-9 w-9 rounded-xl border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-100 font-bold text-lg transition-colors">−</button>
-                    <span className="text-lg font-bold text-gray-900 w-8 text-center">{form.revisionCount}</span>
+                    <span className="text-lg font-bold text-cyan-900 w-8 text-center">{form.revisionCount}</span>
                     <button type="button" onClick={() => set("revisionCount", form.revisionCount + 1)}
                       className="h-9 w-9 rounded-xl border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-100 font-bold text-lg transition-colors">+</button>
                     {form.revisionCount > 0 && (
@@ -1011,7 +1011,7 @@ export default function SwatchOrderDetail() {
         {activeTab === "References" && <div className="space-y-5">
 
           {/* Style + Swatch References */}
-          <SectionCard icon={<Layers className="h-4 w-4 text-[#C9B45C]" />} accentColor="bg-gray-900"
+          <SectionCard icon={<Layers className="h-4 w-4 text-[#C9B45C]" />} accentColor="bg-cyan-900"
             title="References" subtitle="Link related styles and swatches, add remarks for each">
             <div className="grid grid-cols-2 gap-6">
               {/* Style References */}
@@ -1094,7 +1094,7 @@ export default function SwatchOrderDetail() {
           </SectionCard>
 
           {/* Attachments */}
-          <SectionCard icon={<Paperclip className="h-4 w-4 text-[#C9B45C]" />} accentColor="bg-gray-900"
+          <SectionCard icon={<Paperclip className="h-4 w-4 text-[#C9B45C]" />} accentColor="bg-cyan-900"
             title="Attachments" subtitle="Reference documents, WIP and final images & videos">
             {/* Row 1: Reference */}
             <div className="grid grid-cols-2 gap-6 mb-6">
@@ -1192,7 +1192,7 @@ export default function SwatchOrderDetail() {
               <p className="text-sm font-medium text-gray-600">Save this order first to start adding artworks.</p>
             </div>
           ) : (
-            <SectionCard icon={<Palette className="h-4 w-4 text-[#C9B45C]" />} accentColor="bg-gray-900"
+            <SectionCard icon={<Palette className="h-4 w-4 text-[#C9B45C]" />} accentColor="bg-cyan-900"
               title="Artworks" subtitle="Manage artworks linked to this swatch order">
               <div className="space-y-3">
                 {(artworksData?.data ?? []).length === 0 ? (
@@ -1214,18 +1214,18 @@ export default function SwatchOrderDetail() {
                               onClick={e => { e.stopPropagation(); setLightbox({ images: art.finalImages ?? [], index: 0 }); }}
                             />
                           ) : (
-                            <div className="h-8 w-8 rounded-lg bg-gray-900 flex items-center justify-center shrink-0">
+                            <div className="h-8 w-8 rounded-lg bg-cyan-900 flex items-center justify-center shrink-0">
                               <Palette className="h-4 w-4 text-[#C9B45C]" />
                             </div>
                           )}
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-semibold text-gray-900 truncate">{art.artworkName}</p>
+                            <p className="text-sm font-semibold text-cyan-900 truncate">{art.artworkName}</p>
                             <p className="text-xs text-gray-400 font-mono">{art.artworkCode}</p>
                           </div>
                           <div className="flex items-center gap-2 shrink-0">
                             <span className={`text-xs px-2 py-0.5 rounded-full font-medium border ${
                               art.feedbackStatus === "Approved"
-                                ? "bg-gray-900 text-[#C9B45C] border-gray-900"
+                                ? "bg-cyan-900 text-[#C9B45C] border-cyan-900"
                                 : art.feedbackStatus === "Revision Required"
                                 ? "bg-amber-50 text-amber-700 border-amber-200"
                                 : art.feedbackStatus === "Rejected"
@@ -1236,7 +1236,7 @@ export default function SwatchOrderDetail() {
                             }`}>{art.feedbackStatus}</span>
                             <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 border border-gray-200">{art.artworkCreated}</span>
                             {art.totalCost && (
-                              <span className="text-xs font-medium text-gray-700">{fmt(Number(art.totalCost))}</span>
+                              <span className="text-xs font-medium text-slate-500">{fmt(Number(art.totalCost))}</span>
                             )}
                           </div>
                           {/* Action buttons */}
@@ -1252,7 +1252,7 @@ export default function SwatchOrderDetail() {
                               <button
                                 onClick={() => setLocation(`/swatch-orders/${numId}/artworks/${art.id}`)}
                                 title="Edit artwork"
-                                className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-200 transition-colors">
+                                className="p-1.5 rounded-lg text-gray-400 hover:text-slate-500 hover:bg-gray-200 transition-colors">
                                 <Pencil className="h-3.5 w-3.5" />
                               </button>
                             )}
@@ -1325,7 +1325,7 @@ export default function SwatchOrderDetail() {
                 )}
                 <button
                   onClick={() => setLocation(`/swatch-orders/${numId}/artworks/new`)}
-                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 border-dashed border-gray-300 text-sm text-gray-500 hover:border-gray-900 hover:text-gray-900 transition-colors w-full justify-center font-medium">
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 border-dashed border-gray-300 text-sm text-gray-500 hover:border-cyan-900 hover:text-cyan-900 transition-colors w-full justify-center font-medium">
                   <Plus className="h-4 w-4" /> New Artwork
                 </button>
               </div>
@@ -1345,11 +1345,11 @@ export default function SwatchOrderDetail() {
             {/* Estimate Items Input */}
             <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
               <div className="flex items-center gap-3 px-6 py-4 border-b border-gray-200 bg-gray-50/50">
-                <div className="flex items-center justify-center h-8 w-8 rounded-xl bg-gray-900">
+                <div className="flex items-center justify-center h-8 w-8 rounded-xl bg-cyan-900">
                   <span className="text-sm">📊</span>
                 </div>
                 <div className="flex-1">
-                  <h2 className="text-sm font-semibold text-gray-900">Estimate Items</h2>
+                  <h2 className="text-sm font-semibold text-cyan-900">Estimate Items</h2>
                   <p className="text-xs text-gray-400">Enter rates for each cost component</p>
                 </div>
               </div>
@@ -1370,7 +1370,7 @@ export default function SwatchOrderDetail() {
                         <td className="px-6 py-3">
                           {item.isCustom ? (
                             <input
-                              className="w-full text-sm text-gray-900 bg-transparent border-b border-dashed border-gray-300 focus:border-gray-900 focus:outline-none py-0.5 placeholder:text-gray-400"
+                              className="w-full text-sm text-cyan-900 bg-transparent border-b border-dashed border-gray-300 focus:border-cyan-900 focus:outline-none py-0.5 placeholder:text-gray-400"
                               placeholder="Service name…"
                               value={item.label}
                               onChange={e => {
@@ -1380,7 +1380,7 @@ export default function SwatchOrderDetail() {
                               }}
                             />
                           ) : (
-                            <span className="text-sm font-medium text-gray-800">{item.label}</span>
+                            <span className="text-sm font-medium text-cyan-900">{item.label}</span>
                           )}
                         </td>
                         <td className="px-6 py-3">
@@ -1391,7 +1391,7 @@ export default function SwatchOrderDetail() {
                               min="0"
                               step="0.01"
                               placeholder="0.00"
-                              className="w-32 text-right text-sm text-gray-900 border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-gray-900/10 placeholder:text-gray-300 bg-white"
+                              className="w-32 text-right text-sm text-cyan-900 border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-cyan-900/10 placeholder:text-gray-300 bg-white"
                               value={item.rate}
                               onChange={e => {
                                 const updated = [...form.estimate];
@@ -1426,7 +1426,7 @@ export default function SwatchOrderDetail() {
                     const customId = `custom_${Date.now()}`;
                     set("estimate", [...form.estimate, { id: customId, label: "", rate: "", isCustom: true }]);
                   }}
-                  className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-900 transition-colors font-medium">
+                  className="flex items-center gap-2 text-sm text-gray-500 hover:text-cyan-900 transition-colors font-medium">
                   <Plus className="h-4 w-4" />
                   Add Custom Service
                 </button>
@@ -1443,11 +1443,11 @@ export default function SwatchOrderDetail() {
               return (
                 <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
                   <div className="flex items-center gap-3 px-6 py-4 border-b border-gray-200 bg-gray-50/50">
-                    <div className="flex items-center justify-center h-8 w-8 rounded-xl bg-gray-900">
+                    <div className="flex items-center justify-center h-8 w-8 rounded-xl bg-cyan-900">
                       <span className="text-sm">💰</span>
                     </div>
                     <div>
-                      <h2 className="text-sm font-semibold text-gray-900">Summary</h2>
+                      <h2 className="text-sm font-semibold text-cyan-900">Summary</h2>
                       <p className="text-xs text-gray-400">
                         {lineItems.length > 0 ? `${lineItems.length} item${lineItems.length !== 1 ? "s" : ""} · Total ${fmt(total)}` : "No rates entered yet"}
                       </p>
@@ -1469,15 +1469,15 @@ export default function SwatchOrderDetail() {
                         <tbody className="divide-y divide-gray-50">
                           {lineItems.map((it, i) => (
                             <tr key={i} className="hover:bg-gray-50/50">
-                              <td className="px-6 py-3 text-sm text-gray-700">{it.label}</td>
-                              <td className="px-6 py-3 text-sm text-right text-gray-900 font-medium tabular-nums">
+                              <td className="px-6 py-3 text-sm text-slate-500">{it.label}</td>
+                              <td className="px-6 py-3 text-sm text-right text-cyan-900 font-medium tabular-nums">
                                 {fmt(parseFloat(it.rate))}
                               </td>
                             </tr>
                           ))}
                         </tbody>
                         <tfoot>
-                          <tr className="border-t-2 border-gray-200 bg-gray-900">
+                          <tr className="border-t-2 border-gray-200 bg-cyan-900">
                             <td className="px-6 py-3.5 text-sm font-semibold text-[#C9B45C]">Grand Total</td>
                             <td className="px-6 py-3.5 text-sm font-bold text-right text-[#C9B45C] tabular-nums">
                               {fmt(total)}
@@ -1576,7 +1576,7 @@ export default function SwatchOrderDetail() {
                   <Trash2 className="h-5 w-5 text-red-500" />
                 </div>
                 <div>
-                  <h3 className="text-base font-semibold text-gray-900">Delete Artwork?</h3>
+                  <h3 className="text-base font-semibold text-cyan-900">Delete Artwork?</h3>
                   <p className="text-sm text-gray-500 mt-0.5">This artwork will be permanently deleted. This action cannot be undone.</p>
                 </div>
               </div>
@@ -1598,7 +1598,7 @@ export default function SwatchOrderDetail() {
         {addDeptOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
             <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm mx-4">
-              <h3 className="text-base font-semibold text-gray-900 mb-4">Add Department</h3>
+              <h3 className="text-base font-semibold text-cyan-900 mb-4">Add Department</h3>
               <input
                 autoFocus
                 className={`${inputCls} ${deptError ? "border-red-400 focus:ring-red-200" : ""}`}
@@ -1618,7 +1618,7 @@ export default function SwatchOrderDetail() {
                   Cancel
                 </button>
                 <button onClick={handleAddDept} disabled={!newDeptName.trim() || createDept.isPending}
-                  className="px-4 py-2 rounded-xl bg-gray-900 text-[#C9B45C] text-sm font-medium hover:bg-black transition-colors disabled:opacity-60">
+                  className="px-4 py-2 rounded-xl bg-cyan-900 text-[#C9B45C] text-sm font-medium hover:bg-cyan-900 transition-colors disabled:opacity-60">
                   {createDept.isPending ? "Adding…" : "Add"}
                 </button>
               </div>
@@ -1630,7 +1630,7 @@ export default function SwatchOrderDetail() {
         {addUnitTypeOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
             <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm mx-4">
-              <h3 className="text-base font-semibold text-gray-900 mb-4">Add Unit Type</h3>
+              <h3 className="text-base font-semibold text-cyan-900 mb-4">Add Unit Type</h3>
               <input
                 autoFocus
                 className={`${inputCls} ${unitTypeError ? "border-red-400 focus:ring-red-200" : ""}`}
@@ -1650,7 +1650,7 @@ export default function SwatchOrderDetail() {
                   Cancel
                 </button>
                 <button onClick={handleAddUnitType} disabled={!newUnitTypeName.trim() || createUnitType.isPending}
-                  className="px-4 py-2 rounded-xl bg-gray-900 text-[#C9B45C] text-sm font-medium hover:bg-black transition-colors disabled:opacity-60">
+                  className="px-4 py-2 rounded-xl bg-cyan-900 text-[#C9B45C] text-sm font-medium hover:bg-cyan-900 transition-colors disabled:opacity-60">
                   {createUnitType.isPending ? "Adding…" : "Add"}
                 </button>
               </div>

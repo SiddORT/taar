@@ -202,7 +202,7 @@ export default function TopNavbar({ username = "", role = "", onLogout = () => {
 
   const navLink = (active: boolean) =>
     `px-3.5 py-2 rounded-lg text-sm font-medium transition-colors ${
-      active ? "bg-gray-900 text-[#C9B45C]" : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+      active ? "bg-cyan-900 text-[#C9B45C]" : "text-gray-600 hover:bg-gray-100 hover:text-cyan-900"
     }`;
 
   return (
@@ -254,7 +254,7 @@ export default function TopNavbar({ username = "", role = "", onLogout = () => {
                         href={href}
                         onClick={() => setMastersOpen(false)}
                         className={`block px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                          active ? "text-gray-900 bg-gray-50 font-semibold" : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                          active ? "text-cyan-900 bg-gray-50 font-semibold" : "text-gray-600 hover:bg-gray-50 hover:text-cyan-900"
                         }`}
                       >
                         {label}
@@ -284,7 +284,7 @@ export default function TopNavbar({ username = "", role = "", onLogout = () => {
                         href={href}
                         onClick={() => setOrdersOpen(false)}
                         className={`block px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                          active ? "text-gray-900 bg-gray-50 font-semibold" : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                          active ? "text-cyan-900 bg-gray-50 font-semibold" : "text-gray-600 hover:bg-gray-50 hover:text-cyan-900"
                         }`}
                       >
                         {label}
@@ -319,7 +319,7 @@ export default function TopNavbar({ username = "", role = "", onLogout = () => {
                             href={href}
                             onClick={() => setOperationsOpen(false)}
                             className={`block px-2 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
-                              active ? "text-gray-900 bg-gray-50 font-semibold" : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                              active ? "text-cyan-900 bg-gray-50 font-semibold" : "text-gray-600 hover:bg-gray-50 hover:text-cyan-900"
                             }`}
                           >
                             {label}
@@ -358,8 +358,8 @@ export default function TopNavbar({ username = "", role = "", onLogout = () => {
                       onClick={() => setLogisticsOpen(false)}
                       className={`block px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                         location === href || location.startsWith(href + "/")
-                          ? "text-gray-900 bg-gray-50 font-semibold"
-                          : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                          ? "text-cyan-900 bg-gray-50 font-semibold"
+                          : "text-gray-600 hover:bg-gray-50 hover:text-cyan-900"
                       }`}
                     >
                       {label}
@@ -397,8 +397,8 @@ export default function TopNavbar({ username = "", role = "", onLogout = () => {
                       onClick={() => setAccountsOpen(false)}
                       className={`block px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                         location === href || location.startsWith(href + "/")
-                          ? "text-gray-900 bg-gray-50 font-semibold"
-                          : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                          ? "text-cyan-900 bg-gray-50 font-semibold"
+                          : "text-gray-600 hover:bg-gray-50 hover:text-cyan-900"
                       }`}
                     >
                       {label}
@@ -424,14 +424,14 @@ export default function TopNavbar({ username = "", role = "", onLogout = () => {
               >
                 <div
                   className="h-8 w-8 rounded-full flex items-center justify-center shrink-0 text-xs font-bold overflow-hidden"
-                  style={{ backgroundColor: "#111", color: "#C9B45C" }}
+                  style={{ backgroundColor: "#164e63", color: "#C9B45C" }}
                 >
                   {displayPhoto
                     ? <img src={displayPhoto} alt={displayName} className="h-full w-full object-cover" />
                     : initials}
                 </div>
                 <div className="hidden sm:flex flex-col items-start leading-tight">
-                  <span className="text-sm font-medium text-gray-900">{displayEmail || displayName}</span>
+                  <span className="text-sm font-medium text-cyan-900">{displayEmail || displayName}</span>
                   <span className="text-xs text-gray-400 capitalize">{displayRole}</span>
                 </div>
                 <ChevronDown className={`hidden sm:block h-3.5 w-3.5 text-gray-400 transition-transform ${profileOpen ? "rotate-180" : ""}`} />
@@ -442,14 +442,14 @@ export default function TopNavbar({ username = "", role = "", onLogout = () => {
                   <div className="px-4 py-3 border-b border-gray-100 bg-gray-50 flex items-center gap-3">
                     <div
                       className="h-10 w-10 rounded-full flex items-center justify-center shrink-0 text-sm font-bold overflow-hidden"
-                      style={{ backgroundColor: "#111", color: "#C9B45C" }}
+                      style={{ backgroundColor: "#164e63", color: "#C9B45C" }}
                     >
                       {displayPhoto
                         ? <img src={displayPhoto} alt={displayName} className="h-full w-full object-cover" />
                         : initials}
                     </div>
                     <div className="min-w-0">
-                      <p className="text-sm font-semibold text-gray-900 truncate">{displayName}</p>
+                      <p className="text-sm font-semibold text-cyan-900 truncate">{displayName}</p>
                       {displayEmail && <p className="text-xs text-gray-500 truncate">{displayEmail}</p>}
                       <p className="text-xs text-gray-400 capitalize">{displayRole}</p>
                     </div>
@@ -457,21 +457,21 @@ export default function TopNavbar({ username = "", role = "", onLogout = () => {
                   <div className="p-1">
                     <button
                       onClick={() => { setProfileOpen(false); navigate("/settings"); }}
-                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors text-left"
+                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-slate-500 hover:bg-gray-50 hover:text-cyan-900 transition-colors text-left"
                     >
                       <Settings className="h-4 w-4 text-gray-400 shrink-0" />
                       Settings
                     </button>
                     <button
                       onClick={() => { setProfileOpen(false); navigate("/help"); }}
-                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors text-left"
+                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-slate-500 hover:bg-gray-50 hover:text-cyan-900 transition-colors text-left"
                     >
                       <BookOpen className="h-4 w-4 text-gray-400 shrink-0" />
                       User Manual
                     </button>
                     <button
                       onClick={() => { setProfileOpen(false); navigate("/user-management"); }}
-                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors text-left"
+                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-slate-500 hover:bg-gray-50 hover:text-cyan-900 transition-colors text-left"
                     >
                       <Users className="h-4 w-4 text-gray-400 shrink-0" />
                       User Management
@@ -513,7 +513,7 @@ export default function TopNavbar({ username = "", role = "", onLogout = () => {
                 href="/dashboard"
                 onClick={() => setMobileOpen(false)}
                 className={`block px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                  location === "/dashboard" ? "bg-gray-900 text-[#C9B45C]" : "text-gray-700 hover:bg-gray-100"
+                  location === "/dashboard" ? "bg-cyan-900 text-[#C9B45C]" : "text-slate-500 hover:bg-gray-100"
                 }`}
               >
                 Dashboard
@@ -523,7 +523,7 @@ export default function TopNavbar({ username = "", role = "", onLogout = () => {
               <button
                 onClick={() => setMobileMastersOpen(v => !v)}
                 className={`flex items-center justify-between px-4 py-2.5 rounded-lg text-sm font-medium transition-colors w-full text-left ${
-                  mastersActive ? "bg-gray-900 text-[#C9B45C]" : "text-gray-700 hover:bg-gray-100"
+                  mastersActive ? "bg-cyan-900 text-[#C9B45C]" : "text-slate-500 hover:bg-gray-100"
                 }`}
               >
                 Masters
@@ -537,7 +537,7 @@ export default function TopNavbar({ username = "", role = "", onLogout = () => {
                       href={href}
                       onClick={() => setMobileOpen(false)}
                       className={`block px-3 py-2 rounded-lg text-sm transition-colors ${
-                        location === href ? "text-gray-900 font-semibold" : "text-gray-600 hover:bg-gray-50"
+                        location === href ? "text-cyan-900 font-semibold" : "text-gray-600 hover:bg-gray-50"
                       }`}
                     >
                       {label}
@@ -550,7 +550,7 @@ export default function TopNavbar({ username = "", role = "", onLogout = () => {
               <button
                 onClick={() => setMobileOrdersOpen(v => !v)}
                 className={`flex items-center justify-between px-4 py-2.5 rounded-lg text-sm font-medium transition-colors w-full text-left ${
-                  ordersActive ? "bg-gray-900 text-[#C9B45C]" : "text-gray-700 hover:bg-gray-100"
+                  ordersActive ? "bg-cyan-900 text-[#C9B45C]" : "text-slate-500 hover:bg-gray-100"
                 }`}
               >
                 <span>Orders</span>
@@ -564,7 +564,7 @@ export default function TopNavbar({ username = "", role = "", onLogout = () => {
                       href={href}
                       onClick={() => setMobileOpen(false)}
                       className={`block px-3 py-2 rounded-lg text-sm transition-colors ${
-                        location === href ? "text-gray-900 font-semibold" : "text-gray-600 hover:bg-gray-50"
+                        location === href ? "text-cyan-900 font-semibold" : "text-gray-600 hover:bg-gray-50"
                       }`}
                     >
                       {label}
@@ -577,7 +577,7 @@ export default function TopNavbar({ username = "", role = "", onLogout = () => {
               <button
                 onClick={() => setMobileOperationsOpen(v => !v)}
                 className={`flex items-center justify-between px-4 py-2.5 rounded-lg text-sm font-medium transition-colors w-full text-left ${
-                  operationsActive ? "bg-gray-900 text-[#C9B45C]" : "text-gray-700 hover:bg-gray-100"
+                  operationsActive ? "bg-cyan-900 text-[#C9B45C]" : "text-slate-500 hover:bg-gray-100"
                 }`}
               >
                 <span>Stock</span>
@@ -594,7 +594,7 @@ export default function TopNavbar({ username = "", role = "", onLogout = () => {
                           href={href}
                           onClick={() => setMobileOpen(false)}
                           className={`block px-3 py-2 rounded-lg text-sm transition-colors ${
-                            location === href ? "text-gray-900 font-semibold" : "text-gray-600 hover:bg-gray-50"
+                            location === href ? "text-cyan-900 font-semibold" : "text-gray-600 hover:bg-gray-50"
                           }`}
                         >
                           {label}
@@ -610,7 +610,7 @@ export default function TopNavbar({ username = "", role = "", onLogout = () => {
                 href="/quotation"
                 onClick={() => setMobileOpen(false)}
                 className={`block px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                  location === "/quotation" || location.startsWith("/quotation/") ? "bg-gray-900 text-[#C9B45C]" : "text-gray-700 hover:bg-gray-100"
+                  location === "/quotation" || location.startsWith("/quotation/") ? "bg-cyan-900 text-[#C9B45C]" : "text-slate-500 hover:bg-gray-100"
                 }`}
               >
                 Quotation
@@ -620,7 +620,7 @@ export default function TopNavbar({ username = "", role = "", onLogout = () => {
               <button
                 onClick={() => setMobileLogisticsOpen(v => !v)}
                 className={`flex items-center justify-between px-4 py-2.5 rounded-lg text-sm font-medium transition-colors w-full text-left ${
-                  logisticsActive ? "bg-gray-900 text-[#C9B45C]" : "text-gray-700 hover:bg-gray-100"
+                  logisticsActive ? "bg-cyan-900 text-[#C9B45C]" : "text-slate-500 hover:bg-gray-100"
                 }`}
               >
                 <span>Logistics</span>
@@ -637,7 +637,7 @@ export default function TopNavbar({ username = "", role = "", onLogout = () => {
                       href={href}
                       onClick={() => setMobileOpen(false)}
                       className={`block px-3 py-2 rounded-lg text-sm transition-colors ${
-                        location === href || location.startsWith(href + "/") ? "text-gray-900 font-semibold" : "text-gray-600 hover:bg-gray-50"
+                        location === href || location.startsWith(href + "/") ? "text-cyan-900 font-semibold" : "text-gray-600 hover:bg-gray-50"
                       }`}
                     >
                       {label}
@@ -650,7 +650,7 @@ export default function TopNavbar({ username = "", role = "", onLogout = () => {
               <button
                 onClick={() => setMobileAccountsOpen(v => !v)}
                 className={`flex items-center justify-between px-4 py-2.5 rounded-lg text-sm font-medium transition-colors w-full text-left ${
-                  accountsActive ? "bg-gray-900 text-[#C9B45C]" : "text-gray-700 hover:bg-gray-100"
+                  accountsActive ? "bg-cyan-900 text-[#C9B45C]" : "text-slate-500 hover:bg-gray-100"
                 }`}
               >
                 <span>Accounts</span>
@@ -674,7 +674,7 @@ export default function TopNavbar({ username = "", role = "", onLogout = () => {
                       href={href}
                       onClick={() => setMobileOpen(false)}
                       className={`block px-3 py-2 rounded-lg text-sm transition-colors ${
-                        location === href || location.startsWith(href + "/") ? "text-gray-900 font-semibold" : "text-gray-600 hover:bg-gray-50"
+                        location === href || location.startsWith(href + "/") ? "text-cyan-900 font-semibold" : "text-gray-600 hover:bg-gray-50"
                       }`}
                     >
                       {label}
@@ -688,7 +688,7 @@ export default function TopNavbar({ username = "", role = "", onLogout = () => {
                 href="/settings/reports"
                 onClick={() => setMobileOpen(false)}
                 className={`flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                  reportsActive ? "bg-gray-900 text-[#C9B45C]" : "text-gray-700 hover:bg-gray-100"
+                  reportsActive ? "bg-cyan-900 text-[#C9B45C]" : "text-slate-500 hover:bg-gray-100"
                 }`}
               >
                 <BarChart2 className="h-4 w-4" />
@@ -697,11 +697,11 @@ export default function TopNavbar({ username = "", role = "", onLogout = () => {
 
               <div className="mt-2 border-t border-gray-100 pt-2 flex flex-col gap-1">
                 <Link href="/settings" onClick={() => setMobileOpen(false)}
-                  className="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+                  className="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm text-slate-500 hover:bg-gray-50 transition-colors">
                   <Settings className="h-4 w-4 text-gray-400" /> Settings
                 </Link>
                 <Link href="/user-management" onClick={() => setMobileOpen(false)}
-                  className="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+                  className="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm text-slate-500 hover:bg-gray-50 transition-colors">
                   <Users className="h-4 w-4 text-gray-400" /> User Management
                 </Link>
                 <button

@@ -37,19 +37,19 @@ export default function Navbar({
             <Menu className="h-5 w-5" />
           </button>
         )}
-        <h1 className="text-base font-semibold text-gray-900 tracking-tight">{title}</h1>
+        <h1 className="text-base font-semibold text-cyan-900 tracking-tight">{title}</h1>
       </div>
 
       {/* Right — user info + logout */}
       <div className="flex items-center gap-3">
         {/* User info */}
         <div className="hidden sm:flex flex-col items-end leading-tight">
-          <span className="text-sm font-medium text-gray-900">{username}</span>
+          <span className="text-sm font-medium text-cyan-900">{username}</span>
           <span className="text-xs text-gray-400 capitalize">{role}</span>
         </div>
 
         {/* Avatar */}
-        <div className="h-8 w-8 rounded-full bg-gray-900 flex items-center justify-center shrink-0">
+        <div className="h-8 w-8 rounded-full bg-cyan-900 flex items-center justify-center shrink-0">
           <span className="text-white text-xs font-semibold">{initials}</span>
         </div>
 

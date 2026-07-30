@@ -20,8 +20,8 @@ const G_DIM = "#A8943E";
 const SL   = "#3B3F5C";
 const CARD = "rounded-2xl bg-white border border-[#C6AF4B]/15 shadow-[0_2px_16px_rgba(198,175,75,0.12),0_1px_3px_rgba(0,0,0,0.06)] hover:shadow-[0_6px_28px_rgba(198,175,75,0.22),0_2px_6px_rgba(0,0,0,0.08)] transition-all duration-300";
 const TH   = "px-3 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap";
-const TD   = "px-3 py-3 text-sm text-gray-800";
-const INP  = "w-full border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30";
+const TD   = "px-3 py-3 text-sm text-cyan-900";
+const INP  = "w-full border border-gray-200 rounded-xl px-3 py-2 text-sm text-cyan-900 bg-white focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30";
 const LBL  = "block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5";
 const PAGE_SIZE = 10;
 
@@ -170,7 +170,7 @@ function PaymentModal({ row, onClose, onSuccess }: { row: any; onClose: () => vo
           <div className="flex items-center justify-between mb-4">
             <div>
               <p className="text-xs font-black uppercase tracking-[0.18em]" style={{ color: G }}>Client Payment Entry</p>
-              <p className="text-base font-bold text-gray-800 mt-0.5">{row.client_name}</p>
+              <p className="text-base font-bold text-cyan-900 mt-0.5">{row.client_name}</p>
               <p className="text-xs text-gray-400">{row.ref_number} · Pending: <span className="font-semibold text-red-600">{fmtAmt(pendingAmt, rowCurrency)}</span></p>
             </div>
             <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100 transition-colors">
@@ -255,7 +255,7 @@ function PaymentModal({ row, onClose, onSuccess }: { row: any; onClose: () => vo
             </div>
             <div className="flex gap-2 pt-1">
               <button type="button" onClick={onClose}
-                className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors">
+                className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm font-semibold text-slate-500 hover:bg-gray-50 transition-colors">
                 Cancel
               </button>
               <button type="submit" disabled={saving || ratesLoading}
@@ -299,7 +299,7 @@ function Chip({ label, color }: { label: string; color: "gold" | "blue" | "purpl
     gold:   "bg-[#C6AF4B]/10 text-[#A8943E]",
     blue:   "bg-blue-50 text-blue-700",
     purple: "bg-purple-50 text-purple-700",
-    gray:   "bg-gray-100 text-gray-700",
+    gray:   "bg-gray-100 text-slate-500",
   }[color];
   return <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${cls}`}>{label}</span>;
 }
@@ -584,7 +584,7 @@ export default function AccountSales() {
                     className={`px-4 py-2.5 text-sm font-semibold rounded-t-lg whitespace-nowrap transition-colors border-b-2 flex items-center gap-1.5 ${
                       statusTab === tab
                         ? "border-[#C6AF4B] text-[#C6AF4B]"
-                        : "border-transparent text-gray-500 hover:text-gray-800"
+                        : "border-transparent text-gray-500 hover:text-cyan-900"
                     }`}>
                     {tab}
                     <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
@@ -605,13 +605,13 @@ export default function AccountSales() {
             {/* Inline search toolbar */}
             <div className="flex flex-wrap items-center gap-2 px-4 py-3 border-b border-gray-100 bg-gray-50/50">
               <select
-                className="border border-gray-200 rounded-xl px-3 py-2 text-xs font-semibold text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30 h-9"
+                className="border border-gray-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-500 bg-white focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30 h-9"
                 value={refType}
                 onChange={e => { setRefType(e.target.value); setPage(1); }}>
                 {REF_TYPES.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
               </select>
               <input
-                className="border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30 w-40 h-9"
+                className="border border-gray-200 rounded-xl px-3 py-2 text-sm text-cyan-900 bg-white focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30 w-40 h-9"
                 placeholder="Reference No…"
                 value={pendingRefNo}
                 onChange={e => setPendingRefNo(e.target.value)}
@@ -620,7 +620,7 @@ export default function AccountSales() {
               <div className="relative flex-1 min-w-[160px] max-w-xs">
                 <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                 <input
-                  className="w-full border border-gray-200 rounded-xl pl-8 pr-3 py-2 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30 h-9"
+                  className="w-full border border-gray-200 rounded-xl pl-8 pr-3 py-2 text-sm text-cyan-900 bg-white focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30 h-9"
                   placeholder="Client name…"
                   value={pendingSearch}
                   onChange={e => setPendingSearch(e.target.value)}
@@ -704,7 +704,7 @@ export default function AccountSales() {
                           <td className={TD}>{refTypeBadge(row.ref_type)}</td>
                           <td className={`${TD} font-mono text-xs text-gray-500`}>{row.ref_number || "—"}</td>
                           <td className={TD}>
-                            <span className="font-semibold text-gray-900 group-hover:text-[#3B3F5C] transition-colors">
+                            <span className="font-semibold text-cyan-900 group-hover:text-[#3B3F5C] transition-colors">
                               {row.client_name || "—"}
                             </span>
                           </td>
@@ -807,7 +807,7 @@ export default function AccountSales() {
                       {i + 1}
                     </div>
                     <div className="min-w-0">
-                      <p className="text-xs font-semibold text-gray-800 truncate">{c.client_name}</p>
+                      <p className="text-xs font-semibold text-cyan-900 truncate">{c.client_name}</p>
                       <p className="text-[10px] text-gray-400">{c.invoice_count} invoice{c.invoice_count !== 1 ? "s" : ""}</p>
                     </div>
                   </div>

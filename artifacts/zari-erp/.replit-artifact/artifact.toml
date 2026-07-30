@@ -1,6 +1,6 @@
 kind = "web"
 previewPath = "/"
-title = "ZARI ERP"
+title = "ERP"
 version = "1.0.0"
 id = "artifacts/zari-erp"
 router = "path"

@@ -37,10 +37,10 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
       {/* Logo */}
       <div className={`flex items-center h-16 border-b border-gray-100 px-4 shrink-0 ${collapsed ? "justify-center" : "justify-between"}`}>
         {!collapsed && (
-          <img src={ZariLogo} alt="ZARI ERP" className="h-8 w-auto" />
+          <img src={ZariLogo} alt="ERP" className="h-8 w-auto" />
         )}
         {collapsed && (
-          <div className="h-8 w-8 bg-gray-900 rounded-md flex items-center justify-center">
+          <div className="h-8 w-8 bg-cyan-900 rounded-md flex items-center justify-center">
             <span className="text-white text-xs font-bold">Z</span>
           </div>
         )}
@@ -55,8 +55,8 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
               <a
                 className={`flex items-center gap-3 mx-2 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                   active
-                    ? "bg-gray-900 text-[#C9B45C]"
-                    : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                    ? "bg-cyan-900 text-[#C9B45C]"
+                    : "text-gray-600 hover:bg-gray-100 hover:text-cyan-900"
                 } ${collapsed ? "justify-center" : ""}`}
                 title={collapsed ? label : undefined}
               >
@@ -72,7 +72,7 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
       <div className="border-t border-gray-100 p-3">
         <button
           onClick={onToggle}
-          className={`flex items-center gap-2 w-full px-3 py-2 rounded-lg text-xs text-gray-500 hover:bg-gray-100 hover:text-gray-900 transition-colors ${
+          className={`flex items-center gap-2 w-full px-3 py-2 rounded-lg text-xs text-gray-500 hover:bg-gray-100 hover:text-cyan-900 transition-colors ${
             collapsed ? "justify-center" : ""
           }`}
         >

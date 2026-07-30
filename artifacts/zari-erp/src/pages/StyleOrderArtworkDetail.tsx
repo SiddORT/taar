@@ -25,7 +25,7 @@ const FEEDBACK_STATUSES = ["Pending", "In Review", "Approved", "Revision Require
 const FEEDBACK_COLORS: Record<string, string> = {
   Pending:             "bg-gray-100 text-gray-600 ring-gray-300",
   "In Review":         "bg-sky-100 text-sky-700 ring-sky-300",
-  Approved:            "bg-gray-900 text-[#C9B45C] ring-gray-900",
+  Approved:            "bg-cyan-900 text-[#C9B45C] ring-cyan-900",
   "Revision Required": "bg-amber-100 text-amber-700 ring-amber-300",
   Rejected:            "bg-red-100 text-red-700 ring-red-300",
 };
@@ -39,9 +39,9 @@ function SectionCard({ icon, title, subtitle, children }: {
   return (
     <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
       <div className="flex items-center gap-3 px-6 py-4 border-b border-gray-200 bg-gray-50/50">
-        <div className="flex items-center justify-center h-8 w-8 rounded-xl bg-gray-900">{icon}</div>
+        <div className="flex items-center justify-center h-8 w-8 rounded-xl bg-cyan-900">{icon}</div>
         <div>
-          <h2 className="text-sm font-semibold text-gray-900">{title}</h2>
+          <h2 className="text-sm font-semibold text-cyan-900">{title}</h2>
           <p className="text-xs text-gray-400">{subtitle}</p>
         </div>
       </div>
@@ -58,7 +58,7 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
         {hint && (
           <span className="group relative cursor-pointer">
             <Info className="h-3.5 w-3.5 text-gray-400" />
-            <span className="absolute left-5 top-0 w-44 bg-gray-800 text-white text-xs rounded-lg px-3 py-2 hidden group-hover:block z-10 shadow-lg">{hint}</span>
+            <span className="absolute left-5 top-0 w-44 bg-cyan-900 text-white text-xs rounded-lg px-3 py-2 hidden group-hover:block z-10 shadow-lg">{hint}</span>
           </span>
         )}
       </label>
@@ -67,7 +67,7 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
   );
 }
 
-const inputCls = "w-full px-3 py-2.5 text-sm text-gray-900 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-gray-900/10 placeholder:text-gray-400";
+const inputCls = "w-full px-3 py-2.5 text-sm text-cyan-900 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-cyan-900/10 placeholder:text-gray-400";
 
 function fileToAttachment(file: File): Promise<FileAttachment> {
   return new Promise((resolve, reject) => {
@@ -103,7 +103,7 @@ function FileUploadZone({ files, onChange, accept, icon, label, onImageClick, re
           className="border-2 border-dashed border-gray-200 rounded-xl p-5 text-center hover:border-gray-400 hover:bg-gray-50 transition-colors cursor-pointer">
           <div className="flex flex-col items-center gap-2">
             <div className="h-10 w-10 rounded-xl bg-gray-100 flex items-center justify-center text-gray-400">{icon}</div>
-            <p className="text-sm font-medium text-gray-700">{label}</p>
+            <p className="text-sm font-medium text-slate-500">{label}</p>
             <p className="text-xs text-gray-400">Click to browse or drag & drop</p>
           </div>
           <input ref={inputRef} type="file" multiple accept={accept} className="hidden"
@@ -119,12 +119,12 @@ function FileUploadZone({ files, onChange, accept, icon, label, onImageClick, re
                   className="h-14 w-14 rounded-lg object-cover border border-gray-200 shrink-0 cursor-pointer hover:scale-105 transition-transform"
                   onClick={() => onImageClick?.(imageIndices.indexOf(i))} />
               ) : f.type.startsWith("video/") ? (
-                <div className="h-10 w-10 rounded-lg bg-gray-900 flex items-center justify-center shrink-0">
+                <div className="h-10 w-10 rounded-lg bg-cyan-900 flex items-center justify-center shrink-0">
                   <Video className="h-5 w-5 text-[#C9B45C]" />
                 </div>
               ) : null}
               <div className="flex-1 min-w-0 flex flex-col justify-center gap-0.5">
-                <span className="text-xs font-medium text-gray-700 truncate">{f.name}</span>
+                <span className="text-xs font-medium text-slate-500 truncate">{f.name}</span>
                 <span className="text-xs text-gray-400">{(f.size / 1024).toFixed(0)} KB</span>
               </div>
               {!readOnly && (
@@ -351,7 +351,7 @@ export default function StyleOrderArtworkDetail() {
             </button>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-3 flex-wrap">
-                <span className="text-sm font-mono font-bold text-gray-700 bg-white border border-gray-200 px-3 py-1 rounded-lg">
+                <span className="text-sm font-mono font-bold text-slate-500 bg-white border border-gray-200 px-3 py-1 rounded-lg">
                   {artworkCode}
                 </span>
                 <span className="text-xs text-gray-400">→ Style Order #{styleOrderId}</span>
@@ -361,14 +361,14 @@ export default function StyleOrderArtworkDetail() {
                   </span>
                 )}
                 {isViewMode && (
-                  <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-gray-900 text-[#C9B45C] border border-gray-900">
+                  <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-cyan-900 text-[#C9B45C] border border-cyan-900">
                     View Only — Approved
                   </span>
                 )}
               </div>
             </div>
             <button onClick={() => { void handleSave(); }} disabled={saving}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gray-900 text-[#C9B45C] text-sm font-medium hover:bg-black transition-colors disabled:opacity-60 shrink-0">
+              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-cyan-900 text-[#C9B45C] text-sm font-medium hover:bg-cyan-900 transition-colors disabled:opacity-60 shrink-0">
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
               {saving ? "Saving…" : isViewMode ? "Save Changes" : "Save"}
             </button>
@@ -450,7 +450,7 @@ export default function StyleOrderArtworkDetail() {
                         disabled={isViewMode}
                         className={`flex-1 py-2 rounded-xl text-sm font-semibold ring-1 transition-all ${
                           form.artworkCreated === opt
-                            ? "bg-gray-900 text-[#C9B45C] ring-gray-900"
+                            ? "bg-cyan-900 text-[#C9B45C] ring-cyan-900"
                             : "bg-white text-gray-500 ring-gray-200 hover:ring-gray-400"
                         } ${isViewMode ? "opacity-70 cursor-default" : ""}`}>
                         {opt}
@@ -627,7 +627,7 @@ export default function StyleOrderArtworkDetail() {
               Cancel
             </button>
             <button onClick={() => { void handleSave(); }} disabled={saving}
-              className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gray-900 text-[#C9B45C] text-sm font-medium hover:bg-black transition-colors disabled:opacity-60 shadow-sm">
+              className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-cyan-900 text-[#C9B45C] text-sm font-medium hover:bg-cyan-900 transition-colors disabled:opacity-60 shadow-sm">
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
               {saving ? "Saving…" : isNew ? "Create Artwork" : "Save Changes"}
             </button>
@@ -643,7 +643,7 @@ export default function StyleOrderArtworkDetail() {
         {addUTOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
             <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm mx-4">
-              <h3 className="text-base font-semibold text-gray-900 mb-4">Add Unit Type</h3>
+              <h3 className="text-base font-semibold text-cyan-900 mb-4">Add Unit Type</h3>
               <input autoFocus className={inputCls} placeholder="e.g. cm, inch, meter"
                 value={newUTName} onChange={e => setNewUTName(e.target.value)}
                 onKeyDown={e => { if (e.key === "Enter") { void handleAddUnitType(); } }} />
@@ -654,7 +654,7 @@ export default function StyleOrderArtworkDetail() {
                 </button>
                 <button onClick={() => { void handleAddUnitType(); }}
                   disabled={!newUTName.trim() || createUnitType.isPending}
-                  className="px-4 py-2 rounded-xl bg-gray-900 text-[#C9B45C] text-sm font-medium hover:bg-black transition-colors disabled:opacity-60">
+                  className="px-4 py-2 rounded-xl bg-cyan-900 text-[#C9B45C] text-sm font-medium hover:bg-cyan-900 transition-colors disabled:opacity-60">
                   {createUnitType.isPending ? "Adding…" : "Add"}
                 </button>
               </div>

@@ -73,7 +73,7 @@ export default function Settings() {
   }, [token, isError]);
 
   const card = "rounded-2xl bg-white border border-[#C6AF4B]/15 shadow-[0_2px_16px_rgba(198,175,75,0.12),0_1px_3px_rgba(0,0,0,0.06)]";
-  const inp = "w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:border-[#C6AF4B] focus:ring-2 focus:ring-[#C6AF4B]/20 transition disabled:bg-gray-50 disabled:text-gray-400";
+  const inp = "w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-sm text-cyan-900 placeholder-gray-400 focus:outline-none focus:border-[#C6AF4B] focus:ring-2 focus:ring-[#C6AF4B]/20 transition disabled:bg-gray-50 disabled:text-gray-400";
   const label = "block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5";
 
   return (
@@ -81,7 +81,7 @@ export default function Settings() {
       <div className="py-6 px-6 max-w-screen-xl mx-auto">
         {/* Header */}
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
+          <h1 className="text-2xl font-bold text-cyan-900">Settings</h1>
           <p className="text-sm text-gray-500 mt-0.5">Manage your profile, security, and system preferences</p>
         </div>
 
@@ -143,8 +143,8 @@ function NavItem({ icon, label, active, onClick }: { icon: React.ReactNode; labe
       onClick={onClick}
       className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
         active
-          ? "bg-gray-900 text-[#C6AF4B]"
-          : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+          ? "bg-cyan-900 text-[#C6AF4B]"
+          : "text-gray-600 hover:bg-gray-50 hover:text-cyan-900"
       }`}
     >
       {icon}
@@ -269,7 +269,7 @@ function ProfileTab({ card, inp, label, toast, userId }: any) {
       <div className={`${card} p-6`}>
         <div className="flex items-center gap-3 mb-6 border-b border-gray-100 pb-4">
           <User size={18} style={{ color: G }} />
-          <h2 className="font-bold text-gray-900 text-base">Profile Information</h2>
+          <h2 className="font-bold text-cyan-900 text-base">Profile Information</h2>
         </div>
 
         {/* Photo */}
@@ -278,13 +278,13 @@ function ProfileTab({ card, inp, label, toast, userId }: any) {
             {photoPreview ? (
               <img src={photoPreview} alt="Profile" className="h-20 w-20 rounded-full object-cover border-2 border-[#C6AF4B]/30" />
             ) : (
-              <div className="h-20 w-20 rounded-full flex items-center justify-center text-2xl font-bold shrink-0" style={{ backgroundColor: "#111", color: G }}>
+              <div className="h-20 w-20 rounded-full flex items-center justify-center text-2xl font-bold shrink-0" style={{ backgroundColor: "#164e63", color: G }}>
                 {initials}
               </div>
             )}
             <button
               onClick={() => photoRef.current?.click()}
-              className="absolute -bottom-1 -right-1 h-7 w-7 rounded-full bg-gray-900 flex items-center justify-center hover:bg-gray-700 transition shadow-md"
+              className="absolute -bottom-1 -right-1 h-7 w-7 rounded-full bg-cyan-900 flex items-center justify-center hover:bg-slate-500 transition shadow-md"
               title="Change photo"
             >
               <Camera size={13} className="text-[#C6AF4B]" />
@@ -292,7 +292,7 @@ function ProfileTab({ card, inp, label, toast, userId }: any) {
             <input ref={photoRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoChange} />
           </div>
           <div>
-            <p className="text-sm font-semibold text-gray-900">{form.name || profile?.email}</p>
+            <p className="text-sm font-semibold text-cyan-900">{form.name || profile?.email}</p>
             <p className="text-xs text-gray-400 mt-0.5 capitalize">{profile?.role}</p>
             <button
               onClick={() => photoRef.current?.click()}
@@ -352,7 +352,7 @@ function ProfileTab({ card, inp, label, toast, userId }: any) {
       <div className={`${card} p-6`}>
         <div className="flex items-center gap-3 mb-6 border-b border-gray-100 pb-4">
           <Lock size={18} style={{ color: G }} />
-          <h2 className="font-bold text-gray-900 text-base">Change Password</h2>
+          <h2 className="font-bold text-cyan-900 text-base">Change Password</h2>
         </div>
 
         <div className="space-y-4">
@@ -425,7 +425,7 @@ function ProfileTab({ card, inp, label, toast, userId }: any) {
             <button
               onClick={handleChangePassword}
               disabled={pwSaving}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white bg-gray-900 hover:bg-gray-800 transition disabled:opacity-60"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white bg-cyan-900 hover:bg-cyan-900 transition disabled:opacity-60"
             >
               {pwSaving ? <span className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Lock size={14} />}
               Update Password
@@ -575,7 +575,7 @@ function CurrencyTab({ card, inp, label, toast }: any) {
           <div className="flex items-center gap-3 mb-4">
             <Globe size={16} style={{ color: G }} />
             <div>
-              <p className="font-bold text-gray-900 text-sm">Base Currency</p>
+              <p className="font-bold text-cyan-900 text-sm">Base Currency</p>
               <p className="text-xs text-gray-400">All exchange rates are calculated relative to this currency</p>
             </div>
           </div>
@@ -649,12 +649,12 @@ function CurrencyTab({ card, inp, label, toast }: any) {
                   ) : pagedCurrencies.map((c, idx) => (
                     <tr key={c.code} className="border-b border-gray-50 hover:bg-gray-50/50 transition">
                       <td className="px-5 py-3 text-xs text-gray-400 font-medium">{(currencyPage - 1) * CURR_PER_PAGE + idx + 1}</td>
-                      <td className="px-5 py-3 font-mono font-bold text-gray-900">
+                      <td className="px-5 py-3 font-mono font-bold text-cyan-900">
                         {c.code}
                         {c.is_base && <span className="ml-2 text-xs px-1.5 py-0.5 rounded-full border border-[#C6AF4B]/40 text-[#C6AF4B] bg-[#C6AF4B]/8">Base</span>}
                       </td>
-                      <td className="px-5 py-3 text-gray-700">{c.name}</td>
-                      <td className="px-5 py-3 text-gray-700 font-medium">{c.symbol}</td>
+                      <td className="px-5 py-3 text-slate-500">{c.name}</td>
+                      <td className="px-5 py-3 text-slate-500 font-medium">{c.symbol}</td>
                       <td className="px-5 py-3 text-gray-500">{c.decimal_places}</td>
                       <td className="px-5 py-3">
                         <span className={`px-2.5 py-1 rounded-full text-xs font-semibold border ${c.is_active ? STATUS_COLORS.Active : STATUS_COLORS.Inactive}`}>
@@ -765,11 +765,11 @@ function CurrencyTab({ card, inp, label, toast }: any) {
                       <tr key={r.currency_code} className="border-b border-gray-50 hover:bg-gray-50/50 transition">
                         <td className="px-5 py-3 text-xs text-gray-400 font-medium">{(ratesPage - 1) * CURR_PER_PAGE + idx + 1}</td>
                         <td className="px-5 py-3">
-                          <p className="font-mono font-bold text-gray-900">{r.currency_code}</p>
+                          <p className="font-mono font-bold text-cyan-900">{r.currency_code}</p>
                           <p className="text-xs text-gray-400">{r.currency_name}</p>
                         </td>
                         <td className="px-5 py-3">
-                          <span className="font-semibold text-gray-900">
+                          <span className="font-semibold text-cyan-900">
                             {base?.symbol}{inverseRate.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 4 })}
                           </span>
                           <p className="text-xs text-gray-400 mt-0.5">
@@ -795,7 +795,7 @@ function CurrencyTab({ card, inp, label, toast }: any) {
                               </button>
                             </div>
                           ) : (
-                            <span className="font-semibold text-gray-700">{rate.toFixed(4)}</span>
+                            <span className="font-semibold text-slate-500">{rate.toFixed(4)}</span>
                           )}
                         </td>
                         <td className="px-5 py-3 text-gray-500 text-xs whitespace-nowrap">{fmtDate(r.created_at)}</td>
@@ -807,7 +807,7 @@ function CurrencyTab({ card, inp, label, toast }: any) {
                         <td className="px-5 py-3">
                           <button
                             onClick={() => setEditRate({ code: r.currency_code, value: r.rate })}
-                            className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition"
+                            className="p-1.5 rounded-lg text-gray-400 hover:text-slate-500 hover:bg-gray-100 transition"
                             title="Override rate manually"
                           >
                             <Edit2 size={14} />
@@ -941,7 +941,7 @@ function BankDetailsTab({ card, inp, label, toast }: any) {
         <div className="flex items-center justify-between mb-1">
           <div className="flex items-center gap-2">
             <Landmark size={18} style={{ color: G }} />
-            <h2 className="text-base font-bold text-gray-900">Bank Details</h2>
+            <h2 className="text-base font-bold text-cyan-900">Bank Details</h2>
           </div>
           <button
             onClick={openNew}
@@ -958,7 +958,7 @@ function BankDetailsTab({ card, inp, label, toast }: any) {
       {showForm && (
         <div className={`${card} p-5`}>
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-gray-900">{editId ? "Edit Bank Account" : "Add Bank Account"}</h3>
+            <h3 className="font-semibold text-cyan-900">{editId ? "Edit Bank Account" : "Add Bank Account"}</h3>
             <button onClick={() => setShowForm(false)} className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition">
               <X size={16} />
             </button>
@@ -997,7 +997,7 @@ function BankDetailsTab({ card, inp, label, toast }: any) {
                 onChange={e => setF("is_default", e.target.checked)}
                 className="w-4 h-4 rounded accent-[#C6AF4B]"
               />
-              <span className="text-sm font-medium text-gray-700">Set as default bank account for invoices</span>
+              <span className="text-sm font-medium text-slate-500">Set as default bank account for invoices</span>
             </label>
           </div>
           <div className="flex justify-end gap-3 mt-5 pt-4 border-t border-gray-100">
@@ -1031,7 +1031,7 @@ function BankDetailsTab({ card, inp, label, toast }: any) {
                   </div>
                   <div>
                     <div className="flex items-center gap-2 mb-0.5">
-                      <span className="font-semibold text-gray-900 text-sm">{b.bank_name}</span>
+                      <span className="font-semibold text-cyan-900 text-sm">{b.bank_name}</span>
                       {b.is_default && (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-700 border border-amber-200">
                           <Star size={10} fill="currentColor" /> Default
@@ -1057,7 +1057,7 @@ function BankDetailsTab({ card, inp, label, toast }: any) {
                       Set Default
                     </button>
                   )}
-                  <button onClick={() => openEdit(b)} className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition" title="Edit">
+                  <button onClick={() => openEdit(b)} className="p-1.5 rounded-lg text-gray-400 hover:text-slate-500 hover:bg-gray-100 transition" title="Edit">
                     <Edit2 size={14} />
                   </button>
                   <button
@@ -1261,14 +1261,14 @@ function ActivityLogsTab({ card, isAdmin, currentUserEmail }: any) {
       <div className={`${card} p-5`}>
         <div className="flex items-center gap-2 mb-1">
           <Activity size={18} style={{ color: G }} />
-          <h2 className="text-base font-bold text-gray-900">Activity Logs</h2>
+          <h2 className="text-base font-bold text-cyan-900">Activity Logs</h2>
           <div className="ml-auto flex items-center gap-3">
             {total > 0 && <span className="text-xs text-gray-400 font-medium">{total.toLocaleString()} total entries</span>}
             {isAdmin && (
               <button
                 onClick={handleExportCSV}
                 disabled={exporting || logs.length === 0}
-                className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold border border-gray-200 text-gray-700 hover:bg-gray-50 transition disabled:opacity-50"
+                className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold border border-gray-200 text-slate-500 hover:bg-gray-50 transition disabled:opacity-50"
               >
                 <Download size={13} /> {exporting ? "Exporting…" : "Export CSV"}
               </button>
@@ -1308,7 +1308,7 @@ function ActivityLogsTab({ card, isAdmin, currentUserEmail }: any) {
                 <select
                   value={filters.user_email}
                   onChange={e => setF("user_email", e.target.value)}
-                  className="rounded-lg border border-gray-200 px-2.5 py-1.5 text-sm text-gray-900 focus:outline-none focus:border-[#C6AF4B] focus:ring-2 focus:ring-[#C6AF4B]/20 bg-white min-w-36"
+                  className="rounded-lg border border-gray-200 px-2.5 py-1.5 text-sm text-cyan-900 focus:outline-none focus:border-[#C6AF4B] focus:ring-2 focus:ring-[#C6AF4B]/20 bg-white min-w-36"
                 >
                   <option value="">All users</option>
                   {users.map(u => (
@@ -1324,7 +1324,7 @@ function ActivityLogsTab({ card, isAdmin, currentUserEmail }: any) {
                 type="datetime-local"
                 value={filters.from}
                 onChange={e => setF("from", e.target.value)}
-                className="rounded-lg border border-gray-200 px-2.5 py-1.5 text-sm text-gray-900 focus:outline-none focus:border-[#C6AF4B] focus:ring-2 focus:ring-[#C6AF4B]/20 bg-white"
+                className="rounded-lg border border-gray-200 px-2.5 py-1.5 text-sm text-cyan-900 focus:outline-none focus:border-[#C6AF4B] focus:ring-2 focus:ring-[#C6AF4B]/20 bg-white"
               />
             </div>
 
@@ -1334,7 +1334,7 @@ function ActivityLogsTab({ card, isAdmin, currentUserEmail }: any) {
                 type="datetime-local"
                 value={filters.to}
                 onChange={e => setF("to", e.target.value)}
-                className="rounded-lg border border-gray-200 px-2.5 py-1.5 text-sm text-gray-900 focus:outline-none focus:border-[#C6AF4B] focus:ring-2 focus:ring-[#C6AF4B]/20 bg-white"
+                className="rounded-lg border border-gray-200 px-2.5 py-1.5 text-sm text-cyan-900 focus:outline-none focus:border-[#C6AF4B] focus:ring-2 focus:ring-[#C6AF4B]/20 bg-white"
               />
             </div>
 
@@ -1381,7 +1381,7 @@ function ActivityLogsTab({ card, isAdmin, currentUserEmail }: any) {
                       <td className="px-4 py-2.5 text-xs text-gray-400 font-medium">{(page - 1) * PER_PAGE + idx + 1}</td>
                       {isAdmin && (
                         <td className="px-4 py-2.5">
-                          <p className="text-xs font-semibold text-gray-800">
+                          <p className="text-xs font-semibold text-cyan-900">
                             {log.user_name && log.user_name !== log.user_email ? log.user_name : "—"}
                           </p>
                           <p className="text-xs text-gray-400">{log.user_email}</p>
@@ -1392,7 +1392,7 @@ function ActivityLogsTab({ card, isAdmin, currentUserEmail }: any) {
                           {log.method === "POST" ? "New" : log.method === "DELETE" ? "Delete" : log.method === "PATCH" ? "Update" : log.method === "PUT" ? "Update" : log.method}
                         </span>
                       </td>
-                      <td className="px-4 py-2.5 text-xs text-gray-700 max-w-xs">
+                      <td className="px-4 py-2.5 text-xs text-slate-500 max-w-xs">
                         <p className="font-medium leading-snug">
                           {/^(GET|POST|PUT|PATCH|DELETE) /.test(log.action)
                             ? toPlainEnglish(log.method, log.url)
@@ -1561,7 +1561,7 @@ function WarehouseTab({ card, inp, label, toast }: any) {
       doc.setTextColor(255, 255, 255);
       doc.setFontSize(14);
       doc.setFont("helvetica", "bold");
-      doc.text("ZARI EMBROIDERIES — Warehouse Locations", 14, 12);
+      doc.text("ERP — Warehouse Locations", 14, 12);
       doc.setFontSize(9);
       doc.setFont("helvetica", "normal");
       doc.text(`Generated on ${new Date().toLocaleString("en-IN")}`, 283, 12, { align: "right" });
@@ -1597,7 +1597,7 @@ function WarehouseTab({ card, inp, label, toast }: any) {
         doc.setPage(i);
         doc.setFontSize(7);
         doc.setTextColor(180, 160, 80);
-        doc.text(`Page ${i} of ${pageCount} — Confidential — ZARI EMBROIDERIES`, 148.5, 205, { align: "center" });
+        doc.text(`Page ${i} of ${pageCount} — Confidential — ERP`, 148.5, 205, { align: "center" });
       }
 
       const wFileName = `warehouses-${new Date().toISOString().slice(0, 10)}.pdf`;
@@ -1617,12 +1617,12 @@ function WarehouseTab({ card, inp, label, toast }: any) {
       <div className={`${card} p-5`}>
         <div className="flex items-center gap-2 mb-1">
           <Warehouse size={18} style={{ color: G }} />
-          <h2 className="text-base font-bold text-gray-900">Warehouse Locations</h2>
+          <h2 className="text-base font-bold text-cyan-900">Warehouse Locations</h2>
           <div className="ml-auto flex items-center gap-2">
             <button
               onClick={handleExportPDF}
               disabled={exportingPdf || warehouses.length === 0}
-              className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold border border-gray-200 text-gray-700 hover:bg-gray-50 transition disabled:opacity-50"
+              className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold border border-gray-200 text-slate-500 hover:bg-gray-50 transition disabled:opacity-50"
             >
               <FileText size={13} /> {exportingPdf ? "Generating…" : "Export PDF"}
             </button>
@@ -1642,7 +1642,7 @@ function WarehouseTab({ card, inp, label, toast }: any) {
       {showForm && (
         <div className={`${card} p-5`}>
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-gray-900">{editId ? "Edit Warehouse" : "Add Warehouse"}</h3>
+            <h3 className="font-semibold text-cyan-900">{editId ? "Edit Warehouse" : "Add Warehouse"}</h3>
             <button onClick={() => setShowForm(false)} className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition"><X size={16} /></button>
           </div>
 
@@ -1712,7 +1712,7 @@ function WarehouseTab({ card, inp, label, toast }: any) {
             <div className="flex items-end pb-1">
               <label className="flex items-center gap-2 cursor-pointer select-none">
                 <input type="checkbox" checked={form.is_active} onChange={e => setF("is_active", e.target.checked)} className="w-4 h-4 rounded accent-[#C6AF4B]" />
-                <span className="text-sm font-medium text-gray-700">Active warehouse</span>
+                <span className="text-sm font-medium text-slate-500">Active warehouse</span>
               </label>
             </div>
           </div>
@@ -1748,7 +1748,7 @@ function WarehouseTab({ card, inp, label, toast }: any) {
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2 flex-wrap mb-1">
-                      <span className="font-bold text-gray-900">{w.name}</span>
+                      <span className="font-bold text-cyan-900">{w.name}</span>
                       {w.code && <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-gray-100 text-gray-500">{w.code}</span>}
                       <span className={`px-2 py-0.5 rounded-full text-xs font-semibold border ${w.is_active ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-gray-50 text-gray-400 border-gray-200"}`}>
                         {w.is_active ? "Active" : "Inactive"}
@@ -1785,7 +1785,7 @@ function WarehouseTab({ card, inp, label, toast }: any) {
                 </div>
 
                 <div className="flex items-center gap-2 ml-4 shrink-0">
-                  <button onClick={() => openEdit(w)} className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition" title="Edit">
+                  <button onClick={() => openEdit(w)} className="p-1.5 rounded-lg text-gray-400 hover:text-slate-500 hover:bg-gray-100 transition" title="Edit">
                     <Edit2 size={14} />
                   </button>
                   <button
@@ -1838,7 +1838,7 @@ interface GSTForm {
 }
 
 const EMPTY_GST: GSTForm = {
-  company_name: "ZARI EMBROIDERIES",
+  company_name: "ERP",
   company_address: "",
   company_phone: "",
   company_email: "",
@@ -1907,7 +1907,7 @@ function GSTSettingsTab({ card, inp, label, toast }: any) {
           setPhoneCode(parsed.code);
           setPhoneNumber(parsed.number);
           setForm({
-            company_name:             j.data.company_name ?? "ZARI EMBROIDERIES",
+            company_name:             j.data.company_name ?? "ERP",
             company_address:          j.data.company_address ?? "",
             company_phone:            j.data.company_phone ?? "",
             company_email:            j.data.company_email ?? "",
@@ -2000,7 +2000,7 @@ function GSTSettingsTab({ card, inp, label, toast }: any) {
         <div className="flex items-center gap-3 mb-1 border-b border-gray-100 pb-4">
           <Receipt size={18} style={{ color: G }} />
           <div>
-            <h2 className="font-bold text-gray-900 text-base">GST Settings</h2>
+            <h2 className="font-bold text-cyan-900 text-base">GST Settings</h2>
             <p className="text-xs text-gray-400 mt-0.5">Company GST configuration used across invoice generation and tax calculations</p>
           </div>
         </div>
@@ -2015,7 +2015,7 @@ function GSTSettingsTab({ card, inp, label, toast }: any) {
                 value={form.company_name}
                 onChange={e => f("company_name", e.target.value)}
                 className={`${inp} font-semibold`}
-                placeholder="ZARI EMBROIDERIES"
+                placeholder="ERP"
               />
               <p className="text-xs text-gray-400 mt-1">Shown on all invoices and PDFs</p>
             </div>
@@ -2056,7 +2056,7 @@ function GSTSettingsTab({ card, inp, label, toast }: any) {
                 <select
                   value={phoneCode}
                   onChange={e => setPhoneCode(e.target.value)}
-                  className="bg-gray-50 border-0 border-r border-gray-200 px-2 py-2.5 text-sm text-gray-700 focus:outline-none cursor-pointer shrink-0"
+                  className="bg-gray-50 border-0 border-r border-gray-200 px-2 py-2.5 text-sm text-slate-500 focus:outline-none cursor-pointer shrink-0"
                   style={{ minWidth: 110 }}
                 >
                   {DIAL_CODES.map(dc => (
@@ -2069,7 +2069,7 @@ function GSTSettingsTab({ card, inp, label, toast }: any) {
                   type="tel"
                   value={phoneNumber}
                   onChange={e => setPhoneNumber(e.target.value.replace(/[^0-9\s\-]/g, ""))}
-                  className="flex-1 border-0 px-3 py-2.5 text-sm text-gray-900 focus:outline-none bg-white"
+                  className="flex-1 border-0 px-3 py-2.5 text-sm text-cyan-900 focus:outline-none bg-white"
                   placeholder="98765 43210"
                 />
               </div>
@@ -2118,7 +2118,7 @@ function GSTSettingsTab({ card, inp, label, toast }: any) {
               <select
                 value={form.company_state}
                 onChange={e => f("company_state", e.target.value)}
-                className={`w-full rounded-xl border px-3.5 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 transition bg-white ${
+                className={`w-full rounded-xl border px-3.5 py-2.5 text-sm text-cyan-900 focus:outline-none focus:ring-2 transition bg-white ${
                   errors.company_state
                     ? "border-red-400 focus:border-red-400 focus:ring-red-400/20"
                     : "border-gray-200 focus:border-[#C6AF4B] focus:ring-[#C6AF4B]/20"
@@ -2156,7 +2156,7 @@ function GSTSettingsTab({ card, inp, label, toast }: any) {
                   onClick={() => f("gst_mode", mode)}
                   className={`flex-1 px-4 py-2.5 rounded-xl border text-sm font-medium transition-all ${
                     form.gst_mode === mode
-                      ? "bg-gray-900 border-gray-900 text-[#C6AF4B]"
+                      ? "bg-cyan-900 border-cyan-900 text-[#C6AF4B]"
                       : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
                   }`}
                 >
@@ -2179,14 +2179,14 @@ function GSTSettingsTab({ card, inp, label, toast }: any) {
       <div className={`${card} p-6`}>
         <div className="flex items-center gap-3 mb-5 border-b border-gray-100 pb-4">
           <ToggleRight size={18} style={{ color: G }} />
-          <h2 className="font-bold text-gray-900 text-base">Special GST Rules</h2>
+          <h2 className="font-bold text-cyan-900 text-base">Special GST Rules</h2>
         </div>
 
         <div className="space-y-5">
           {/* Export under LUT */}
           <div className="flex items-start justify-between gap-6">
             <div className="flex-1">
-              <p className="text-sm font-semibold text-gray-900">Export under LUT</p>
+              <p className="text-sm font-semibold text-cyan-900">Export under LUT</p>
               <p className="text-xs text-gray-500 mt-0.5">
                 When enabled, export invoices are issued without GST payment under Letter of Undertaking. Invoice GST will be set to 0%.
               </p>
@@ -2199,7 +2199,7 @@ function GSTSettingsTab({ card, inp, label, toast }: any) {
           {/* Reverse Charge */}
           <div className="flex items-start justify-between gap-6">
             <div className="flex-1">
-              <p className="text-sm font-semibold text-gray-900">Reverse Charge Mechanism</p>
+              <p className="text-sm font-semibold text-cyan-900">Reverse Charge Mechanism</p>
               <p className="text-xs text-gray-500 mt-0.5">
                 When enabled, GST liability on vendor invoices is reversed to the buyer (applicable for unregistered vendors and specific services).
               </p>
@@ -2454,7 +2454,7 @@ function InvoiceTemplatesTab({ card, toast }: any) {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-base font-semibold text-gray-900">Invoice Templates</h2>
+        <h2 className="text-base font-semibold text-cyan-900">Invoice Templates</h2>
         <p className="text-sm text-gray-500 mt-0.5">Choose a default layout and configure payment terms and notes printed on every invoice.</p>
       </div>
 
@@ -2489,7 +2489,7 @@ function InvoiceTemplatesTab({ card, toast }: any) {
 
                   <div className="mt-2.5">
                     <div className="flex items-center gap-1.5">
-                      <span className="text-sm font-semibold text-gray-800">{LAYOUT_LABELS[t.layout] ?? t.name}</span>
+                      <span className="text-sm font-semibold text-cyan-900">{LAYOUT_LABELS[t.layout] ?? t.name}</span>
                       {isSelected && (
                         <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full text-white" style={{ backgroundColor: G }}>
                           Selected
@@ -2510,7 +2510,7 @@ function InvoiceTemplatesTab({ card, toast }: any) {
             <div className={`${card} space-y-4 p-6`}>
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-sm font-semibold text-gray-800 flex items-center gap-2">
+                  <h3 className="text-sm font-semibold text-cyan-900 flex items-center gap-2">
                     <ChevronRight size={14} style={{ color: G }} />
                     Editing: {LAYOUT_LABELS[selectedTpl.layout] ?? selectedTpl.name} Template
                   </h3>
@@ -2540,7 +2540,7 @@ function InvoiceTemplatesTab({ card, toast }: any) {
                     value={form.payment_terms}
                     onChange={e => setForm(f => ({ ...f, payment_terms: e.target.value }))}
                     placeholder="e.g. Payment due within 30 days of invoice date…"
-                    className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-800 resize-none focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30 focus:border-[#C6AF4B] placeholder:text-gray-400"
+                    className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-cyan-900 resize-none focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30 focus:border-[#C6AF4B] placeholder:text-gray-400"
                   />
                   <p className="text-[11px] text-gray-400">Printed in the Payment Terms section of the invoice.</p>
                 </div>
@@ -2551,7 +2551,7 @@ function InvoiceTemplatesTab({ card, toast }: any) {
                     value={form.notes}
                     onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
                     placeholder="e.g. Thank you for your business. Cheques payable to…"
-                    className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-800 resize-none focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30 focus:border-[#C6AF4B] placeholder:text-gray-400"
+                    className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-cyan-900 resize-none focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30 focus:border-[#C6AF4B] placeholder:text-gray-400"
                   />
                   <p className="text-[11px] text-gray-400">Appears at the bottom of the printed invoice.</p>
                 </div>
@@ -2677,14 +2677,14 @@ function DownloadLogsTab({ card, isAdmin, currentUserEmail, canDownload }: any) 
       <div className={`${card} p-5`}>
         <div className="flex items-center gap-2 mb-1">
           <Download size={18} style={{ color: G }} />
-          <h2 className="text-base font-bold text-gray-900">Download Logs</h2>
+          <h2 className="text-base font-bold text-cyan-900">Download Logs</h2>
           <div className="ml-auto flex items-center gap-3">
             {total > 0 && <span className="text-xs text-gray-400 font-medium">{total.toLocaleString()} total downloads</span>}
             {canDownload && (
               <button
                 onClick={handleExportCSV}
                 disabled={exporting || logs.length === 0}
-                className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold border border-gray-200 text-gray-700 hover:bg-gray-50 transition disabled:opacity-50"
+                className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold border border-gray-200 text-slate-500 hover:bg-gray-50 transition disabled:opacity-50"
               >
                 <Download size={13} /> {exporting ? "Exporting…" : "Export CSV"}
               </button>
@@ -2706,7 +2706,7 @@ function DownloadLogsTab({ card, isAdmin, currentUserEmail, canDownload }: any) 
             <select
               value={filters.user_email}
               onChange={e => setF("user_email", e.target.value)}
-              className="text-sm border border-gray-200 rounded-xl px-3 py-1.5 text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/20"
+              className="text-sm border border-gray-200 rounded-xl px-3 py-1.5 text-slate-500 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/20"
             >
               <option value="">All Users</option>
               {users.map(u => (
@@ -2717,7 +2717,7 @@ function DownloadLogsTab({ card, isAdmin, currentUserEmail, canDownload }: any) 
           <select
             value={filters.file_type}
             onChange={e => setF("file_type", e.target.value)}
-            className="text-sm border border-gray-200 rounded-xl px-3 py-1.5 text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/20"
+            className="text-sm border border-gray-200 rounded-xl px-3 py-1.5 text-slate-500 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/20"
           >
             <option value="">All Types</option>
             <option value="PDF">PDF</option>
@@ -2727,13 +2727,13 @@ function DownloadLogsTab({ card, isAdmin, currentUserEmail, canDownload }: any) 
           <input
             type="date" value={filters.from}
             onChange={e => setF("from", e.target.value)}
-            className="text-sm border border-gray-200 rounded-xl px-3 py-1.5 text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/20"
+            className="text-sm border border-gray-200 rounded-xl px-3 py-1.5 text-slate-500 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/20"
             placeholder="From date"
           />
           <input
             type="date" value={filters.to}
             onChange={e => setF("to", e.target.value)}
-            className="text-sm border border-gray-200 rounded-xl px-3 py-1.5 text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/20"
+            className="text-sm border border-gray-200 rounded-xl px-3 py-1.5 text-slate-500 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/20"
             placeholder="To date"
           />
           <div className="relative">
@@ -2742,7 +2742,7 @@ function DownloadLogsTab({ card, isAdmin, currentUserEmail, canDownload }: any) 
               type="text" value={filters.search}
               onChange={e => setF("search", e.target.value)}
               placeholder="Search file, module…"
-              className="text-sm border border-gray-200 rounded-xl pl-7 pr-3 py-1.5 text-gray-700 w-44 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/20"
+              className="text-sm border border-gray-200 rounded-xl pl-7 pr-3 py-1.5 text-slate-500 w-44 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/20"
             />
           </div>
           {(filters.user_email || filters.from || filters.to || filters.search || filters.file_type) && (
@@ -2785,7 +2785,7 @@ function DownloadLogsTab({ card, isAdmin, currentUserEmail, canDownload }: any) 
                   <tr key={l.id} className="hover:bg-gray-50/50 transition-colors">
                     {isAdmin && (
                       <td className="px-4 py-3">
-                        <div className="font-medium text-gray-900 text-xs">{l.user_name || "—"}</div>
+                        <div className="font-medium text-cyan-900 text-xs">{l.user_name || "—"}</div>
                         <div className="text-gray-400 text-[11px]">{l.user_email}</div>
                       </td>
                     )}
@@ -2794,7 +2794,7 @@ function DownloadLogsTab({ card, isAdmin, currentUserEmail, canDownload }: any) 
                         {l.file_type}
                       </span>
                     </td>
-                    <td className="px-4 py-3 font-medium text-gray-800 max-w-[200px] truncate" title={l.file_name}>{l.file_name}</td>
+                    <td className="px-4 py-3 font-medium text-cyan-900 max-w-[200px] truncate" title={l.file_name}>{l.file_name}</td>
                     <td className="px-4 py-3 text-gray-500 text-xs">{l.module || "—"}</td>
                     <td className="px-4 py-3 text-gray-500 text-xs">{l.reference || "—"}</td>
                     <td className="px-4 py-3 text-gray-400 text-xs whitespace-nowrap">{fmtDateTime(l.downloaded_at)}</td>
@@ -2860,11 +2860,11 @@ function ApiDocsTab({ card }: { card: string }) {
   const q = nonce ? `?n=${encodeURIComponent(nonce)}` : "";
   const docsUrl = `/api/docs${q}`;
   const downloads = [
-    { label: "OpenAPI Spec (YAML)",       href: `/api/docs/openapi.yaml${q}`,   file: "ZARI_ERP_API.openapi.yaml",          desc: "Source of truth for every endpoint — import into any OpenAPI-aware tool." },
-    { label: "OpenAPI Spec (JSON)",       href: `/api/docs/openapi.json${q}`,   file: "ZARI_ERP_API.openapi.json",          desc: "Same spec in JSON — useful for Swagger UI, code generators, and Stoplight." },
-    { label: "Postman Collection",        href: `/api/docs/postman.json${q}`,   file: "ZARI_ERP_API.postman_collection.json", desc: "Pre-organised into folders. Import directly into Postman to start testing." },
-    { label: "API Reference (Markdown)",  href: `/api/docs/markdown${q}`,       file: "ZARI_ERP_API.md",                    desc: "Human-readable reference for offline review or printing." },
-    { label: "Full Docs Bundle (.zip)",   href: `/api/docs/bundle.zip${q}`,     file: "ZARI_ERP_API_docs.zip",              desc: "Everything above plus the Redoc HTML in one zip — share with developers." },
+    { label: "OpenAPI Spec (YAML)",       href: `/api/docs/openapi.yaml${q}`,   file: "ERP_API.openapi.yaml",          desc: "Source of truth for every endpoint — import into any OpenAPI-aware tool." },
+    { label: "OpenAPI Spec (JSON)",       href: `/api/docs/openapi.json${q}`,   file: "ERP_API.openapi.json",          desc: "Same spec in JSON — useful for Swagger UI, code generators, and Stoplight." },
+    { label: "Postman Collection",        href: `/api/docs/postman.json${q}`,   file: "ERP_API.postman_collection.json", desc: "Pre-organised into folders. Import directly into Postman to start testing." },
+    { label: "API Reference (Markdown)",  href: `/api/docs/markdown${q}`,       file: "ERP_API.md",                    desc: "Human-readable reference for offline review or printing." },
+    { label: "Full Docs Bundle (.zip)",   href: `/api/docs/bundle.zip${q}`,     file: "ERP_API_docs.zip",              desc: "Everything above plus the Redoc HTML in one zip — share with developers." },
   ];
 
   return (
@@ -2872,13 +2872,13 @@ function ApiDocsTab({ card }: { card: string }) {
       {/* Header card */}
       <div className={`${card} p-5`}>
         <div className="flex items-start gap-4">
-          <div className="h-11 w-11 rounded-xl bg-gray-900 text-[#C6AF4B] flex items-center justify-center shrink-0">
+          <div className="h-11 w-11 rounded-xl bg-cyan-900 text-[#C6AF4B] flex items-center justify-center shrink-0">
             <Code2 size={20} />
           </div>
           <div className="flex-1 min-w-0">
-            <h2 className="text-lg font-bold text-gray-900">API Documentation</h2>
+            <h2 className="text-lg font-bold text-cyan-900">API Documentation</h2>
             <p className="text-sm text-gray-500 mt-0.5">
-              Interactive reference for every ZARI ERP backend endpoint — Swagger / OpenAPI spec, Redoc viewer, and Postman collection.
+              Interactive reference for every ERP backend endpoint — Swagger / OpenAPI spec, Redoc viewer, and Postman collection.
             </p>
           </div>
           <a
@@ -2888,7 +2888,7 @@ function ApiDocsTab({ card }: { card: string }) {
             aria-disabled={!nonce}
             onClick={e => { if (!nonce) e.preventDefault(); }}
             className={`shrink-0 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold transition ${
-              nonce ? "bg-gray-900 text-[#C6AF4B] hover:bg-black cursor-pointer" : "bg-gray-200 text-gray-400 cursor-not-allowed"
+              nonce ? "bg-cyan-900 text-[#C6AF4B] hover:bg-cyan-900 cursor-pointer" : "bg-gray-200 text-gray-400 cursor-not-allowed"
             }`}
           >
             <ExternalLink size={14} />
@@ -2911,14 +2911,14 @@ function ApiDocsTab({ card }: { card: string }) {
         {error && !nonce && (
           <div className="flex flex-col items-center justify-center gap-3 py-16 text-sm">
             <span className="text-rose-600">Could not load documentation access: {error}</span>
-            <button onClick={() => void fetchNonce()} className="px-3 py-1.5 rounded-lg bg-gray-900 text-[#C6AF4B] text-xs font-semibold hover:bg-black">Retry</button>
+            <button onClick={() => void fetchNonce()} className="px-3 py-1.5 rounded-lg bg-cyan-900 text-[#C6AF4B] text-xs font-semibold hover:bg-cyan-900">Retry</button>
           </div>
         )}
         {nonce && (
           <iframe
             key={nonce}
             src={docsUrl}
-            title="ZARI ERP API Documentation"
+            title="ERP API Documentation"
             className="w-full bg-white"
             style={{ height: "70vh", border: 0 }}
           />
@@ -2929,7 +2929,7 @@ function ApiDocsTab({ card }: { card: string }) {
       <div className={`${card} p-5`}>
         <div className="flex items-center gap-2 mb-3">
           <Download size={16} className="text-gray-500" />
-          <h3 className="text-sm font-semibold text-gray-900">Download specs &amp; collections</h3>
+          <h3 className="text-sm font-semibold text-cyan-900">Download specs &amp; collections</h3>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
           {downloads.map(d => (
@@ -2947,7 +2947,7 @@ function ApiDocsTab({ card }: { card: string }) {
                 <FileText size={15} className="text-gray-500 group-hover:text-[#C6AF4B] transition" />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold text-gray-800 truncate">{d.label}</p>
+                <p className="text-sm font-semibold text-cyan-900 truncate">{d.label}</p>
                 <p className="text-xs text-gray-500 leading-snug mt-0.5">{d.desc}</p>
               </div>
               <Download size={14} className="text-gray-300 group-hover:text-[#C6AF4B] mt-1 shrink-0 transition" />
@@ -2959,7 +2959,7 @@ function ApiDocsTab({ card }: { card: string }) {
       {/* Helper card */}
       <div className="rounded-xl p-4 border border-[#C6AF4B]/25" style={{ background: "#fdf8e7" }}>
         <p className="text-xs font-bold uppercase tracking-widest mb-1 text-[#9c8635]">How to use</p>
-        <ol className="text-sm text-gray-700 space-y-1 list-decimal list-inside leading-relaxed">
+        <ol className="text-sm text-slate-500 space-y-1 list-decimal list-inside leading-relaxed">
           <li>Browse the live reference above to explore endpoints, request/response shapes, and authentication.</li>
           <li>For testing, download the <strong>Postman Collection</strong> and import it into Postman — all 45 folders come pre-organised.</li>
           <li>For code generation or external integrations, use the <strong>OpenAPI Spec (YAML/JSON)</strong>.</li>

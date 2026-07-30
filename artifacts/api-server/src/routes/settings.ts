@@ -630,7 +630,7 @@ router.put("/settings/gst", requireAuth, async (req: AuthRequest, res) => {
            gst_mode=$10, default_service_gst_rate=$11, updated_at=NOW()
          WHERE gst_settings_id=$12`,
         [
-          company_name?.trim() ?? "ZARI EMBROIDERIES",
+          company_name?.trim() ?? "ERP",
           company_address?.trim() ?? "",
           company_phone?.trim() ?? "",
           company_email?.trim() ?? "",
@@ -648,7 +648,7 @@ router.put("/settings/gst", requireAuth, async (req: AuthRequest, res) => {
             reverse_charge_enabled, gst_mode, default_service_gst_rate)
          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
         [
-          company_name?.trim() ?? "ZARI EMBROIDERIES",
+          company_name?.trim() ?? "ERP",
           company_address?.trim() ?? "",
           company_phone?.trim() ?? "",
           company_email?.trim() ?? "",

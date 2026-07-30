@@ -33,7 +33,7 @@ export default function CancelOrderModal({ open, orderCode, onConfirm, onCancel 
             <XCircle className="h-5 w-5 text-orange-500" />
           </div>
           <div>
-            <h2 className="text-base font-semibold text-gray-900">Cancel Order</h2>
+            <h2 className="text-base font-semibold text-cyan-900">Cancel Order</h2>
             {orderCode && <p className="text-xs text-gray-400 mt-0.5">{orderCode}</p>}
           </div>
         </div>
@@ -43,13 +43,13 @@ export default function CancelOrderModal({ open, orderCode, onConfirm, onCancel 
             This order will be permanently marked as <span className="font-semibold text-orange-600">Cancelled</span> and cannot be reactivated.
           </p>
           <div>
-            <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+            <label className="block text-xs font-semibold text-slate-500 mb-1.5">
               Reason for Cancellation <span className="text-red-500">*</span>
             </label>
             <textarea
               rows={3}
               placeholder="e.g. Client requested cancellation, Design not approved…"
-              className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-300 focus:border-orange-400 resize-none transition"
+              className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-cyan-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-300 focus:border-orange-400 resize-none transition"
               value={reason}
               onChange={e => setReason(e.target.value)}
               autoFocus

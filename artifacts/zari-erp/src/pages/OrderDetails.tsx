@@ -58,7 +58,7 @@ function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="flex flex-col gap-0.5">
       <span className="text-xs font-medium text-gray-400 uppercase tracking-wide">{label}</span>
-      <span className="text-sm font-medium text-gray-800">{value || "—"}</span>
+      <span className="text-sm font-medium text-cyan-900">{value || "—"}</span>
     </div>
   );
 }
@@ -76,11 +76,11 @@ function Card({ icon: Icon, title, children, onEdit }: {
           <div className="h-8 w-8 rounded-lg bg-gray-100 flex items-center justify-center">
             <Icon className="h-4 w-4 text-gray-600" />
           </div>
-          <h3 className="text-sm font-semibold text-gray-900">{title}</h3>
+          <h3 className="text-sm font-semibold text-cyan-900">{title}</h3>
         </div>
         <button
           onClick={onEdit}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-gray-500 border border-gray-200 hover:bg-gray-50 hover:text-gray-700 transition-colors"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-gray-500 border border-gray-200 hover:bg-gray-50 hover:text-slate-500 transition-colors"
         >
           <Pencil className="h-3 w-3" />
           Edit
@@ -105,7 +105,7 @@ function EditModal({ title, open, onClose, onSave, saving, children }: {
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
       <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-          <h2 className="text-base font-semibold text-gray-900">{title}</h2>
+          <h2 className="text-base font-semibold text-cyan-900">{title}</h2>
           <button onClick={onClose} className="p-2 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors">
             <X className="h-4 w-4" />
           </button>
@@ -116,7 +116,7 @@ function EditModal({ title, open, onClose, onSave, saving, children }: {
             Cancel
           </button>
           <button onClick={onSave} disabled={saving}
-            className="px-6 py-2 rounded-xl text-sm font-semibold bg-gray-900 text-[#C9B45C] hover:bg-gray-800 disabled:opacity-50 transition-colors">
+            className="px-6 py-2 rounded-xl text-sm font-semibold bg-cyan-900 text-[#C9B45C] hover:bg-cyan-900 disabled:opacity-50 transition-colors">
             {saving ? "Saving..." : "Save"}
           </button>
         </div>
@@ -130,9 +130,9 @@ function SelectField({ label, value, onChange, options }: {
 }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <label className="text-sm font-medium text-gray-700">{label}</label>
+      <label className="text-sm font-medium text-slate-500">{label}</label>
       <select value={value} onChange={(e) => onChange(e.target.value)}
-        className="rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 shadow-sm outline-none transition focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10">
+        className="rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-cyan-900 shadow-sm outline-none transition focus:border-cyan-900 focus:ring-2 focus:ring-cyan-900/10">
         {options.map((o) => <option key={o} value={o}>{o}</option>)}
       </select>
     </div>
@@ -144,10 +144,10 @@ function TextareaField({ label, value, onChange, placeholder }: {
 }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <label className="text-sm font-medium text-gray-700">{label}</label>
+      <label className="text-sm font-medium text-slate-500">{label}</label>
       <textarea rows={3} placeholder={placeholder} value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm shadow-sm outline-none transition focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10 resize-none" />
+        className="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm shadow-sm outline-none transition focus:border-cyan-900 focus:ring-2 focus:ring-cyan-900/10 resize-none" />
     </div>
   );
 }
@@ -250,12 +250,12 @@ export default function OrderDetails() {
         <div className="flex items-start justify-between mb-6">
           <div className="flex items-center gap-4">
             <button onClick={() => setLocation("/orders")}
-              className="p-2 rounded-xl border border-gray-200 text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-colors">
+              className="p-2 rounded-xl border border-gray-200 text-gray-500 hover:bg-gray-50 hover:text-slate-500 transition-colors">
               <ArrowLeft className="h-5 w-5" />
             </button>
             <div>
               <div className="flex items-center gap-3">
-                <span className="text-xl font-bold text-gray-900 font-mono">{order.orderId}</span>
+                <span className="text-xl font-bold text-cyan-900 font-mono">{order.orderId}</span>
                 <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${
                   order.orderType === "swatch" ? "bg-violet-100 text-violet-700" : "bg-sky-100 text-sky-700"
                 }`}>
@@ -354,7 +354,7 @@ export default function OrderDetails() {
                   {order.totalCost && (
                     <div className="mt-4 pt-4 border-t border-gray-100 flex items-center justify-between">
                       <span className="text-sm font-medium text-gray-600">Total Cost</span>
-                      <span className="text-lg font-bold text-gray-900">{fmt(parseFloat(order.totalCost||"0"))}</span>
+                      <span className="text-lg font-bold text-cyan-900">{fmt(parseFloat(order.totalCost||"0"))}</span>
                     </div>
                   )}
                 </div>
@@ -392,7 +392,7 @@ export default function OrderDetails() {
           {/* RIGHT — Sticky status panel */}
           <div className="w-64 shrink-0 sticky top-24 space-y-4">
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-              <div className="px-4 py-3.5 border-b border-gray-50 bg-gray-900">
+              <div className="px-4 py-3.5 border-b border-gray-50 bg-cyan-900">
                 <h3 className="text-xs font-bold uppercase tracking-widest text-[#C9B45C]">Status Panel</h3>
               </div>
 
@@ -402,7 +402,7 @@ export default function OrderDetails() {
                   <p className="text-xs text-gray-400 font-medium uppercase tracking-wide mb-1.5">Order Status</p>
                   <select value={order.status}
                     onChange={(e) => patchStatus({ status: e.target.value })}
-                    className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-800 shadow-sm outline-none transition focus:border-gray-400">
+                    className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-cyan-900 shadow-sm outline-none transition focus:border-gray-400">
                     {STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
                   </select>
                 </div>
@@ -412,7 +412,7 @@ export default function OrderDetails() {
                   <p className="text-xs text-gray-400 font-medium uppercase tracking-wide mb-1.5">Cost Status</p>
                   <select value={order.costStatus}
                     onChange={(e) => patchStatus({ costStatus: e.target.value })}
-                    className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-800 shadow-sm outline-none transition focus:border-gray-400">
+                    className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-cyan-900 shadow-sm outline-none transition focus:border-gray-400">
                     {COST_STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
                   </select>
                 </div>
@@ -422,7 +422,7 @@ export default function OrderDetails() {
                   <p className="text-xs text-gray-400 font-medium uppercase tracking-wide mb-1.5">Approval Status</p>
                   <select value={order.approvalStatus}
                     onChange={(e) => patchStatus({ approvalStatus: e.target.value })}
-                    className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-800 shadow-sm outline-none transition focus:border-gray-400">
+                    className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-cyan-900 shadow-sm outline-none transition focus:border-gray-400">
                     {APPROVAL_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
                   </select>
                 </div>
@@ -432,7 +432,7 @@ export default function OrderDetails() {
                   <p className="text-xs text-gray-400 font-medium uppercase tracking-wide mb-1.5">Invoice Status</p>
                   <select value={order.invoiceStatus}
                     onChange={(e) => patchStatus({ invoiceStatus: e.target.value })}
-                    className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-800 shadow-sm outline-none transition focus:border-gray-400">
+                    className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-cyan-900 shadow-sm outline-none transition focus:border-gray-400">
                     {INVOICE_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
                   </select>
                 </div>
@@ -440,7 +440,7 @@ export default function OrderDetails() {
                 <div className="border-t border-gray-100 pt-3 space-y-3">
                   <div>
                     <p className="text-xs text-gray-400 font-medium uppercase tracking-wide mb-1">Assigned Artisan</p>
-                    <p className="text-sm font-medium text-gray-800">{order.artisanAssignment || "—"}</p>
+                    <p className="text-sm font-medium text-cyan-900">{order.artisanAssignment || "—"}</p>
                   </div>
 
                   {/* Production Mode toggle */}
@@ -452,7 +452,7 @@ export default function OrderDetails() {
                           onClick={() => patchStatus({ productionMode: m })}
                           className={`py-1.5 rounded-lg text-xs font-medium capitalize transition-all ${
                             order.productionMode === m
-                              ? "bg-gray-900 text-[#C9B45C]"
+                              ? "bg-cyan-900 text-[#C9B45C]"
                               : "bg-gray-50 text-gray-500 hover:bg-gray-100"
                           }`}>
                           {m === "in-house" ? "In-house" : m.charAt(0).toUpperCase() + m.slice(1)}

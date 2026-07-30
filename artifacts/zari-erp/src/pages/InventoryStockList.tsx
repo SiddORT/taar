@@ -21,8 +21,8 @@ const G_DIM   = "#A8943E";
 const SLATE   = "#3B3F5C";
 
 const card = "rounded-2xl bg-white border border-[#C6AF4B]/15 shadow-[0_2px_16px_rgba(198,175,75,0.12),0_1px_3px_rgba(0,0,0,0.06)]";
-const thCls = "px-3 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wide whitespace-nowrap";
-const tdCls = "px-3 py-3 text-sm text-gray-900";
+const thCls = "px-3 py-3 text-left text-xs font-semibold text-cyan-900 uppercase tracking-wide whitespace-nowrap";
+const tdCls = "px-3 py-3 text-sm text-cyan-900";
 
 interface InventoryItem {
   id: number;
@@ -196,9 +196,9 @@ function SearchableSelect({
       <button
         type="button"
         onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center justify-between gap-2 px-3 py-2 text-sm text-gray-900 rounded-xl border border-gray-200 bg-white hover:border-[#C6AF4B]/60 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30"
+        className="w-full flex items-center justify-between gap-2 px-3 py-2 text-sm text-cyan-900 rounded-xl border border-gray-200 bg-white hover:border-[#C6AF4B]/60 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30"
       >
-        <span className={`truncate ${value === "all" ? "text-gray-500" : "text-gray-900"}`}>{display}</span>
+        <span className={`truncate ${value === "all" ? "text-gray-500" : "text-cyan-900"}`}>{display}</span>
         <ChevronDown className={`h-4 w-4 text-gray-400 flex-shrink-0 transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
       {open && (
@@ -211,7 +211,7 @@ function SearchableSelect({
                 value={q}
                 onChange={e => setQ(e.target.value)}
                 placeholder={placeholder}
-                className="w-full pl-7 pr-2 py-1.5 text-xs text-gray-900 rounded-lg border border-gray-200 focus:outline-none focus:ring-1 focus:ring-[#C6AF4B]/30"
+                className="w-full pl-7 pr-2 py-1.5 text-xs text-cyan-900 rounded-lg border border-gray-200 focus:outline-none focus:ring-1 focus:ring-[#C6AF4B]/30"
               />
             </div>
           </div>
@@ -219,7 +219,7 @@ function SearchableSelect({
             <button
               type="button"
               onClick={() => { onChange("all"); setOpen(false); setQ(""); }}
-              className={`w-full flex items-center justify-between px-3 py-1.5 text-sm hover:bg-gray-50 ${value === "all" ? "text-[#A8943E] font-medium" : "text-gray-700"}`}
+              className={`w-full flex items-center justify-between px-3 py-1.5 text-sm hover:bg-gray-50 ${value === "all" ? "text-[#A8943E] font-medium" : "text-slate-500"}`}
             >
               <span>{allLabel}</span>
               {value === "all" && <Check className="h-3.5 w-3.5" />}
@@ -232,7 +232,7 @@ function SearchableSelect({
                   key={opt}
                   type="button"
                   onClick={() => { onChange(opt); setOpen(false); setQ(""); }}
-                  className={`w-full flex items-center justify-between px-3 py-1.5 text-sm hover:bg-gray-50 ${value === opt ? "text-[#A8943E] font-medium" : "text-gray-700"}`}
+                  className={`w-full flex items-center justify-between px-3 py-1.5 text-sm hover:bg-gray-50 ${value === opt ? "text-[#A8943E] font-medium" : "text-slate-500"}`}
                 >
                   <span className="truncate">{opt}</span>
                   {value === opt && <Check className="h-3.5 w-3.5 flex-shrink-0" />}
@@ -255,7 +255,7 @@ function StatusPill({ status }: { status: string }) {
     completed: "bg-emerald-50 text-emerald-700",
     cancelled: "bg-red-50 text-red-700",
   };
-  const cls = map[s] ?? "bg-gray-100 text-gray-700";
+  const cls = map[s] ?? "bg-gray-100 text-slate-500";
   return (
     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold ${cls}`}>
       {status}
@@ -492,16 +492,16 @@ export default function InventoryStockList() {
         {/* Header */}
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Item Stock Listing</h1>
-            <p className="text-sm text-gray-700 mt-0.5">Track and manage all inventory across fabrics, materials & item master</p>
+            <h1 className="text-2xl font-bold text-cyan-900">Item Stock Listing</h1>
+            <p className="text-sm text-slate-500 mt-0.5">Track and manage all inventory across fabrics, materials & item master</p>
           </div>
           <div className="flex items-center gap-3 flex-wrap">
             <button
               onClick={() => setFiltersOpen(o => !o)}
               className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold border transition-all ${
                 filtersOpen || hasFilters
-                  ? "bg-gray-900 text-[#C9B45C] border-gray-900"
-                  : "bg-white text-gray-700 border-gray-200 hover:border-[#C6AF4B]/60"
+                  ? "bg-cyan-900 text-[#C9B45C] border-cyan-900"
+                  : "bg-white text-slate-500 border-gray-200 hover:border-[#C6AF4B]/60"
               }`}
             >
               <SlidersHorizontal className="h-4 w-4" />
@@ -523,7 +523,7 @@ export default function InventoryStockList() {
             <button
               onClick={() => loadData(true)}
               disabled={loading}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold bg-gray-900 text-[#C9B45C] border border-gray-900 hover:bg-gray-800 disabled:opacity-60 transition-all"
+              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold bg-cyan-900 text-[#C9B45C] border border-cyan-900 hover:bg-cyan-900 disabled:opacity-60 transition-all"
               title="Reload latest stock from server"
             >
               <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
@@ -537,20 +537,20 @@ export default function InventoryStockList() {
           <div className={`${card} p-4 space-y-3`}>
             <div className="flex flex-wrap gap-3 items-start">
               <div className="relative flex-1 min-w-[220px] max-w-sm">
-                <label className="block text-[11px] font-medium text-gray-700 mb-1">Search</label>
+                <label className="block text-[11px] font-medium text-slate-500 mb-1">Search</label>
                 <Search className="absolute left-3 top-[34px] h-4 w-4 text-gray-400" />
                 <input
                   value={search}
                   onChange={e => { setSearch(e.target.value); setPage(1); }}
                   placeholder="Item name or code…"
-                  className="w-full pl-9 pr-3 py-2 text-sm text-gray-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30"
+                  className="w-full pl-9 pr-3 py-2 text-sm text-cyan-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30"
                 />
               </div>
               <div className="flex-1 min-w-[160px]">
-                <label className="block text-[11px] font-medium text-gray-700 mb-1">Source</label>
+                <label className="block text-[11px] font-medium text-slate-500 mb-1">Source</label>
                 <select value={sourceType}
                   onChange={e => { setSourceType(e.target.value); setPage(1); }}
-                  className="w-full px-3 py-2 text-sm text-gray-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30">
+                  className="w-full px-3 py-2 text-sm text-cyan-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30">
                   <option value="all">All Sources</option>
                   <option value="fabric">Fabric</option>
                   <option value="material">Material</option>
@@ -558,25 +558,25 @@ export default function InventoryStockList() {
                 </select>
               </div>
               <div className="flex-1 min-w-[160px]">
-                <label className="block text-[11px] font-medium text-gray-700 mb-1">Category</label>
+                <label className="block text-[11px] font-medium text-slate-500 mb-1">Category</label>
                 <SearchableSelect value={category} onChange={v => { setCategory(v); setPage(1); }}
                   options={filters.categories} placeholder="Search category…" allLabel="All Categories" />
               </div>
               <div className="flex-1 min-w-[160px]">
-                <label className="block text-[11px] font-medium text-gray-700 mb-1">Department</label>
+                <label className="block text-[11px] font-medium text-slate-500 mb-1">Department</label>
                 <SearchableSelect value={department} onChange={v => { setDepartment(v); setPage(1); }}
                   options={filters.departments} placeholder="Search department…" allLabel="All Departments" />
               </div>
               <div className="flex-1 min-w-[160px]">
-                <label className="block text-[11px] font-medium text-gray-700 mb-1">Location</label>
+                <label className="block text-[11px] font-medium text-slate-500 mb-1">Location</label>
                 <SearchableSelect value={location} onChange={v => { setLocation(v); setPage(1); }}
                   options={filters.locations} placeholder="Search location…" allLabel="All Locations" />
               </div>
               <div className="flex-1 min-w-[160px]">
-                <label className="block text-[11px] font-medium text-gray-700 mb-1">Stock Level</label>
+                <label className="block text-[11px] font-medium text-slate-500 mb-1">Stock Level</label>
                 <select value={stockLevel}
                   onChange={e => { setStockLevel(e.target.value); setPage(1); }}
-                  className="w-full px-3 py-2 text-sm text-gray-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30">
+                  className="w-full px-3 py-2 text-sm text-cyan-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30">
                   <option value="all">All Stock Levels</option>
                   <option value="in-stock">Normal</option>
                   <option value="low">Low Stock</option>
@@ -584,16 +584,16 @@ export default function InventoryStockList() {
                 </select>
               </div>
               <div className="flex-1 min-w-[260px]">
-                <label className="block text-[11px] font-medium text-gray-700 mb-1">Updated Between</label>
+                <label className="block text-[11px] font-medium text-slate-500 mb-1">Updated Between</label>
                 <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 py-2">
                   <CalendarRange className="h-4 w-4 text-gray-500" />
                   <input type="date" value={fromDate}
                     onChange={e => { setFromDate(e.target.value); setPage(1); }}
-                    className="text-sm text-gray-900 border-0 outline-none bg-transparent w-32" />
+                    className="text-sm text-cyan-900 border-0 outline-none bg-transparent w-32" />
                   <span className="text-gray-400 text-xs">—</span>
                   <input type="date" value={toDate}
                     onChange={e => { setToDate(e.target.value); setPage(1); }}
-                    className="text-sm text-gray-900 border-0 outline-none bg-transparent w-32" />
+                    className="text-sm text-cyan-900 border-0 outline-none bg-transparent w-32" />
                   {(fromDate || toDate) && (
                     <button onClick={() => { setFromDate(""); setToDate(""); setPage(1); }} className="ml-1 text-gray-400 hover:text-red-500">
                       <X className="h-3.5 w-3.5" />
@@ -605,7 +605,7 @@ export default function InventoryStockList() {
             <div className="flex items-center justify-between pt-2 border-t border-gray-100">
               <div className="flex items-center gap-2">
                 <Filter className="h-4 w-4 text-gray-400" />
-                <span className="text-xs text-gray-700">
+                <span className="text-xs text-slate-500">
                   {hasFilters ? `Filtered: ${total} items` : `Total: ${total} items`}
                 </span>
               </div>
@@ -617,7 +617,7 @@ export default function InventoryStockList() {
                   </button>
                 )}
                 <button onClick={() => setFiltersOpen(false)}
-                  className="px-3 py-1.5 rounded-lg text-xs font-medium text-gray-700 border border-gray-200 hover:bg-gray-50">
+                  className="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-500 border border-gray-200 hover:bg-gray-50">
                   Close
                 </button>
               </div>
@@ -642,8 +642,8 @@ export default function InventoryStockList() {
                   <Icon className="h-5 w-5" style={{ color }} />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-gray-900">{value}</p>
-                  <p className="text-xs text-gray-700 mt-0.5">{label}</p>
+                  <p className="text-2xl font-bold text-cyan-900">{value}</p>
+                  <p className="text-xs text-slate-500 mt-0.5">{label}</p>
                 </div>
               </div>
             ))}
@@ -690,7 +690,7 @@ export default function InventoryStockList() {
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={colSpan} className="text-center py-16 text-gray-700">
+                    <td colSpan={colSpan} className="text-center py-16 text-slate-500">
                       <div className="flex items-center justify-center gap-2">
                         <div className="animate-spin h-5 w-5 rounded-full border-2 border-[#C6AF4B] border-t-transparent" />
                         Loading inventory…
@@ -701,7 +701,7 @@ export default function InventoryStockList() {
                   <tr>
                     <td colSpan={colSpan} className="text-center py-20">
                       <Boxes className="h-12 w-12 mx-auto text-gray-200 mb-3" />
-                      <p className="text-gray-700 font-medium">No inventory items found</p>
+                      <p className="text-slate-500 font-medium">No inventory items found</p>
                       <p className="text-xs text-gray-500 mt-1">
                         {hasFilters ? "Try clearing your filters" : "Items appear here automatically when added in Masters (Fabrics, Materials, Item Master)"}
                       </p>
@@ -723,7 +723,7 @@ export default function InventoryStockList() {
                       </td>
                       <td className={tdCls}>
                         <div className="flex flex-col gap-0.5 max-w-[220px]">
-                          <span className="font-medium text-gray-900 leading-snug">{item.item_name}</span>
+                          <span className="font-medium text-cyan-900 leading-snug">{item.item_name}</span>
                           <span className="text-[10px] px-1.5 py-0.5 rounded-full w-fit font-medium"
                             style={{ color: src.color, background: src.bg }}>{item.source_label}</span>
                         </div>
@@ -745,12 +745,12 @@ export default function InventoryStockList() {
                           </div>
                         )}
                       </td>
-                      <td className={tdCls}><span className="font-mono text-xs text-gray-900">{item.item_code}</span></td>
-                      <td className={tdCls}><span className="text-xs text-gray-900">{item.category ?? "—"}</span></td>
-                      <td className={tdCls}><span className="text-xs text-gray-900">{item.department ?? "—"}</span></td>
-                      <td className={tdCls}><span className="text-xs text-gray-900">{item.warehouse_location ?? "—"}</span></td>
-                      <td className={tdCls}><span className="text-xs text-gray-700">{item.unit_type ?? "—"}</span></td>
-                      <td className={`${tdCls} text-right font-mono text-gray-900`}>{fmtQty(item.current_stock)}</td>
+                      <td className={tdCls}><span className="font-mono text-xs text-cyan-900">{item.item_code}</span></td>
+                      <td className={tdCls}><span className="text-xs text-cyan-900">{item.category ?? "—"}</span></td>
+                      <td className={tdCls}><span className="text-xs text-cyan-900">{item.department ?? "—"}</span></td>
+                      <td className={tdCls}><span className="text-xs text-cyan-900">{item.warehouse_location ?? "—"}</span></td>
+                      <td className={tdCls}><span className="text-xs text-slate-500">{item.unit_type ?? "—"}</span></td>
+                      <td className={`${tdCls} text-right font-mono text-cyan-900`}>{fmtQty(item.current_stock)}</td>
                       <td className={`${tdCls} text-right`}>
                         <button
                           onClick={() => openResModal(item, "style")}
@@ -783,10 +783,10 @@ export default function InventoryStockList() {
                         )}
                       </td>
                       <td className={`${tdCls} text-right`}>
-                        <span className="text-sm text-gray-900">{fmt(item.average_price)}</span>
+                        <span className="text-sm text-cyan-900">{fmt(item.average_price)}</span>
                       </td>
                       <td className={`${tdCls} text-right`}>
-                        <span className="text-sm text-gray-900">{fmt(item.last_purchase_price)}</span>
+                        <span className="text-sm text-cyan-900">{fmt(item.last_purchase_price)}</span>
                       </td>
                       <td className={tdCls}>
                         <div className="flex flex-col items-start gap-1">
@@ -799,7 +799,7 @@ export default function InventoryStockList() {
                         </div>
                       </td>
                       <td className={tdCls}>
-                        <span className="text-xs text-gray-700">
+                        <span className="text-xs text-slate-500">
                           {item.last_updated_at ? fmtDateShort(item.last_updated_at) : "—"}
                         </span>
                       </td>
@@ -811,7 +811,7 @@ export default function InventoryStockList() {
                               <Edit2 className="h-3 w-3" /> Stock
                             </button>
                             <button onClick={() => openLogModal(item)}
-                              className="flex items-center gap-1 text-xs px-2 py-1.5 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-100 transition-colors">
+                              className="flex items-center gap-1 text-xs px-2 py-1.5 rounded-lg border border-gray-200 text-slate-500 hover:bg-gray-100 transition-colors">
                               <Clock className="h-3 w-3" /> Log
                             </button>
                             <button onClick={() => navigate(`/inventory/ledger?itemId=${item.id}&itemName=${encodeURIComponent(item.item_name)}`)}
@@ -844,19 +844,19 @@ export default function InventoryStockList() {
           {/* Pagination */}
           {total > limit && (
             <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200">
-              <span className="text-xs text-gray-700">
+              <span className="text-xs text-slate-500">
                 Showing {((page - 1) * limit) + 1}–{Math.min(page * limit, total)} of {total} items
               </span>
               <div className="flex items-center gap-1">
                 <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
                   className="p-1.5 rounded-lg hover:bg-gray-100 disabled:opacity-40 transition-colors">
-                  <ChevronLeft className="h-4 w-4 text-gray-700" />
+                  <ChevronLeft className="h-4 w-4 text-slate-500" />
                 </button>
                 {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                   const pg = Math.max(1, Math.min(totalPages - 4, page - 2)) + i;
                   return (
                     <button key={pg} onClick={() => setPage(pg)}
-                      className={`min-w-[32px] h-8 rounded-lg text-xs font-medium transition-colors ${pg === page ? "text-white" : "text-gray-700 hover:bg-gray-100"}`}
+                      className={`min-w-[32px] h-8 rounded-lg text-xs font-medium transition-colors ${pg === page ? "text-white" : "text-slate-500 hover:bg-gray-100"}`}
                       style={pg === page ? { background: G } : {}}>
                       {pg}
                     </button>
@@ -864,7 +864,7 @@ export default function InventoryStockList() {
                 })}
                 <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
                   className="p-1.5 rounded-lg hover:bg-gray-100 disabled:opacity-40 transition-colors">
-                  <ChevronRight className="h-4 w-4 text-gray-700" />
+                  <ChevronRight className="h-4 w-4 text-slate-500" />
                 </button>
               </div>
             </div>
@@ -878,11 +878,11 @@ export default function InventoryStockList() {
           <div className={`${card} w-full max-w-lg max-h-[90vh] overflow-y-auto`} onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between p-5 border-b border-gray-100">
               <div>
-                <h2 className="text-base font-bold text-gray-900">Update Stock</h2>
-                <p className="text-xs text-gray-700 mt-0.5 truncate max-w-[320px]">{stockModal.item.item_name}</p>
+                <h2 className="text-base font-bold text-cyan-900">Update Stock</h2>
+                <p className="text-xs text-slate-500 mt-0.5 truncate max-w-[320px]">{stockModal.item.item_name}</p>
               </div>
               <button onClick={() => setStockModal({ item: null, open: false })} className="p-1.5 rounded-lg hover:bg-gray-100">
-                <X className="h-4 w-4 text-gray-700" />
+                <X className="h-4 w-4 text-slate-500" />
               </button>
             </div>
 
@@ -900,19 +900,19 @@ export default function InventoryStockList() {
                     {/* Current + Adjustment side by side */}
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-xs font-medium text-gray-900 mb-1">Current Stock</label>
-                        <div className="w-full px-3 py-2 text-sm font-semibold text-gray-900 rounded-xl border border-gray-200 bg-gray-50 select-none">
+                        <label className="block text-xs font-medium text-cyan-900 mb-1">Current Stock</label>
+                        <div className="w-full px-3 py-2 text-sm font-semibold text-cyan-900 rounded-xl border border-gray-200 bg-gray-50 select-none">
                           {parseFloat(stockForm.currentStock).toFixed(2)}
                         </div>
                       </div>
                       <div>
-                        <label className="block text-xs font-medium text-gray-900 mb-1">Adjustment&nbsp;<span className="text-gray-400 font-normal">(+ add / − reduce)</span></label>
+                        <label className="block text-xs font-medium text-cyan-900 mb-1">Adjustment&nbsp;<span className="text-gray-400 font-normal">(+ add / − reduce)</span></label>
                         <input
                           type="number"
                           placeholder="e.g. +50 or -20"
                           value={stockForm.stockChange}
                           onChange={e => setStockForm(f => ({ ...f, stockChange: e.target.value }))}
-                          className="w-full px-3 py-2 text-sm text-gray-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30"
+                          className="w-full px-3 py-2 text-sm text-cyan-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30"
                         />
                       </div>
                     </div>
@@ -922,7 +922,7 @@ export default function InventoryStockList() {
                         <span className="text-gray-500 font-normal">{base.toFixed(2)}</span>
                         <span className="text-gray-400">→</span>
                         <span className="font-bold text-base">{newQty.toFixed(2)}</span>
-                        <span className={`ml-auto text-xs px-2 py-0.5 rounded-full font-semibold ${isPos ? "bg-emerald-100 text-emerald-800" : isNeg ? "bg-red-100 text-red-800" : "bg-gray-100 text-gray-700"}`}>
+                        <span className={`ml-auto text-xs px-2 py-0.5 rounded-full font-semibold ${isPos ? "bg-emerald-100 text-emerald-800" : isNeg ? "bg-red-100 text-red-800" : "bg-gray-100 text-slate-500"}`}>
                           {isPos ? `▲ +${delta.toFixed(2)}` : isNeg ? `▼ ${delta.toFixed(2)}` : "No change"}
                         </span>
                       </div>
@@ -943,25 +943,25 @@ export default function InventoryStockList() {
                   { label: "Department", key: "department", placeholder: "e.g. Embroidery" },
                 ].map(({ label, key, placeholder }) => (
                   <div key={key} className={(key === "warehouseLocation" || key === "department") ? "col-span-2" : ""}>
-                    <label className="block text-xs font-medium text-gray-900 mb-1">{label}</label>
+                    <label className="block text-xs font-medium text-cyan-900 mb-1">{label}</label>
                     <input
                       type="text"
                       placeholder={placeholder}
                       value={(stockForm as Record<string, string>)[key]}
                       onChange={e => setStockForm(f => ({ ...f, [key]: e.target.value }))}
-                      className="w-full px-3 py-2 text-sm text-gray-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30"
+                      className="w-full px-3 py-2 text-sm text-cyan-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30"
                     />
                   </div>
                 ))}
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-900 mb-1">Notes / Reason</label>
+                <label className="block text-xs font-medium text-cyan-900 mb-1">Notes / Reason</label>
                 <textarea
                   rows={2}
                   placeholder="e.g. Opening stock entry, received from vendor…"
                   value={stockForm.notes}
                   onChange={e => setStockForm(f => ({ ...f, notes: e.target.value }))}
-                  className="w-full px-3 py-2 text-sm text-gray-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30 resize-none"
+                  className="w-full px-3 py-2 text-sm text-cyan-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30 resize-none"
                 />
               </div>
             </div>
@@ -970,7 +970,7 @@ export default function InventoryStockList() {
               <p className="text-[11px] text-gray-500">Available = Current − Style Res − Swatch Res</p>
               <div className="flex gap-2">
                 <button onClick={() => setStockModal({ item: null, open: false })}
-                  className="px-4 py-2 rounded-xl text-sm font-medium text-gray-700 border border-gray-200 hover:bg-gray-50">
+                  className="px-4 py-2 rounded-xl text-sm font-medium text-slate-500 border border-gray-200 hover:bg-gray-50">
                   Cancel
                 </button>
                 <button onClick={handleStockSubmit} disabled={submitting || !stockForm.currentStock}
@@ -990,11 +990,11 @@ export default function InventoryStockList() {
           <div className={`${card} w-full max-w-xl max-h-[85vh] flex flex-col`} onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between p-5 border-b border-gray-100 flex-shrink-0">
               <div>
-                <h2 className="text-base font-bold text-gray-900">Stock Log Timeline</h2>
-                <p className="text-xs text-gray-700 mt-0.5 truncate max-w-[340px]">{logModal.item.item_name}</p>
+                <h2 className="text-base font-bold text-cyan-900">Stock Log Timeline</h2>
+                <p className="text-xs text-slate-500 mt-0.5 truncate max-w-[340px]">{logModal.item.item_name}</p>
               </div>
               <button onClick={() => setLogModal(m => ({ ...m, open: false }))} className="p-1.5 rounded-lg hover:bg-gray-100">
-                <X className="h-4 w-4 text-gray-700" />
+                <X className="h-4 w-4 text-slate-500" />
               </button>
             </div>
 
@@ -1006,7 +1006,7 @@ export default function InventoryStockList() {
               ) : logModal.logs.length === 0 ? (
                 <div className="text-center py-12">
                   <Clock className="h-10 w-10 mx-auto text-gray-200 mb-3" />
-                  <p className="text-gray-700 font-medium">No stock movements yet</p>
+                  <p className="text-slate-500 font-medium">No stock movements yet</p>
                   <p className="text-xs text-gray-500 mt-1">Stock changes will appear here once you update stock.</p>
                 </div>
               ) : (
@@ -1027,14 +1027,14 @@ export default function InventoryStockList() {
                             <div className="flex items-start justify-between gap-2">
                               <div>
                                 <span className="text-xs font-semibold" style={{ color: meta.color }}>{meta.label}</span>
-                                {log.notes && <p className="text-xs text-gray-700 mt-0.5">{log.notes}</p>}
+                                {log.notes && <p className="text-xs text-slate-500 mt-0.5">{log.notes}</p>}
                               </div>
                               <span className={`text-sm font-bold ${delta >= 0 ? "text-emerald-600" : "text-red-600"}`}>
                                 {delta >= 0 ? "+" : ""}{fmtQty(log.quantity_delta)}
                               </span>
                             </div>
                             <div className="flex items-center gap-4 mt-1.5 text-[11px] text-gray-500">
-                              <span>{fmtQty(log.quantity_before)} → <strong className="text-gray-900">{fmtQty(log.quantity_after)}</strong></span>
+                              <span>{fmtQty(log.quantity_before)} → <strong className="text-cyan-900">{fmtQty(log.quantity_after)}</strong></span>
                               {log.created_by_name && <span>by {log.created_by_name}</span>}
                               <span className="ml-auto">{fmtDt(log.created_at)}</span>
                             </div>
@@ -1056,11 +1056,11 @@ export default function InventoryStockList() {
           <div className={`${card} w-full max-w-2xl max-h-[85vh] flex flex-col`} onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between p-5 border-b border-gray-100 flex-shrink-0">
               <div>
-                <h2 className="text-base font-bold text-gray-900">Reservation Details</h2>
-                <p className="text-xs text-gray-700 mt-0.5 truncate max-w-[400px]">{resModal.item.item_name}</p>
+                <h2 className="text-base font-bold text-cyan-900">Reservation Details</h2>
+                <p className="text-xs text-slate-500 mt-0.5 truncate max-w-[400px]">{resModal.item.item_name}</p>
               </div>
               <button onClick={() => setResModal(m => ({ ...m, open: false }))} className="p-1.5 rounded-lg hover:bg-gray-100">
-                <X className="h-4 w-4 text-gray-700" />
+                <X className="h-4 w-4 text-slate-500" />
               </button>
             </div>
 
@@ -1069,17 +1069,17 @@ export default function InventoryStockList() {
               <div className="flex items-center gap-6 px-5 py-3 border-b border-gray-50 flex-shrink-0">
                 <div className="text-center">
                   <p className="text-lg font-bold text-blue-700">{fmtQty(resModal.data.style_reserved_qty)}</p>
-                  <p className="text-[11px] text-gray-700">Style Reserved</p>
+                  <p className="text-[11px] text-slate-500">Style Reserved</p>
                 </div>
                 <div className="w-px h-8 bg-gray-100" />
                 <div className="text-center">
                   <p className="text-lg font-bold text-purple-700">{fmtQty(resModal.data.swatch_reserved_qty)}</p>
-                  <p className="text-[11px] text-gray-700">Swatch Reserved</p>
+                  <p className="text-[11px] text-slate-500">Swatch Reserved</p>
                 </div>
                 <div className="w-px h-8 bg-gray-100" />
                 <div className="text-center">
                   <p className="text-lg font-bold text-emerald-700">{fmtQty(resModal.item.available_stock)}</p>
-                  <p className="text-[11px] text-gray-700">Available</p>
+                  <p className="text-[11px] text-slate-500">Available</p>
                 </div>
               </div>
             )}
@@ -1089,11 +1089,11 @@ export default function InventoryStockList() {
               {(["swatch", "style"] as const).map(tab => (
                 <button key={tab} onClick={() => setResModal(m => ({ ...m, tab }))}
                   className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors capitalize ${
-                    resModal.tab === tab ? "border-[#C6AF4B] text-gray-900" : "border-transparent text-gray-500 hover:text-gray-700"
+                    resModal.tab === tab ? "border-[#C6AF4B] text-cyan-900" : "border-transparent text-gray-500 hover:text-slate-500"
                   }`}>
                   {tab} Orders
                   {resModal.data && (
-                    <span className="ml-2 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-700">
+                    <span className="ml-2 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-gray-100 text-slate-500">
                       {tab === "swatch" ? resModal.data.swatch_orders.length : resModal.data.style_orders.length}
                     </span>
                   )}
@@ -1112,7 +1112,7 @@ export default function InventoryStockList() {
                 resModal.data.swatch_orders.length === 0 ? (
                   <div className="text-center py-12">
                     <Info className="h-10 w-10 mx-auto text-gray-200 mb-3" />
-                    <p className="text-gray-700 font-medium">No swatch orders linked</p>
+                    <p className="text-slate-500 font-medium">No swatch orders linked</p>
                     <p className="text-xs text-gray-500 mt-1">
                       {resModal.data.source_type === "fabric"
                         ? "No active swatch orders reference this fabric."
@@ -1124,9 +1124,9 @@ export default function InventoryStockList() {
                     {resModal.data.swatch_orders.map(order => (
                       <div key={order.id} className="flex items-center justify-between p-3 rounded-xl border border-gray-100 bg-gray-50">
                         <div>
-                          <span className="font-semibold text-sm text-gray-900">{order.order_code}</span>
+                          <span className="font-semibold text-sm text-cyan-900">{order.order_code}</span>
                           <span className="mx-2 text-gray-300">·</span>
-                          <span className="text-sm text-gray-700">{order.swatch_name}</span>
+                          <span className="text-sm text-slate-500">{order.swatch_name}</span>
                           <div className="flex items-center gap-2 mt-0.5">
                             <span className="text-[11px] text-gray-500">{order.client_name}</span>
                             <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 font-medium">{order.fabric_role}</span>
@@ -1134,7 +1134,7 @@ export default function InventoryStockList() {
                         </div>
                         <div className="flex items-center gap-3">
                           <div className="text-right">
-                            <p className="text-sm font-semibold text-gray-900">{order.quantity} {order.unit_type}</p>
+                            <p className="text-sm font-semibold text-cyan-900">{order.quantity} {order.unit_type}</p>
                             <p className="text-[10px] text-gray-500">Qty</p>
                           </div>
                           <StatusPill status={order.order_status} />
@@ -1146,7 +1146,7 @@ export default function InventoryStockList() {
               ) : (
                 <div className="text-center py-12">
                   <Info className="h-10 w-10 mx-auto text-gray-200 mb-3" />
-                  <p className="text-gray-700 font-medium">Style order linkage coming soon</p>
+                  <p className="text-slate-500 font-medium">Style order linkage coming soon</p>
                   <p className="text-xs text-gray-500 mt-1">Detailed style order reservation tracking will be available in the Reservations module.</p>
                 </div>
               )}
@@ -1174,18 +1174,18 @@ export default function InventoryStockList() {
             )}
             <button onClick={() => setLightboxImages(null)}
               className="absolute -top-3 -right-3 p-2 bg-white rounded-full shadow-lg hover:bg-gray-100 transition-colors">
-              <X className="h-4 w-4 text-gray-700" />
+              <X className="h-4 w-4 text-slate-500" />
             </button>
             {lightboxImages.length > 1 && lightboxIdx > 0 && (
               <button onClick={() => setLightboxIdx(i => i - 1)}
                 className="absolute left-2 top-1/2 -translate-y-1/2 p-2 bg-white/90 rounded-full shadow hover:bg-white transition-colors">
-                <ChevronLeft className="h-5 w-5 text-gray-700" />
+                <ChevronLeft className="h-5 w-5 text-slate-500" />
               </button>
             )}
             {lightboxImages.length > 1 && lightboxIdx < lightboxImages.length - 1 && (
               <button onClick={() => setLightboxIdx(i => i + 1)}
                 className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-white/90 rounded-full shadow hover:bg-white transition-colors">
-                <ChevronRight className="h-5 w-5 text-gray-700" />
+                <ChevronRight className="h-5 w-5 text-slate-500" />
               </button>
             )}
           </div>

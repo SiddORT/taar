@@ -80,7 +80,7 @@ function AddUserModal({ open, onClose, roles, onCreated }: AddUserModalProps) {
     <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/40">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
         <div className="flex items-center justify-between mb-5">
-          <h2 className="text-base font-semibold text-gray-900">Invite New User</h2>
+          <h2 className="text-base font-semibold text-cyan-900">Invite New User</h2>
           <button type="button" onClick={onClose} className="p-1 rounded hover:bg-gray-100 text-gray-400"><X size={16} /></button>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -89,9 +89,9 @@ function AddUserModal({ open, onClose, roles, onCreated }: AddUserModalProps) {
           <InputField label="Email Address" value={email} onChange={e => setEmail(e.target.value)}
             error={errors.email} required placeholder="user@company.com" type="email" />
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Role <span className="text-red-500">*</span></label>
+            <label className="block text-sm font-medium text-slate-500 mb-1">Role <span className="text-red-500">*</span></label>
             <select value={role} onChange={e => setRole(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-900">
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white text-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-900">
               <option value="">Select a role…</option>
               {roles.map(r => <option key={r.id} value={r.name}>{r.name}</option>)}
             </select>
@@ -99,9 +99,9 @@ function AddUserModal({ open, onClose, roles, onCreated }: AddUserModalProps) {
           </div>
           <div className="flex justify-end gap-2 pt-1">
             <button type="button" onClick={onClose}
-              className="px-4 py-2 text-sm rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50">Cancel</button>
+              className="px-4 py-2 text-sm rounded-lg border border-gray-300 text-slate-500 hover:bg-gray-50">Cancel</button>
             <button type="submit" disabled={create.isPending}
-              className="px-4 py-2 text-sm rounded-lg bg-gray-900 text-[#C9B45C] hover:bg-gray-800 disabled:opacity-60">
+              className="px-4 py-2 text-sm rounded-lg bg-cyan-900 text-[#C9B45C] hover:bg-cyan-900 disabled:opacity-60">
               {create.isPending ? "Sending Invite…" : "Create & Send Invite"}
             </button>
           </div>
@@ -126,7 +126,7 @@ function InviteLinkModal({ open, onClose, inviteUrl, email, emailSent, mode = "i
     <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/40">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-6">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-base font-semibold text-gray-900">
+          <h2 className="text-base font-semibold text-cyan-900">
             {mode === "reset" ? "Password Reset Initiated" : "Invite Sent"}
           </h2>
           <button type="button" onClick={onClose} className="p-1 rounded hover:bg-gray-100 text-gray-400"><X size={16} /></button>
@@ -156,13 +156,13 @@ function InviteLinkModal({ open, onClose, inviteUrl, email, emailSent, mode = "i
 
         <p className="text-xs text-gray-500 mb-2">Invite link (expires in 7 days):</p>
         <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl p-3">
-          <span className="flex-1 text-xs text-gray-700 font-mono break-all">{inviteUrl}</span>
+          <span className="flex-1 text-xs text-slate-500 font-mono break-all">{inviteUrl}</span>
           <CopyButton text={inviteUrl} />
         </div>
 
         <div className="flex justify-end mt-5">
           <button type="button" onClick={onClose}
-            className="px-4 py-2 text-sm rounded-lg bg-gray-900 text-[#C9B45C] hover:bg-gray-800">Done</button>
+            className="px-4 py-2 text-sm rounded-lg bg-cyan-900 text-[#C9B45C] hover:bg-cyan-900">Done</button>
         </div>
       </div>
     </div>
@@ -218,7 +218,7 @@ function EditUserModal({ open, onClose, user, roles }: EditUserModalProps) {
     <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/40">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
         <div className="flex items-center justify-between mb-5">
-          <h2 className="text-base font-semibold text-gray-900">Edit User</h2>
+          <h2 className="text-base font-semibold text-cyan-900">Edit User</h2>
           <button type="button" onClick={onClose} className="p-1 rounded hover:bg-gray-100 text-gray-400"><X size={16} /></button>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -228,24 +228,24 @@ function EditUserModal({ open, onClose, user, roles }: EditUserModalProps) {
             {emailError && <p className="mt-1 text-xs text-red-600">{emailError}</p>}
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
+            <label className="block text-sm font-medium text-slate-500 mb-1">Role</label>
             <select value={role} onChange={e => setRole(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-900">
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white text-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-900">
               {roles.map(r => <option key={r.id} value={r.name}>{r.name}</option>)}
             </select>
           </div>
           <div className="flex items-center gap-3">
-            <label className="text-sm font-medium text-gray-700">Active</label>
+            <label className="text-sm font-medium text-slate-500">Active</label>
             <button type="button" onClick={() => setIsActive(v => !v)}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${isActive ? "bg-gray-900" : "bg-gray-300"}`}>
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${isActive ? "bg-cyan-900" : "bg-gray-300"}`}>
               <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${isActive ? "translate-x-6" : "translate-x-1"}`} />
             </button>
           </div>
           <div className="flex justify-end gap-2 pt-1">
             <button type="button" onClick={onClose}
-              className="px-4 py-2 text-sm rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50">Cancel</button>
+              className="px-4 py-2 text-sm rounded-lg border border-gray-300 text-slate-500 hover:bg-gray-50">Cancel</button>
             <button type="submit" disabled={update.isPending}
-              className="px-4 py-2 text-sm rounded-lg bg-gray-900 text-[#C9B45C] hover:bg-gray-800 disabled:opacity-60">
+              className="px-4 py-2 text-sm rounded-lg bg-cyan-900 text-[#C9B45C] hover:bg-cyan-900 disabled:opacity-60">
               {update.isPending ? "Saving…" : "Save Changes"}
             </button>
           </div>
@@ -287,7 +287,7 @@ function AddRoleModal({ open, onClose }: AddRoleModalProps) {
     <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/40">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
         <div className="flex items-center justify-between mb-5">
-          <h2 className="text-base font-semibold text-gray-900">Create Role</h2>
+          <h2 className="text-base font-semibold text-cyan-900">Create Role</h2>
           <button type="button" onClick={onClose} className="p-1 rounded hover:bg-gray-100 text-gray-400"><X size={16} /></button>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -296,9 +296,9 @@ function AddRoleModal({ open, onClose }: AddRoleModalProps) {
           <InputField label="Description (optional)" value={description} onChange={e => setDescription(e.target.value)} placeholder="What can this role do?" />
           <div className="flex justify-end gap-2 pt-1">
             <button type="button" onClick={onClose}
-              className="px-4 py-2 text-sm rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50">Cancel</button>
+              className="px-4 py-2 text-sm rounded-lg border border-gray-300 text-slate-500 hover:bg-gray-50">Cancel</button>
             <button type="submit" disabled={create.isPending}
-              className="px-4 py-2 text-sm rounded-lg bg-gray-900 text-[#C9B45C] hover:bg-gray-800 disabled:opacity-60">
+              className="px-4 py-2 text-sm rounded-lg bg-cyan-900 text-[#C9B45C] hover:bg-cyan-900 disabled:opacity-60">
               {create.isPending ? "Creating…" : "Create Role"}
             </button>
           </div>
@@ -364,7 +364,7 @@ function UsersTab({ roles }: { roles: RoleRecord[] }) {
       <div className="flex items-center justify-between mb-4">
         <p className="text-sm text-gray-500">{users.length} user{users.length !== 1 ? "s" : ""}</p>
         <button onClick={() => setAddOpen(true)}
-          className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-gray-900 text-[#C9B45C] text-sm font-medium hover:bg-gray-800 transition-colors">
+          className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-cyan-900 text-[#C9B45C] text-sm font-medium hover:bg-cyan-900 transition-colors">
           <Plus className="h-4 w-4" /> Invite User
         </button>
       </div>
@@ -390,11 +390,11 @@ function UsersTab({ roles }: { roles: RoleRecord[] }) {
                 const isSuperuser = u.email === SUPERUSER_EMAIL;
                 return (
                   <tr key={u.id} className="hover:bg-gray-50/50 transition-colors">
-                    <td className="px-4 py-3 font-medium text-gray-900">
+                    <td className="px-4 py-3 font-medium text-cyan-900">
                       <span className="flex items-center gap-1.5">
                         {u.username}
                         {isSuperuser && (
-                          <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-gray-900 text-[#C9B45C] leading-none">Super Admin</span>
+                          <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-cyan-900 text-[#C9B45C] leading-none">Super Admin</span>
                         )}
                         {!isSuperuser && isMe && (
                           <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-[#C6AF4B]/15 text-[#9a8530] leading-none">You</span>
@@ -428,7 +428,7 @@ function UsersTab({ roles }: { roles: RoleRecord[] }) {
                         )}
                         {!isSuperuser && (
                           <button onClick={() => setEditUser(u)} title="Edit"
-                            className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-700 transition-colors">
+                            className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-slate-500 transition-colors">
                             <Pencil className="h-3.5 w-3.5" />
                           </button>
                         )}
@@ -547,7 +547,7 @@ function IndeterminateCheckbox({ checked, indeterminate, onChange, className }: 
   }, [checked, indeterminate]);
   return (
     <input ref={ref} type="checkbox" checked={checked} onChange={onChange}
-      className={`rounded border-gray-300 accent-gray-900 cursor-pointer ${className ?? ""}`} />
+      className={`rounded border-gray-300 accent-cyan-900 cursor-pointer ${className ?? ""}`} />
   );
 }
 
@@ -583,7 +583,7 @@ function SubgroupContent({
             onChange={() => toggleSubgroup(resources)}
             className="h-3.5 w-3.5 shrink-0"
           />
-          <span className="text-[10px] font-bold uppercase tracking-widest text-gray-500 flex-1 group-hover:text-gray-700 transition-colors">
+          <span className="text-[10px] font-bold uppercase tracking-widest text-gray-500 flex-1 group-hover:text-slate-500 transition-colors">
             {sgName}
           </span>
           <span className={`text-[10px] tabular-nums px-1.5 py-0.5 rounded-full font-medium ${
@@ -607,8 +607,8 @@ function SubgroupContent({
                 onClick={() => toggleResource(rg)}
                 className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium border transition-all text-left ${
                   on
-                    ? "bg-gray-900 text-[#C9B45C] border-gray-900 shadow-sm"
-                    : "bg-white text-gray-500 border-gray-200 hover:border-gray-400 hover:text-gray-700"
+                    ? "bg-cyan-900 text-[#C9B45C] border-cyan-900 shadow-sm"
+                    : "bg-white text-gray-500 border-gray-200 hover:border-gray-400 hover:text-slate-500"
                 }`}>
                 <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${on ? "bg-[#C9B45C]" : "bg-gray-300"}`} />
                 {rg.label}
@@ -658,7 +658,7 @@ function SubgroupContent({
                         onChange={() => toggleResource(rg)}
                         className="h-4 w-4 shrink-0"
                       />
-                      <span className={`font-medium transition-colors ${rgAllOn ? "text-gray-900" : "text-gray-500 group-hover:text-gray-700"}`}>
+                      <span className={`font-medium transition-colors ${rgAllOn ? "text-cyan-900" : "text-gray-500 group-hover:text-slate-500"}`}>
                         {rg.label}
                       </span>
                     </div>
@@ -672,7 +672,7 @@ function SubgroupContent({
                           <input type="checkbox"
                             checked={selected.has(permKey)}
                             onChange={() => toggle(permKey)}
-                            className="h-4 w-4 rounded border-gray-300 accent-gray-900 cursor-pointer"
+                            className="h-4 w-4 rounded border-gray-300 accent-cyan-900 cursor-pointer"
                           />
                         ) : (
                           <span className="text-gray-200">—</span>
@@ -771,7 +771,7 @@ function PermissionsPanel({ role, allPermissions, onSave, saving }: {
       <div className="flex items-center justify-between gap-3 pb-3 flex-wrap border-b border-gray-100 mb-3">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 mb-1">
-            <h3 className="text-sm font-semibold text-gray-900 capitalize">{role.name}</h3>
+            <h3 className="text-sm font-semibold text-cyan-900 capitalize">{role.name}</h3>
             {isDirty && (
               <span className="text-[10px] font-semibold px-2 py-0.5 bg-amber-50 text-amber-600 border border-amber-200 rounded-full">
                 Unsaved changes
@@ -782,7 +782,7 @@ function PermissionsPanel({ role, allPermissions, onSave, saving }: {
           <div className="flex items-center gap-2">
             <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
               <div
-                className="h-full bg-gray-900 rounded-full transition-all duration-300"
+                className="h-full bg-cyan-900 rounded-full transition-all duration-300"
                 style={{ width: `${pct}%` }}
               />
             </div>
@@ -791,17 +791,17 @@ function PermissionsPanel({ role, allPermissions, onSave, saving }: {
         </div>
         <div className="flex items-center gap-1.5 shrink-0">
           <button type="button" onClick={clearAll}
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium border border-gray-200 text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-colors">
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium border border-gray-200 text-gray-500 hover:bg-gray-50 hover:text-slate-500 transition-colors">
             <Square className="h-3 w-3" /> Clear
           </button>
           <button type="button" onClick={selectAll}
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium border border-gray-200 text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-colors">
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium border border-gray-200 text-gray-500 hover:bg-gray-50 hover:text-slate-500 transition-colors">
             <CheckSquare className="h-3 w-3" /> All
           </button>
           <button onClick={() => onSave([...selected])} disabled={saving}
             className={`relative flex items-center gap-1.5 px-4 py-2 text-sm rounded-xl font-semibold transition-all disabled:opacity-60 ${
               isDirty
-                ? "bg-gray-900 text-[#C9B45C] hover:bg-black shadow-sm ring-1 ring-gray-900"
+                ? "bg-cyan-900 text-[#C9B45C] hover:bg-cyan-900 shadow-sm ring-1 ring-cyan-900"
                 : "bg-gray-100 text-gray-400 cursor-default"
             }`}>
             {saving ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
@@ -818,7 +818,7 @@ function PermissionsPanel({ role, allPermissions, onSave, saving }: {
           placeholder="Search permissions…"
           value={search}
           onChange={e => setSearch(e.target.value)}
-          className="w-full pl-9 pr-9 py-2 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:bg-white focus:ring-2 focus:ring-gray-900/10 placeholder:text-gray-400 transition-colors"
+          className="w-full pl-9 pr-9 py-2 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:bg-white focus:ring-2 focus:ring-cyan-900/10 placeholder:text-gray-400 transition-colors"
         />
         {search && (
           <button type="button" onClick={() => setSearch("")}
@@ -845,7 +845,7 @@ function PermissionsPanel({ role, allPermissions, onSave, saving }: {
                 <button key={menu} type="button"
                   onClick={() => setActiveMenu(menu)}
                   className={`w-full flex items-center gap-2.5 px-3 py-3 text-left transition-colors group border-b border-gray-100 last:border-b-0 ${
-                    isActive ? "bg-white border-r-2 border-r-gray-900" : "hover:bg-white/70"
+                    isActive ? "bg-white border-r-2 border-r-cyan-900" : "hover:bg-white/70"
                   }`}
                   style={isActive ? { borderRightColor: "#111" } : {}}>
                   <IndeterminateCheckbox
@@ -855,7 +855,7 @@ function PermissionsPanel({ role, allPermissions, onSave, saving }: {
                   />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-1 mb-1">
-                      <span className={`text-xs font-semibold truncate ${isActive ? "text-gray-900" : "text-gray-600"}`}>
+                      <span className={`text-xs font-semibold truncate ${isActive ? "text-cyan-900" : "text-gray-600"}`}>
                         {menu}
                       </span>
                       <span className="text-[10px] tabular-nums text-gray-400 shrink-0">{count}</span>
@@ -863,7 +863,7 @@ function PermissionsPanel({ role, allPermissions, onSave, saving }: {
                     {/* Mini progress bar per section */}
                     <div className="h-0.5 bg-gray-200 rounded-full overflow-hidden">
                       <div
-                        className={`h-full rounded-full transition-all duration-300 ${pctMenu === 1 ? "bg-green-500" : "bg-gray-900"}`}
+                        className={`h-full rounded-full transition-all duration-300 ${pctMenu === 1 ? "bg-green-500" : "bg-cyan-900"}`}
                         style={{ width: `${pctMenu * 100}%` }}
                       />
                     </div>
@@ -898,10 +898,10 @@ function PermissionsPanel({ role, allPermissions, onSave, saving }: {
                     onChange={() => toggleMenu(allRes)}
                     className="h-4 w-4"
                   />
-                  <span className="flex items-center justify-center h-6 w-6 rounded-lg bg-gray-900 shrink-0">
+                  <span className="flex items-center justify-center h-6 w-6 rounded-lg bg-cyan-900 shrink-0">
                     <span className="text-[#C9B45C] scale-75">{MENU_ICONS[menu] ?? <Shield className="h-4 w-4" />}</span>
                   </span>
-                  <span className="text-sm font-semibold text-gray-800 flex-1">{menu}</span>
+                  <span className="text-sm font-semibold text-cyan-900 flex-1">{menu}</span>
                   <span className={`text-xs tabular-nums px-2 py-0.5 rounded-full font-medium ${
                     menuCount === allKeys.length && allKeys.length > 0
                       ? "bg-green-50 text-green-700"
@@ -999,10 +999,10 @@ function RolesTab() {
               <div key={role.id}
                 onClick={() => setSelectedRole(role)}
                 className={`flex items-center gap-2 px-3 py-2.5 rounded-xl cursor-pointer transition-all group ${
-                  isActive ? "bg-gray-900 shadow-sm" : "hover:bg-gray-50 text-gray-700"
+                  isActive ? "bg-cyan-900 shadow-sm" : "hover:bg-gray-50 text-slate-500"
                 }`}>
                 <div className="flex-1 min-w-0">
-                  <p className={`text-sm font-semibold capitalize truncate ${isActive ? "text-[#C9B45C]" : "text-gray-800"}`}>
+                  <p className={`text-sm font-semibold capitalize truncate ${isActive ? "text-[#C9B45C]" : "text-cyan-900"}`}>
                     {role.name}
                   </p>
                   <div className="flex items-center gap-1.5 mt-0.5">
@@ -1017,7 +1017,7 @@ function RolesTab() {
                 {!role.isSystem && (
                   <button onClick={e => { e.stopPropagation(); setDeleteId(role.id); }}
                     className={`p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all ${
-                      isActive ? "hover:bg-gray-700 text-gray-400 hover:text-gray-200" : "hover:bg-red-50 text-gray-400 hover:text-red-500"
+                      isActive ? "hover:bg-slate-500 text-gray-400 hover:text-gray-200" : "hover:bg-red-50 text-gray-400 hover:text-red-500"
                     }`}>
                     <Trash2 className="h-3 w-3" />
                   </button>
@@ -1088,7 +1088,7 @@ export default function UserManagement() {
       <div className="max-w-screen-xl mx-auto space-y-5">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-semibold text-gray-900">User Management</h1>
+            <h1 className="text-xl font-semibold text-cyan-900">User Management</h1>
             <p className="text-sm text-gray-400 mt-0.5">Manage users, roles and permissions</p>
           </div>
         </div>
@@ -1097,7 +1097,7 @@ export default function UserManagement() {
           {(["users", "roles"] as const).map(t => (
             <button key={t} onClick={() => setTab(t)}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors capitalize ${
-                tab === t ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
+                tab === t ? "bg-white text-cyan-900 shadow-sm" : "text-gray-500 hover:text-slate-500"
               }`}>
               {t === "users" ? <Users className="h-4 w-4" /> : <Shield className="h-4 w-4" />}
               {t === "users" ? "Users" : "Roles & Permissions"}

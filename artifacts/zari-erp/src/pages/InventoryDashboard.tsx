@@ -75,7 +75,7 @@ function PieTooltip({ active, payload }: any) {
     <div className="rounded-xl px-3 py-2 text-xs bg-white"
       style={{ border: `1px solid ${G}40`, boxShadow: `0 4px 20px rgba(198,175,75,0.18)` }}>
       <span className="font-bold" style={{ color: d.payload.color }}>{d.name}: </span>
-      <span className="font-black text-gray-800">{d.value}</span>
+      <span className="font-black text-cyan-900">{d.value}</span>
     </div>
   );
 }
@@ -89,7 +89,7 @@ function InventoryDonut({ title, subtitle, data, loading }: {
   return (
     <div className={`${card} p-5`}>
       <p className="text-[9px] font-black uppercase tracking-[0.18em] mb-0.5" style={{ color: G }}>{title}</p>
-      <p className="text-sm font-bold text-gray-800 mb-5">{subtitle}</p>
+      <p className="text-sm font-bold text-cyan-900 mb-5">{subtitle}</p>
 
       {loading ? (
         <div className="flex flex-col items-center gap-4">
@@ -126,7 +126,7 @@ function InventoryDonut({ title, subtitle, data, loading }: {
                 />
               </PieChart>
               <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                <span className="text-4xl font-black text-gray-900 leading-none">{total}</span>
+                <span className="text-4xl font-black text-cyan-900 leading-none">{total}</span>
                 <span className="text-[9px] uppercase tracking-[0.22em] font-black mt-1" style={{ color: G }}>TOTAL</span>
               </div>
             </div>
@@ -141,7 +141,7 @@ function InventoryDonut({ title, subtitle, data, loading }: {
                   <div className="h-full rounded-full transition-all duration-700"
                     style={{ width: `${total > 0 ? (seg.value / total) * 100 : 0}%`, background: seg.color }} />
                 </div>
-                <span className="text-xs font-bold text-gray-800 w-5 text-right flex-shrink-0">{seg.value}</span>
+                <span className="text-xs font-bold text-cyan-900 w-5 text-right flex-shrink-0">{seg.value}</span>
               </div>
             ))}
           </div>
@@ -289,7 +289,7 @@ export default function InventoryDashboard() {
               <div className="h-px w-6 rounded-full" style={{ background: `linear-gradient(90deg, ${G}, transparent)` }} />
               <p className="text-[10px] font-black uppercase tracking-[0.2em]" style={{ color: G }}>INVENTORY · DASHBOARD</p>
             </div>
-            <h1 className="text-2xl font-bold text-gray-900">Inventory Dashboard</h1>
+            <h1 className="text-2xl font-bold text-cyan-900">Inventory Dashboard</h1>
             <p className="text-sm text-gray-500 mt-0.5">Live stock status, reservations, procurement &amp; consumption</p>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
@@ -308,9 +308,9 @@ export default function InventoryDashboard() {
         {/* ── Filter Row ─────────────────────────────────────── */}
         <div className={`${card} p-4 flex flex-wrap gap-4 items-end`}>
           <div className="flex flex-col gap-1">
-            <label className="text-xs font-semibold text-gray-700 uppercase tracking-wide">Category</label>
+            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Category</label>
             <select value={category} onChange={e => setCategory(e.target.value)}
-              className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/40 min-w-[140px]">
+              className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm text-cyan-900 bg-white focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/40 min-w-[140px]">
               <option value="all">All Categories</option>
               <option value="fabric">Fabric</option>
               <option value="material">Material</option>
@@ -318,10 +318,10 @@ export default function InventoryDashboard() {
             </select>
           </div>
           <div className="flex flex-col gap-1">
-            <label className="text-xs font-semibold text-gray-700 uppercase tracking-wide">Sub Category</label>
+            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Sub Category</label>
             <select value={subCategory} onChange={e => setSubCategory(e.target.value)}
               disabled={subCategories.length === 0}
-              className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/40 min-w-[160px] disabled:opacity-50 disabled:cursor-not-allowed">
+              className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm text-cyan-900 bg-white focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/40 min-w-[160px] disabled:opacity-50 disabled:cursor-not-allowed">
               <option value="all">All Item Types</option>
               {subCategories.map(sc => (
                 <option key={sc} value={sc}>{sc}</option>
@@ -329,7 +329,7 @@ export default function InventoryDashboard() {
             </select>
           </div>
           <div className="flex flex-col gap-1">
-            <label className="text-xs font-semibold text-gray-700 uppercase tracking-wide">From</label>
+            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">From</label>
             <input type="date" value={dateFrom} max={dateTo || today}
               onChange={e => {
                 const v = e.target.value;
@@ -339,10 +339,10 @@ export default function InventoryDashboard() {
                 }
                 setDateFrom(v);
               }}
-              className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/40" />
+              className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm text-cyan-900 bg-white focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/40" />
           </div>
           <div className="flex flex-col gap-1">
-            <label className="text-xs font-semibold text-gray-700 uppercase tracking-wide">To</label>
+            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">To</label>
             <input type="date" value={dateTo} min={dateFrom} max={today}
               onChange={e => {
                 const v = e.target.value;
@@ -352,7 +352,7 @@ export default function InventoryDashboard() {
                 }
                 setDateTo(v);
               }}
-              className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/40" />
+              className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm text-cyan-900 bg-white focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/40" />
           </div>
           <button
             type="button"
@@ -362,7 +362,7 @@ export default function InventoryDashboard() {
               setDateFrom(threeMonthsAgo);
               setDateTo(today);
             }}
-            className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-semibold border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+            className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-semibold border border-gray-300 text-slate-500 bg-white hover:bg-gray-50 transition-colors"
           >
             <RefreshCw className="h-3.5 w-3.5" />
             Reset
@@ -409,7 +409,7 @@ export default function InventoryDashboard() {
             <div className="flex items-center justify-between mb-4">
               <div>
                 <p className="text-[9px] font-black uppercase tracking-[0.18em]" style={{ color: G }}>RESERVATIONS</p>
-                <p className="text-sm font-bold text-gray-800 mt-0.5">Stock Reserved</p>
+                <p className="text-sm font-bold text-cyan-900 mt-0.5">Stock Reserved</p>
               </div>
               <div className="h-8 w-8 rounded-lg flex items-center justify-center" style={{ background: `${G}18` }}>
                 <BookOpen className="h-4 w-4" style={{ color: G }} />
@@ -446,7 +446,7 @@ export default function InventoryDashboard() {
                         <XCircle className="h-5 w-5 text-red-500" />
                       </div>
                       <div>
-                        <p className="text-xl font-bold text-gray-900">{outOfStockCount} <span className="text-sm font-semibold text-red-500">items out of stock</span></p>
+                        <p className="text-xl font-bold text-cyan-900">{outOfStockCount} <span className="text-sm font-semibold text-red-500">items out of stock</span></p>
                         <p className="text-xs text-gray-500">Needs immediate attention</p>
                       </div>
                     </div>
@@ -465,7 +465,7 @@ export default function InventoryDashboard() {
                         <AlertTriangle className="h-5 w-5 text-amber-500" />
                       </div>
                       <div>
-                        <p className="text-xl font-bold text-gray-900">{lowStockCount} <span className="text-sm font-semibold text-amber-500">items below reorder</span></p>
+                        <p className="text-xl font-bold text-cyan-900">{lowStockCount} <span className="text-sm font-semibold text-amber-500">items below reorder</span></p>
                         <p className="text-xs text-gray-500">Replenishment advised</p>
                       </div>
                     </div>
@@ -482,7 +482,7 @@ export default function InventoryDashboard() {
                       <CheckCircle2 className="h-5 w-5 text-green-500" />
                     </div>
                     <div>
-                      <p className="text-sm font-bold text-gray-800">All stock levels healthy</p>
+                      <p className="text-sm font-bold text-cyan-900">All stock levels healthy</p>
                       <p className="text-xs text-gray-400 mt-0.5">No items below reorder level</p>
                     </div>
                   </div>
@@ -498,7 +498,7 @@ export default function InventoryDashboard() {
                   <Flame className="h-5 w-5 text-red-500" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-gray-900">{loading ? "…" : fmt(data?.totalConsumed ?? 0)}</p>
+                  <p className="text-2xl font-bold text-cyan-900">{loading ? "…" : fmt(data?.totalConsumed ?? 0)}</p>
                   <p className="text-xs text-gray-500 mt-0.5">Total units consumed · {dateFrom} → {dateTo}</p>
                 </div>
               </div>
@@ -558,7 +558,7 @@ export default function InventoryDashboard() {
                           style={{ background: i === 0 ? G : i === 1 ? G_DIM : "#9CA3AF" }}>{i + 1}</span>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between gap-2 mb-1.5">
-                            <span className="text-xs font-medium text-gray-800 truncate">{item.item_name}</span>
+                            <span className="text-xs font-medium text-cyan-900 truncate">{item.item_name}</span>
                             <span className="text-xs font-semibold text-gray-600 flex-shrink-0">{fmt(item.total_consumed)} <span className="text-gray-400">{item.unit_type ?? ""}</span></span>
                           </div>
                           <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
@@ -589,7 +589,7 @@ function ReservationRow({ label, value, pct, barColor, bgColor, borderColor, tex
     <div className="rounded-xl p-3" style={{ background: bgColor, border: `1px solid ${borderColor}` }}>
       <div className="flex items-center justify-between mb-1.5">
         <span className="text-[10px] font-bold uppercase tracking-wide" style={{ color: textColor }}>{label}</span>
-        <span className="text-base font-bold text-gray-900">{value}</span>
+        <span className="text-base font-bold text-cyan-900">{value}</span>
       </div>
       <div className="w-full h-1.5 rounded-full overflow-hidden" style={{ background: `${barColor}20` }}>
         <div className="h-full rounded-full transition-all duration-700"
@@ -606,7 +606,7 @@ function SectionHeader({ eyebrow, title }: { eyebrow: string; title: string }) {
       <div className="h-px w-5 rounded-full" style={{ background: `linear-gradient(90deg, ${G}, transparent)` }} />
       <p className="text-[10px] font-black uppercase tracking-[0.2em]" style={{ color: G }}>{eyebrow}</p>
       <div className="h-px flex-1 bg-gray-100" />
-      <p className="text-sm font-semibold text-gray-700">{title}</p>
+      <p className="text-sm font-semibold text-slate-500">{title}</p>
     </div>
   );
 }
@@ -620,7 +620,7 @@ function StatCard({ label, value, Icon, color, bg, loading }: {
         <Icon className="h-5 w-5" style={{ color }} />
       </div>
       <div className="min-w-0">
-        <p className="text-xl font-bold text-gray-900 truncate">{loading ? "…" : value}</p>
+        <p className="text-xl font-bold text-cyan-900 truncate">{loading ? "…" : value}</p>
         <p className="text-xs text-gray-500 mt-0.5 leading-tight">{label}</p>
       </div>
     </div>

@@ -103,7 +103,7 @@ export default function AddableSelect({
   return (
     <div className="flex flex-col gap-1.5">
       {label && (
-        <label className="text-sm font-medium text-gray-700">
+        <label className="text-sm font-medium text-slate-500">
           {label}
           {required && <span className="text-red-500 ml-0.5">*</span>}
         </label>
@@ -120,7 +120,7 @@ export default function AddableSelect({
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Type to search…"
-                className="w-full pl-8 pr-3 py-2 text-sm text-gray-900 border border-gray-900 ring-2 ring-gray-900/10 rounded-lg outline-none bg-white"
+                className="w-full pl-8 pr-3 py-2 text-sm text-cyan-900 border border-cyan-900 ring-2 ring-cyan-900/10 rounded-lg outline-none bg-white"
               />
             </div>
           ) : (
@@ -132,7 +132,7 @@ export default function AddableSelect({
                 ${error ? "border-red-400" : "border-gray-300 hover:border-gray-400"}
                 ${disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
             >
-              <span className={selected || value ? "text-gray-900" : "text-gray-400"}>
+              <span className={selected || value ? "text-cyan-900" : "text-gray-400"}>
                 {selected ? selected.label : (value || placeholder)}
               </span>
               {(selected || value) && (
@@ -176,9 +176,9 @@ export default function AddableSelect({
                   type="button"
                   onMouseDown={(e) => { e.stopPropagation(); e.preventDefault(); handleSelect(opt); }}
                   className={`w-full flex items-center gap-2 px-4 py-2.5 text-sm text-left transition-colors
-                    ${value === opt.value ? "bg-gray-50 text-gray-900 font-medium" : "text-gray-700 hover:bg-gray-50"}`}
+                    ${value === opt.value ? "bg-gray-50 text-cyan-900 font-medium" : "text-slate-500 hover:bg-gray-50"}`}
                 >
-                  {value === opt.value && <Check className="h-3.5 w-3.5 text-gray-900 shrink-0" />}
+                  {value === opt.value && <Check className="h-3.5 w-3.5 text-cyan-900 shrink-0" />}
                   <span className={value === opt.value ? "" : "ml-5"}>{opt.label}</span>
                 </button>
               </li>

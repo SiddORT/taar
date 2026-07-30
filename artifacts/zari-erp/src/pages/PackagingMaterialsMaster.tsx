@@ -48,7 +48,7 @@ function formatDate(val: string | null | undefined) {
   catch { return String(val); }
 }
 
-const SELECT_CLS = "border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-900";
+const SELECT_CLS = "border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white text-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-900";
 
 interface AddDeptModalProps { open: boolean; onClose: () => void; onAdd: (name: string) => Promise<void>; adding: boolean; }
 
@@ -68,13 +68,13 @@ function AddDeptModal({ open, onClose, onAdd, adding }: AddDeptModalProps) {
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40">
       <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-sm">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-base font-semibold text-gray-900">Add Department</h3>
+          <h3 className="text-base font-semibold text-cyan-900">Add Department</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-lg leading-none">✕</button>
         </div>
         <form onSubmit={(e) => { void handleSubmit(e); }}>
           <input ref={inputRef} value={name} onChange={(e) => setName(e.target.value)}
             placeholder="Department name"
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900 mb-1" />
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-cyan-900 focus:outline-none focus:ring-2 focus:ring-cyan-900 mb-1" />
           {err && <p className="text-xs text-red-500 mb-2">{err}</p>}
           <div className="flex justify-end gap-2 mt-4">
             <button type="button" onClick={onClose} className="px-4 py-2 text-sm rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50">Cancel</button>
@@ -108,13 +108,13 @@ function AddItemTypeModal({ open, onClose, onAdd, adding }: AddItemTypeModalProp
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40">
       <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-sm">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-base font-semibold text-gray-900">Add Item Type</h3>
+          <h3 className="text-base font-semibold text-cyan-900">Add Item Type</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-lg leading-none">✕</button>
         </div>
         <form onSubmit={(e) => { void handleSubmit(e); }}>
           <input ref={inputRef} value={name} onChange={(e) => setName(e.target.value)}
             placeholder="Item type name"
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900 mb-1" />
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-cyan-900 focus:outline-none focus:ring-2 focus:ring-cyan-900 mb-1" />
           {err && <p className="text-xs text-red-500 mb-2">{err}</p>}
           <div className="flex justify-end gap-2 mt-4">
             <button type="button" onClick={onClose} className="px-4 py-2 text-sm rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50">Cancel</button>
@@ -237,7 +237,7 @@ export default function PackagingMaterialsMaster() {
 
   const columns: Column[] = [
     { key: "_srNo", label: "Sr No" },
-    { key: "itemCode", label: "Item Code", render: (r) => <span className="font-mono text-xs font-semibold text-gray-700">{asPM(r).itemCode}</span> },
+    { key: "itemCode", label: "Item Code", render: (r) => <span className="font-mono text-xs font-semibold text-slate-500">{asPM(r).itemCode}</span> },
     { key: "itemType", label: "Item Type", render: (r) => asPM(r).itemType || "—" },
     { key: "itemName", label: "Item Name", render: (r) => asPM(r).itemName },
     { key: "department", label: "Department", render: (r) => asPM(r).department || "—" },
@@ -247,7 +247,7 @@ export default function PackagingMaterialsMaster() {
     { key: "currentStock", label: "Current Stock", render: (r) => {
       const v = asPM(r).currentStock;
       if (!v || parseFloat(v) === 0) return <span className="text-gray-400">0</span>;
-      return <span className="font-semibold text-gray-900">{parseFloat(v).toLocaleString("en-IN", { maximumFractionDigits: 3 })}</span>;
+      return <span className="font-semibold text-cyan-900">{parseFloat(v).toLocaleString("en-IN", { maximumFractionDigits: 3 })}</span>;
     }},
     { key: "vendor", label: "Vendor", render: (r) => asPM(r).vendor || "—" },
     { key: "location", label: "Location", render: (r) => asPM(r).location || "—" },
@@ -335,7 +335,7 @@ export default function PackagingMaterialsMaster() {
           <div className="grid grid-cols-2 gap-x-4 gap-y-0">
             {/* Item Code — read only */}
             <div className="flex flex-col gap-1 py-2">
-              <label className="text-sm font-medium text-gray-700">Item Code</label>
+              <label className="text-sm font-medium text-slate-500">Item Code</label>
               <div className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-gray-50 text-gray-500 font-mono">
                 {editRecord ? editRecord.itemCode : "Auto-generated"}
               </div>
@@ -366,18 +366,18 @@ export default function PackagingMaterialsMaster() {
                 options={vendorOptions} placeholder="Select vendor" />
             </div>
             <div className="flex flex-col gap-1 py-2">
-              <label className="text-sm font-medium text-gray-700">Location</label>
+              <label className="text-sm font-medium text-slate-500">Location</label>
               <select value={form.location} onChange={(e) => setForm(f => ({ ...f, location: e.target.value }))}
-                className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-900">
+                className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white text-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-900">
                 <option value="">Select location</option>
                 {LOCATION_OPTIONS.map(l => <option key={l} value={l}>{l}</option>)}
               </select>
             </div>
           </div>
           <div className="flex items-center gap-3 pt-2">
-            <label className="text-sm font-medium text-gray-700">Active</label>
+            <label className="text-sm font-medium text-slate-500">Active</label>
             <button type="button" onClick={() => setForm(f => ({ ...f, isActive: !f.isActive }))}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${form.isActive ? "bg-gray-900" : "bg-gray-300"}`}>
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${form.isActive ? "bg-cyan-900" : "bg-gray-300"}`}>
               <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${form.isActive ? "translate-x-6" : "translate-x-1"}`} />
             </button>
           </div>
@@ -389,27 +389,27 @@ export default function PackagingMaterialsMaster() {
             </p>
             <div className="grid grid-cols-3 gap-4">
               <div className="flex flex-col gap-1">
-                <label className="text-sm font-medium text-gray-700">Minimum Level</label>
+                <label className="text-sm font-medium text-slate-500">Minimum Level</label>
                 <input type="number" min="0" value={form.minimumLevel}
                   onChange={(e) => setForm(f => ({ ...f, minimumLevel: e.target.value }))}
                   placeholder="0"
-                  className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900" />
+                  className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-900" />
                 {errors.minimumLevel && <p className="text-xs text-red-500">{errors.minimumLevel}</p>}
               </div>
               <div className="flex flex-col gap-1">
-                <label className="text-sm font-medium text-gray-700">Reorder Level</label>
+                <label className="text-sm font-medium text-slate-500">Reorder Level</label>
                 <input type="number" min="0" value={form.reorderLevel}
                   onChange={(e) => setForm(f => ({ ...f, reorderLevel: e.target.value }))}
                   placeholder="0"
-                  className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900" />
+                  className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-900" />
                 {errors.reorderLevel && <p className="text-xs text-red-500">{errors.reorderLevel}</p>}
               </div>
               <div className="flex flex-col gap-1">
-                <label className="text-sm font-medium text-gray-700">Maximum Level</label>
+                <label className="text-sm font-medium text-slate-500">Maximum Level</label>
                 <input type="number" min="0" value={form.maximumLevel}
                   onChange={(e) => setForm(f => ({ ...f, maximumLevel: e.target.value }))}
                   placeholder="0"
-                  className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900" />
+                  className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-900" />
                 {errors.maximumLevel && <p className="text-xs text-red-500">{errors.maximumLevel}</p>}
               </div>
             </div>

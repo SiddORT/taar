@@ -1094,7 +1094,7 @@ router.get("/packing-lists/:id/pdf-html", requireAuth, async (req, res) => {
 <body>
 <div class="header">
   <div>
-    <h1>ZARI EMBROIDERIES</h1>
+    <h1>ERP</h1>
     <div style="font-size:10px;letter-spacing:2px;color:#888;margin-top:2px;">PACKING LIST</div>
   </div>
   <div style="text-align:right">
@@ -1141,7 +1141,7 @@ ${packagesHtml.join("\n") || '<p style="color:#aaa;text-align:center;padding:20p
 </div>
 
 <div class="footer">
-  <span>ZARI EMBROIDERIES — Packing List ${pl.pl_number}</span>
+  <span>ERP — Packing List ${pl.pl_number}</span>
   <span>Generated ${new Date().toLocaleString("en-IN")}</span>
 </div>
 </body>

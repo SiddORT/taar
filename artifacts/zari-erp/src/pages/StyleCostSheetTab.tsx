@@ -64,7 +64,7 @@ function SheetTable({ headers, rows, footer, colWidths, wrapCols }: {
         </colgroup>
       )}
       <thead>
-        <tr className="bg-gray-900 text-[#C9B45C]">
+        <tr className="bg-cyan-900 text-[#C9B45C]">
           {headers.map((h, i) => (
             <th key={i} className={`px-2 py-1.5 text-left font-semibold ${isWrap(i) ? "" : "whitespace-nowrap"}`}>{h}</th>
           ))}
@@ -76,16 +76,16 @@ function SheetTable({ headers, rows, footer, colWidths, wrapCols }: {
         ) : rows.map((row, ri) => (
           <tr key={ri} className={ri % 2 === 0 ? "bg-white" : "bg-gray-50/60"}>
             {row.map((cell, ci) => (
-              <td key={ci} className={`px-2 py-1.5 border-b border-gray-100 text-gray-800 align-top ${isWrap(ci) ? "whitespace-normal break-words" : ""}`}>{cell}</td>
+              <td key={ci} className={`px-2 py-1.5 border-b border-gray-100 text-cyan-900 align-top ${isWrap(ci) ? "whitespace-normal break-words" : ""}`}>{cell}</td>
             ))}
           </tr>
         ))}
       </tbody>
       {footer && (
         <tfoot>
-          <tr className="bg-gray-900/5 border-t-2 border-gray-900/20 font-bold">
+          <tr className="bg-cyan-900/5 border-t-2 border-cyan-900/20 font-bold">
             {footer.map((cell, i) => (
-              <td key={i} className="px-2 py-1.5 text-gray-900">{cell}</td>
+              <td key={i} className="px-2 py-1.5 text-cyan-900">{cell}</td>
             ))}
           </tr>
         </tfoot>
@@ -287,7 +287,7 @@ export default function StyleCostSheetTab({
       {/* Toolbar */}
       <div className="no-print flex items-center justify-between mb-4 flex-wrap gap-3">
         <div>
-          <h2 className="text-sm font-bold text-gray-900">Cost Sheet</h2>
+          <h2 className="text-sm font-bold text-cyan-900">Cost Sheet</h2>
           <p className="text-xs text-gray-400">Consolidated cost summary for this style order</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
@@ -299,7 +299,7 @@ export default function StyleCostSheetTab({
                 <select
                   value={selectedProductId}
                   onChange={e => setSelectedProductId(e.target.value)}
-                  className="appearance-none bg-transparent text-gray-700 font-medium focus:outline-none cursor-pointer w-full pr-4">
+                  className="appearance-none bg-transparent text-slate-500 font-medium focus:outline-none cursor-pointer w-full pr-4">
                   <option value="all">All Products</option>
                   {products.map(p => (
                     <option key={p.id} value={String(p.id)}>{p.productName}</option>
@@ -315,7 +315,7 @@ export default function StyleCostSheetTab({
             {refreshing ? "Refreshing…" : "Refresh"}
           </button>
           <button onClick={() => window.print()}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gray-900 text-[#C9B45C] text-xs font-semibold hover:bg-black transition-colors">
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-cyan-900 text-[#C9B45C] text-xs font-semibold hover:bg-cyan-900 transition-colors">
             <Printer className="h-3.5 w-3.5" /> Print / Save PDF
           </button>
         </div>
@@ -325,7 +325,7 @@ export default function StyleCostSheetTab({
       {isFiltered && selectedProduct && (
         <div className="no-print mb-4 flex items-center gap-2 bg-[#C9B45C]/10 border border-[#C9B45C]/30 rounded-xl px-4 py-2.5">
           <span className="text-xs font-semibold text-[#8a7a30]">Filtering by product:</span>
-          <span className="text-xs font-bold text-gray-900">{selectedProduct.productName}</span>
+          <span className="text-xs font-bold text-cyan-900">{selectedProduct.productName}</span>
           <button onClick={() => setSelectedProductId("all")}
             className="ml-auto text-[10px] px-2.5 py-1 rounded-lg border border-[#C9B45C]/40 text-[#8a7a30] hover:bg-[#C9B45C]/20 transition-colors font-medium">
             Show All Products
@@ -341,13 +341,13 @@ export default function StyleCostSheetTab({
         <div className="flex items-start justify-between mb-6 pb-4 border-b border-gray-200">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <span className="text-lg font-black tracking-wider text-gray-900">ZARI</span>
+              <span className="text-lg font-black tracking-wider text-cyan-900">ZARI</span>
               <span className="text-xs font-light tracking-[0.3em] text-gray-400">EMBROIDERIES</span>
             </div>
             <p className="text-[10px] text-gray-400">Enterprise Resource Planning System</p>
           </div>
           <div className="text-right">
-            <p className="text-lg font-bold text-gray-900 tracking-tight">COST SHEET</p>
+            <p className="text-lg font-bold text-cyan-900 tracking-tight">COST SHEET</p>
             <p className="text-[10px] text-gray-400 mt-0.5">Generated: {new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}</p>
             {isFiltered && selectedProduct && (
               <p className="text-[10px] font-semibold text-[#8a7a30] mt-0.5">Product: {selectedProduct.productName}</p>
@@ -359,15 +359,15 @@ export default function StyleCostSheetTab({
         <div className={`grid gap-4 mb-6 bg-gray-50/60 rounded-xl p-4 border border-gray-100 ${isFiltered ? "grid-cols-4" : "grid-cols-3"}`}>
           <div>
             <p className="text-[10px] text-gray-400 font-medium mb-0.5">Order Code</p>
-            <p className="text-sm font-bold text-gray-900">{orderCode ?? "—"}</p>
+            <p className="text-sm font-bold text-cyan-900">{orderCode ?? "—"}</p>
           </div>
           <div>
             <p className="text-[10px] text-gray-400 font-medium mb-0.5">Style Name</p>
-            <p className="text-sm font-semibold text-gray-800">{styleName ?? "—"}</p>
+            <p className="text-sm font-semibold text-cyan-900">{styleName ?? "—"}</p>
           </div>
           <div>
             <p className="text-[10px] text-gray-400 font-medium mb-0.5">Client</p>
-            <p className="text-sm font-semibold text-gray-800">{clientName ?? "—"}</p>
+            <p className="text-sm font-semibold text-cyan-900">{clientName ?? "—"}</p>
           </div>
           {isFiltered && selectedProduct && (
             <div>
@@ -603,7 +603,7 @@ export default function StyleCostSheetTab({
         )}
 
         {/* ── Grand Total ─────────────────────────────────────────────────── */}
-        <div className="mt-6 border-t-2 border-gray-900 pt-4">
+        <div className="mt-6 border-t-2 border-cyan-900 pt-4">
           <div className="flex justify-end">
             <div className="w-80">
               <div className="space-y-1.5">
@@ -621,10 +621,10 @@ export default function StyleCostSheetTab({
                 ].map(({ label, value }) => (
                   <div key={label} className="flex justify-between text-xs text-gray-600 px-3 py-0.5">
                     <span>{label}</span>
-                    <span className="font-medium text-gray-800">{dcFmt(value)}</span>
+                    <span className="font-medium text-cyan-900">{dcFmt(value)}</span>
                   </div>
                 ))}
-                <div className="flex justify-between items-center px-3 py-2 rounded-xl bg-gray-900 mt-2">
+                <div className="flex justify-between items-center px-3 py-2 rounded-xl bg-cyan-900 mt-2">
                   <div>
                     <span className="text-xs font-bold text-white tracking-wide">GRAND TOTAL</span>
                     {isFiltered && selectedProduct && (
@@ -670,7 +670,7 @@ export default function StyleCostSheetTab({
                 const prodTotal = prodConsumedTotal + prodArtisan + prodOutsource + prodCustom;
                 return (
                   <div key={prod.id} className="bg-gray-50 border border-gray-200 rounded-xl p-3">
-                    <p className="text-xs font-bold text-gray-900 mb-2 truncate">{prod.productName}</p>
+                    <p className="text-xs font-bold text-cyan-900 mb-2 truncate">{prod.productName}</p>
                     <div className="space-y-1">
                       {[
                         { label: "Materials", value: prodConsumedTotal },
@@ -680,10 +680,10 @@ export default function StyleCostSheetTab({
                       ].map(({ label, value }) => value > 0 && (
                         <div key={label} className="flex justify-between text-[10px] text-gray-500">
                           <span>{label}</span>
-                          <span className="font-medium text-gray-700">{dcFmt(value)}</span>
+                          <span className="font-medium text-slate-500">{dcFmt(value)}</span>
                         </div>
                       ))}
-                      <div className="flex justify-between text-[11px] font-bold text-gray-900 border-t border-gray-200 pt-1 mt-1">
+                      <div className="flex justify-between text-[11px] font-bold text-cyan-900 border-t border-gray-200 pt-1 mt-1">
                         <span>Total</span>
                         <span className="text-[#8a7a30]">{dcFmt(prodTotal)}</span>
                       </div>

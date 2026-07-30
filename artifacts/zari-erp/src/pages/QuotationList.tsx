@@ -17,9 +17,9 @@ import { useCurrency } from "@/contexts/CurrencyContext";
 
 const G = "#C6AF4B";
 const card = "rounded-2xl bg-white border border-[#C6AF4B]/15 shadow-[0_2px_16px_rgba(198,175,75,0.12),0_1px_3px_rgba(0,0,0,0.06)]";
-const thCls = "px-3 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wide whitespace-nowrap";
+const thCls = "px-3 py-3 text-left text-xs font-semibold text-cyan-900 uppercase tracking-wide whitespace-nowrap";
 const tdCls = "px-3 py-3 align-middle text-sm";
-const inputCls = "w-full px-3 py-2 text-sm rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30 text-gray-900 bg-white";
+const inputCls = "w-full px-3 py-2 text-sm rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30 text-cyan-900 bg-white";
 
 const STATUS_COLORS: Record<string, string> = {
   "Draft":                 "bg-gray-100 text-gray-600",
@@ -184,18 +184,18 @@ export default function QuotationList() {
               <FileText size={20} style={{ color: G }} />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-gray-900">Quotations</h1>
+              <h1 className="text-xl font-bold text-cyan-900">Quotations</h1>
               <p className="text-sm text-gray-400 mt-0.5">Manage client quotations and revisions</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <div className="flex rounded-xl border border-gray-200 overflow-hidden">
               <button onClick={() => setView("grid")} title="Grid view"
-                className={`p-2 transition-colors ${view === "grid" ? "bg-gray-900 text-white" : "bg-white text-gray-400 hover:bg-gray-50"}`}>
+                className={`p-2 transition-colors ${view === "grid" ? "bg-cyan-900 text-white" : "bg-white text-gray-400 hover:bg-gray-50"}`}>
                 <LayoutGrid className="h-4 w-4" />
               </button>
               <button onClick={() => setView("table")} title="Table view"
-                className={`p-2 transition-colors ${view === "table" ? "bg-gray-900 text-white" : "bg-white text-gray-400 hover:bg-gray-50"}`}>
+                className={`p-2 transition-colors ${view === "table" ? "bg-cyan-900 text-white" : "bg-white text-gray-400 hover:bg-gray-50"}`}>
                 <LayoutList className="h-4 w-4" />
               </button>
             </div>
@@ -280,20 +280,20 @@ export default function QuotationList() {
                           </span>
                           <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${sc}`}>{row.latest_status}</span>
                         </div>
-                        <p className="text-sm font-semibold text-gray-900 mb-1 line-clamp-2">{row.requirement_summary || "—"}</p>
+                        <p className="text-sm font-semibold text-cyan-900 mb-1 line-clamp-2">{row.requirement_summary || "—"}</p>
                         <p className="text-xs text-gray-500 mb-3">{row.client_name || "—"}</p>
                         <div className="flex items-center justify-between mb-4">
-                          <span className="text-base font-black text-gray-900">{fmt(row.total_amount)}</span>
+                          <span className="text-base font-black text-cyan-900">{fmt(row.total_amount)}</span>
                           <span className="text-[10px] text-gray-400">{row.revision_count} rev{row.revision_count !== 1 ? "s" : ""}</span>
                         </div>
                         <div className="flex gap-2 pt-3 border-t border-gray-100">
                           <button onClick={() => navigate(`/quotation/${row.id}`)}
-                            className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-medium bg-gray-900 hover:bg-black transition-colors"
+                            className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-medium bg-cyan-900 hover:bg-cyan-900 transition-colors"
                             style={{ color: G }}>
                             <Eye size={12} /> View
                           </button>
                           <button onClick={() => handleDownloadPdf(row.id)}
-                            className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors border border-gray-100">
+                            className="p-1.5 rounded-lg text-gray-400 hover:text-slate-500 hover:bg-gray-100 transition-colors border border-gray-100">
                             <FileDown size={13} />
                           </button>
                           {isAdmin && (
@@ -374,7 +374,7 @@ export default function QuotationList() {
                           </td>
                           {/* Client */}
                           <td className={tdCls}>
-                            <span className="text-gray-800">{row.client_name || <span className="text-gray-400 italic">—</span>}</span>
+                            <span className="text-cyan-900">{row.client_name || <span className="text-gray-400 italic">—</span>}</span>
                           </td>
                           {/* Summary */}
                           <td className={tdCls}>
@@ -384,7 +384,7 @@ export default function QuotationList() {
                           </td>
                           {/* Total */}
                           <td className={tdCls}>
-                            <span className="font-semibold text-gray-900">{fmt(row.total_amount)}</span>
+                            <span className="font-semibold text-cyan-900">{fmt(row.total_amount)}</span>
                           </td>
                           {/* Latest status */}
                           <td className={tdCls}>
@@ -491,7 +491,7 @@ export default function QuotationList() {
                                                 )}
                                               </div>
                                             </td>
-                                            <td className="py-2 pr-4 font-semibold text-gray-800">{fmt(rev.total_amount)}</td>
+                                            <td className="py-2 pr-4 font-semibold text-cyan-900">{fmt(rev.total_amount)}</td>
                                             <td className="py-2 pr-4 text-gray-500">{fmtDate(rev.created_at)}</td>
                                             <td className="py-2">
                                               <div className="flex items-center gap-1">
@@ -593,7 +593,7 @@ export default function QuotationList() {
       {deleteId !== null && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
           <div className={`${card} max-w-sm w-full p-6`}>
-            <h3 className="text-lg font-bold text-gray-900 mb-2">Delete Quotation?</h3>
+            <h3 className="text-lg font-bold text-cyan-900 mb-2">Delete Quotation?</h3>
             <p className="text-sm text-gray-600 mb-5">This action cannot be undone. All designs, charges and feedback will be deleted.</p>
             <div className="flex justify-end gap-2">
               <button

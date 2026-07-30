@@ -3,42 +3,42 @@ generated = []
 
 [[outputs]]
 id = "cmmdSr0w5EJtPheKqkhRU"
-uri = "file://ZARI_ERP_Scope_Document.docx"
+uri = "file://ERP_Scope_Document.docx"
 type = "word_document"
-title = "ZARI ERP — Project Scope Document"
+title = "ERP — Project Scope Document"
 
 [[outputs]]
 id = "KAOvrZQSOTd8wc7p73Ze1"
-uri = "file://ZARI_ERP_Scope_Document_v2.docx"
+uri = "file://ERP_Scope_Document_v2.docx"
 type = "word_document"
-title = "ZARI ERP — Detailed Scope Document v2.0"
+title = "ERP — Detailed Scope Document v2.0"
 
 [[outputs]]
 id = "qnFO5IHCWRrh8btetxrdq"
-uri = "file://exports/ZARI_ERP_API.postman_collection.json"
+uri = "file://exports/ERP_API.postman_collection.json"
 type = "unspecified"
-title = "ZARI ERP API – Postman Collection"
+title = "ERP API – Postman Collection"
 
 [[outputs]]
 id = "WjGtEub_cWZdoPh2puxhr"
-uri = "file://exports/ZARI_ERP_API_docs.zip"
+uri = "file://exports/ERP_API_docs.zip"
 type = "unspecified"
-title = "ZARI ERP API – Interactive HTML Reference (unzip & open in browser)"
+title = "ERP API – Interactive HTML Reference (unzip & open in browser)"
 
 [[outputs]]
 id = "Woyfhgw8UWje1vnC64tS9"
-uri = "file://exports/ZARI_ERP_API.openapi.yaml"
+uri = "file://exports/ERP_API.openapi.yaml"
 type = "unspecified"
-title = "ZARI ERP API – OpenAPI 3 Spec (YAML)"
+title = "ERP API – OpenAPI 3 Spec (YAML)"
 
 [[outputs]]
 id = "PJlc6V3SdfaBPKiQ_tIon"
-uri = "file://exports/ZARI_ERP_API.openapi.json"
+uri = "file://exports/ERP_API.openapi.json"
 type = "unspecified"
-title = "ZARI ERP API – OpenAPI 3 Spec (JSON)"
+title = "ERP API – OpenAPI 3 Spec (JSON)"
 
 [[outputs]]
 id = "cd51taxN1_PGLg5JYYeap"
-uri = "file://exports/ZARI_ERP_API.md"
+uri = "file://exports/ERP_API.md"
 type = "text"
-title = "ZARI ERP API – Markdown Reference"
+title = "ERP API – Markdown Reference"
