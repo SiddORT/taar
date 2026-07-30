@@ -11,7 +11,7 @@ export default function MasterHeader({ title, onAdd, addLabel = "Add" }: MasterH
   return (
     <div className="flex items-center justify-between">
       <div>
-        <h1 className="text-xl font-semibold text-gray-900">{title}</h1>
+        <h1 className="text-xl font-semibold text-cyan-900">{title}</h1>
         <p className="text-sm text-gray-400 mt-0.5">Manage {title.toLowerCase()} records</p>
       </div>
       <ZariButton onClick={onAdd}>

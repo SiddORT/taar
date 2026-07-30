@@ -104,7 +104,7 @@ export default function LowStockAlerts() {
               <div className="h-px w-6 rounded-full" style={{ background: `linear-gradient(90deg, ${G}, transparent)` }} />
               <p className="text-[10px] font-black uppercase tracking-[0.2em]" style={{ color: G }}>INVENTORY · ALERTS</p>
             </div>
-            <h1 className="text-2xl font-bold text-gray-900">Low-Stock &amp; Out-of-Stock Alerts</h1>
+            <h1 className="text-2xl font-bold text-cyan-900">Low-Stock &amp; Out-of-Stock Alerts</h1>
             <p className="text-sm text-gray-500 mt-0.5">Items that have reached or fallen below their reorder level</p>
           </div>
           <div className="flex items-center gap-3">
@@ -134,7 +134,7 @@ export default function LowStockAlerts() {
                 <Icon className="h-5 w-5" style={{ color }} />
               </div>
               <div>
-                <p className="text-2xl font-bold text-gray-900">{loading ? "…" : value}</p>
+                <p className="text-2xl font-bold text-cyan-900">{loading ? "…" : value}</p>
                 <p className="text-xs text-gray-500 mt-0.5">{label}</p>
               </div>
             </div>
@@ -179,7 +179,7 @@ export default function LowStockAlerts() {
               <CheckCircle2 className="h-8 w-8" style={{ color: G }} />
             </div>
             <div className="text-center">
-              <p className="text-base font-bold text-gray-800">All stock levels are healthy</p>
+              <p className="text-base font-bold text-cyan-900">All stock levels are healthy</p>
               <p className="text-sm text-gray-400 mt-1">No items are currently below their reorder level</p>
             </div>
           </div>
@@ -221,7 +221,7 @@ function AlertTable({ title, subtitle, accentColor, items, onCreatePO }: AlertTa
           </div>
           <div>
             <p className="text-[9px] font-black uppercase tracking-[0.18em]" style={{ color: G }}>ALERTS</p>
-            <h3 className="text-sm font-bold text-gray-800 leading-tight">{title}</h3>
+            <h3 className="text-sm font-bold text-cyan-900 leading-tight">{title}</h3>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -264,7 +264,7 @@ function AlertTable({ title, subtitle, accentColor, items, onCreatePO }: AlertTa
                         style={{ background: isOut ? "rgba(239,68,68,0.08)" : "rgba(245,158,11,0.08)" }}>
                         <Package className="h-3.5 w-3.5" style={{ color: isOut ? "#EF4444" : "#F59E0B" }} />
                       </div>
-                      <span className="font-medium text-gray-900 leading-snug">{item.item_name}</span>
+                      <span className="font-medium text-cyan-900 leading-snug">{item.item_name}</span>
                     </div>
                   </td>
                   <td className={tdCls}>
@@ -290,7 +290,7 @@ function AlertTable({ title, subtitle, accentColor, items, onCreatePO }: AlertTa
                     )}
                   </td>
                   <td className={tdCls}>
-                    <span className="font-mono text-gray-700">{reord > 0 ? reord : "—"}</span>
+                    <span className="font-mono text-slate-500">{reord > 0 ? reord : "—"}</span>
                   </td>
                   <td className={tdCls}>
                     <span className="font-mono text-gray-500">{min > 0 ? min : "—"}</span>

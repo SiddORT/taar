@@ -42,7 +42,7 @@ export default function Login() {
           queryClient.clear();
           toast({
             title: "Login Successful",
-            description: "Welcome back to ZARI ERP.",
+            description: "Welcome back to ERP.",
             className: "bg-green-600 text-white border-green-700",
           });
           setLocation("/dashboard");
@@ -88,7 +88,7 @@ export default function Login() {
         {/* Bottom text */}
         <div>
           <p className="text-sm text-white/40 tracking-wide uppercase">
-            ZARI EMBROIDERIES &copy; {new Date().getFullYear()}
+            ERP &copy; {new Date().getFullYear()}
           </p>
         </div>
       </div>
@@ -106,7 +106,7 @@ export default function Login() {
 
           {/* Headings */}
           <div className="mb-8">
-            <h2 className="text-2xl font-semibold text-gray-900 tracking-tight">
+            <h2 className="text-2xl font-semibold text-cyan-900 tracking-tight">
               Welcome Back
             </h2>
             <p className="text-sm text-gray-500 mt-1">
@@ -120,7 +120,7 @@ export default function Login() {
             <div className="flex flex-col gap-1.5">
               <label
                 htmlFor="email"
-                className="text-sm font-medium text-gray-700"
+                className="text-sm font-medium text-slate-500"
               >
                 Username or Email
               </label>
@@ -133,7 +133,7 @@ export default function Login() {
                 placeholder="name@zarierp.com"
                 disabled={loginMutation.isPending}
                 {...form.register("email")}
-                className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 shadow-sm outline-none transition focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10 disabled:opacity-50"
+                className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-cyan-900 placeholder-gray-400 shadow-sm outline-none transition focus:border-cyan-900 focus:ring-2 focus:ring-cyan-900/10 disabled:opacity-50"
               />
               {form.formState.errors.email && (
                 <p className="text-xs text-red-500 mt-0.5">
@@ -146,7 +146,7 @@ export default function Login() {
             <div className="flex flex-col gap-1.5">
               <label
                 htmlFor="password"
-                className="text-sm font-medium text-gray-700"
+                className="text-sm font-medium text-slate-500"
               >
                 Password
               </label>
@@ -159,7 +159,7 @@ export default function Login() {
                   autoComplete="current-password"
                   disabled={loginMutation.isPending}
                   {...form.register("password")}
-                  className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 pr-11 text-sm text-gray-900 placeholder-gray-400 shadow-sm outline-none transition focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10 disabled:opacity-50"
+                  className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 pr-11 text-sm text-cyan-900 placeholder-gray-400 shadow-sm outline-none transition focus:border-cyan-900 focus:ring-2 focus:ring-cyan-900/10 disabled:opacity-50"
                 />
                 <button
                   type="button"
@@ -180,7 +180,7 @@ export default function Login() {
               <div className="flex justify-end mt-0.5">
                 <Link
                   href="/forgot-password"
-                  className="text-xs text-gray-500 hover:text-gray-900 transition-colors"
+                  className="text-xs text-gray-500 hover:text-cyan-900 transition-colors"
                 >
                   Forgot password?
                 </Link>
@@ -206,7 +206,7 @@ export default function Login() {
 
           {/* Footer */}
           <p className="mt-8 text-center text-xs text-gray-400">
-            ZARI EMBROIDERIES &copy; {new Date().getFullYear()} &mdash; Enterprise Resource Planning
+            ERP &copy; {new Date().getFullYear()} &mdash; Enterprise Resource Planning
           </p>
         </div>
       </div>

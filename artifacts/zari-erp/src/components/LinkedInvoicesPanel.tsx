@@ -86,7 +86,7 @@ export default function LinkedInvoicesPanel({ type, orderId, orderNo }: Props) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-sm font-bold text-gray-900">Linked Invoices</h2>
+          <h2 className="text-sm font-bold text-cyan-900">Linked Invoices</h2>
           <p className="text-xs text-gray-400 mt-0.5">
             All invoices raised against this {type} order
             {orderNo ? ` (${orderNo})` : ""}
@@ -95,7 +95,7 @@ export default function LinkedInvoicesPanel({ type, orderId, orderNo }: Props) {
         <div className="flex items-center gap-2">
           <button
             onClick={load}
-            className="p-2 rounded-xl text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition"
+            className="p-2 rounded-xl text-gray-400 hover:text-slate-500 hover:bg-gray-100 transition"
             title="Refresh"
           >
             <RefreshCw size={14} />
@@ -113,9 +113,9 @@ export default function LinkedInvoicesPanel({ type, orderId, orderNo }: Props) {
       {/* Summary cards */}
       <div className="grid grid-cols-4 gap-3">
         {[
-          { label: "Invoices Raised",  val: invoices.length, isMoney: false, color: "text-gray-900" },
+          { label: "Invoices Raised",  val: invoices.length, isMoney: false, color: "text-cyan-900" },
           { label: "Pending Invoices", val: pendingCount,     isMoney: false, color: "text-amber-600" },
-          { label: "Total Billed",     val: totalValue,       isMoney: true,  color: "text-gray-900" },
+          { label: "Total Billed",     val: totalValue,       isMoney: true,  color: "text-cyan-900" },
           { label: "Amount Pending",   val: totalPending,     isMoney: true,  color: "text-red-600"  },
         ].map(c => (
           <div key={c.label} className={`${card} p-3`}>
@@ -182,7 +182,7 @@ export default function LinkedInvoicesPanel({ type, orderId, orderNo }: Props) {
                       {inv.invoiceStatus}
                     </span>
                   </td>
-                  <td className="px-4 py-3 font-semibold text-gray-900 text-xs">{fmt(parseFloat(String(inv.totalAmount)))}</td>
+                  <td className="px-4 py-3 font-semibold text-cyan-900 text-xs">{fmt(parseFloat(String(inv.totalAmount)))}</td>
                   <td className="px-4 py-3 text-emerald-600 font-medium text-xs">{fmt(parseFloat(String(inv.receivedAmount)))}</td>
                   <td className="px-4 py-3 text-amber-600 font-medium text-xs">{fmt(parseFloat(String(inv.pendingAmount)))}</td>
                   <td className="px-4 py-3 text-gray-500 text-xs whitespace-nowrap">{fmtDate(inv.invoiceDate)}</td>
@@ -190,7 +190,7 @@ export default function LinkedInvoicesPanel({ type, orderId, orderNo }: Props) {
                   <td className="px-4 py-3">
                     <button
                       onClick={() => navigate(`/accounts/invoices/${inv.id}`)}
-                      className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition"
+                      className="p-1.5 rounded-lg text-gray-400 hover:text-slate-500 hover:bg-gray-100 transition"
                       title="View Invoice"
                     >
                       <ExternalLink size={13} />
@@ -205,7 +205,7 @@ export default function LinkedInvoicesPanel({ type, orderId, orderNo }: Props) {
                   <td colSpan={3} className="px-4 py-2.5 text-xs font-semibold text-gray-500">
                     {invoices.length} Invoice{invoices.length !== 1 ? "s" : ""}
                   </td>
-                  <td className="px-4 py-2.5 text-xs font-bold text-gray-900">{fmt(parseFloat(String(totalValue)))}</td>
+                  <td className="px-4 py-2.5 text-xs font-bold text-cyan-900">{fmt(parseFloat(String(totalValue)))}</td>
                   <td className="px-4 py-2.5 text-xs font-bold text-emerald-600">{fmt(parseFloat(String(totalReceived)))}</td>
                   <td className="px-4 py-2.5 text-xs font-bold text-amber-600">{fmt(parseFloat(String(totalPending)))}</td>
                   <td colSpan={3} />

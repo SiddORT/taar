@@ -105,7 +105,7 @@ export default function ForgotPassword() {
         </div>
         <div>
           <p className="text-sm text-white/40 tracking-wide uppercase">
-            ZARI EMBROIDERIES &copy; {new Date().getFullYear()}
+            ERP &copy; {new Date().getFullYear()}
           </p>
         </div>
       </div>
@@ -123,7 +123,7 @@ export default function ForgotPassword() {
           {/* Back to login */}
           <Link
             href="/login"
-            className="inline-flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-900 transition-colors mb-6"
+            className="inline-flex items-center gap-1.5 text-xs text-gray-500 hover:text-cyan-900 transition-colors mb-6"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
             Back to Sign In
@@ -133,7 +133,7 @@ export default function ForgotPassword() {
           {step === "request" && (
             <div>
               <div className="mb-7">
-                <h2 className="text-2xl font-semibold text-gray-900 tracking-tight">Forgot Password</h2>
+                <h2 className="text-2xl font-semibold text-cyan-900 tracking-tight">Forgot Password</h2>
                 <p className="text-sm text-gray-500 mt-1">
                   Enter your email and we'll send you a reset link.
                 </p>
@@ -141,7 +141,7 @@ export default function ForgotPassword() {
 
               <form onSubmit={requestForm.handleSubmit(onRequestSubmit)} className="space-y-5">
                 <div className="flex flex-col gap-1.5">
-                  <label htmlFor="email" className="text-sm font-medium text-gray-700">
+                  <label htmlFor="email" className="text-sm font-medium text-slate-500">
                     Email Address
                   </label>
                   <input
@@ -152,7 +152,7 @@ export default function ForgotPassword() {
                     placeholder="name@zarierp.com"
                     disabled={forgotMutation.isPending}
                     {...requestForm.register("email")}
-                    className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 shadow-sm outline-none transition focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10 disabled:opacity-50"
+                    className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-cyan-900 placeholder-gray-400 shadow-sm outline-none transition focus:border-cyan-900 focus:ring-2 focus:ring-cyan-900/10 disabled:opacity-50"
                   />
                   {requestForm.formState.errors.email && (
                     <p className="text-xs text-red-500">{requestForm.formState.errors.email.message}</p>
@@ -170,7 +170,7 @@ export default function ForgotPassword() {
               </form>
 
               <p className="mt-8 text-center text-xs text-gray-400">
-                ZARI EMBROIDERIES &copy; {new Date().getFullYear()} &mdash; Enterprise Resource Planning
+                ERP &copy; {new Date().getFullYear()} &mdash; Enterprise Resource Planning
               </p>
             </div>
           )}
@@ -179,16 +179,16 @@ export default function ForgotPassword() {
           {step === "reset" && (
             <div>
               <div className="mb-7">
-                <h2 className="text-2xl font-semibold text-gray-900 tracking-tight">Set New Password</h2>
+                <h2 className="text-2xl font-semibold text-cyan-900 tracking-tight">Set New Password</h2>
                 <p className="text-sm text-gray-500 mt-1">
-                  Enter the reset token sent to <span className="font-medium text-gray-700">{userEmail}</span> and choose a new password.
+                  Enter the reset token sent to <span className="font-medium text-slate-500">{userEmail}</span> and choose a new password.
                 </p>
               </div>
 
               <form onSubmit={resetForm.handleSubmit(onResetSubmit)} className="space-y-5">
                 {/* Token */}
                 <div className="flex flex-col gap-1.5">
-                  <label htmlFor="token" className="text-sm font-medium text-gray-700">
+                  <label htmlFor="token" className="text-sm font-medium text-slate-500">
                     Reset Token
                   </label>
                   <input
@@ -197,7 +197,7 @@ export default function ForgotPassword() {
                     placeholder="Paste your reset token"
                     disabled={resetMutation.isPending}
                     {...resetForm.register("token")}
-                    className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 shadow-sm outline-none transition focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10 disabled:opacity-50"
+                    className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-cyan-900 placeholder-gray-400 shadow-sm outline-none transition focus:border-cyan-900 focus:ring-2 focus:ring-cyan-900/10 disabled:opacity-50"
                   />
                   {resetForm.formState.errors.token && (
                     <p className="text-xs text-red-500">{resetForm.formState.errors.token.message}</p>
@@ -206,7 +206,7 @@ export default function ForgotPassword() {
 
                 {/* New password */}
                 <div className="flex flex-col gap-1.5">
-                  <label htmlFor="newPassword" className="text-sm font-medium text-gray-700">
+                  <label htmlFor="newPassword" className="text-sm font-medium text-slate-500">
                     New Password
                   </label>
                   <div className="relative">
@@ -216,7 +216,7 @@ export default function ForgotPassword() {
                       placeholder="••••••••"
                       disabled={resetMutation.isPending}
                       {...resetForm.register("newPassword")}
-                      className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 pr-11 text-sm text-gray-900 placeholder-gray-400 shadow-sm outline-none transition focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10 disabled:opacity-50"
+                      className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 pr-11 text-sm text-cyan-900 placeholder-gray-400 shadow-sm outline-none transition focus:border-cyan-900 focus:ring-2 focus:ring-cyan-900/10 disabled:opacity-50"
                     />
                     <button
                       type="button"
@@ -234,7 +234,7 @@ export default function ForgotPassword() {
 
                 {/* Confirm password */}
                 <div className="flex flex-col gap-1.5">
-                  <label htmlFor="confirmPassword" className="text-sm font-medium text-gray-700">
+                  <label htmlFor="confirmPassword" className="text-sm font-medium text-slate-500">
                     Confirm Password
                   </label>
                   <div className="relative">
@@ -244,7 +244,7 @@ export default function ForgotPassword() {
                       placeholder="••••••••"
                       disabled={resetMutation.isPending}
                       {...resetForm.register("confirmPassword")}
-                      className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 pr-11 text-sm text-gray-900 placeholder-gray-400 shadow-sm outline-none transition focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10 disabled:opacity-50"
+                      className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 pr-11 text-sm text-cyan-900 placeholder-gray-400 shadow-sm outline-none transition focus:border-cyan-900 focus:ring-2 focus:ring-cyan-900/10 disabled:opacity-50"
                     />
                     <button
                       type="button"
@@ -271,7 +271,7 @@ export default function ForgotPassword() {
               </form>
 
               <p className="mt-8 text-center text-xs text-gray-400">
-                ZARI EMBROIDERIES &copy; {new Date().getFullYear()} &mdash; Enterprise Resource Planning
+                ERP &copy; {new Date().getFullYear()} &mdash; Enterprise Resource Planning
               </p>
             </div>
           )}
@@ -282,7 +282,7 @@ export default function ForgotPassword() {
               <div className="mx-auto h-16 w-16 bg-emerald-50 border border-emerald-100 rounded-full flex items-center justify-center mb-5">
                 <CheckCircle2 className="h-8 w-8 text-emerald-500" />
               </div>
-              <h2 className="text-xl font-semibold text-gray-900 mb-2">Password Reset Complete</h2>
+              <h2 className="text-xl font-semibold text-cyan-900 mb-2">Password Reset Complete</h2>
               <p className="text-sm text-gray-500 mb-7">
                 Your password has been updated. You can now sign in with your new credentials.
               </p>
@@ -295,7 +295,7 @@ export default function ForgotPassword() {
               </ZariButton>
 
               <p className="mt-8 text-center text-xs text-gray-400">
-                ZARI EMBROIDERIES &copy; {new Date().getFullYear()} &mdash; Enterprise Resource Planning
+                ERP &copy; {new Date().getFullYear()} &mdash; Enterprise Resource Planning
               </p>
             </div>
           )}

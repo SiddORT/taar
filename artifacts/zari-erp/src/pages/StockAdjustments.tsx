@@ -14,9 +14,9 @@ import { useCurrency } from "@/contexts/CurrencyContext";
 
 const G    = "#C6AF4B";
 const card = "rounded-2xl bg-white border border-[#C6AF4B]/15 shadow-[0_2px_16px_rgba(198,175,75,0.12),0_1px_3px_rgba(0,0,0,0.06)]";
-const thCls = "px-3 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wide whitespace-nowrap";
+const thCls = "px-3 py-3 text-left text-xs font-semibold text-cyan-900 uppercase tracking-wide whitespace-nowrap";
 const tdCls = "px-3 py-3 align-top";
-const inputCls = "w-full px-3 py-2 text-sm rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30 text-gray-900 bg-white";
+const inputCls = "w-full px-3 py-2 text-sm rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30 text-cyan-900 bg-white";
 const labelCls = "block text-xs font-semibold text-gray-500 mb-1";
 
 const ADJ_TYPES = ["Damage", "Loss", "Manual Correction", "Audit Correction", "Opening Correction"];
@@ -28,7 +28,7 @@ const TYPE_COLOR: Record<string, string> = {
   "Loss":               "bg-orange-100 text-orange-700",
   "Manual Correction":  "bg-blue-100 text-blue-700",
   "Audit Correction":   "bg-purple-100 text-purple-700",
-  "Opening Correction": "bg-gray-100 text-gray-700",
+  "Opening Correction": "bg-gray-100 text-slate-500",
 };
 const DIR_COLOR: Record<string, string> = {
   "Increase": "bg-emerald-100 text-emerald-700",
@@ -402,7 +402,7 @@ export default function StockAdjustments() {
               <SlidersHorizontal className="h-5 w-5" style={{ color: G }} />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-gray-900">Stock Adjustments</h1>
+              <h1 className="text-xl font-bold text-cyan-900">Stock Adjustments</h1>
               <p className="text-sm text-gray-500 mt-0.5">Damage, loss, and manual corrections with full audit trail</p>
             </div>
           </div>
@@ -420,7 +420,7 @@ export default function StockAdjustments() {
               { label: "Damage Loss (Month)", value: `${dcFmt(parseFloat(String(summary.damage_loss_month)))}`, sub: `${summary.damage_count_month} entries`, icon: PackageX, color: "text-red-600", bg: "bg-red-50" },
               { label: "Loss Amount (Month)", value: `${dcFmt(parseFloat(String(summary.loss_amount_month)))}`, sub: `${summary.loss_count_month} entries`, icon: TrendingDown, color: "text-orange-600", bg: "bg-orange-50" },
               { label: "Audit Corrections", value: String(summary.audit_count_month), sub: "This month", icon: ClipboardList, color: "text-purple-600", bg: "bg-purple-50" },
-              { label: "Total Revenue Loss", value: `${dcFmt(parseFloat(String(summary.total_revenue_loss)))}`, sub: `${summary.manual_count_total} manual · ${summary.opening_count_total} opening`, icon: BarChart2, color: "text-gray-700", bg: "bg-gray-50" },
+              { label: "Total Revenue Loss", value: `${dcFmt(parseFloat(String(summary.total_revenue_loss)))}`, sub: `${summary.manual_count_total} manual · ${summary.opening_count_total} opening`, icon: BarChart2, color: "text-slate-500", bg: "bg-gray-50" },
             ].map(s => (
               <div key={s.label} className={`${card} p-4 flex items-start gap-3`}>
                 <div className={`p-2 rounded-xl ${s.bg} flex-shrink-0`}>
@@ -443,7 +443,7 @@ export default function StockAdjustments() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
               <input type="text" placeholder="Search item or reason…" value={search}
                 onChange={e => { setSearch(e.target.value); setPage(1); }}
-                className="w-full pl-8 pr-3 py-2 text-sm text-gray-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30" />
+                className="w-full pl-8 pr-3 py-2 text-sm text-cyan-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30" />
             </div>
 
             {[
@@ -451,7 +451,7 @@ export default function StockAdjustments() {
             ].map(({ label, value, set, opts }) => (
               <div key={label} className="relative">
                 <select value={value} onChange={e => { set(e.target.value); setPage(1); }}
-                  className="appearance-none pl-3 pr-8 py-2 text-sm text-gray-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30 bg-white min-w-[160px]">
+                  className="appearance-none pl-3 pr-8 py-2 text-sm text-cyan-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30 bg-white min-w-[160px]">
                   <option value="all">{label}</option>
                   {opts.map(o => <option key={o} value={o}>{o}</option>)}
                 </select>
@@ -461,7 +461,7 @@ export default function StockAdjustments() {
 
             <div className="relative">
               <select value={adjustmentDir} onChange={e => { setAdjustmentDir(e.target.value); setPage(1); }}
-                className="appearance-none pl-3 pr-8 py-2 text-sm text-gray-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30 bg-white min-w-[140px]">
+                className="appearance-none pl-3 pr-8 py-2 text-sm text-cyan-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30 bg-white min-w-[140px]">
                 <option value="all">All Directions</option>
                 <option value="Increase">Increase</option>
                 <option value="Decrease">Decrease</option>
@@ -471,7 +471,7 @@ export default function StockAdjustments() {
 
             <div className="relative">
               <select value={referenceType} onChange={e => { setReferenceType(e.target.value); setPage(1); }}
-                className="appearance-none pl-3 pr-8 py-2 text-sm text-gray-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30 bg-white min-w-[140px]">
+                className="appearance-none pl-3 pr-8 py-2 text-sm text-cyan-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30 bg-white min-w-[140px]">
                 <option value="all">All Ref Types</option>
                 {REF_TYPES.map(r => <option key={r} value={r}>{r}</option>)}
               </select>
@@ -489,7 +489,7 @@ export default function StockAdjustments() {
                   }
                   setFromDate(v); setPage(1);
                 }}
-                className="text-xs border-0 outline-none bg-transparent w-[110px] text-gray-900" />
+                className="text-xs border-0 outline-none bg-transparent w-[110px] text-cyan-900" />
               <span className="text-gray-300 text-xs">—</span>
               <input type="date" value={toDate} min={fromDate || undefined}
                 onChange={e => {
@@ -500,7 +500,7 @@ export default function StockAdjustments() {
                   }
                   setToDate(v); setPage(1);
                 }}
-                className="text-xs border-0 outline-none bg-transparent w-[110px] text-gray-900" />
+                className="text-xs border-0 outline-none bg-transparent w-[110px] text-cyan-900" />
             </div>
 
             <div className="flex items-center gap-1 border border-gray-200 rounded-xl px-2 py-1.5 bg-white">
@@ -516,7 +516,7 @@ export default function StockAdjustments() {
                   }
                   setMinLoss(v); setPage(1);
                 }}
-                className="w-[60px] text-xs border-0 outline-none bg-transparent text-gray-900" />
+                className="w-[60px] text-xs border-0 outline-none bg-transparent text-cyan-900" />
               <span className="text-gray-300">—</span>
               <input type="number" min="0" placeholder="Max" value={maxLoss}
                 onChange={e => {
@@ -529,12 +529,12 @@ export default function StockAdjustments() {
                   }
                   setMaxLoss(v); setPage(1);
                 }}
-                className="w-[60px] text-xs border-0 outline-none bg-transparent text-gray-900" />
+                className="w-[60px] text-xs border-0 outline-none bg-transparent text-cyan-900" />
             </div>
 
             {hasFilters && (
               <button onClick={clearFilters}
-                className="flex items-center gap-1 text-xs text-gray-700 px-3 py-2 rounded-xl border border-gray-200 hover:bg-gray-50">
+                className="flex items-center gap-1 text-xs text-slate-500 px-3 py-2 rounded-xl border border-gray-200 hover:bg-gray-50">
                 <X className="h-3.5 w-3.5" /> Clear
               </button>
             )}
@@ -566,13 +566,13 @@ export default function StockAdjustments() {
                   <tr><td colSpan={isAdmin ? 12 : 11} className="px-4 py-12 text-center">
                     <div className="flex flex-col items-center gap-2">
                       <div className="h-8 w-8 rounded-full border-2 border-[#C6AF4B] border-t-transparent animate-spin" />
-                      <span className="text-sm text-gray-700">Loading…</span>
+                      <span className="text-sm text-slate-500">Loading…</span>
                     </div>
                   </td></tr>
                 ) : rows.length === 0 ? (
                   <tr><td colSpan={isAdmin ? 12 : 11} className="px-4 py-16 text-center">
                     <SlidersHorizontal className="h-10 w-10 text-gray-300 mx-auto mb-2" />
-                    <p className="text-sm text-gray-700 font-medium">No adjustments found</p>
+                    <p className="text-sm text-slate-500 font-medium">No adjustments found</p>
                     <p className="text-xs text-gray-400 mt-1">Create a stock adjustment to get started</p>
                   </td></tr>
                 ) : rows.map((row, idx) => {
@@ -581,7 +581,7 @@ export default function StockAdjustments() {
                     <tr key={row.id} className="hover:bg-[#C6AF4B]/5 transition-colors">
                       <td className={tdCls}><span className="text-xs text-gray-400">{(page-1)*limit+idx+1}</span></td>
                       <td className={tdCls}>
-                        <div className="text-sm font-medium text-gray-900">{row.item_name}</div>
+                        <div className="text-sm font-medium text-cyan-900">{row.item_name}</div>
                         <div className="text-xs text-gray-400 font-mono">{row.item_code}</div>
                       </td>
                       <td className={tdCls}>
@@ -599,7 +599,7 @@ export default function StockAdjustments() {
                           {fmt3(row.adjustment_quantity)} <span className="text-xs text-gray-400 font-normal">{row.unit_type ?? ""}</span>
                         </span>
                       </td>
-                      <td className={tdCls}><span className="text-xs text-gray-700">{dcFmt(parseFloat(String(row.average_price_at_adjustment)))}</span></td>
+                      <td className={tdCls}><span className="text-xs text-slate-500">{dcFmt(parseFloat(String(row.average_price_at_adjustment)))}</span></td>
                       <td className={tdCls}>
                         {loss > 0 ? (
                           <span className="text-sm font-semibold text-red-600">{dcFmt(parseFloat(String(row.revenue_loss_amount)))}</span>
@@ -608,13 +608,13 @@ export default function StockAdjustments() {
                         )}
                       </td>
                       <td className={tdCls}>
-                        <div className="text-xs font-mono text-gray-700">{row.reference_type}</div>
+                        <div className="text-xs font-mono text-slate-500">{row.reference_type}</div>
                         {row.reference_id && <div className="text-[11px] text-gray-400">{row.reference_id}</div>}
                       </td>
-                      <td className={tdCls}><span className="text-xs text-gray-700">{fmtDate(row.adjustment_date)}</span></td>
+                      <td className={tdCls}><span className="text-xs text-slate-500">{fmtDate(row.adjustment_date)}</span></td>
                       <td className={tdCls}>
                         {row.reason ? (
-                          <div className="text-xs text-gray-700 max-w-[140px] truncate" title={row.reason}>{row.reason}</div>
+                          <div className="text-xs text-slate-500 max-w-[140px] truncate" title={row.reason}>{row.reason}</div>
                         ) : row.remarks ? (
                           <div className="text-xs text-gray-400 max-w-[140px] truncate italic">{row.remarks}</div>
                         ) : <span className="text-xs text-gray-300">—</span>}
@@ -655,7 +655,7 @@ export default function StockAdjustments() {
                   const pg = totalPages <= 5 ? i + 1 : Math.max(1, Math.min(page - 2, totalPages - 4)) + i;
                   return (
                     <button key={pg} onClick={() => setPage(pg)}
-                      className={`w-8 h-8 rounded-lg text-xs font-medium border transition-colors ${pg === page ? "border-[#C6AF4B] text-white" : "border-gray-200 text-gray-700 hover:bg-gray-50"}`}
+                      className={`w-8 h-8 rounded-lg text-xs font-medium border transition-colors ${pg === page ? "border-[#C6AF4B] text-white" : "border-gray-200 text-slate-500 hover:bg-gray-50"}`}
                       style={pg === page ? { background: G } : {}}>
                       {pg}
                     </button>
@@ -677,7 +677,7 @@ export default function StockAdjustments() {
           <div className={`${card} w-full max-w-2xl max-h-[90vh] overflow-y-auto`}>
             <div className="p-6 border-b border-gray-100 flex items-center justify-between">
               <div>
-                <h2 className="text-base font-bold text-gray-900">{editTarget ? "Edit Adjustment" : "New Stock Adjustment"}</h2>
+                <h2 className="text-base font-bold text-cyan-900">{editTarget ? "Edit Adjustment" : "New Stock Adjustment"}</h2>
                 <p className="text-xs text-gray-500 mt-0.5">All changes update inventory in real-time</p>
               </div>
               <button onClick={() => setShowModal(false)} className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100">
@@ -711,11 +711,11 @@ export default function StockAdjustments() {
                             setInvOpen(false);
                           }}>
                           <div>
-                            <div className="text-sm font-medium text-gray-900">{it.item_name}</div>
+                            <div className="text-sm font-medium text-cyan-900">{it.item_name}</div>
                             <div className="text-xs text-gray-400 font-mono">{it.item_code}</div>
                           </div>
                           <div className="text-right flex-shrink-0">
-                            <div className="text-xs text-gray-700">Avail: <span className="font-semibold">{fmt3(it.available_stock)}</span></div>
+                            <div className="text-xs text-slate-500">Avail: <span className="font-semibold">{fmt3(it.available_stock)}</span></div>
                             <div className="text-[11px] text-gray-400">{it.unit_type ?? ""}</div>
                           </div>
                         </button>
@@ -725,9 +725,9 @@ export default function StockAdjustments() {
                 </div>
                 {selItem && (
                   <div className="mt-2 p-3 rounded-xl bg-[#C6AF4B]/8 border border-[#C6AF4B]/20 flex gap-4 text-xs">
-                    <div><span className="text-gray-500">Current Stock:</span> <span className="font-semibold text-gray-900">{fmt3(selItem.current_stock)} {selItem.unit_type}</span></div>
+                    <div><span className="text-gray-500">Current Stock:</span> <span className="font-semibold text-cyan-900">{fmt3(selItem.current_stock)} {selItem.unit_type}</span></div>
                     <div><span className="text-gray-500">Available:</span> <span className="font-semibold text-emerald-700">{fmt3(selItem.available_stock)} {selItem.unit_type}</span></div>
-                    <div><span className="text-gray-500">Avg Price:</span> <span className="font-semibold text-gray-900">{dcFmt(parseFloat(String(selItem.average_price)))}</span></div>
+                    <div><span className="text-gray-500">Avg Price:</span> <span className="font-semibold text-cyan-900">{dcFmt(parseFloat(String(selItem.average_price)))}</span></div>
                   </div>
                 )}
               </div>
@@ -796,7 +796,7 @@ export default function StockAdjustments() {
                       <select
                         value={form.referenceId}
                         onChange={e => setField("referenceId", e.target.value)}
-                        className={`${inputCls} appearance-none pr-8 text-gray-900`}>
+                        className={`${inputCls} appearance-none pr-8 text-cyan-900`}>
                         <option value="">— Select Style Order —</option>
                         {styleOrders.map(o => (
                           <option key={o.id} value={o.orderCode}>{o.orderCode} — {o.styleName}</option>
@@ -809,7 +809,7 @@ export default function StockAdjustments() {
                       <select
                         value={form.referenceId}
                         onChange={e => setField("referenceId", e.target.value)}
-                        className={`${inputCls} appearance-none pr-8 text-gray-900`}>
+                        className={`${inputCls} appearance-none pr-8 text-cyan-900`}>
                         <option value="">— Select Swatch Order —</option>
                         {swatchOrders.map(o => (
                           <option key={o.id} value={o.orderCode}>{o.orderCode} — {o.swatchName}</option>
@@ -839,7 +839,7 @@ export default function StockAdjustments() {
 
             <div className="p-6 pt-0 flex justify-end gap-3">
               <button onClick={() => setShowModal(false)}
-                className="px-4 py-2 rounded-xl text-sm font-medium border border-gray-200 text-gray-700 hover:bg-gray-50">
+                className="px-4 py-2 rounded-xl text-sm font-medium border border-gray-200 text-slate-500 hover:bg-gray-50">
                 Cancel
               </button>
               <button onClick={handleSubmit} disabled={submitting}
@@ -864,7 +864,7 @@ export default function StockAdjustments() {
                 <Trash2 className="h-5 w-5 text-red-500" />
               </div>
               <div>
-                <h3 className="text-base font-bold text-gray-900">Delete Adjustment?</h3>
+                <h3 className="text-base font-bold text-cyan-900">Delete Adjustment?</h3>
                 <p className="text-sm text-gray-600 mt-1">
                   This will restore <strong>{fmt3(deleteTarget.adjustment_quantity)} {deleteTarget.unit_type ?? "units"}</strong> of <strong>{deleteTarget.item_name}</strong> to inventory
                   and remove the ledger entry. This cannot be undone.
@@ -873,7 +873,7 @@ export default function StockAdjustments() {
             </div>
             <div className="flex justify-end gap-3 mt-5">
               <button onClick={() => setDeleteTarget(null)} disabled={deleting}
-                className="px-4 py-2 rounded-xl text-sm font-medium border border-gray-200 text-gray-700 hover:bg-gray-50">
+                className="px-4 py-2 rounded-xl text-sm font-medium border border-gray-200 text-slate-500 hover:bg-gray-50">
                 Cancel
               </button>
               <button onClick={handleDelete} disabled={deleting}

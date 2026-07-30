@@ -234,7 +234,7 @@ export default function StyleMaster() {
   const columns: Column[] = [
     { key: "_srNo", label: "Sr No" },
     { key: "client", label: "Client", render: r => asStyle(r).client },
-    { key: "styleNo", label: "Style No", render: r => <span className="font-mono text-xs font-semibold text-gray-700">{asStyle(r).styleNo}</span> },
+    { key: "styleNo", label: "Style No", render: r => <span className="font-mono text-xs font-semibold text-slate-500">{asStyle(r).styleNo}</span> },
     { key: "styleCategory", label: "Category", render: r => asStyle(r).styleCategory || "—" },
     { key: "description", label: "Description", render: r => asStyle(r).description || "—" },
     { key: "referenceSwatchId", label: "Linked Swatch", render: r => {
@@ -248,7 +248,7 @@ export default function StyleMaster() {
       const rec = asStyle(r);
       return (
         <button type="button" onClick={() => setStatusConfirm({ id: rec.id, isActive: rec.isActive })}
-          className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${rec.isActive ? "bg-gray-900" : "bg-gray-300"}`}>
+          className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${rec.isActive ? "bg-cyan-900" : "bg-gray-300"}`}>
           <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${rec.isActive ? "translate-x-[18px]" : "translate-x-0.5"}`} />
         </button>
       );
@@ -279,7 +279,7 @@ export default function StyleMaster() {
         {/* ── Header ── */}
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div>
-            <h1 className="text-xl font-semibold text-gray-900">Style Master</h1>
+            <h1 className="text-xl font-semibold text-cyan-900">Style Master</h1>
             <p className="text-sm text-gray-400 mt-0.5">{data?.total ?? 0} styles</p>
           </div>
           <div className="flex items-center gap-2">
@@ -287,16 +287,16 @@ export default function StyleMaster() {
             {/* Import Dropdown */}
             <div className="relative">
               <button onClick={() => { setImportDropOpen(o => !o); setExportDropOpen(false); }}
-                className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg border border-[#C9B45C]/50 bg-white text-gray-700 hover:border-[#C9B45C] hover:bg-amber-50/40 transition">
+                className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg border border-[#C9B45C]/50 bg-white text-slate-500 hover:border-[#C9B45C] hover:bg-amber-50/40 transition">
                 <FileSpreadsheet size={15} className="text-[#C9B45C]" /> Import <ChevronDown size={13} className="text-gray-400" />
               </button>
               {importDropOpen && (
                 <div className="absolute right-0 top-full mt-1 w-52 bg-white rounded-xl shadow-lg border border-gray-100 z-30 overflow-hidden">
                   <button onClick={downloadSample}
-                    className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50">
+                    className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-slate-500 hover:bg-gray-50">
                     <FileDown size={14} className="text-gray-400" /> Download Sample
                   </button>
-                  <label className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer">
+                  <label className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-slate-500 hover:bg-gray-50 cursor-pointer">
                     <FileUp size={14} className="text-gray-400" /> Upload Excel
                     <input ref={importRef} type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={handleImportFile} />
                   </label>
@@ -307,14 +307,14 @@ export default function StyleMaster() {
             {/* Export Dropdown */}
             <div className="relative">
               <button onClick={() => { setExportDropOpen(o => !o); setImportDropOpen(false); }} disabled={exporting}
-                className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg border border-[#C9B45C]/50 bg-white text-gray-700 hover:border-[#C9B45C] hover:bg-amber-50/40 transition disabled:opacity-50">
+                className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg border border-[#C9B45C]/50 bg-white text-slate-500 hover:border-[#C9B45C] hover:bg-amber-50/40 transition disabled:opacity-50">
                 {exporting ? <Loader2 size={15} className="animate-spin text-[#C9B45C]" /> : <FileDown size={15} className="text-[#C9B45C]" />}
                 Export <ChevronDown size={13} className="text-gray-400" />
               </button>
               {exportDropOpen && (
                 <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-xl shadow-lg border border-gray-100 z-30 overflow-hidden">
                   <button onClick={handleExportAll}
-                    className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50">
+                    className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-slate-500 hover:bg-gray-50">
                     <FileDown size={14} className="text-gray-400" /> Export as Excel
                   </button>
                 </div>

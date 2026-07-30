@@ -1,6 +1,6 @@
 ---
 name: Drizzle migration policy
-description: ZARI ERP uses versioned generate+migrate (not push); how to baseline a pre-existing DB.
+description: ERP uses versioned generate+migrate (not push); how to baseline a pre-existing DB.
 ---
 
 # Migration policy: versioned, not `push`

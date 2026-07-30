@@ -71,7 +71,7 @@ function PhoneInput({ dialCode, number, onDialChange, onNumberChange, error }: P
 
   return (
     <div className="flex flex-col gap-1.5">
-      <label className="text-sm font-medium text-gray-700">Phone</label>
+      <label className="text-sm font-medium text-slate-500">Phone</label>
       <div className="flex gap-2 min-w-0">
         {/* Country picker trigger */}
         <div className="relative shrink-0" ref={ref}>
@@ -81,11 +81,11 @@ function PhoneInput({ dialCode, number, onDialChange, onNumberChange, error }: P
             className={`flex items-center gap-1.5 h-[42px] px-3 rounded-lg border bg-white text-sm transition focus:outline-none focus:ring-2 whitespace-nowrap ${
               error
                 ? "border-red-400 focus:border-red-400 focus:ring-red-400/10"
-                : "border-gray-300 focus:border-gray-900 focus:ring-gray-900/10"
+                : "border-gray-300 focus:border-cyan-900 focus:ring-cyan-900/10"
             }`}
           >
             <span className="text-base leading-none">{selected.flag}</span>
-            <span className="text-gray-700 font-medium">{selected.dial}</span>
+            <span className="text-slate-500 font-medium">{selected.dial}</span>
             <ChevronDown className={`h-3.5 w-3.5 text-gray-400 transition-transform ${open ? "rotate-180" : ""}`} />
           </button>
 
@@ -114,7 +114,7 @@ function PhoneInput({ dialCode, number, onDialChange, onNumberChange, error }: P
                       }`}
                     >
                       <span className="text-base">{c.flag}</span>
-                      <span className="flex-1 text-gray-800">{c.name}</span>
+                      <span className="flex-1 text-cyan-900">{c.name}</span>
                       <span className="text-gray-400 text-xs">{c.dial}</span>
                     </button>
                   </li>
@@ -130,10 +130,10 @@ function PhoneInput({ dialCode, number, onDialChange, onNumberChange, error }: P
           value={number}
           onChange={e => onNumberChange(e.target.value)}
           placeholder="Mobile / Landline"
-          className={`min-w-0 flex-1 rounded-lg border bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 shadow-sm outline-none transition focus:ring-2 ${
+          className={`min-w-0 flex-1 rounded-lg border bg-white px-3.5 py-2.5 text-sm text-cyan-900 placeholder-gray-400 shadow-sm outline-none transition focus:ring-2 ${
             error
               ? "border-red-400 focus:border-red-400 focus:ring-red-400/10"
-              : "border-gray-300 focus:border-gray-900 focus:ring-gray-900/10"
+              : "border-gray-300 focus:border-cyan-900 focus:ring-cyan-900/10"
           }`}
         />
       </div>
@@ -329,7 +329,7 @@ export default function ShippingVendors() {
       label: "Vendor",
       render: (r) => (
         <div>
-          <p className="font-semibold text-gray-900">{asV(r).vendor_name}</p>
+          <p className="font-semibold text-cyan-900">{asV(r).vendor_name}</p>
           {asV(r).remarks && (
             <p className="text-xs text-gray-400 mt-0.5 truncate max-w-[220px]">{asV(r).remarks}</p>
           )}
@@ -341,7 +341,7 @@ export default function ShippingVendors() {
       label: "Contact",
       render: (r) => (
         <div className="space-y-0.5">
-          {asV(r).contact_person && <p className="text-gray-800">{asV(r).contact_person}</p>}
+          {asV(r).contact_person && <p className="text-cyan-900">{asV(r).contact_person}</p>}
           {asV(r).phone_number && (
             <p className="text-xs text-gray-400 flex items-center gap-1">
               <Phone size={10} className="shrink-0" />{asV(r).phone_number}
@@ -359,7 +359,7 @@ export default function ShippingVendors() {
       key: "weight_rate_per_kg",
       label: "Rate / KG",
       className: "text-right",
-      render: (r) => <span className="font-semibold text-gray-900">{fmt(asV(r).weight_rate_per_kg)}</span>,
+      render: (r) => <span className="font-semibold text-cyan-900">{fmt(asV(r).weight_rate_per_kg)}</span>,
     },
     {
       key: "minimum_charge",
@@ -409,7 +409,7 @@ export default function ShippingVendors() {
         <div className="flex items-center gap-2">
           <button
             onClick={() => openEdit(asV(r))}
-            className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+            className="p-1.5 rounded-lg text-gray-400 hover:text-slate-500 hover:bg-gray-100 transition-colors"
             title="Edit"
           >
             <Pencil className="h-4 w-4" />
@@ -429,7 +429,7 @@ export default function ShippingVendors() {
     },
   ];
 
-  const inp = "w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 shadow-sm outline-none transition focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10";
+  const inp = "w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-cyan-900 placeholder-gray-400 shadow-sm outline-none transition focus:border-cyan-900 focus:ring-2 focus:ring-cyan-900/10";
 
   return (
     <AppLayout
@@ -543,7 +543,7 @@ export default function ShippingVendors() {
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-gray-700">Remarks</label>
+            <label className="text-sm font-medium text-slate-500">Remarks</label>
             <textarea
               value={form.remarks}
               onChange={e => setForm(f => ({ ...f, remarks: e.target.value }))}

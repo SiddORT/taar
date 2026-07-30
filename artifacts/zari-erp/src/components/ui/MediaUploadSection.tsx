@@ -91,11 +91,11 @@ function MediaGrid({ items, category, onDelete, deleting, onPreview }: MediaGrid
             </div>
           )}
 
-          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
+          <div className="absolute inset-0 bg-black/0 group-hover:bg-cyan-900/40 transition-all flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
             <button
               type="button"
               onClick={() => onPreview(item)}
-              className="p-1.5 rounded-full bg-white/90 text-gray-700 hover:bg-white shadow"
+              className="p-1.5 rounded-full bg-white/90 text-slate-500 hover:bg-white shadow"
               title="Preview"
             >
               <ZoomIn size={13} />
@@ -187,7 +187,7 @@ export default function MediaUploadSection({ entityType, entityId, wipMedia, fin
     <div className="space-y-1 pt-3 border-t border-gray-100">
       <div className="flex items-center gap-2">
         <Image size={15} className="text-gray-400" />
-        <span className="text-sm font-semibold text-gray-700">Media</span>
+        <span className="text-sm font-semibold text-slate-500">Media</span>
         <span className="text-xs text-gray-400">(images &amp; videos)</span>
       </div>
 

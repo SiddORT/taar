@@ -13,8 +13,8 @@ import { useToast } from "@/hooks/use-toast";
 
 const G    = "#C6AF4B";
 const card = "rounded-2xl bg-white border border-[#C6AF4B]/15 shadow-[0_2px_16px_rgba(198,175,75,0.12),0_1px_3px_rgba(0,0,0,0.06)]";
-const thCls = "px-3 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wide whitespace-nowrap";
-const tdCls = "px-3 py-3 text-sm text-gray-900";
+const thCls = "px-3 py-3 text-left text-xs font-semibold text-cyan-900 uppercase tracking-wide whitespace-nowrap";
+const tdCls = "px-3 py-3 text-sm text-cyan-900";
 
 const STATUS_META: Record<string, { color: string; Icon: React.ElementType }> = {
   Active:    { color: "bg-amber-100 text-amber-700",  Icon: Bookmark },
@@ -358,7 +358,7 @@ export default function Reservations() {
               <Bookmark className="h-5 w-5" style={{ color: G }} />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-gray-900">Material Reservations</h1>
+              <h1 className="text-xl font-bold text-cyan-900">Material Reservations</h1>
               <p className="text-sm text-gray-500 mt-0.5">Reserve inventory for styles and swatches</p>
             </div>
           </div>
@@ -376,12 +376,12 @@ export default function Reservations() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
               <input type="text" placeholder="Search item name or code…" value={search}
                 onChange={e => { setSearch(e.target.value); setPage(1); }}
-                className="w-full pl-8 pr-3 py-2 text-sm text-gray-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30" />
+                className="w-full pl-8 pr-3 py-2 text-sm text-cyan-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30" />
             </div>
 
             <div className="relative">
               <select value={reservationType} onChange={e => { setReservationType(e.target.value); setPage(1); }}
-                className="appearance-none pl-3 pr-8 py-2 text-sm text-gray-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30 bg-white min-w-[150px]">
+                className="appearance-none pl-3 pr-8 py-2 text-sm text-cyan-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30 bg-white min-w-[150px]">
                 <option value="all">All Types</option>
                 <option value="Style">Style</option>
                 <option value="Swatch">Swatch</option>
@@ -391,7 +391,7 @@ export default function Reservations() {
 
             <div className="relative">
               <select value={status} onChange={e => { setStatus(e.target.value); setPage(1); }}
-                className="appearance-none pl-3 pr-8 py-2 text-sm text-gray-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30 bg-white min-w-[150px]">
+                className="appearance-none pl-3 pr-8 py-2 text-sm text-cyan-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30 bg-white min-w-[150px]">
                 <option value="all">All Status</option>
                 <option value="Active">Active</option>
                 <option value="Released">Released</option>
@@ -412,7 +412,7 @@ export default function Reservations() {
                   }
                   setFromDate(v); setPage(1);
                 }}
-                className="text-xs text-gray-900 border-0 outline-none bg-transparent w-[110px]" />
+                className="text-xs text-cyan-900 border-0 outline-none bg-transparent w-[110px]" />
               <span className="text-gray-300 text-xs">—</span>
               <input type="date" value={toDate} min={fromDate || undefined}
                 onChange={e => {
@@ -423,12 +423,12 @@ export default function Reservations() {
                   }
                   setToDate(v); setPage(1);
                 }}
-                className="text-xs text-gray-900 border-0 outline-none bg-transparent w-[110px]" />
+                className="text-xs text-cyan-900 border-0 outline-none bg-transparent w-[110px]" />
             </div>
 
             {(search || reservationType !== "all" || status !== "all" || fromDate || toDate) && (
               <button onClick={() => { setSearch(""); setReservationType("all"); setStatus("all"); setFromDate(""); setToDate(""); setPage(1); }}
-                className="flex items-center gap-1 text-xs text-gray-700 px-3 py-2 rounded-xl border border-gray-200 hover:bg-gray-50">
+                className="flex items-center gap-1 text-xs text-slate-500 px-3 py-2 rounded-xl border border-gray-200 hover:bg-gray-50">
                 <X className="h-3.5 w-3.5" /> Clear
               </button>
             )}
@@ -458,20 +458,20 @@ export default function Reservations() {
                   <tr><td colSpan={10} className="px-4 py-12 text-center">
                     <div className="flex flex-col items-center gap-2">
                       <div className="h-8 w-8 rounded-full border-2 border-[#C6AF4B] border-t-transparent animate-spin" />
-                      <span className="text-sm text-gray-700">Loading…</span>
+                      <span className="text-sm text-slate-500">Loading…</span>
                     </div>
                   </td></tr>
                 ) : rows.length === 0 ? (
                   <tr><td colSpan={10} className="px-4 py-16 text-center">
                     <Bookmark className="h-10 w-10 text-gray-300 mx-auto mb-2" />
-                    <p className="text-sm text-gray-700 font-medium">No reservations found</p>
+                    <p className="text-sm text-slate-500 font-medium">No reservations found</p>
                     <p className="text-xs text-gray-400 mt-1">Create a reservation to reserve materials for a style or swatch</p>
                   </td></tr>
                 ) : rows.map((r, idx) => (
                   <tr key={r.id} className="hover:bg-[#C6AF4B]/5 transition-colors">
                     <td className={tdCls}><span className="text-xs text-gray-400">{(page-1)*limit+idx+1}</span></td>
                     <td className={tdCls}>
-                      <div className="text-sm font-medium text-gray-900">{r.item_name}</div>
+                      <div className="text-sm font-medium text-cyan-900">{r.item_name}</div>
                       <div className="text-xs text-gray-400 font-mono">{r.item_code}</div>
                       {r.remarks && <div className="text-xs text-gray-400 italic mt-0.5">{r.remarks}</div>}
                     </td>
@@ -481,7 +481,7 @@ export default function Reservations() {
                       </span>
                     </td>
                     <td className={tdCls}>
-                      <div className="text-sm font-mono font-semibold text-gray-800">
+                      <div className="text-sm font-mono font-semibold text-cyan-900">
                         {r.reference_code ?? `#${r.reference_id}`}
                       </div>
                       {r.reference_name && (
@@ -494,7 +494,7 @@ export default function Reservations() {
                       </span>
                     </td>
                     <td className={tdCls}>
-                      <span className={`text-sm font-mono ${parseFloat(r.available_stock) <= 0 ? "text-red-600 font-bold" : "text-gray-700"}`}>
+                      <span className={`text-sm font-mono ${parseFloat(r.available_stock) <= 0 ? "text-red-600 font-bold" : "text-slate-500"}`}>
                         {fmtQty(r.available_stock)}
                       </span>
                     </td>
@@ -562,19 +562,19 @@ export default function Reservations() {
 
           {total > limit && (
             <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200">
-              <span className="text-xs text-gray-700">
+              <span className="text-xs text-slate-500">
                 Showing {(page-1)*limit+1}–{Math.min(page*limit, total)} of {total}
               </span>
               <div className="flex items-center gap-1">
                 <button onClick={() => setPage(p => Math.max(1, p-1))} disabled={page===1}
                   className="p-1.5 rounded-lg hover:bg-gray-100 disabled:opacity-40">
-                  <ChevronDown className="h-4 w-4 text-gray-700 -rotate-90" />
+                  <ChevronDown className="h-4 w-4 text-slate-500 -rotate-90" />
                 </button>
                 {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                   const pg = Math.max(1, Math.min(totalPages-4, page-2)) + i;
                   return (
                     <button key={pg} onClick={() => setPage(pg)}
-                      className={`min-w-[32px] h-8 rounded-lg text-xs font-medium ${pg===page ? "text-white" : "text-gray-700 hover:bg-gray-100"}`}
+                      className={`min-w-[32px] h-8 rounded-lg text-xs font-medium ${pg===page ? "text-white" : "text-slate-500 hover:bg-gray-100"}`}
                       style={pg===page ? { background: G } : {}}>
                       {pg}
                     </button>
@@ -582,7 +582,7 @@ export default function Reservations() {
                 })}
                 <button onClick={() => setPage(p => Math.min(totalPages, p+1))} disabled={page===totalPages}
                   className="p-1.5 rounded-lg hover:bg-gray-100 disabled:opacity-40">
-                  <ChevronDown className="h-4 w-4 text-gray-700 rotate-90" />
+                  <ChevronDown className="h-4 w-4 text-slate-500 rotate-90" />
                 </button>
               </div>
             </div>
@@ -602,7 +602,7 @@ export default function Reservations() {
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
               <div className="flex items-center gap-2">
                 <Bookmark className="h-5 w-5" style={{ color: G }} />
-                <h2 className="text-base font-bold text-gray-900">New Reservation</h2>
+                <h2 className="text-base font-bold text-cyan-900">New Reservation</h2>
               </div>
               <button onClick={() => setShowForm(false)} className="p-1.5 rounded-lg hover:bg-gray-100">
                 <X className="h-4 w-4 text-gray-500" />
@@ -613,7 +613,7 @@ export default function Reservations() {
                 <label className="block text-xs font-medium text-gray-600 mb-1">Inventory Item <span className="text-red-500">*</span></label>
                 <select value={form.inventoryId}
                   onChange={e => setForm(f => ({ ...f, inventoryId: e.target.value ? parseInt(e.target.value) : "" }))}
-                  className="w-full appearance-none pl-3 pr-8 py-2 text-sm text-gray-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30 bg-white">
+                  className="w-full appearance-none pl-3 pr-8 py-2 text-sm text-cyan-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30 bg-white">
                   <option value="">{loadingItems ? "Loading items…" : "Select item…"}</option>
                   {invItems.map(i => (
                     <option key={i.id} value={i.id}>
@@ -633,7 +633,7 @@ export default function Reservations() {
                   <label className="block text-xs font-medium text-gray-600 mb-1">Reservation Type <span className="text-red-500">*</span></label>
                   <select value={form.reservationType}
                     onChange={e => setForm(f => ({ ...f, reservationType: e.target.value, referenceId: "" }))}
-                    className="w-full appearance-none pl-3 pr-8 py-2 text-sm text-gray-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30 bg-white">
+                    className="w-full appearance-none pl-3 pr-8 py-2 text-sm text-cyan-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30 bg-white">
                     <option value="Style">Style</option>
                     <option value="Swatch">Swatch</option>
                   </select>
@@ -644,7 +644,7 @@ export default function Reservations() {
                   </label>
                   <select value={form.referenceId}
                     onChange={e => setForm(f => ({ ...f, referenceId: e.target.value }))}
-                    className="w-full appearance-none pl-3 pr-8 py-2 text-sm text-gray-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30 bg-white">
+                    className="w-full appearance-none pl-3 pr-8 py-2 text-sm text-cyan-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30 bg-white">
                     <option value="">
                       {loadingOrders ? "Loading…" : `Select ${form.reservationType === "Style" ? "style" : "swatch"} order…`}
                     </option>
@@ -663,7 +663,7 @@ export default function Reservations() {
                   <input type="number" min="0.001" step="0.001" value={form.reservedQuantity}
                     onChange={e => setForm(f => ({ ...f, reservedQuantity: e.target.value }))}
                     placeholder="0.000"
-                    className={`w-full px-3 py-2 text-sm text-gray-900 rounded-xl border focus:outline-none focus:ring-2 text-right
+                    className={`w-full px-3 py-2 text-sm text-cyan-900 rounded-xl border focus:outline-none focus:ring-2 text-right
                       ${selectedItem && parseFloat(form.reservedQuantity) > parseFloat(selectedItem.available_stock)
                         ? "border-red-400 focus:ring-red-200" : "border-gray-200 focus:ring-[#C6AF4B]/30"}`} />
                   {selectedItem && parseFloat(form.reservedQuantity) > parseFloat(selectedItem.available_stock) && (
@@ -674,7 +674,7 @@ export default function Reservations() {
                   <label className="block text-xs font-medium text-gray-600 mb-1">Reservation Date <span className="text-red-500">*</span></label>
                   <input type="date" value={form.reservationDate}
                     onChange={e => setForm(f => ({ ...f, reservationDate: e.target.value }))}
-                    className="w-full px-3 py-2 text-sm text-gray-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30" />
+                    className="w-full px-3 py-2 text-sm text-cyan-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30" />
                 </div>
               </div>
 
@@ -683,12 +683,12 @@ export default function Reservations() {
                 <input type="text" value={form.remarks}
                   onChange={e => setForm(f => ({ ...f, remarks: e.target.value }))}
                   placeholder="Optional notes…"
-                  className="w-full px-3 py-2 text-sm text-gray-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30" />
+                  className="w-full px-3 py-2 text-sm text-cyan-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30" />
               </div>
             </div>
             <div className="flex justify-end gap-3 px-5 py-4 border-t border-gray-200">
               <button onClick={() => setShowForm(false)} disabled={submitting}
-                className="px-4 py-2 rounded-xl text-sm font-medium text-gray-700 border border-gray-200 hover:bg-gray-50 disabled:opacity-50">
+                className="px-4 py-2 rounded-xl text-sm font-medium text-slate-500 border border-gray-200 hover:bg-gray-50 disabled:opacity-50">
                 Cancel
               </button>
               <button onClick={handleSubmit} disabled={submitting}
@@ -715,7 +715,7 @@ export default function Reservations() {
                  <XCircle className="h-5 w-5 text-orange-600" />}
               </div>
               <div>
-                <h3 className="text-sm font-bold text-gray-900">
+                <h3 className="text-sm font-bold text-cyan-900">
                   {confirmAction.action === "delete" ? "Delete Reservation?" :
                    confirmAction.action === "release" ? "Release Reservation?" : "Cancel Reservation?"}
                 </h3>
@@ -735,7 +735,7 @@ export default function Reservations() {
             )}
             <div className="flex gap-2 justify-end">
               <button onClick={() => setConfirmAction(null)} disabled={actioning !== null}
-                className="px-4 py-2 rounded-xl text-sm font-medium text-gray-700 border border-gray-200 hover:bg-gray-50">
+                className="px-4 py-2 rounded-xl text-sm font-medium text-slate-500 border border-gray-200 hover:bg-gray-50">
                 No
               </button>
               <button
@@ -770,7 +770,7 @@ export default function Reservations() {
                   <div className="p-1.5 rounded-lg bg-blue-100">
                     <ArrowRightLeft className="h-4 w-4 text-blue-600" />
                   </div>
-                  <h2 className="text-sm font-bold text-gray-900">Convert to Consumption</h2>
+                  <h2 className="text-sm font-bold text-cyan-900">Convert to Consumption</h2>
                 </div>
                 <button onClick={() => setConvertModal(null)} className="p-1.5 rounded-lg hover:bg-gray-100">
                   <X className="h-4 w-4 text-gray-500" />
@@ -780,7 +780,7 @@ export default function Reservations() {
               <div className="px-5 py-4 space-y-4">
                 {/* Item info */}
                 <div className="bg-gray-50 rounded-xl px-4 py-3">
-                  <p className="text-sm font-semibold text-gray-900">{convertModal.resv.item_name}</p>
+                  <p className="text-sm font-semibold text-cyan-900">{convertModal.resv.item_name}</p>
                   <p className="text-xs text-gray-500 mt-0.5">
                     {convertModal.resv.reservation_type} {convertModal.resv.reference_code ?? `#${convertModal.resv.reference_id}`} &middot; Reserved:{" "}
                     <span className="font-bold" style={{ color: G }}>{fmtQty(reserved)}</span>{" "}
@@ -794,12 +794,12 @@ export default function Reservations() {
                   <div className="flex items-center gap-3">
                     <div className="flex items-center gap-2 w-32 flex-shrink-0">
                       <div className="p-1 rounded bg-blue-50"><ArrowRightLeft className="h-3.5 w-3.5 text-blue-600" /></div>
-                      <span className="text-xs font-medium text-gray-700">Consumed</span>
+                      <span className="text-xs font-medium text-slate-500">Consumed</span>
                     </div>
                     <input type="number" min="0" step="0.001"
                       value={convertModal.consumed}
                       onChange={e => setConvertModal(m => m ? { ...m, consumed: e.target.value } : null)}
-                      className={`flex-1 px-3 py-1.5 text-sm text-gray-900 text-right rounded-lg border focus:outline-none focus:ring-2 ${cOver ? "border-red-400 focus:ring-red-200" : "border-gray-200 focus:ring-blue-200"}`} />
+                      className={`flex-1 px-3 py-1.5 text-sm text-cyan-900 text-right rounded-lg border focus:outline-none focus:ring-2 ${cOver ? "border-red-400 focus:ring-red-200" : "border-gray-200 focus:ring-blue-200"}`} />
                     <span className="text-xs text-gray-400 w-12 flex-shrink-0">{convertModal.resv.unit_type || ""}</span>
                   </div>
                   <p className="text-[11px] text-blue-600 -mt-1 pl-36">Material actually used in production — consumption will deduct stock separately.</p>
@@ -808,12 +808,12 @@ export default function Reservations() {
                   <div className="flex items-center gap-3">
                     <div className="flex items-center gap-2 w-32 flex-shrink-0">
                       <div className="p-1 rounded bg-green-50"><PackageOpen className="h-3.5 w-3.5 text-green-600" /></div>
-                      <span className="text-xs font-medium text-gray-700">Released</span>
+                      <span className="text-xs font-medium text-slate-500">Released</span>
                     </div>
                     <input type="number" min="0" step="0.001"
                       value={convertModal.released}
                       onChange={e => setConvertModal(m => m ? { ...m, released: e.target.value } : null)}
-                      className={`flex-1 px-3 py-1.5 text-sm text-gray-900 text-right rounded-lg border focus:outline-none focus:ring-2 ${rOver ? "border-red-400 focus:ring-red-200" : "border-gray-200 focus:ring-green-200"}`} />
+                      className={`flex-1 px-3 py-1.5 text-sm text-cyan-900 text-right rounded-lg border focus:outline-none focus:ring-2 ${rOver ? "border-red-400 focus:ring-red-200" : "border-gray-200 focus:ring-green-200"}`} />
                     <span className="text-xs text-gray-400 w-12 flex-shrink-0">{convertModal.resv.unit_type || ""}</span>
                   </div>
                   <p className="text-[11px] text-green-600 -mt-1 pl-36">Unused material — freed back to available stock.</p>
@@ -822,12 +822,12 @@ export default function Reservations() {
                   <div className="flex items-center gap-3">
                     <div className="flex items-center gap-2 w-32 flex-shrink-0">
                       <div className="p-1 rounded bg-red-50"><Flame className="h-3.5 w-3.5 text-red-500" /></div>
-                      <span className="text-xs font-medium text-gray-700">Wastage</span>
+                      <span className="text-xs font-medium text-slate-500">Wastage</span>
                     </div>
                     <input type="number" min="0" step="0.001"
                       value={convertModal.wastage}
                       onChange={e => setConvertModal(m => m ? { ...m, wastage: e.target.value } : null)}
-                      className={`flex-1 px-3 py-1.5 text-sm text-gray-900 text-right rounded-lg border focus:outline-none focus:ring-2 ${wOver ? "border-red-400 focus:ring-red-200" : "border-gray-200 focus:ring-red-200"}`} />
+                      className={`flex-1 px-3 py-1.5 text-sm text-cyan-900 text-right rounded-lg border focus:outline-none focus:ring-2 ${wOver ? "border-red-400 focus:ring-red-200" : "border-gray-200 focus:ring-red-200"}`} />
                     <span className="text-xs text-gray-400 w-12 flex-shrink-0">{convertModal.resv.unit_type || ""}</span>
                   </div>
                   <p className="text-[11px] text-red-500 -mt-1 pl-36">Material damaged or discarded — written off from stock.</p>
@@ -847,7 +847,7 @@ export default function Reservations() {
 
               <div className="flex justify-end gap-3 px-5 py-4 border-t border-gray-200">
                 <button onClick={() => setConvertModal(null)} disabled={convertModal.submitting}
-                  className="px-4 py-2 rounded-xl text-sm font-medium text-gray-700 border border-gray-200 hover:bg-gray-50 disabled:opacity-50">
+                  className="px-4 py-2 rounded-xl text-sm font-medium text-slate-500 border border-gray-200 hover:bg-gray-50 disabled:opacity-50">
                   Cancel
                 </button>
                 <button onClick={handleConvert} disabled={!valid || convertModal.submitting}

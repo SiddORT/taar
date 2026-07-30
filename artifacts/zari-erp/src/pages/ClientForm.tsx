@@ -68,7 +68,7 @@ type FormErrors = Partial<Record<string, string>>;
 
 const card = "bg-white rounded-2xl border border-gray-100 shadow-sm";
 const sectionLabel = "text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3";
-const inputCls = "w-full px-2.5 py-1.5 text-sm text-gray-900 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30";
+const inputCls = "w-full px-2.5 py-1.5 text-sm text-cyan-900 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30";
 
 export default function ClientForm() {
   const params = useParams<{ id: string }>();
@@ -291,12 +291,12 @@ export default function ClientForm() {
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <button onClick={() => setLocation("/masters/clients")}
-              className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 transition-colors">
+              className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-cyan-900 transition-colors">
               <ArrowLeft className="h-4 w-4" />
               Clients
             </button>
             <span className="text-gray-300">/</span>
-            <h1 className="text-lg font-bold text-gray-900">
+            <h1 className="text-lg font-bold text-cyan-900">
               {isNew ? "Add Client" : `Edit Client — ${existingClient?.clientCode ?? ""}`}
             </h1>
           </div>
@@ -314,7 +314,7 @@ export default function ClientForm() {
           <div className="grid grid-cols-2 gap-4">
             <div className="flex flex-col gap-1.5">
               <div className="flex items-center justify-between">
-                <label className="text-sm font-medium text-gray-700">Brand / Client Name<span className="text-red-500 ml-0.5">*</span></label>
+                <label className="text-sm font-medium text-slate-500">Brand / Client Name<span className="text-red-500 ml-0.5">*</span></label>
                 <span className={`text-xs ${form.brandName.length > 90 ? "text-orange-500" : "text-gray-400"}`}>{form.brandName.length}/100</span>
               </div>
               <input
@@ -333,13 +333,13 @@ export default function ClientForm() {
                     }
                   }
                 }}
-                className={`w-full rounded-lg border bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 shadow-sm outline-none transition focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10 ${errors.brandName ? "border-red-400 focus:border-red-400 focus:ring-red-400/10" : "border-gray-300 hover:border-gray-400"}`}
+                className={`w-full rounded-lg border bg-white px-3.5 py-2.5 text-sm text-cyan-900 placeholder-gray-400 shadow-sm outline-none transition focus:border-cyan-900 focus:ring-2 focus:ring-cyan-900/10 ${errors.brandName ? "border-red-400 focus:border-red-400 focus:ring-red-400/10" : "border-gray-300 hover:border-gray-400"}`}
               />
               {errors.brandName && <p className="text-xs text-red-500">{errors.brandName}</p>}
             </div>
             <div className="flex flex-col gap-1.5">
               <div className="flex items-center justify-between">
-                <label className="text-sm font-medium text-gray-700">Contact Name<span className="text-red-500 ml-0.5">*</span></label>
+                <label className="text-sm font-medium text-slate-500">Contact Name<span className="text-red-500 ml-0.5">*</span></label>
                 <span className={`text-xs ${form.contactName.length > 90 ? "text-orange-500" : "text-gray-400"}`}>{form.contactName.length}/100</span>
               </div>
               <input
@@ -358,7 +358,7 @@ export default function ClientForm() {
                     }
                   }
                 }}
-                className={`w-full rounded-lg border bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 shadow-sm outline-none transition focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10 ${errors.contactName ? "border-red-400 focus:border-red-400 focus:ring-red-400/10" : "border-gray-300 hover:border-gray-400"}`}
+                className={`w-full rounded-lg border bg-white px-3.5 py-2.5 text-sm text-cyan-900 placeholder-gray-400 shadow-sm outline-none transition focus:border-cyan-900 focus:ring-2 focus:ring-cyan-900/10 ${errors.contactName ? "border-red-400 focus:border-red-400 focus:ring-red-400/10" : "border-gray-300 hover:border-gray-400"}`}
               />
               {errors.contactName && <p className="text-xs text-red-500">{errors.contactName}</p>}
             </div>
@@ -382,7 +382,7 @@ export default function ClientForm() {
             <PhoneInput label="Alternate Contact No" value={form.altContactNo}
               onChange={v => setForm(f => ({ ...f, altContactNo: v }))} placeholder="Alternate phone" />
             <div>
-              <label className="text-sm font-medium text-gray-700">Custom Client Code<span className="text-red-500 ml-0.5">*</span></label>
+              <label className="text-sm font-medium text-slate-500">Custom Client Code<span className="text-red-500 ml-0.5">*</span></label>
               <span className={`text-xs ${form.customClientCode.length > 90 ? "text-orange-500" : "text-gray-400"}`}>{form.customClientCode.length}/100</span>
               <input
                 value={form.customClientCode}
@@ -396,7 +396,7 @@ export default function ClientForm() {
                   }
                 }}
                 disabled={existingClient?.hasOrders}
-                className={`w-full rounded-lg border bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 shadow-sm outline-none transition focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10 ${errors.customClientCode ? "border-red-400 focus:border-red-400 focus:ring-red-400/10" : "border-gray-300 hover:border-gray-400"}`}
+                className={`w-full rounded-lg border bg-white px-3.5 py-2.5 text-sm text-cyan-900 placeholder-gray-400 shadow-sm outline-none transition focus:border-cyan-900 focus:ring-2 focus:ring-cyan-900/10 ${errors.customClientCode ? "border-red-400 focus:border-red-400 focus:ring-red-400/10" : "border-gray-300 hover:border-gray-400"}`}
               />
             </div>
             <div className="grid grid-cols-1 gap-4">
@@ -449,7 +449,7 @@ export default function ClientForm() {
                       <span className={`text-base font-bold leading-none ${selected ? "text-[#8a7a2e]" : "text-gray-500"}`}>
                         {curr.symbol}
                       </span>
-                      <span className={`text-sm font-bold ${selected ? "text-[#5a4e1e]" : "text-gray-700"}`}>
+                      <span className={`text-sm font-bold ${selected ? "text-[#5a4e1e]" : "text-slate-500"}`}>
                         {curr.code}
                       </span>
                     </div>
@@ -648,9 +648,9 @@ export default function ClientForm() {
         {/* Status + Save */}
         <div className={`${card} p-5 flex items-center justify-between`}>
           <div className="flex items-center gap-3">
-            <label className="text-sm font-medium text-gray-700">Status</label>
+            <label className="text-sm font-medium text-slate-500">Status</label>
             <button type="button" onClick={() => setForm(f => ({ ...f, isActive: !f.isActive }))}
-              className={`relative inline-flex h-5 w-9 shrink-0 rounded-full border-2 border-transparent transition-colors focus:outline-none ${form.isActive ? "bg-gray-900" : "bg-gray-300"}`}
+              className={`relative inline-flex h-5 w-9 shrink-0 rounded-full border-2 border-transparent transition-colors focus:outline-none ${form.isActive ? "bg-cyan-900" : "bg-gray-300"}`}
               role="switch" aria-checked={form.isActive}>
               <span className={`pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow transform transition-transform ${form.isActive ? "translate-x-4" : "translate-x-0"}`} />
             </button>

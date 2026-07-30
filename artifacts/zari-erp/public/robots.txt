@@ -1,4 +1,4 @@
-# ZARI ERP
+# ERP
 # Allow search engines to crawl and index the application.
 
 User-agent: *

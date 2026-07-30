@@ -1,5 +1,5 @@
 -- ============================================================================
--- ZARI ERP — Production wipe, keep only admin@zarierp.com
+-- ERP — Production wipe, keep only admin@zarierp.com
 -- ============================================================================
 -- DESTRUCTIVE. IRREVERSIBLE. Run only against production after explicit consent.
 --

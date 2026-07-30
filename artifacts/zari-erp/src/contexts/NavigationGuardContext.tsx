@@ -163,7 +163,7 @@ export function NavigationGuardProvider({ children }: { children: ReactNode }) {
                 <AlertTriangle className="h-5 w-5 text-amber-600" />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-gray-900">Unsaved Changes</h3>
+                <h3 className="text-sm font-bold text-cyan-900">Unsaved Changes</h3>
                 <p className="text-xs text-gray-500 mt-1 leading-relaxed">
                   Do you want to save your changes before leaving this page?
                 </p>
@@ -173,7 +173,7 @@ export function NavigationGuardProvider({ children }: { children: ReactNode }) {
               <button
                 onClick={() => { void handleSaveAndExit(); }}
                 disabled={isSaving}
-                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-gray-900 text-[#C9B45C] text-sm font-semibold hover:bg-black transition-colors disabled:opacity-60"
+                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-cyan-900 text-[#C9B45C] text-sm font-semibold hover:bg-cyan-900 transition-colors disabled:opacity-60"
               >
                 {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                 Save and Exit

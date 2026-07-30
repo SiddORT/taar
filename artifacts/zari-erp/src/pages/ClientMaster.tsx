@@ -526,32 +526,32 @@ export default function ClientMaster() {
             <SearchBar value={search} onChange={(v) => { setSearch(v); setPage(1); }} placeholder="Search clients…" />
           </div>
           <select value={status} onChange={(e) => { setStatus(e.target.value as StatusFilter); setPage(1); }}
-            className="rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-700 shadow-sm outline-none transition focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10">
+            className="rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-slate-500 shadow-sm outline-none transition focus:border-cyan-900 focus:ring-2 focus:ring-cyan-900/10">
             {STATUS_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
 
           <button onClick={handleExportAll} disabled={exportLoading || isLoading}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border border-gray-300 bg-white text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 hover:border-gray-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border border-gray-300 bg-white text-sm font-medium text-slate-500 shadow-sm hover:bg-gray-50 hover:border-gray-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
             <FileDown className="h-4 w-4" />
             {exportLoading ? "Exporting…" : "Export to Excel"}
           </button>
 
           <div className="relative" ref={importMenuRef}>
             <button onClick={() => setImportMenuOpen(v => !v)} disabled={importLoading}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border border-[#C9B45C]/50 bg-white text-sm font-medium text-gray-700 shadow-sm hover:border-[#C9B45C] hover:bg-amber-50/40 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border border-[#C9B45C]/50 bg-white text-sm font-medium text-slate-500 shadow-sm hover:border-[#C9B45C] hover:bg-amber-50/40 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
               <FileInput className="h-4 w-4 text-[#C6AF4B]" />
               {importLoading ? "Importing…" : "Import Data"}
               <ChevronDown className={`h-3.5 w-3.5 text-gray-400 transition-transform ${importMenuOpen ? "rotate-180" : ""}`} />
             </button>
             {importMenuOpen && (
               <div className="absolute right-0 top-full mt-1.5 w-52 bg-white rounded-xl border border-gray-200 shadow-lg z-50 overflow-hidden">
-                <button onClick={downloadSample} className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors text-left">
+                <button onClick={downloadSample} className="w-full flex items-center gap-3 px-4 py-3 text-sm text-slate-500 hover:bg-gray-50 transition-colors text-left">
                   <FileSpreadsheet className="h-4 w-4 text-emerald-600 shrink-0" />
                   <div><p className="font-medium">Download Sample</p><p className="text-xs text-gray-400">Get the Excel template</p></div>
                 </button>
                 <div className="border-t border-gray-100" />
                 <button onClick={() => { setImportMenuOpen(false); importFileRef.current?.click(); }}
-                  className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors text-left">
+                  className="w-full flex items-center gap-3 px-4 py-3 text-sm text-slate-500 hover:bg-gray-50 transition-colors text-left">
                   <FileUp className="h-4 w-4 text-blue-600 shrink-0" />
                   <div><p className="font-medium">Upload Excel File</p><p className="text-xs text-gray-400">Import records from file</p></div>
                 </button>

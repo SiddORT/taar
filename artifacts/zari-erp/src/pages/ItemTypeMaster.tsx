@@ -207,7 +207,7 @@ export default function ItemTypeMaster() {
 
   const columns: Column[] = [
     { key: "_srNo", label: "Sr No", className: "w-14 text-center", render: (r) => <span className="text-gray-400 text-xs font-medium">{(r as unknown as { _srNo: number })._srNo}</span> },
-    { key: "name", label: "Item Type Name", render: (r) => <span className="font-medium text-gray-900">{asIT(r).name}</span> },
+    { key: "name", label: "Item Type Name", render: (r) => <span className="font-medium text-cyan-900">{asIT(r).name}</span> },
     {
       key: "isActive", label: "Status",
       render: (r) => <StatusToggle isActive={asIT(r).isActive} onToggle={() => setConfirmToggleTarget(asIT(r))} loading={toggleMutation.isPending} />,
@@ -222,7 +222,7 @@ export default function ItemTypeMaster() {
         const rec = asIT(r);
         return (
           <div className="flex gap-2">
-            <button onClick={() => openEdit(rec)} className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors" title="Edit">
+            <button onClick={() => openEdit(rec)} className="p-1.5 rounded-lg text-gray-400 hover:text-slate-500 hover:bg-gray-100 transition-colors" title="Edit">
               <Pencil className="h-4 w-4" />
             </button>
             <button onClick={() => setDeleteId(rec.id)} className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors" title="Delete">
@@ -251,7 +251,7 @@ export default function ItemTypeMaster() {
             <button
               onClick={handleExportAll}
               disabled={exportLoading || isLoading}
-              className="flex items-center gap-2 rounded-lg border border-[#C9B45C]/50 bg-white px-3.5 py-2 text-sm font-medium text-gray-700 shadow-sm transition hover:border-[#C9B45C] hover:bg-amber-50/40 disabled:opacity-50"
+              className="flex items-center gap-2 rounded-lg border border-[#C9B45C]/50 bg-white px-3.5 py-2 text-sm font-medium text-slate-500 shadow-sm transition hover:border-[#C9B45C] hover:bg-amber-50/40 disabled:opacity-50"
               title="Export all matching records to Excel"
             >
               <FileDown className="h-4 w-4 text-[#C9B45C]" />
@@ -263,7 +263,7 @@ export default function ItemTypeMaster() {
               <button
                 onClick={() => setImportMenuOpen((v) => !v)}
                 disabled={importLoading}
-                className="flex items-center gap-2 rounded-lg border border-[#C9B45C]/50 bg-white px-3.5 py-2 text-sm font-medium text-gray-700 shadow-sm transition hover:border-[#C9B45C] hover:bg-amber-50/40 disabled:opacity-50"
+                className="flex items-center gap-2 rounded-lg border border-[#C9B45C]/50 bg-white px-3.5 py-2 text-sm font-medium text-slate-500 shadow-sm transition hover:border-[#C9B45C] hover:bg-amber-50/40 disabled:opacity-50"
               >
                 <FileSpreadsheet className="h-4 w-4 text-[#C9B45C]" />
                 {importLoading ? "Importing…" : "Import"}
@@ -272,14 +272,14 @@ export default function ItemTypeMaster() {
                 <div className="absolute right-0 top-full mt-1 z-30 w-48 rounded-xl border border-gray-100 bg-white shadow-lg py-1">
                   <button
                     onClick={() => { handleDownloadSample(); setImportMenuOpen(false); }}
-                    className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                    className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-slate-500 hover:bg-gray-50 transition-colors"
                   >
                     <FileDown className="h-4 w-4 text-gray-400" />
                     Download Sample
                   </button>
                   <button
                     onClick={() => { importInputRef.current?.click(); setImportMenuOpen(false); }}
-                    className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                    className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-slate-500 hover:bg-gray-50 transition-colors"
                   >
                     <FileUp className="h-4 w-4 text-gray-400" />
                     Upload Excel
@@ -291,7 +291,7 @@ export default function ItemTypeMaster() {
 
             {/* Status filter */}
             <select value={status} onChange={(e) => { setStatus(e.target.value as StatusFilter); setPage(1); }}
-              className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 shadow-sm outline-none transition focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10">
+              className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-slate-500 shadow-sm outline-none transition focus:border-cyan-900 focus:ring-2 focus:ring-cyan-900/10">
               {STATUS_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
           </div>
@@ -329,11 +329,11 @@ export default function ItemTypeMaster() {
           )}
         </div>
         <div className="flex items-center gap-3 pt-1">
-          <label className="text-sm font-medium text-gray-700">Active</label>
+          <label className="text-sm font-medium text-slate-500">Active</label>
           <button
             type="button"
             onClick={() => setForm((f) => ({ ...f, isActive: !f.isActive }))}
-            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${form.isActive ? "bg-gray-900" : "bg-gray-300"}`}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${form.isActive ? "bg-cyan-900" : "bg-gray-300"}`}
           >
             <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${form.isActive ? "translate-x-6" : "translate-x-1"}`} />
           </button>

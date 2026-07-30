@@ -488,22 +488,22 @@ function requireDocsNonce(req: Request, res: Response, next: NextFunction) {
 }
 
 app.get("/api/docs", requireDocsNonce, (_req, res) => {
-  res.sendFile(path.join(docsDir, "ZARI_ERP_API_docs.html"));
+  res.sendFile(path.join(docsDir, "ERP_API_docs.html"));
 });
 app.get("/api/docs/openapi.json", requireDocsNonce, (_req, res) => {
-  res.type("application/json").sendFile(path.join(docsDir, "ZARI_ERP_API.openapi.json"));
+  res.type("application/json").sendFile(path.join(docsDir, "ERP_API.openapi.json"));
 });
 app.get("/api/docs/openapi.yaml", requireDocsNonce, (_req, res) => {
-  res.type("application/yaml").sendFile(path.join(docsDir, "ZARI_ERP_API.openapi.yaml"));
+  res.type("application/yaml").sendFile(path.join(docsDir, "ERP_API.openapi.yaml"));
 });
 app.get("/api/docs/postman.json", requireDocsNonce, (_req, res) => {
-  res.type("application/json").sendFile(path.join(docsDir, "ZARI_ERP_API.postman_collection.json"));
+  res.type("application/json").sendFile(path.join(docsDir, "ERP_API.postman_collection.json"));
 });
 app.get("/api/docs/markdown", requireDocsNonce, (_req, res) => {
-  res.type("text/markdown").sendFile(path.join(docsDir, "ZARI_ERP_API.md"));
+  res.type("text/markdown").sendFile(path.join(docsDir, "ERP_API.md"));
 });
 app.get("/api/docs/bundle.zip", requireDocsNonce, (_req, res) => {
-  res.sendFile(path.join(docsDir, "ZARI_ERP_API_docs.zip"));
+  res.sendFile(path.join(docsDir, "ERP_API_docs.zip"));
 });
 
 export default app;

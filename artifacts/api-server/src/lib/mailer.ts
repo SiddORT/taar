@@ -51,12 +51,12 @@ export async function sendInviteEmail(to: string, username: string, inviteUrl: s
       <div class="wrapper">
         <div class="card">
           <div class="header">
-            <p class="header-title">ZARI ERP</p>
+            <p class="header-title">ERP</p>
             <p class="header-sub">ENTERPRISE RESOURCE PLANNING</p>
           </div>
           <div class="body">
             <h2>You've been invited, ${username}!</h2>
-            <p>An administrator has created an account for you on <strong>ZARI ERP</strong>. Click the button below to set your password and activate your account.</p>
+            <p>An administrator has created an account for you on <strong>ERP</strong>. Click the button below to set your password and activate your account.</p>
             <p style="text-align:center; margin: 28px 0;">
               <a href="${inviteUrl}" class="btn">Set Password &amp; Activate Account</a>
             </p>
@@ -74,11 +74,11 @@ export async function sendInviteEmail(to: string, username: string, inviteUrl: s
   `;
 
   await transporter.sendMail({
-    from: `"ZARI ERP" <${from}>`,
+    from: `"ERP" <${from}>`,
     to,
-    subject: `You've been invited to ZARI ERP`,
+    subject: `You've been invited to ERP`,
     html,
-    text: `Hi ${username},\n\nYou've been invited to ZARI ERP. Click the link below to set your password:\n\n${inviteUrl}\n\nThis link expires in 7 days.`,
+    text: `Hi ${username},\n\nYou've been invited to ERP. Click the link below to set your password:\n\n${inviteUrl}\n\nThis link expires in 7 days.`,
   });
 }
 
@@ -113,13 +113,13 @@ export async function sendAdminPasswordResetEmail(to: string, username: string, 
       <div class="wrapper">
         <div class="card">
           <div class="header">
-            <p class="header-title">ZARI ERP</p>
+            <p class="header-title">ERP</p>
             <p class="header-sub">ENTERPRISE RESOURCE PLANNING</p>
           </div>
           <div class="body">
             <h2>Password Reset by Administrator</h2>
             <div class="alert">⚠️ An administrator has reset your password. Please set a new password using the link below.</div>
-            <p>Hi <strong>${username}</strong>, your ZARI ERP password has been reset. Click the button below to choose a new password and restore your access.</p>
+            <p>Hi <strong>${username}</strong>, your ERP password has been reset. Click the button below to choose a new password and restore your access.</p>
             <p style="text-align:center; margin: 28px 0;">
               <a href="${inviteUrl}" class="btn">Set New Password</a>
             </p>
@@ -137,11 +137,11 @@ export async function sendAdminPasswordResetEmail(to: string, username: string, 
   `;
 
   await transporter.sendMail({
-    from: `"ZARI ERP" <${from}>`,
+    from: `"ERP" <${from}>`,
     to,
-    subject: `ZARI ERP — Your password has been reset`,
+    subject: `ERP — Your password has been reset`,
     html,
-    text: `Hi ${username},\n\nAn administrator has reset your ZARI ERP password.\n\nClick the link below to set a new password:\n${inviteUrl}\n\nThis link expires in 7 days.`,
+    text: `Hi ${username},\n\nAn administrator has reset your ERP password.\n\nClick the link below to set a new password:\n${inviteUrl}\n\nThis link expires in 7 days.`,
   });
 }
 
@@ -197,7 +197,7 @@ export async function sendPoApprovalRequestEmail(opts: {
       <div class="wrapper">
         <div class="card">
           <div class="header">
-            <p class="header-title">ZARI ERP</p>
+            <p class="header-title">ERP</p>
             <p class="header-sub">ENTERPRISE RESOURCE PLANNING</p>
           </div>
           <div class="alert-bar">⏳ Action Required: Purchase Order Awaiting Your Approval</div>
@@ -219,7 +219,7 @@ export async function sendPoApprovalRequestEmail(opts: {
               <a href="${rejectUrl}" class="btn-reject">✗ Reject Purchase Order</a>
             </p>
             <p style="text-align:center; margin: 20px 0 0;">
-              <a href="${erpUrl}" class="btn-erp">Open in ZARI ERP</a>
+              <a href="${erpUrl}" class="btn-erp">Open in ERP</a>
             </p>
             <p style="font-size:12px; color:#9CA3AF; margin-top:20px;">These one-click links are valid for 7 days. Once approved, purchase receipts will be enabled for this order.</p>
           </div>
@@ -233,11 +233,11 @@ export async function sendPoApprovalRequestEmail(opts: {
   `;
 
   await transporter.sendMail({
-    from: `"ZARI ERP" <${from}>`,
+    from: `"ERP" <${from}>`,
     to: adminEmails.join(", "),
     subject: `[Action Required] PO ${poNumber} — Approve to enable Purchase Receipts`,
     html,
-    text: `A new Purchase Order (${poNumber}) from vendor "${vendorName || "—"}" has been created for ${refLabel} ${refValue} by ${createdBy}.\n\nApprove: ${approveUrl}\nReject: ${rejectUrl}\n\nOr log in to ZARI ERP: ${erpUrl}\n\nOnce approved, purchase receipts will be enabled.`,
+    text: `A new Purchase Order (${poNumber}) from vendor "${vendorName || "—"}" has been created for ${refLabel} ${refValue} by ${createdBy}.\n\nApprove: ${approveUrl}\nReject: ${rejectUrl}\n\nOr log in to ERP: ${erpUrl}\n\nOnce approved, purchase receipts will be enabled.`,
   });
 }
 
@@ -271,7 +271,7 @@ export async function sendPasswordResetEmail(to: string, token: string): Promise
       <div class="wrapper">
         <div class="card">
           <div class="header">
-            <p class="header-title">ZARI ERP</p>
+            <p class="header-title">ERP</p>
             <p class="header-sub">ENTERPRISE RESOURCE PLANNING</p>
           </div>
           <div class="body">
@@ -294,10 +294,10 @@ export async function sendPasswordResetEmail(to: string, token: string): Promise
   `;
 
   await transporter.sendMail({
-    from: `"ZARI ERP" <${from}>`,
+    from: `"ERP" <${from}>`,
     to,
-    subject: "Your ZARI ERP Password Reset Token",
+    subject: "Your ERP Password Reset Token",
     html,
-    text: `Your ZARI ERP password reset token is: ${token}\n\nThis token expires in 15 minutes.\n\nIf you did not request this, ignore this email.`,
+    text: `Your ERP password reset token is: ${token}\n\nThis token expires in 15 minutes.\n\nIf you did not request this, ignore this email.`,
   });
 }

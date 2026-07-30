@@ -17,7 +17,7 @@ import { useCurrency } from "@/contexts/CurrencyContext";
 
 const G = "#C6AF4B";
 const card = "rounded-2xl bg-white border border-[#C6AF4B]/15 shadow-[0_2px_16px_rgba(198,175,75,0.12),0_1px_3px_rgba(0,0,0,0.06)]";
-const inputCls = "w-full px-3 py-2 text-sm rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30 text-gray-900 bg-white";
+const inputCls = "w-full px-3 py-2 text-sm rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30 text-cyan-900 bg-white";
 const labelCls = "block text-xs font-semibold text-gray-500 mb-1";
 
 const STATUS_COLORS: Record<string, string> = {
@@ -33,7 +33,7 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 const STATUS_BTN_STYLES: Record<string, string> = {
-  "Draft":                 "border-gray-300   text-gray-700   hover:bg-gray-100",
+  "Draft":                 "border-gray-300   text-slate-500   hover:bg-gray-100",
   "Sent":                  "border-blue-300   text-blue-700   hover:bg-blue-50",
   "Client Reviewing":      "border-indigo-300 text-indigo-700 hover:bg-indigo-50",
   "Correction Requested":  "border-yellow-400 text-yellow-700 hover:bg-yellow-50",
@@ -257,7 +257,7 @@ export default function QuotationDetail() {
             </button>
             <div>
               <div className="flex items-center gap-2 flex-wrap">
-                <h1 className="text-2xl font-bold text-gray-900 font-mono">{q.quotation_number}</h1>
+                <h1 className="text-2xl font-bold text-cyan-900 font-mono">{q.quotation_number}</h1>
                 <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${STATUS_COLORS[q.status] ?? "bg-gray-100 text-gray-600"}`}>{q.status}</span>
                 <span className="text-xs text-gray-400">R{q.revision_number}</span>
               </div>
@@ -270,14 +270,14 @@ export default function QuotationDetail() {
             {canEdit && (
               <button
                 onClick={() => navigate(`/quotation/${id}/edit`)}
-                className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold border border-gray-200 hover:bg-gray-50 text-gray-700 transition"
+                className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold border border-gray-200 hover:bg-gray-50 text-slate-500 transition"
               >
                 <Edit2 size={14} /> Edit
               </button>
             )}
             <button
               onClick={() => setFeedbackOpen(true)}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold border border-gray-200 hover:bg-gray-50 text-gray-700 transition"
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold border border-gray-200 hover:bg-gray-50 text-slate-500 transition"
             >
               <MessageSquare size={14} /> Add Feedback
             </button>
@@ -306,7 +306,7 @@ export default function QuotationDetail() {
                     key={ns}
                     disabled={statusBusy}
                     onClick={() => changeStatus(ns)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold border disabled:opacity-50 transition ${STATUS_BTN_STYLES[ns] ?? "border-gray-200 text-gray-700 hover:bg-gray-50"}`}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold border disabled:opacity-50 transition ${STATUS_BTN_STYLES[ns] ?? "border-gray-200 text-slate-500 hover:bg-gray-50"}`}
                   >
                     {ns} {statusBusy && <span className="ml-1 animate-pulse">…</span>}
                   </button>
@@ -392,26 +392,26 @@ export default function QuotationDetail() {
               <div className="grid grid-cols-2 gap-y-3 gap-x-4 text-sm">
                 <div>
                   <p className="text-xs text-gray-400 mb-0.5">Client</p>
-                  <p className="font-medium text-gray-800">{q.client_name || "—"}</p>
+                  <p className="font-medium text-cyan-900">{q.client_name || "—"}</p>
                 </div>
                 <div>
                   <p className="text-xs text-gray-400 mb-0.5">State</p>
-                  <p className="font-medium text-gray-800">{q.client_state || "—"}</p>
+                  <p className="font-medium text-cyan-900">{q.client_state || "—"}</p>
                 </div>
                 <div className="col-span-2">
                   <p className="text-xs text-gray-400 mb-0.5">Requirement Summary</p>
-                  <p className="text-gray-700">{q.requirement_summary || "—"}</p>
+                  <p className="text-slate-500">{q.requirement_summary || "—"}</p>
                 </div>
                 {q.internal_notes && (
                   <div className="col-span-2">
                     <p className="text-xs text-gray-400 mb-0.5">Internal Notes</p>
-                    <p className="text-gray-700">{q.internal_notes}</p>
+                    <p className="text-slate-500">{q.internal_notes}</p>
                   </div>
                 )}
                 {q.client_notes && (
                   <div className="col-span-2">
                     <p className="text-xs text-gray-400 mb-0.5">Client Notes</p>
-                    <p className="text-gray-700">{q.client_notes}</p>
+                    <p className="text-slate-500">{q.client_notes}</p>
                   </div>
                 )}
               </div>
@@ -432,7 +432,7 @@ export default function QuotationDetail() {
                         </div>
                       )}
                       <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-gray-800 text-sm">{d.design_name}</p>
+                        <p className="font-semibold text-cyan-900 text-sm">{d.design_name}</p>
                         {d.hsn_code && <p className="text-xs text-gray-400">HSN: {d.hsn_code}</p>}
                         {d.remarks && <p className="text-xs text-gray-500 mt-1">{d.remarks}</p>}
                       </div>
@@ -460,22 +460,22 @@ export default function QuotationDetail() {
                     <tbody>
                       {q.charges.map((c) => (
                         <tr key={c.id} className="border-b border-gray-50">
-                          <td className="py-2 font-medium text-gray-900">{c.charge_name}<br/><span className="text-xs text-gray-600">{c.unit}</span></td>
-                          <td className="py-2 text-gray-900">{c.hsn_code || "—"}</td>
-                          <td className="py-2 text-right text-gray-900">{parseFloat(c.quantity).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                          <td className="py-2 text-right text-gray-900">{fmt(c.price)}</td>
-                          <td className="py-2 text-right font-semibold text-gray-900">{fmt(c.amount)}</td>
+                          <td className="py-2 font-medium text-cyan-900">{c.charge_name}<br/><span className="text-xs text-gray-600">{c.unit}</span></td>
+                          <td className="py-2 text-cyan-900">{c.hsn_code || "—"}</td>
+                          <td className="py-2 text-right text-cyan-900">{parseFloat(c.quantity).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                          <td className="py-2 text-right text-cyan-900">{fmt(c.price)}</td>
+                          <td className="py-2 text-right font-semibold text-cyan-900">{fmt(c.amount)}</td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 </div>
                 <div className="mt-3 border-t border-gray-100 pt-3 flex flex-col items-end gap-1 text-sm">
-                  <div className="flex justify-between w-52"><span className="text-gray-500">Subtotal</span><span className="font-semibold text-gray-900">{fmt(q.subtotal_amount)}</span></div>
-                  <div className="flex justify-between w-52"><span className="text-gray-500">GST ({q.gst_type} @ {q.gst_rate}%)</span><span className="font-semibold text-gray-900">{fmt(q.gst_amount)}</span></div>
-                  <div className="flex justify-between w-52"><span className="text-gray-500">Shipping</span><span className="font-semibold text-gray-900">{fmt(q.estimated_shipping_charges)}</span></div>
+                  <div className="flex justify-between w-52"><span className="text-gray-500">Subtotal</span><span className="font-semibold text-cyan-900">{fmt(q.subtotal_amount)}</span></div>
+                  <div className="flex justify-between w-52"><span className="text-gray-500">GST ({q.gst_type} @ {q.gst_rate}%)</span><span className="font-semibold text-cyan-900">{fmt(q.gst_amount)}</span></div>
+                  <div className="flex justify-between w-52"><span className="text-gray-500">Shipping</span><span className="font-semibold text-cyan-900">{fmt(q.estimated_shipping_charges)}</span></div>
                   <div className="flex justify-between w-52 border-t border-gray-200 pt-1 mt-1">
-                    <span className="font-bold text-gray-900">Total</span>
+                    <span className="font-bold text-cyan-900">Total</span>
                     <span className="font-bold text-[#C6AF4B] text-base">{fmt(q.total_amount)}</span>
                   </div>
                 </div>
@@ -493,7 +493,7 @@ export default function QuotationDetail() {
                         <span className="text-xs font-semibold text-gray-500">{f.feedback_by || "System"}</span>
                         <span className="text-xs text-gray-400">{f.feedback_date}</span>
                       </div>
-                      <p className="text-sm text-gray-700">{f.feedback_text}</p>
+                      <p className="text-sm text-slate-500">{f.feedback_text}</p>
                       {f.revision_reference && <p className="text-xs text-gray-400 mt-0.5">Ref: {f.revision_reference}</p>}
                     </div>
                   ))}
@@ -508,11 +508,11 @@ export default function QuotationDetail() {
             <div className={`${card} p-5`}>
               <h3 className="text-xs font-bold uppercase tracking-wide mb-3" style={{ color: G }}>Amount Summary</h3>
               <div className="space-y-2 text-sm">
-                <div className="flex justify-between"><span className="text-gray-500">Subtotal</span><span className="font-medium text-gray-900">{fmt(q.subtotal_amount)}</span></div>
-                <div className="flex justify-between"><span className="text-gray-500">GST ({q.gst_type})</span><span className="font-medium text-gray-900">{fmt(q.gst_amount)}</span></div>
-                <div className="flex justify-between"><span className="text-gray-500">Shipping</span><span className="font-medium text-gray-900">{fmt(q.estimated_shipping_charges)}</span></div>
+                <div className="flex justify-between"><span className="text-gray-500">Subtotal</span><span className="font-medium text-cyan-900">{fmt(q.subtotal_amount)}</span></div>
+                <div className="flex justify-between"><span className="text-gray-500">GST ({q.gst_type})</span><span className="font-medium text-cyan-900">{fmt(q.gst_amount)}</span></div>
+                <div className="flex justify-between"><span className="text-gray-500">Shipping</span><span className="font-medium text-cyan-900">{fmt(q.estimated_shipping_charges)}</span></div>
                 <div className="flex justify-between pt-2 border-t border-gray-100">
-                  <span className="font-bold text-gray-900">Total</span>
+                  <span className="font-bold text-cyan-900">Total</span>
                   <span className="font-bold text-[#C6AF4B] text-base">{fmt(q.total_amount)}</span>
                 </div>
               </div>
@@ -545,11 +545,11 @@ export default function QuotationDetail() {
             <div className={`${card} p-5`}>
               <h3 className="text-xs font-bold uppercase tracking-wide mb-3" style={{ color: G }}>Info</h3>
               <div className="space-y-2 text-sm">
-                <div><span className="text-gray-400 text-xs block">Created By</span><span className="text-gray-700">{q.created_by || "—"}</span></div>
-                <div><span className="text-gray-400 text-xs block">Created At</span><span className="text-gray-700">{fmtDateTime(q.created_at)}</span></div>
-                <div><span className="text-gray-400 text-xs block">Last Updated</span><span className="text-gray-700">{fmtDateTime(q.updated_at)}</span></div>
+                <div><span className="text-gray-400 text-xs block">Created By</span><span className="text-slate-500">{q.created_by || "—"}</span></div>
+                <div><span className="text-gray-400 text-xs block">Created At</span><span className="text-slate-500">{fmtDateTime(q.created_at)}</span></div>
+                <div><span className="text-gray-400 text-xs block">Last Updated</span><span className="text-slate-500">{fmtDateTime(q.updated_at)}</span></div>
                 {q.estimated_weight && parseFloat(q.estimated_weight) > 0 && (
-                  <div><span className="text-gray-400 text-xs block">Est. Weight</span><span className="text-gray-700">{q.estimated_weight} kg</span></div>
+                  <div><span className="text-gray-400 text-xs block">Est. Weight</span><span className="text-slate-500">{q.estimated_weight} kg</span></div>
                 )}
               </div>
             </div>
@@ -562,8 +562,8 @@ export default function QuotationDetail() {
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
           <div className={`${card} max-w-lg w-full p-6`}>
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold text-gray-900">Add Feedback</h3>
-              <button onClick={() => setFeedbackOpen(false)} className="text-gray-400 hover:text-gray-700"><X size={18} /></button>
+              <h3 className="text-lg font-bold text-cyan-900">Add Feedback</h3>
+              <button onClick={() => setFeedbackOpen(false)} className="text-gray-400 hover:text-slate-500"><X size={18} /></button>
             </div>
             <div className="space-y-3">
               <div>
@@ -606,7 +606,7 @@ export default function QuotationDetail() {
       {confirmConvert && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
           <div className={`${card} max-w-sm w-full p-6`}>
-            <h3 className="text-lg font-bold text-gray-900 mb-2">Convert to {confirmConvert === "swatch" ? "Swatch" : "Style"}?</h3>
+            <h3 className="text-lg font-bold text-cyan-900 mb-2">Convert to {confirmConvert === "swatch" ? "Swatch" : "Style"}?</h3>
             <p className="text-sm text-gray-600 mb-5">
               This will create a new {confirmConvert === "swatch" ? "Swatch Order" : "Style Order"} from this quotation and mark it as converted.
               This action cannot be undone.

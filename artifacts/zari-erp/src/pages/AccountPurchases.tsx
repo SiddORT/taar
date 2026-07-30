@@ -17,8 +17,8 @@ const G_DIM = "#A8943E";
 const SL   = "#3B3F5C";
 const CARD = "rounded-2xl bg-white border border-[#C6AF4B]/15 shadow-[0_2px_16px_rgba(198,175,75,0.12),0_1px_3px_rgba(0,0,0,0.06)] hover:shadow-[0_6px_28px_rgba(198,175,75,0.22),0_2px_6px_rgba(0,0,0,0.08)] transition-all duration-300";
 const TH   = "px-3 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap";
-const TD   = "px-3 py-3 text-sm text-gray-800";
-const INP  = "w-full border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30";
+const TD   = "px-3 py-3 text-sm text-cyan-900";
+const INP  = "w-full border border-gray-200 rounded-xl px-3 py-2 text-sm text-cyan-900 bg-white focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30";
 const LBL  = "block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5";
 const PAGE_SIZE = 10;
 
@@ -58,7 +58,7 @@ function statusBadge(status: string) {
     Cancelled:        "bg-gray-100 text-gray-500",
   };
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${map[status] ?? "bg-gray-100 text-gray-700"}`}>
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${map[status] ?? "bg-gray-100 text-slate-500"}`}>
       {status}
     </span>
   );
@@ -69,7 +69,7 @@ function refTypeBadge(rt: string) {
     "Costing Outsource": "bg-purple-50 text-purple-700",
     "Artisan": "bg-orange-50 text-orange-700",
     "Shipping": "bg-teal-50 text-teal-700",
-    "Other Expense": "bg-gray-100 text-gray-700",
+    "Other Expense": "bg-gray-100 text-slate-500",
   };
   return (
     <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${map[rt] ?? "bg-gray-100 text-gray-600"}`}>
@@ -331,7 +331,7 @@ function CancelBillModal({ row, onClose, onSuccess }: {
             <div className="w-8 h-8 rounded-xl bg-red-50 flex items-center justify-center">
               <Ban size={16} className="text-red-500" />
             </div>
-            <h2 className="text-base font-bold text-gray-800">Cancel Vendor Bill</h2>
+            <h2 className="text-base font-bold text-cyan-900">Cancel Vendor Bill</h2>
           </div>
           <button onClick={onClose}
             className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-gray-100 transition-colors">
@@ -345,7 +345,7 @@ function CancelBillModal({ row, onClose, onSuccess }: {
           <div className="rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 space-y-1 text-sm">
             <div className="flex items-center justify-between gap-2">
               <span className="text-gray-500 text-xs font-semibold uppercase tracking-wide">Vendor</span>
-              <span className="font-semibold text-gray-800 truncate max-w-[180px]">{row.vendor_name}</span>
+              <span className="font-semibold text-cyan-900 truncate max-w-[180px]">{row.vendor_name}</span>
             </div>
             <div className="flex items-center justify-between gap-2">
               <span className="text-gray-500 text-xs font-semibold uppercase tracking-wide">Ref No.</span>
@@ -353,7 +353,7 @@ function CancelBillModal({ row, onClose, onSuccess }: {
             </div>
             <div className="flex items-center justify-between gap-2">
               <span className="text-gray-500 text-xs font-semibold uppercase tracking-wide">Status</span>
-              <span className="text-gray-700">{row.status}</span>
+              <span className="text-slate-500">{row.status}</span>
             </div>
           </div>
           <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 flex items-start gap-2">
@@ -515,7 +515,7 @@ export default function AccountPurchases() {
             <div className="w-14 h-14 rounded-2xl bg-red-50 flex items-center justify-center mx-auto mb-4">
               <AlertTriangle size={28} className="text-red-400" />
             </div>
-            <h2 className="text-lg font-bold text-gray-800">Access Restricted</h2>
+            <h2 className="text-lg font-bold text-cyan-900">Access Restricted</h2>
             <p className="text-sm text-gray-500 mt-2">This page is for Accounts and Admin users only.</p>
           </div>
         </div>
@@ -653,7 +653,7 @@ export default function AccountPurchases() {
                     className={`px-4 py-2.5 text-sm font-semibold rounded-t-lg whitespace-nowrap transition-colors border-b-2 ${
                       statusTab === tab
                         ? "border-[#C6AF4B] text-[#C6AF4B]"
-                        : "border-transparent text-gray-500 hover:text-gray-800"
+                        : "border-transparent text-gray-500 hover:text-cyan-900"
                     }`}>
                     {tab}
                   </button>
@@ -669,14 +669,14 @@ export default function AccountPurchases() {
               <div className="flex flex-wrap items-center gap-2 px-4 py-3 border-b border-gray-100 bg-gray-50/50">
                 {/* Category (ref_type) dropdown */}
                 <select
-                  className="border border-gray-200 rounded-xl px-3 py-2 text-xs font-semibold text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30 h-9"
+                  className="border border-gray-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-500 bg-white focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30 h-9"
                   value={refType}
                   onChange={e => { setRefType(e.target.value); setPage(1); }}>
                   {REF_TYPES.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
                 </select>
                 {/* Reference No */}
                 <input
-                  className="border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30 w-40 h-9"
+                  className="border border-gray-200 rounded-xl px-3 py-2 text-sm text-cyan-900 bg-white focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30 w-40 h-9"
                   placeholder="Reference No…"
                   value={pendingRefNo}
                   onChange={e => setPendingRefNo(e.target.value)}
@@ -686,7 +686,7 @@ export default function AccountPurchases() {
                 <div className="relative flex-1 min-w-[160px] max-w-xs">
                   <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                   <input
-                    className="w-full border border-gray-200 rounded-xl pl-8 pr-3 py-2 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30 h-9"
+                    className="w-full border border-gray-200 rounded-xl pl-8 pr-3 py-2 text-sm text-cyan-900 bg-white focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30 h-9"
                     placeholder="Vendor name…"
                     value={pendingSearch}
                     onChange={e => setPendingSearch(e.target.value)}
@@ -766,7 +766,7 @@ export default function AccountPurchases() {
                             <td className={TD}>{refTypeBadge(row.ref_type)}</td>
                             <td className={`${TD} font-mono text-xs text-gray-500`}>{row.ref_number || "—"}</td>
                             <td className={TD}>
-                              <span className="font-semibold text-gray-900 group-hover:text-[#3B3F5C] transition-colors">
+                              <span className="font-semibold text-cyan-900 group-hover:text-[#3B3F5C] transition-colors">
                                 {row.vendor_name || "—"}
                               </span>
                             </td>
@@ -897,7 +897,7 @@ export default function AccountPurchases() {
                       {i + 1}
                     </div>
                     <div className="min-w-0">
-                      <p className="text-xs font-semibold text-gray-800 truncate">{v.vendor_name}</p>
+                      <p className="text-xs font-semibold text-cyan-900 truncate">{v.vendor_name}</p>
                       <p className="text-[10px] text-gray-400">{v.bill_count} bill{v.bill_count !== 1 ? "s" : ""}</p>
                     </div>
                   </div>
@@ -949,7 +949,7 @@ function Chip({ label, color }: { label: string; color: "gold" | "blue" | "purpl
     gold:   "bg-[#C6AF4B]/10 text-[#A8943E]",
     blue:   "bg-blue-50 text-blue-700",
     purple: "bg-purple-50 text-purple-700",
-    gray:   "bg-gray-100 text-gray-700",
+    gray:   "bg-gray-100 text-slate-500",
   }[color];
   return <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${cls}`}>{label}</span>;
 }

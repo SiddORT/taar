@@ -157,16 +157,16 @@ export default function VendorLedgers() {
               <div className="h-px w-8 rounded-full" style={{ background: `linear-gradient(90deg, ${G}, transparent)` }} />
               <p className="text-[10px] font-black uppercase tracking-[0.25em]" style={{ color: G }}>ACCOUNTS · VENDOR LEDGERS</p>
             </div>
-            <h1 className="text-2xl font-bold tracking-tight text-gray-900">Vendor Ledgers</h1>
+            <h1 className="text-2xl font-bold tracking-tight text-cyan-900">Vendor Ledgers</h1>
             <p className="text-xs text-gray-400 mt-0.5">{vendors.length} vendors · outstanding and payment history</p>
           </div>
           <div className="flex rounded-xl border border-gray-200 overflow-hidden">
             <button onClick={() => setView("grid")} title="Grid view"
-              className={`p-2 transition-colors ${view === "grid" ? "bg-gray-900 text-white" : "bg-white text-gray-400 hover:bg-gray-50"}`}>
+              className={`p-2 transition-colors ${view === "grid" ? "bg-cyan-900 text-white" : "bg-white text-gray-400 hover:bg-gray-50"}`}>
               <LayoutGrid className="h-4 w-4" />
             </button>
             <button onClick={() => setView("table")} title="Table view"
-              className={`p-2 transition-colors ${view === "table" ? "bg-gray-900 text-white" : "bg-white text-gray-400 hover:bg-gray-50"}`}>
+              className={`p-2 transition-colors ${view === "table" ? "bg-cyan-900 text-white" : "bg-white text-gray-400 hover:bg-gray-50"}`}>
               <LayoutList className="h-4 w-4" />
             </button>
           </div>
@@ -190,7 +190,7 @@ export default function VendorLedgers() {
                     <k.icon className="h-3.5 w-3.5" style={{ color: k.color }} />
                   </div>
                 </div>
-                <p className="text-xl font-black leading-none tracking-tight text-gray-900 mb-1">{k.value}</p>
+                <p className="text-xl font-black leading-none tracking-tight text-cyan-900 mb-1">{k.value}</p>
                 <p className="text-[10px] text-gray-400">{k.sub}</p>
               </div>
             </div>
@@ -204,7 +204,7 @@ export default function VendorLedgers() {
             <input
               type="text" value={search} onChange={e => setSearch(e.target.value)}
               placeholder="Search vendor by name or code…"
-              className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-white border border-gray-200 text-sm text-gray-900 placeholder-gray-400
+              className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-white border border-gray-200 text-sm text-cyan-900 placeholder-gray-400
                 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30 focus:border-[#C6AF4B]/50 transition-all"
             />
           </div>
@@ -244,7 +244,7 @@ export default function VendorLedgers() {
                           {initials(v.brand_name)}
                         </div>
                         <div>
-                          <p className="text-sm font-bold text-gray-900 leading-tight">{v.brand_name}</p>
+                          <p className="text-sm font-bold text-cyan-900 leading-tight">{v.brand_name}</p>
                           <p className="text-[10px] font-mono text-gray-400">{v.vendor_code}</p>
                         </div>
                       </div>
@@ -322,7 +322,7 @@ export default function VendorLedgers() {
                             style={{ background: settled ? "#10B981" : G_DIM }}>
                             {initials(v.brand_name)}
                           </div>
-                          <span className="font-semibold text-gray-900">{v.brand_name}</span>
+                          <span className="font-semibold text-cyan-900">{v.brand_name}</span>
                         </div>
                       </td>
                       <td className="px-4 py-3 font-mono text-xs text-gray-400">{v.vendor_code}</td>

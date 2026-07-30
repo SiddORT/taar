@@ -511,23 +511,23 @@ export default function MaterialsMaster() {
         );
       },
     },
-    { key: "materialCode", label: "Code", render: (r) => <span className="font-mono font-semibold text-gray-900" title="Material Code is auto-generated.">{asMat(r).materialCode}</span> },
-    { key: "itemType", label: "Material Name", render: (r) => <span className="text-gray-900 font-medium">{asMat(r).materialName || "—"}</span> },
-    { key: "quality", label: "Quality", render: (r) => <span className="text-gray-700">{asMat(r).quality}</span> },
+    { key: "materialCode", label: "Code", render: (r) => <span className="font-mono font-semibold text-cyan-900" title="Material Code is auto-generated.">{asMat(r).materialCode}</span> },
+    { key: "itemType", label: "Material Name", render: (r) => <span className="text-cyan-900 font-medium">{asMat(r).materialName || "—"}</span> },
+    { key: "quality", label: "Quality", render: (r) => <span className="text-slate-500">{asMat(r).quality}</span> },
     {
       key: "colorName", label: "Color Name",
       render: (r) => (
         <div className="flex items-center gap-2">
           {asMat(r).hexCode && <span className="h-4 w-4 rounded-full border border-gray-200 shrink-0" style={{ backgroundColor: asMat(r).hexCode ?? undefined }} />}
-          <span className="text-gray-700">{asMat(r).colorName}</span>
+          <span className="text-slate-500">{asMat(r).colorName}</span>
         </div>
       ),
     },
-    { key: "size", label: "Size", render: (r) => <span className="text-gray-700">{asMat(r).size}</span> },
+    { key: "size", label: "Size", render: (r) => <span className="text-slate-500">{asMat(r).size}</span> },
     { key: "unitPrice", label: "Unit Price", render: (r) => <span className="font-medium">{fmt(parseFloat(asMat(r).unitPrice || "0"))}</span> },
     { key: "unitType", label: "Unit Type", render: (r) => <span className="text-gray-500">{asMat(r).unitType}</span> },
     { key: "currentStock", label: "Stock", render: (r) => <span className="font-medium">{asMat(r).currentStock}</span> },
-    { key: "hsnCode", label: "HSN Code", render: (r) => <span className="font-mono text-gray-700">{asMat(r).hsnCode}</span> },
+    { key: "hsnCode", label: "HSN Code", render: (r) => <span className="font-mono text-slate-500">{asMat(r).hsnCode}</span> },
     { key: "gstPercent", label: "GST %", render: (r) => <span>{asMat(r).gstPercent}%</span> },
     {
       key: "vendor", label: "Preferred Vendors",
@@ -535,7 +535,7 @@ export default function MaterialsMaster() {
         const vendors = (asMat(r).vendor ?? "").split(",").map((v) => v.trim()).filter(Boolean);
         if (!vendors.length) return <span className="text-gray-400">—</span>;
         return (
-          <span className="truncate max-w-[160px] inline-block text-gray-700" title={vendors.join(", ")}>
+          <span className="truncate max-w-[160px] inline-block text-slate-500" title={vendors.join(", ")}>
             {vendors.join(", ")}
           </span>
         );
@@ -553,7 +553,7 @@ export default function MaterialsMaster() {
       key: "actions", label: "Actions",
       render: (r) => (
         <div className="flex items-center gap-2">
-          <button onClick={() => openEdit(asMat(r))} className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors" title="Edit">
+          <button onClick={() => openEdit(asMat(r))} className="p-1.5 rounded-lg text-gray-400 hover:text-slate-500 hover:bg-gray-100 transition-colors" title="Edit">
             <Pencil className="h-4 w-4" />
           </button>
           <button onClick={() => setDeleteTarget(asMat(r))} disabled={deleteMutation.isPending} className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50" title="Delete">
@@ -581,7 +581,7 @@ export default function MaterialsMaster() {
               <button
                 onClick={handleExportAll}
                 disabled={exportLoading || isLoading}
-                className="flex items-center gap-2 rounded-lg border border-[#C9B45C]/50 bg-white px-3.5 py-2 text-sm font-medium text-gray-700 shadow-sm transition hover:border-[#C9B45C] hover:bg-amber-50/40 disabled:opacity-50"
+                className="flex items-center gap-2 rounded-lg border border-[#C9B45C]/50 bg-white px-3.5 py-2 text-sm font-medium text-slate-500 shadow-sm transition hover:border-[#C9B45C] hover:bg-amber-50/40 disabled:opacity-50"
                 title="Export all matching records to Excel"
               >
                 <FileDown className="h-4 w-4 text-[#C9B45C]" />
@@ -592,7 +592,7 @@ export default function MaterialsMaster() {
                 <button
                   onClick={() => setImportMenuOpen((v) => !v)}
                   disabled={importLoading}
-                  className="flex items-center gap-2 rounded-lg border border-[#C9B45C]/50 bg-white px-3.5 py-2 text-sm font-medium text-gray-700 shadow-sm transition hover:border-[#C9B45C] hover:bg-amber-50/40 disabled:opacity-50"
+                  className="flex items-center gap-2 rounded-lg border border-[#C9B45C]/50 bg-white px-3.5 py-2 text-sm font-medium text-slate-500 shadow-sm transition hover:border-[#C9B45C] hover:bg-amber-50/40 disabled:opacity-50"
                 >
                   <FileSpreadsheet className="h-4 w-4 text-[#C9B45C]" />
                   {importLoading ? "Importing…" : "Import"}
@@ -601,14 +601,14 @@ export default function MaterialsMaster() {
                   <div className="absolute right-0 top-full mt-1 z-30 w-48 rounded-xl border border-gray-100 bg-white shadow-lg py-1">
                     <button
                       onClick={() => { handleDownloadSample(); setImportMenuOpen(false); }}
-                      className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                      className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-slate-500 hover:bg-gray-50 transition-colors"
                     >
                       <FileDown className="h-4 w-4 text-gray-400" />
                       Download Sample
                     </button>
                     <button
                       onClick={() => { importInputRef.current?.click(); setImportMenuOpen(false); }}
-                      className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                      className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-slate-500 hover:bg-gray-50 transition-colors"
                     >
                       <FileUp className="h-4 w-4 text-gray-400" />
                       Upload Excel
@@ -621,16 +621,16 @@ export default function MaterialsMaster() {
 
             <div className="flex flex-wrap gap-2 items-center">
               <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value as StatusFilter); setPage(1); }}
-                className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 shadow-sm outline-none transition focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10">
+                className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-slate-500 shadow-sm outline-none transition focus:border-cyan-900 focus:ring-2 focus:ring-cyan-900/10">
                 {STATUS_FILTER_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
               <select value={hsnCodeFilter} onChange={(e) => { setHsnCodeFilter(e.target.value); setPage(1); }}
-                className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 shadow-sm outline-none transition focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10">
+                className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-slate-500 shadow-sm outline-none transition focus:border-cyan-900 focus:ring-2 focus:ring-cyan-900/10">
                 <option value="">All HSN Codes</option>
                 {hsnOptions.map((h) => <option key={h.hsnCode} value={h.hsnCode}>{h.hsnCode}</option>)}
               </select>
               <select value={vendorFilter} onChange={(e) => { setVendorFilter(e.target.value); setPage(1); }}
-                className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 shadow-sm outline-none transition focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10">
+                className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-slate-500 shadow-sm outline-none transition focus:border-cyan-900 focus:ring-2 focus:ring-cyan-900/10">
                 <option value="">All Vendors</option>
                 {allVendors.map((v) => <option key={v.id} value={v.brandName}>{v.brandName}</option>)}
               </select>
@@ -661,12 +661,12 @@ export default function MaterialsMaster() {
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <button type="button" onClick={cancelForm}
-                className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 transition-colors">
+                className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-cyan-900 transition-colors">
                 <ArrowLeft className="h-4 w-4" />
                 Material Master
               </button>
               <span className="text-gray-300">/</span>
-              <h1 className="text-lg font-bold text-gray-900">
+              <h1 className="text-lg font-bold text-cyan-900">
                 {editRecord ? `Edit Material — ${editRecord.materialCode}` : "Add Material"}
               </h1>
             </div>
@@ -693,19 +693,19 @@ export default function MaterialsMaster() {
                     onChange={(e) => setForm((f) => ({ ...f, materialName: e.target.value }))}
                     error={errors.materialName} />
                   <div className="flex flex-col gap-1">
-                    <label className="text-sm font-medium text-gray-700">Quality</label>
+                    <label className="text-sm font-medium text-slate-500">Quality</label>
                     <input value={form.quality} maxLength={50}
                       onChange={(e) => setForm((f) => ({ ...f, quality: e.target.value.replace(/[^A-Za-z ]/g, "") }))}
                       placeholder="e.g. Premium"
-                      className={`rounded-lg border px-3.5 py-2.5 text-sm text-gray-900 outline-none transition focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10 ${errors.quality ? "border-red-400 bg-red-50/30" : "border-gray-300 bg-white"}`} />
+                      className={`rounded-lg border px-3.5 py-2.5 text-sm text-cyan-900 outline-none transition focus:border-cyan-900 focus:ring-2 focus:ring-cyan-900/10 ${errors.quality ? "border-red-400 bg-red-50/30" : "border-gray-300 bg-white"}`} />
                     {errors.quality ? <p className="text-xs text-red-500">{errors.quality}</p> : <p className="text-[10px] text-gray-400">{form.quality.length} / 50 characters used</p>}
                   </div>
                   <div className="flex flex-col gap-1">
-                    <label className="text-sm font-medium text-gray-700">Type</label>
+                    <label className="text-sm font-medium text-slate-500">Type</label>
                     <input value={form.type ?? ""} maxLength={50}
                       onChange={(e) => setForm((f) => ({ ...f, type: e.target.value.replace(/[^A-Za-z ]/g, "") }))}
                       placeholder="e.g. Natural"
-                      className={`rounded-lg border px-3.5 py-2.5 text-sm text-gray-900 outline-none transition focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10 ${errors.type ? "border-red-400 bg-red-50/30" : "border-gray-300 bg-white"}`} />
+                      className={`rounded-lg border px-3.5 py-2.5 text-sm text-cyan-900 outline-none transition focus:border-cyan-900 focus:ring-2 focus:ring-cyan-900/10 ${errors.type ? "border-red-400 bg-red-50/30" : "border-gray-300 bg-white"}`} />
                     {errors.type ? <p className="text-xs text-red-500">{errors.type}</p> : <p className="text-[10px] text-gray-400">{(form.type ?? "").length} / 50 characters used</p>}
                   </div>
                 </div>
@@ -716,7 +716,7 @@ export default function MaterialsMaster() {
                 <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#C6AF4B] mb-4">Color</p>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-sm font-medium text-gray-700">Color Picker</label>
+                    <label className="text-sm font-medium text-slate-500">Color Picker</label>
                     <div className="flex gap-2 items-center">
                       <input type="color" value={form.hexCode || "#c9b45c"}
                         onChange={(e) => { const name = hexToColorName(e.target.value); setForm((f) => ({ ...f, hexCode: e.target.value, color: e.target.value, colorName: name })); }}
@@ -726,11 +726,11 @@ export default function MaterialsMaster() {
                     </div>
                   </div>
                   <div className="flex flex-col gap-1">
-                    <label className="text-sm font-medium text-gray-700">Color Name<span className="text-red-500 ml-0.5">*</span></label>
+                    <label className="text-sm font-medium text-slate-500">Color Name<span className="text-red-500 ml-0.5">*</span></label>
                     <input value={form.colorName} maxLength={50}
                       onChange={(e) => setForm((f) => ({ ...f, colorName: e.target.value.replace(/[^A-Za-z ]/g, "") }))}
                       placeholder="e.g. Royal Blue"
-                      className={`rounded-lg border px-3.5 py-2.5 text-sm text-gray-900 outline-none transition focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10 ${errors.colorName ? "border-red-400 bg-red-50/30" : "border-gray-300 bg-white"}`} />
+                      className={`rounded-lg border px-3.5 py-2.5 text-sm text-cyan-900 outline-none transition focus:border-cyan-900 focus:ring-2 focus:ring-cyan-900/10 ${errors.colorName ? "border-red-400 bg-red-50/30" : "border-gray-300 bg-white"}`} />
                     {errors.colorName ? <p className="text-xs text-red-500">{errors.colorName}</p> : <p className="text-[10px] text-gray-400">{form.colorName.length} / 50 characters used</p>}
                   </div>
                 </div>
@@ -741,12 +741,12 @@ export default function MaterialsMaster() {
                 <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#C6AF4B] mb-4">Sizing & Pricing</p>
                 <div className="grid grid-cols-3 gap-4">
                   <div className="flex flex-col gap-1">
-                    <label className="text-sm font-medium text-gray-700">Size<span className="text-red-500 ml-0.5">*</span></label>
+                    <label className="text-sm font-medium text-slate-500">Size<span className="text-red-500 ml-0.5">*</span></label>
                     <input value={form.size} maxLength={6}
                       onKeyDown={(e) => { if (e.key === "e" || e.key === "E" || e.key === "-" || e.key === "+") e.preventDefault(); }}
                       onChange={(e) => setForm((f) => ({ ...f, size: e.target.value }))}
                       placeholder="e.g. 5"
-                      className={`rounded-lg border px-3.5 py-2.5 text-sm text-gray-900 outline-none transition focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10 ${errors.size ? "border-red-400 bg-red-50/30" : "border-gray-300 bg-white"}`} />
+                      className={`rounded-lg border px-3.5 py-2.5 text-sm text-cyan-900 outline-none transition focus:border-cyan-900 focus:ring-2 focus:ring-cyan-900/10 ${errors.size ? "border-red-400 bg-red-50/30" : "border-gray-300 bg-white"}`} />
                     {errors.size && <p className="text-xs text-red-500">{errors.size}</p>}
                   </div>
                   <AddableSelect
@@ -757,12 +757,12 @@ export default function MaterialsMaster() {
                     options={unitTypeOptions} placeholder="Select Unit Type" error={errors.unitType}
                   />
                   <div className="flex flex-col gap-1">
-                    <label className="text-sm font-medium text-gray-700">Unit Price<span className="text-red-500 ml-0.5">*</span></label>
+                    <label className="text-sm font-medium text-slate-500">Unit Price<span className="text-red-500 ml-0.5">*</span></label>
                     <input value={form.unitPrice} maxLength={10}
                       onKeyDown={(e) => { if (e.key === "e" || e.key === "E" || e.key === "-" || e.key === "+") e.preventDefault(); }}
                       onChange={(e) => setForm((f) => ({ ...f, unitPrice: e.target.value }))}
                       placeholder="e.g. 250"
-                      className={`rounded-lg border px-3.5 py-2.5 text-sm text-gray-900 outline-none transition focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10 ${errors.unitPrice ? "border-red-400 bg-red-50/30" : "border-gray-300 bg-white"}`} />
+                      className={`rounded-lg border px-3.5 py-2.5 text-sm text-cyan-900 outline-none transition focus:border-cyan-900 focus:ring-2 focus:ring-cyan-900/10 ${errors.unitPrice ? "border-red-400 bg-red-50/30" : "border-gray-300 bg-white"}`} />
                     {errors.unitPrice && <p className="text-xs text-red-500">{errors.unitPrice}</p>}
                   </div>
                 </div>
@@ -783,7 +783,7 @@ export default function MaterialsMaster() {
                     options={hsnDropdownOptions} placeholder="Select HSN" error={errors.hsnCode}
                   />
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-sm font-medium text-gray-700">GST %</label>
+                    <label className="text-sm font-medium text-slate-500">GST %</label>
                     <input type="text" readOnly value={form.gstPercent ? `${form.gstPercent}%` : ""}
                       placeholder="Auto-filled from HSN"
                       className="rounded-lg border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-sm text-gray-500" />
@@ -797,11 +797,11 @@ export default function MaterialsMaster() {
                 {(() => {
                   return (
                     <div className="flex flex-col gap-2">
-                      <label className="text-sm font-medium text-gray-700">Preferred Vendors</label>
+                      <label className="text-sm font-medium text-slate-500">Preferred Vendors</label>
                       {selectedVendors.length > 0 && (
                         <div className="flex flex-wrap gap-1.5 mb-1">
                           {selectedVendors.map((name) => (
-                            <span key={name} className="inline-flex items-center gap-1 rounded-full bg-amber-50 border border-[#C9B45C]/40 px-2.5 py-1 text-xs font-medium text-gray-700 max-w-[200px]" title={name}>
+                            <span key={name} className="inline-flex items-center gap-1 rounded-full bg-amber-50 border border-[#C9B45C]/40 px-2.5 py-1 text-xs font-medium text-slate-500 max-w-[200px]" title={name}>
                               <span className="truncate">{name}</span>
                               <button type="button" onClick={() => removeVendor(name)}
                                 className="ml-0.5 text-gray-400 hover:text-red-500 transition-colors leading-none shrink-0">
@@ -814,7 +814,7 @@ export default function MaterialsMaster() {
                       <div className="relative" ref={vendorPickerRef}>
                         <button type="button"
                           onClick={() => { setVendorPickerOpen((v) => !v); setVendorPickerSearch(""); }}
-                          className="w-full flex items-center justify-between rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-500 shadow-sm outline-none transition hover:border-gray-400 focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10">
+                          className="w-full flex items-center justify-between rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-500 shadow-sm outline-none transition hover:border-gray-400 focus:border-cyan-900 focus:ring-2 focus:ring-cyan-900/10">
                           <span>{selectedVendors.length === 0 ? "Select vendors…" : `${selectedVendors.length} selected`}</span>
                           <svg className={`h-4 w-4 text-gray-400 transition-transform ${vendorPickerOpen ? "rotate-180" : ""}`} viewBox="0 0 20 20" fill="currentColor">
                             <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
@@ -826,7 +826,7 @@ export default function MaterialsMaster() {
                               <input autoFocus value={vendorPickerSearch}
                                 onChange={(e) => setVendorPickerSearch(e.target.value)}
                                 placeholder="Search vendors…"
-                                className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-sm text-gray-900 placeholder-gray-400 outline-none focus:border-gray-400" />
+                                className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-sm text-cyan-900 placeholder-gray-400 outline-none focus:border-gray-400" />
                             </div>
                             <div className="max-h-48 overflow-y-auto py-1">
                               {availableVendors.length === 0 ? (
@@ -837,7 +837,7 @@ export default function MaterialsMaster() {
                                 availableVendors.map((name) => (
                                   <button key={name} type="button"
                                     onClick={() => { addVendor(name); setVendorPickerSearch(""); }}
-                                    className="flex w-full items-center px-4 py-2 text-sm text-gray-700 hover:bg-amber-50/60 hover:text-gray-900 transition-colors text-left truncate"
+                                    className="flex w-full items-center px-4 py-2 text-sm text-slate-500 hover:bg-amber-50/60 hover:text-cyan-900 transition-colors text-left truncate"
                                     title={name}>
                                     {name}
                                   </button>
@@ -867,7 +867,7 @@ export default function MaterialsMaster() {
                     <span className="text-[10px] font-black uppercase tracking-[0.18em] text-indigo-600">Stock by Location</span>
                     {form.locationStocks.length > 0 && (
                       <span className="text-xs text-gray-500">
-                        · Total: <span className="font-semibold text-gray-800">{totalStock} {form.unitType || "units"}</span>
+                        · Total: <span className="font-semibold text-cyan-900">{totalStock} {form.unitType || "units"}</span>
                       </span>
                     )}
                   </div>
@@ -886,7 +886,7 @@ export default function MaterialsMaster() {
                       <div key={idx} className="flex gap-2 items-center">
                         <select value={ls.location}
                           onChange={(e) => updateLocationStock(idx, "location", e.target.value)}
-                          className="flex-1 rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100">
+                          className="flex-1 rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-cyan-900 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100">
                           <option value="">Select warehouse…</option>
                           {locationOptions.map((l) => <option key={l} value={l}>{l}</option>)}
                         </select>
@@ -904,7 +904,7 @@ export default function MaterialsMaster() {
                       </div>
                     ))}
                     <div className="border-t border-indigo-100 pt-2 flex justify-end">
-                      <span className="text-sm font-semibold text-gray-700">
+                      <span className="text-sm font-semibold text-slate-500">
                         Total Stock: <span className="text-indigo-700">{totalStock} {form.unitType || "units"}</span>
                       </span>
                     </div>
@@ -912,12 +912,12 @@ export default function MaterialsMaster() {
                 )}
                 {form.locationStocks.length === 0 && (
                   <div className="mt-3">
-                    <label className="text-sm font-medium text-gray-700">Current Stock<span className="text-red-500 ml-0.5">*</span></label>
+                    <label className="text-sm font-medium text-slate-500">Current Stock<span className="text-red-500 ml-0.5">*</span></label>
                     <input value={form.currentStock} maxLength={10}
                       onKeyDown={(e) => { if (e.key === "e" || e.key === "E" || e.key === "-" || e.key === "+") e.preventDefault(); }}
                       onChange={(e) => setForm((f) => ({ ...f, currentStock: e.target.value }))}
                       placeholder="e.g. 100"
-                      className={`mt-1 w-full rounded-lg border px-3.5 py-2.5 text-sm text-gray-900 outline-none transition focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10 ${errors.currentStock ? "border-red-400 bg-red-50/30" : "border-gray-300 bg-white"}`} />
+                      className={`mt-1 w-full rounded-lg border px-3.5 py-2.5 text-sm text-cyan-900 outline-none transition focus:border-cyan-900 focus:ring-2 focus:ring-cyan-900/10 ${errors.currentStock ? "border-red-400 bg-red-50/30" : "border-gray-300 bg-white"}`} />
                     {errors.currentStock && <p className="text-xs text-red-500 mt-1">{errors.currentStock}</p>}
                   </div>
                 )}
@@ -958,10 +958,10 @@ export default function MaterialsMaster() {
                             <Star className="h-2.5 w-2.5 text-white fill-white" />
                           </div>
                         )}
-                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/35 transition-colors flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100">
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-cyan-900/35 transition-colors flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100">
                           <button type="button" onClick={() => openCarousel(form.images, imgIdx)}
                             className="p-1 rounded-full bg-white/90 hover:bg-white transition-colors" title="View">
-                            <ZoomIn className="h-3 w-3 text-gray-700" />
+                            <ZoomIn className="h-3 w-3 text-slate-500" />
                           </button>
                           {imgIdx !== 0 && (
                             <button type="button" onClick={() => setAsThumbnail(img.id)}
@@ -995,24 +995,24 @@ export default function MaterialsMaster() {
                 </div>
                 <div className="space-y-3">
                   <div className="flex flex-col gap-1">
-                    <label className="text-sm font-medium text-gray-700">Minimum Level</label>
+                    <label className="text-sm font-medium text-slate-500">Minimum Level</label>
                     <input type="number" min="0" placeholder="0" value={form.minimumLevel ?? ""}
                       onChange={(e) => setForm((f) => ({ ...f, minimumLevel: e.target.value }))}
-                      className="border border-gray-300 rounded-lg px-3 py-2.5 text-sm bg-white outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-900" />
+                      className="border border-gray-300 rounded-lg px-3 py-2.5 text-sm bg-white outline-none focus:ring-2 focus:ring-cyan-900/10 focus:border-cyan-900" />
                     {errors.minimumLevel && <p className="text-xs text-red-500">{errors.minimumLevel}</p>}
                   </div>
                   <div className="flex flex-col gap-1">
-                    <label className="text-sm font-medium text-gray-700">Reorder Level</label>
+                    <label className="text-sm font-medium text-slate-500">Reorder Level</label>
                     <input type="number" min="0" placeholder="0" value={form.reorderLevel ?? ""}
                       onChange={(e) => setForm((f) => ({ ...f, reorderLevel: e.target.value }))}
-                      className="border border-gray-300 rounded-lg px-3 py-2.5 text-sm bg-white outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-900" />
+                      className="border border-gray-300 rounded-lg px-3 py-2.5 text-sm bg-white outline-none focus:ring-2 focus:ring-cyan-900/10 focus:border-cyan-900" />
                     {errors.reorderLevel && <p className="text-xs text-red-500">{errors.reorderLevel}</p>}
                   </div>
                   <div className="flex flex-col gap-1">
-                    <label className="text-sm font-medium text-gray-700">Maximum Level</label>
+                    <label className="text-sm font-medium text-slate-500">Maximum Level</label>
                     <input type="number" min="0" placeholder="0" value={form.maximumLevel ?? ""}
                       onChange={(e) => setForm((f) => ({ ...f, maximumLevel: e.target.value }))}
-                      className="border border-gray-300 rounded-lg px-3 py-2.5 text-sm bg-white outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-900" />
+                      className="border border-gray-300 rounded-lg px-3 py-2.5 text-sm bg-white outline-none focus:ring-2 focus:ring-cyan-900/10 focus:border-cyan-900" />
                     {errors.maximumLevel && <p className="text-xs text-red-500">{errors.maximumLevel}</p>}
                   </div>
                 </div>
@@ -1023,11 +1023,11 @@ export default function MaterialsMaster() {
               <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
                 <div className="flex items-center gap-3">
                   <div className="flex-1">
-                    <p className="text-sm font-medium text-gray-700">Status</p>
+                    <p className="text-sm font-medium text-slate-500">Status</p>
                     <p className="text-xs text-gray-400 mt-0.5">{form.isActive ? "Visible and active in the system" : "Hidden from active lists"}</p>
                   </div>
                   <button type="button" onClick={() => setForm((f) => ({ ...f, isActive: !f.isActive }))}
-                    className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors focus:outline-none ${form.isActive ? "bg-gray-900" : "bg-gray-300"}`}
+                    className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors focus:outline-none ${form.isActive ? "bg-cyan-900" : "bg-gray-300"}`}
                     role="switch" aria-checked={form.isActive}>
                     <span className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transform transition-transform ${form.isActive ? "translate-x-5" : "translate-x-0"}`} />
                   </button>
@@ -1098,9 +1098,9 @@ export default function MaterialsMaster() {
         <InputField label="HSN Code" required placeholder="e.g. 5402" value={hsnForm.hsnCode}
           onChange={(e) => setHsnForm((f) => ({ ...f, hsnCode: e.target.value }))} error={hsnErrors.hsnCode} />
         <div className="flex flex-col gap-1.5">
-          <label className="text-sm font-medium text-gray-700">GST Percentage<span className="text-red-500 ml-0.5">*</span></label>
+          <label className="text-sm font-medium text-slate-500">GST Percentage<span className="text-red-500 ml-0.5">*</span></label>
           <select value={hsnForm.gstPercentage} onChange={(e) => setHsnForm((f) => ({ ...f, gstPercentage: e.target.value }))}
-            className={`w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 shadow-sm outline-none transition focus:border-gray-900 ${hsnErrors.gstPercentage ? "border-red-400" : ""}`}>
+            className={`w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-cyan-900 shadow-sm outline-none transition focus:border-cyan-900 ${hsnErrors.gstPercentage ? "border-red-400" : ""}`}>
             <option value="">Select GST %</option>
             {GST_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>

@@ -227,7 +227,7 @@ export default function SwatchMaster() {
       const rec = asSwatch(r);
       return (
         <button type="button" onClick={() => setStatusConfirm({ id: rec.id, isActive: rec.isActive })}
-          className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${rec.isActive ? "bg-gray-900" : "bg-gray-300"}`}>
+          className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${rec.isActive ? "bg-cyan-900" : "bg-gray-300"}`}>
           <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${rec.isActive ? "translate-x-[18px]" : "translate-x-0.5"}`} />
         </button>
       );
@@ -258,22 +258,22 @@ export default function SwatchMaster() {
         {/* ── Header ── */}
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div>
-            <h1 className="text-xl font-semibold text-gray-900">Swatch Master</h1>
+            <h1 className="text-xl font-semibold text-cyan-900">Swatch Master</h1>
             <p className="text-sm text-gray-400 mt-0.5">Manage swatch master records</p>
           </div>
           <div className="flex items-center gap-2">
             {/* Import */}
             <div className="relative">
               <button onClick={() => { setImportDropOpen(o => !o); setExportDropOpen(false); }}
-                className="flex items-center gap-1.5 px-3 py-2 text-sm rounded-lg border border-[#C9B45C]/50 bg-white text-gray-700 hover:border-[#C9B45C] hover:bg-amber-50/40 transition">
+                className="flex items-center gap-1.5 px-3 py-2 text-sm rounded-lg border border-[#C9B45C]/50 bg-white text-slate-500 hover:border-[#C9B45C] hover:bg-amber-50/40 transition">
                 <FileSpreadsheet size={15} className="text-[#C9B45C]" /> Import <ChevronDown size={13} className="text-gray-400" />
               </button>
               {importDropOpen && (
                 <div className="absolute right-0 top-full mt-1 z-30 bg-white border border-gray-200 rounded-xl shadow-lg py-1 w-48">
-                  <button onClick={downloadSample} className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 w-full text-left">
+                  <button onClick={downloadSample} className="flex items-center gap-2 px-4 py-2.5 text-sm text-slate-500 hover:bg-gray-50 w-full text-left">
                     <FileDown size={14} className="text-[#C9B45C]" /> Download Sample
                   </button>
-                  <label className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer">
+                  <label className="flex items-center gap-2 px-4 py-2.5 text-sm text-slate-500 hover:bg-gray-50 cursor-pointer">
                     <FileUp size={14} className="text-[#C9B45C]" /> Upload Excel
                     <input ref={importRef} type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={handleImportFile} />
                   </label>
@@ -283,13 +283,13 @@ export default function SwatchMaster() {
             {/* Export */}
             <div className="relative">
               <button onClick={() => { setExportDropOpen(o => !o); setImportDropOpen(false); }} disabled={exporting}
-                className="flex items-center gap-1.5 px-3 py-2 text-sm rounded-lg border border-[#C9B45C]/50 bg-white text-gray-700 hover:border-[#C9B45C] hover:bg-amber-50/40 transition disabled:opacity-60">
+                className="flex items-center gap-1.5 px-3 py-2 text-sm rounded-lg border border-[#C9B45C]/50 bg-white text-slate-500 hover:border-[#C9B45C] hover:bg-amber-50/40 transition disabled:opacity-60">
                 {exporting ? <Loader2 size={15} className="animate-spin text-[#C9B45C]" /> : <FileDown size={15} className="text-[#C9B45C]" />}
                 Export <ChevronDown size={13} className="text-gray-400" />
               </button>
               {exportDropOpen && (
                 <div className="absolute right-0 top-full mt-1 z-30 bg-white border border-gray-200 rounded-xl shadow-lg py-1 w-44">
-                  <button onClick={handleExportAll} className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 w-full text-left">
+                  <button onClick={handleExportAll} className="flex items-center gap-2 px-4 py-2.5 text-sm text-slate-500 hover:bg-gray-50 w-full text-left">
                     <FileDown size={14} className="text-[#C9B45C]" /> Export All
                   </button>
                 </div>
@@ -310,17 +310,17 @@ export default function SwatchMaster() {
             <SearchBar value={search} onChange={v => { setSearch(v); setPage(1); }} placeholder="Search swatches…" />
           </div>
           <select value={clientFilter} onChange={e => { setClientFilter(e.target.value); setPage(1); }}
-            className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 shadow-sm outline-none focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10">
+            className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-slate-500 shadow-sm outline-none focus:border-cyan-900 focus:ring-2 focus:ring-cyan-900/10">
             <option value="">All Clients</option>
             {clientOptions.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
           <select value={locationFilter} onChange={e => { setLocationFilter(e.target.value); setPage(1); }}
-            className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 shadow-sm outline-none focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10">
+            className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-slate-500 shadow-sm outline-none focus:border-cyan-900 focus:ring-2 focus:ring-cyan-900/10">
             <option value="">All Locations</option>
             {LOCATION_OPTIONS.map(l => <option key={l} value={l}>{l}</option>)}
           </select>
           <select value={swatchCategoryFilter} onChange={e => { setSwatchCategoryFilter(e.target.value); setPage(1); }}
-            className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 shadow-sm outline-none focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10">
+            className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-slate-500 shadow-sm outline-none focus:border-cyan-900 focus:ring-2 focus:ring-cyan-900/10">
             <option value="">All Categories</option>
             {swatchCatOptions.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
           </select>
@@ -336,7 +336,7 @@ export default function SwatchMaster() {
             placeholder="All Tags"
           />
           <select value={status} onChange={e => { setStatus(e.target.value as StatusFilter); setPage(1); }}
-            className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 shadow-sm outline-none focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10">
+            className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-slate-500 shadow-sm outline-none focus:border-cyan-900 focus:ring-2 focus:ring-cyan-900/10">
             {STATUS_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
           {hasFilters && (

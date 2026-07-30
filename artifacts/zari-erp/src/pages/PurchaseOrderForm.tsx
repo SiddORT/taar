@@ -22,7 +22,7 @@ const G_DIM = "#A8943E";
 const card  = "rounded-2xl bg-white border border-[#C6AF4B]/15 shadow-[0_2px_16px_rgba(198,175,75,0.12),0_1px_3px_rgba(0,0,0,0.06)]";
 
 const STATUS_MAP: Record<string, { label: string; color: string; Icon: React.ElementType }> = {
-  Draft:               { label: "Draft",             color: "bg-gray-100 text-gray-700",   Icon: Clock },
+  Draft:               { label: "Draft",             color: "bg-gray-100 text-slate-500",   Icon: Clock },
   Approved:            { label: "Approved",           color: "bg-blue-100 text-blue-700",   Icon: CheckCircle2 },
   "Partially Received":{ label: "Partially Received", color: "bg-amber-100 text-amber-700", Icon: PackageCheck },
   Closed:              { label: "Closed",             color: "bg-green-100 text-green-700", Icon: CheckCircle2 },
@@ -447,11 +447,11 @@ export default function PurchaseOrderForm() {
             <div className="flex items-center gap-3">
               <button onClick={() => navigate("/procurement/purchase-orders")}
                 className="p-2 rounded-xl hover:bg-[#C6AF4B]/10 transition-colors">
-                <ArrowLeft className="h-5 w-5 text-gray-700" />
+                <ArrowLeft className="h-5 w-5 text-slate-500" />
               </button>
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="font-mono text-lg font-bold text-gray-900">{po.po_number}</span>
+                  <span className="font-mono text-lg font-bold text-cyan-900">{po.po_number}</span>
                   <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold ${statusInfo.color}`}>
                     <statusInfo.Icon className="h-3 w-3" /> {statusInfo.label}
                   </span>
@@ -484,7 +484,7 @@ export default function PurchaseOrderForm() {
                   });
                   logActivity(`Downloaded PDF for Purchase Order ${po.po_number} — ${po.vendor_name}`);
                 }}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium text-gray-700 border border-gray-200 hover:bg-gray-50 transition-colors">
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium text-slate-500 border border-gray-200 hover:bg-gray-50 transition-colors">
                 <FileDown className="h-4 w-4" /> Download PDF
               </button>
               {canApprove && (
@@ -506,7 +506,7 @@ export default function PurchaseOrderForm() {
 
           <div className="grid grid-cols-3 gap-4">
             {[
-              { label: "Total Ordered", value: totalOrdered.toFixed(2), color: "text-gray-900" },
+              { label: "Total Ordered", value: totalOrdered.toFixed(2), color: "text-cyan-900" },
               { label: "Total Received", value: totalReceived.toFixed(2), color: "text-green-700" },
               { label: "Total Pending", value: totalPending.toFixed(2), color: totalPending > 0 ? "text-amber-600" : "text-gray-400" },
             ].map(({ label, value, color }) => (
@@ -518,7 +518,7 @@ export default function PurchaseOrderForm() {
           </div>
 
           <div className={`${card} p-5`}>
-            <h3 className="text-sm font-semibold text-gray-700 mb-3">Order Details</h3>
+            <h3 className="text-sm font-semibold text-slate-500 mb-3">Order Details</h3>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
               {(() => {
                 // Build vendor display based on vendor_mode
@@ -535,7 +535,7 @@ export default function PurchaseOrderForm() {
                 ].map(([label, value]) => (
                   <div key={label}>
                     <p className="text-xs text-gray-400 font-medium">{label}</p>
-                    <p className="text-gray-900 mt-0.5 font-medium">{value}</p>
+                    <p className="text-cyan-900 mt-0.5 font-medium">{value}</p>
                   </div>
                 ));
               })()}
@@ -551,7 +551,7 @@ export default function PurchaseOrderForm() {
               ].map(([label, value]) => (
                 <div key={label}>
                   <p className="text-xs text-gray-400 font-medium">{label}</p>
-                  <p className="text-gray-700 mt-0.5 text-xs">{value}</p>
+                  <p className="text-slate-500 mt-0.5 text-xs">{value}</p>
                 </div>
               ))}
             </div>
@@ -559,7 +559,7 @@ export default function PurchaseOrderForm() {
 
           <div className={card}>
             <div className="px-4 py-3 border-b border-gray-100">
-              <h3 className="text-sm font-semibold text-gray-700">Order Items</h3>
+              <h3 className="text-sm font-semibold text-slate-500">Order Items</h3>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full">
@@ -580,7 +580,7 @@ export default function PurchaseOrderForm() {
                     return (
                       <tr key={item.id} className="hover:bg-gray-50">
                         <td className="px-3 py-3 text-xs text-gray-400">{i+1}</td>
-                        <td className="px-3 py-3 text-sm font-medium text-gray-900">{item.item_name}</td>
+                        <td className="px-3 py-3 text-sm font-medium text-cyan-900">{item.item_name}</td>
                         <td className="px-3 py-3 text-xs font-mono text-gray-500">{item.item_code}</td>
                         <td className="px-3 py-3 text-xs text-gray-500">{item.unit_type ?? "—"}</td>
                         {po.vendor_mode === "item" && (
@@ -588,7 +588,7 @@ export default function PurchaseOrderForm() {
                             {item.vendor_name ? item.vendor_name : <span className="text-xs text-gray-400">—</span>}
                           </td>
                         )}
-                        <td className="px-3 py-3 text-sm font-mono text-gray-900">{parseFloat(item.ordered_quantity).toFixed(2)}</td>
+                        <td className="px-3 py-3 text-sm font-mono text-cyan-900">{parseFloat(item.ordered_quantity).toFixed(2)}</td>
                         <td className="px-3 py-3">
                           <div className="flex items-center gap-2">
                             <span className="text-sm font-mono text-green-700">{parseFloat(item.received_quantity).toFixed(2)}</span>
@@ -616,7 +616,7 @@ export default function PurchaseOrderForm() {
             <div className={card}>
               <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-2">
                 <PackageCheck className="h-4 w-4" style={{ color: G }} />
-                <h3 className="text-sm font-semibold text-gray-700">Linked Receipts ({po.receipts.length})</h3>
+                <h3 className="text-sm font-semibold text-slate-500">Linked Receipts ({po.receipts.length})</h3>
               </div>
               <div className="divide-y divide-gray-50">
                 {po.receipts.map(pr => {
@@ -626,7 +626,7 @@ export default function PurchaseOrderForm() {
                       onClick={() => navigate(`/procurement/purchase-receipts/${pr.id}`)}>
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-3">
-                          <span className="text-sm font-semibold text-gray-900 font-mono">{pr.pr_number}</span>
+                          <span className="text-sm font-semibold text-cyan-900 font-mono">{pr.pr_number}</span>
                           <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wide ${
                             pr.status === "Confirmed" ? "bg-green-100 text-green-700" :
                             pr.status === "Open" ? "bg-amber-100 text-amber-700" :
@@ -636,7 +636,7 @@ export default function PurchaseOrderForm() {
                         </div>
                         <div className="flex items-center gap-4 text-xs text-gray-500">
                           <span>{new Date(pr.received_date).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}</span>
-                          <span className="font-mono font-semibold text-gray-700">{fmt(prTotal)}</span>
+                          <span className="font-mono font-semibold text-slate-500">{fmt(prTotal)}</span>
                           <span>{pr.items.length} item{pr.items.length !== 1 ? "s" : ""}</span>
                         </div>
                       </div>
@@ -653,7 +653,7 @@ export default function PurchaseOrderForm() {
 
   // ── CREATE mode ────────────────────────────────────────────────────────────
 
-  const inputCls = "w-full px-2.5 py-1.5 text-sm text-gray-900 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30";
+  const inputCls = "w-full px-2.5 py-1.5 text-sm text-cyan-900 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30";
 
   return (
     <div className="min-h-screen" style={{ background: "#F8F6F0" }}>
@@ -664,12 +664,12 @@ export default function PurchaseOrderForm() {
         <div className="flex items-center gap-3">
           <button onClick={() => navigate("/procurement/purchase-orders")}
             className="p-2 rounded-xl hover:bg-[#C6AF4B]/10 transition-colors">
-            <ArrowLeft className="h-5 w-5 text-gray-700" />
+            <ArrowLeft className="h-5 w-5 text-slate-500" />
           </button>
           <div>
             <div className="flex items-center gap-2">
               <ShoppingCart className="h-5 w-5" style={{ color: G }} />
-              <h1 className="text-xl font-bold text-gray-900">New Purchase Order</h1>
+              <h1 className="text-xl font-bold text-cyan-900">New Purchase Order</h1>
             </div>
             <p className="text-sm text-gray-500 mt-0.5">Create a procurement purchase order</p>
           </div>
@@ -677,7 +677,7 @@ export default function PurchaseOrderForm() {
 
         {/* Order Info */}
         <div className={`${card} p-5`}>
-          <h3 className="text-sm font-semibold text-gray-700 mb-4">Order Information</h3>
+          <h3 className="text-sm font-semibold text-slate-500 mb-4">Order Information</h3>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
 
             {/* Vendor */}
@@ -750,19 +750,19 @@ export default function PurchaseOrderForm() {
           {/* GST toggle */}
           <div className="flex items-center gap-3 pt-3 border-t border-gray-100">
             <BadgePercent className="h-4 w-4 text-gray-400 flex-shrink-0" />
-            <span className="text-sm text-gray-700 font-medium">GST Applicable?</span>
+            <span className="text-sm text-slate-500 font-medium">GST Applicable?</span>
             <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
               <button type="button"
                 onClick={() => setIncludeGst(false)}
                 className={`px-3 py-1 rounded-md text-xs font-semibold transition-all ${
-                  !includeGst ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
+                  !includeGst ? "bg-white text-cyan-900 shadow-sm" : "text-gray-500 hover:text-slate-500"
                 }`}>
                 Without GST
               </button>
               <button type="button"
                 onClick={() => setIncludeGst(true)}
                 className={`px-3 py-1 rounded-md text-xs font-semibold transition-all ${
-                  includeGst ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
+                  includeGst ? "bg-white text-cyan-900 shadow-sm" : "text-gray-500 hover:text-slate-500"
                 }`}>
                 With GST (as per HSN)
               </button>
@@ -780,22 +780,22 @@ export default function PurchaseOrderForm() {
           <div className={`${card} p-5`}>
             <div className="flex items-center gap-2 mb-4">
               <Building2 className="h-4 w-4" style={{ color: G }} />
-              <h3 className="text-sm font-semibold text-gray-700">Vendor Details</h3>
+              <h3 className="text-sm font-semibold text-slate-500">Vendor Details</h3>
               <span className="text-xs text-gray-400 font-mono">{selectedVendor.vendorCode}</span>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div>
                 <p className="text-xs text-gray-400 font-medium mb-0.5">Business Name</p>
-                <p className="text-sm font-semibold text-gray-900">{selectedVendor.brandName}</p>
+                <p className="text-sm font-semibold text-cyan-900">{selectedVendor.brandName}</p>
               </div>
               <div>
                 <p className="text-xs text-gray-400 font-medium mb-0.5">Contact Person</p>
-                <p className="text-sm text-gray-800">{selectedVendor.contactName ?? "—"}</p>
+                <p className="text-sm text-cyan-900">{selectedVendor.contactName ?? "—"}</p>
               </div>
               {selectedVendor.gstNo && (
                 <div>
                   <p className="text-xs text-gray-400 font-medium mb-0.5">GSTIN</p>
-                  <p className="text-sm font-mono text-gray-800">{selectedVendor.gstNo}</p>
+                  <p className="text-sm font-mono text-cyan-900">{selectedVendor.gstNo}</p>
                 </div>
               )}
               {!selectedVendor.hasGst && (
@@ -807,12 +807,12 @@ export default function PurchaseOrderForm() {
               {(selectedVendor.contactNo || selectedVendor.email) && (
                 <div className="flex flex-col gap-1">
                   {selectedVendor.contactNo && (
-                    <div className="flex items-center gap-1.5 text-sm text-gray-700">
+                    <div className="flex items-center gap-1.5 text-sm text-slate-500">
                       <Phone className="h-3.5 w-3.5 text-gray-400" /> {selectedVendor.contactNo}
                     </div>
                   )}
                   {selectedVendor.email && (
-                    <div className="flex items-center gap-1.5 text-sm text-gray-700">
+                    <div className="flex items-center gap-1.5 text-sm text-slate-500">
                       <Mail className="h-3.5 w-3.5 text-gray-400" /> {selectedVendor.email}
                     </div>
                   )}
@@ -821,7 +821,7 @@ export default function PurchaseOrderForm() {
               {(selectedVendor.address1 || selectedVendor.city) && (
                 <div className="flex items-start gap-1.5">
                   <MapPin className="h-3.5 w-3.5 text-gray-400 mt-0.5 flex-shrink-0" />
-                  <p className="text-sm text-gray-700">
+                  <p className="text-sm text-slate-500">
                     {[selectedVendor.address1, selectedVendor.city, selectedVendor.state, selectedVendor.pincode]
                       .filter(Boolean).join(", ")}
                   </p>
@@ -830,7 +830,7 @@ export default function PurchaseOrderForm() {
               {selectedVendor.bankName && (
                 <div>
                   <p className="text-xs text-gray-400 font-medium mb-0.5">Bank</p>
-                  <div className="flex items-center gap-1.5 text-sm text-gray-700">
+                  <div className="flex items-center gap-1.5 text-sm text-slate-500">
                     <CreditCard className="h-3.5 w-3.5 text-gray-400" />
                     <span>{selectedVendor.bankName}</span>
                     {selectedVendor.accountNo && <span className="font-mono text-xs">· {selectedVendor.accountNo}</span>}
@@ -844,7 +844,7 @@ export default function PurchaseOrderForm() {
                 <div>
                   <p className="text-xs text-gray-400 font-medium mb-1">Bank Accounts</p>
                   {selectedVendor.bankAccounts.map((ba, i) => (
-                    <div key={i} className="flex items-center gap-1.5 text-sm text-gray-700 mt-0.5">
+                    <div key={i} className="flex items-center gap-1.5 text-sm text-slate-500 mt-0.5">
                       <CreditCard className="h-3 w-3 text-gray-400" />
                       <span>{ba.bankName}</span>
                       <span className="font-mono text-xs">· {ba.accountNo}</span>
@@ -860,9 +860,9 @@ export default function PurchaseOrderForm() {
         {/* Line Items */}
         <div className={card}>
           <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-            <h3 className="text-sm font-semibold text-gray-700">Order Items</h3>
+            <h3 className="text-sm font-semibold text-slate-500">Order Items</h3>
             <button onClick={addLine}
-              className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50">
+              className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg border border-gray-200 text-slate-500 hover:bg-gray-50">
               <Plus className="h-3.5 w-3.5" /> Add Item
             </button>
           </div>
@@ -961,7 +961,7 @@ export default function PurchaseOrderForm() {
                           )}
                         </div>
                       </td>
-                      <td className="px-3 py-2 text-sm font-mono font-semibold text-gray-900 text-right pr-4 align-top">
+                      <td className="px-3 py-2 text-sm font-mono font-semibold text-cyan-900 text-right pr-4 align-top">
                         {lineAmt > 0 ? `${fmt(lineAmt)}` : "—"}
                       </td>
                       {includeGst && <>
@@ -981,7 +981,7 @@ export default function PurchaseOrderForm() {
                         <td className="px-3 py-2 text-xs font-mono text-amber-600 text-right pr-4 align-top">
                           {gstAmt > 0 ? `${fmt(gstAmt)}` : "—"}
                         </td>
-                        <td className="px-3 py-2 text-xs font-mono font-semibold text-gray-900 text-right pr-4 align-top">
+                        <td className="px-3 py-2 text-xs font-mono font-semibold text-cyan-900 text-right pr-4 align-top">
                           {lineTotal > 0 ? `${fmt(lineTotal)}` : "—"}
                         </td>
                       </>}
@@ -992,7 +992,7 @@ export default function PurchaseOrderForm() {
                           {line.itemImage ? (
                             <div className="relative group w-10 h-10 rounded-lg overflow-hidden border border-gray-200">
                               <img src={mediaUrl(line.itemImage)} alt="" className="w-full h-full object-cover" />
-                              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center gap-0.5 opacity-0 group-hover:opacity-100">
+                              <div className="absolute inset-0 bg-black/0 group-hover:bg-cyan-900/40 transition-colors flex items-center justify-center gap-0.5 opacity-0 group-hover:opacity-100">
                                 <button type="button" onClick={() => updateLine(line.key, "itemImage", "")}
                                   className="p-0.5 rounded-full bg-white/90"><XIcon className="h-2.5 w-2.5 text-red-500" /></button>
                               </div>
@@ -1007,7 +1007,7 @@ export default function PurchaseOrderForm() {
                                 </svg>
                               </div>
                               {line.inventoryItemId && (
-                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+                                <div className="absolute inset-0 bg-black/0 group-hover:bg-cyan-900/30 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
                                   <Camera className="h-3.5 w-3.5 text-white" />
                                 </div>
                               )}
@@ -1096,7 +1096,7 @@ export default function PurchaseOrderForm() {
             <div className="border-t border-gray-100 px-4 py-4">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex items-center gap-2 text-sm text-gray-500">
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-700">
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-slate-500">
                     {totals.itemCount} item{totals.itemCount !== 1 ? "s" : ""}
                   </span>
                   <span>with quantity entered</span>
@@ -1104,7 +1104,7 @@ export default function PurchaseOrderForm() {
                 <div className="flex flex-col items-end gap-1 text-sm min-w-[200px]">
                   <div className="flex items-center justify-between w-full gap-6">
                     <span className="text-gray-500">Subtotal</span>
-                    <span className="font-mono font-semibold text-gray-900">{fmt(totals.subtotal+0)}</span>
+                    <span className="font-mono font-semibold text-cyan-900">{fmt(totals.subtotal+0)}</span>
                   </div>
                   {includeGst && totals.totalGst > 0 && (
                     <div className="flex items-center justify-between w-full gap-6">
@@ -1114,8 +1114,8 @@ export default function PurchaseOrderForm() {
                   )}
                   {includeGst && (
                     <div className="flex items-center justify-between w-full gap-6 pt-1 border-t border-gray-200">
-                      <span className="text-gray-900 font-semibold">Grand Total</span>
-                      <span className="font-mono font-bold text-gray-900 text-base">{fmt(totals.grand+0)}</span>
+                      <span className="text-cyan-900 font-semibold">Grand Total</span>
+                      <span className="font-mono font-bold text-cyan-900 text-base">{fmt(totals.grand+0)}</span>
                     </div>
                   )}
                 </div>
@@ -1127,7 +1127,7 @@ export default function PurchaseOrderForm() {
         {/* Actions */}
         <div className="flex justify-end gap-3">
           <button onClick={() => navigate("/procurement/purchase-orders")}
-            className="px-5 py-2.5 rounded-xl text-sm font-medium text-gray-700 border border-gray-200 hover:bg-gray-50">
+            className="px-5 py-2.5 rounded-xl text-sm font-medium text-slate-500 border border-gray-200 hover:bg-gray-50">
             Cancel
           </button>
           <button onClick={handleSubmit} disabled={submitting}

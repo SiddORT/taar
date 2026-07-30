@@ -43,9 +43,9 @@ interface LineItem {
 
 const card       = "bg-white rounded-2xl border border-gray-100 shadow-sm";
 const sectionLbl = "text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3";
-const inputCls   = "w-full px-2.5 py-1.5 text-sm text-gray-900 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30 placeholder-gray-400 disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed";
-const labelCls   = "text-sm font-medium text-gray-700 block mb-1";
-const cellInput  = "w-full px-2 py-1.5 text-sm text-gray-900 border-0 focus:outline-none focus:ring-0 bg-transparent placeholder-gray-300";
+const inputCls   = "w-full px-2.5 py-1.5 text-sm text-cyan-900 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30 placeholder-gray-400 disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed";
+const labelCls   = "text-sm font-medium text-slate-500 block mb-1";
+const cellInput  = "w-full px-2 py-1.5 text-sm text-cyan-900 border-0 focus:outline-none focus:ring-0 bg-transparent placeholder-gray-300";
 
 function newLine(): LineItem {
   return { _id: crypto.randomUUID(), description: "", quantity: "", unit: "", rate: "", amount: "" };
@@ -142,7 +142,7 @@ function OrderSearchInput({ value, onChange, disabled }: {
               <button key={hit.code} type="button" onClick={() => select(hit)}
                 className="w-full text-left px-3 py-2.5 hover:bg-gray-50 transition-colors flex items-center gap-2.5 border-b border-gray-50 last:border-0">
                 <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 ${hit.type === "SWATCH" ? "bg-amber-100 text-amber-700" : "bg-indigo-100 text-indigo-700"}`}>{hit.type}</span>
-                <span className="font-mono text-xs font-semibold text-gray-700">{hit.code}</span>
+                <span className="font-mono text-xs font-semibold text-slate-500">{hit.code}</span>
                 <span className="text-xs text-gray-500 truncate">{hit.label}</span>
               </button>
             ))}
@@ -248,7 +248,7 @@ function AttachmentSection({ challanId, attachments, pendingFiles, onPendingFile
         <div key={`${file.name}-${i}`} className="flex items-center gap-3 p-3 bg-amber-50 rounded-xl border border-amber-200">
           <Paperclip className="h-4 w-4 text-amber-500 shrink-0" />
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-medium text-gray-800 truncate">{file.name}</p>
+            <p className="text-sm font-medium text-cyan-900 truncate">{file.name}</p>
             <p className="text-xs text-amber-600">Will be uploaded when challan is saved</p>
           </div>
           {!disabled && (
@@ -273,7 +273,7 @@ function AttachmentSection({ challanId, attachments, pendingFiles, onPendingFile
             )}
 
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium text-gray-800 truncate">
+              <p className="text-sm font-medium text-cyan-900 truncate">
                 {file.name}
               </p>
               <p className="text-xs text-amber-600">
@@ -318,7 +318,7 @@ function AttachmentSection({ challanId, attachments, pendingFiles, onPendingFile
       {!disabled && (
         <div>
           <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-dashed border-gray-300 text-sm text-gray-500 hover:border-gray-400 hover:text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50">
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-dashed border-gray-300 text-sm text-gray-500 hover:border-gray-400 hover:text-slate-500 hover:bg-gray-50 transition-colors disabled:opacity-50">
             {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
             {uploading ? "Uploading…" : hasFiles ? "Add More Documents" : "Attach Documents"}
           </button>
@@ -332,7 +332,7 @@ function AttachmentSection({ challanId, attachments, pendingFiles, onPendingFile
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={() => setPreview(null)}>
           <div className="bg-white rounded-2xl shadow-xl max-w-3xl w-full max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
             <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-gray-900 truncate">{preview.name}</h3>
+              <h3 className="text-sm font-semibold text-cyan-900 truncate">{preview.name}</h3>
               <div className="flex items-center gap-2">
                 <a href={preview.url} target="_blank" rel="noreferrer"
                   className="text-xs px-2.5 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-100 transition-colors">Open in new tab</a>
@@ -425,7 +425,7 @@ function LineItemsTable({ items, onChange, disabled }: {
                   disabled={disabled} placeholder="0.00"
                   className={`${cellInput} text-right` + (disabled ? " opacity-50 cursor-not-allowed" : "")} />
               </td>
-              <td className={`${colBase} px-3 py-1.5 text-sm text-right font-medium text-gray-700`}>
+              <td className={`${colBase} px-3 py-1.5 text-sm text-right font-medium text-slate-500`}>
                 {item.amount ? `${fmt(parseFloat(item.amount))}` : "—"}
               </td>
               {!disabled && (
@@ -453,7 +453,7 @@ function LineItemsTable({ items, onChange, disabled }: {
               <td colSpan={disabled ? 5 : 5} className="px-3 py-2.5 text-xs font-semibold text-gray-500 text-right uppercase tracking-wider">
                 Total
               </td>
-              <td className="px-3 py-2.5 text-sm text-right font-bold text-gray-900">
+              <td className="px-3 py-2.5 text-sm text-right font-bold text-cyan-900">
                 {fmt(total)}
               </td>
               {!disabled && <td />}
@@ -465,7 +465,7 @@ function LineItemsTable({ items, onChange, disabled }: {
       {!disabled && (
         <div className="px-3 py-2.5 border-t border-gray-100">
           <button type="button" onClick={() => onChange([...items, newLine()])}
-            className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 transition-colors">
+            className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-cyan-900 transition-colors">
             <Plus size={15} className="text-gray-400" />
             Add Row
           </button>
@@ -685,11 +685,11 @@ export default function VendorChallanDetail() {
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
             <button onClick={() => setLocation("/procurement/vendor-challans")}
-              className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 transition-colors shrink-0">
+              className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-cyan-900 transition-colors shrink-0">
               <ArrowLeft className="h-4 w-4" /> Vendor Challans
             </button>
             <span className="text-gray-300">/</span>
-            <h1 className="text-lg font-bold text-gray-900 truncate">
+            <h1 className="text-lg font-bold text-cyan-900 truncate">
               {isNew ? "New Challan" : (challanNumber ?? `Challan #${numId}`)}
             </h1>
             {!isNew && (
@@ -838,7 +838,7 @@ export default function VendorChallanDetail() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm">
             <div className="px-6 py-4 border-b border-gray-100">
-              <h3 className="text-base font-semibold text-gray-900">Cancel Challan</h3>
+              <h3 className="text-base font-semibold text-cyan-900">Cancel Challan</h3>
             </div>
             <div className="px-6 py-5 text-sm text-gray-600">
               Are you sure you want to cancel this challan? This action cannot be undone.

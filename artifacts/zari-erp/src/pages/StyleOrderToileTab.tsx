@@ -11,8 +11,8 @@ import { useAllVendors, type VendorRecord } from "@/hooks/useVendors";
 import { useToast } from "@/hooks/use-toast";
 import { useCurrency } from "@/contexts/CurrencyContext";
 
-const inputCls  = "w-full px-3 py-2.5 text-sm text-gray-900 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-gray-900/10 placeholder:text-gray-400";
-const selectCls = "w-full px-3 py-2.5 text-sm text-gray-900 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-gray-900/10 appearance-none";
+const inputCls  = "w-full px-3 py-2.5 text-sm text-cyan-900 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-cyan-900/10 placeholder:text-gray-400";
+const selectCls = "w-full px-3 py-2.5 text-sm text-cyan-900 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-cyan-900/10 appearance-none";
 const PAYMENT_MODES    = ["Cash", "Bank Transfer", "Cheque", "UPI", "Card", "Other"];
 const PAYMENT_STATUSES = ["Pending", "Partial", "Paid"];
 
@@ -46,7 +46,7 @@ function FileUploadZone({
         className="border-2 border-dashed border-gray-200 rounded-xl p-4 text-center hover:border-gray-400 hover:bg-gray-50 transition-colors cursor-pointer">
         <div className="flex flex-col items-center gap-1.5">
           <div className="h-8 w-8 rounded-lg bg-gray-100 flex items-center justify-center text-gray-400">{icon}</div>
-          <p className="text-xs font-medium text-gray-700">{label}</p>
+          <p className="text-xs font-medium text-slate-500">{label}</p>
           <p className="text-xs text-gray-400">Click or drag & drop</p>
         </div>
         <input ref={inputRef} type="file" multiple accept={accept} className="hidden"
@@ -64,7 +64,7 @@ function FileUploadZone({
                 </div>
               )}
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-medium text-gray-700 truncate">{f.name}</p>
+                <p className="text-xs font-medium text-slate-500 truncate">{f.name}</p>
                 <p className="text-xs text-gray-400">{(f.size / 1024).toFixed(0)} KB</p>
               </div>
               <button type="button" onClick={() => onChange(files.filter((_, j) => j !== i))}
@@ -176,11 +176,11 @@ function ArtworkToileRow({
         className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-left"
         onClick={() => setExpanded(e => !e)}
       >
-        <div className="h-8 w-8 rounded-lg bg-gray-900 flex items-center justify-center shrink-0">
+        <div className="h-8 w-8 rounded-lg bg-cyan-900 flex items-center justify-center shrink-0">
           <Palette className="h-4 w-4 text-[#C9B45C]" />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-gray-900 truncate">{artwork.artworkName}</p>
+          <p className="text-sm font-medium text-cyan-900 truncate">{artwork.artworkName}</p>
           <p className="text-xs text-gray-400">{artwork.artworkCode}</p>
         </div>
         <div className="flex items-center gap-3 shrink-0">
@@ -301,7 +301,7 @@ function ArtworkToileRow({
               type="button"
               onClick={() => { void handleSave(); }}
               disabled={saving}
-              className="flex items-center gap-2 px-5 py-2 rounded-xl bg-gray-900 text-[#C9B45C] text-sm font-medium hover:bg-black transition-colors disabled:opacity-60 shadow-sm"
+              className="flex items-center gap-2 px-5 py-2 rounded-xl bg-cyan-900 text-[#C9B45C] text-sm font-medium hover:bg-cyan-900 transition-colors disabled:opacity-60 shadow-sm"
             >
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
               {saving ? "Saving…" : "Save Toile Details"}
@@ -340,11 +340,11 @@ export default function StyleOrderToileTab({
   return (
     <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
       <div className="flex items-center gap-3 px-6 py-4 border-b border-gray-200 bg-gray-50/50">
-        <div className="flex items-center justify-center h-8 w-8 rounded-xl bg-gray-900">
+        <div className="flex items-center justify-center h-8 w-8 rounded-xl bg-cyan-900">
           <Scissors className="h-4 w-4 text-[#C9B45C]" />
         </div>
         <div>
-          <h2 className="text-sm font-semibold text-gray-900">Toile</h2>
+          <h2 className="text-sm font-semibold text-cyan-900">Toile</h2>
           <p className="text-xs text-gray-400">Toile making costs and payment details per artwork</p>
         </div>
       </div>

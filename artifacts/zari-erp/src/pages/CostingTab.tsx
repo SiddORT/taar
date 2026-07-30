@@ -77,7 +77,7 @@ function SectionHeader({ icon, title, children }: { icon: React.ReactNode; title
     <div className="flex items-center justify-between mb-4">
       <div className="flex items-center gap-2">
         <span className="text-[#C9B45C]">{icon}</span>
-        <h3 className="text-sm font-bold text-gray-900 tracking-tight">{title}</h3>
+        <h3 className="text-sm font-bold text-cyan-900 tracking-tight">{title}</h3>
       </div>
       {children}
     </div>
@@ -136,63 +136,63 @@ function QuickAddMaterialModal({ onClose, onCreated }: {
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col">
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
           <div>
-            <h4 className="text-sm font-semibold text-gray-900">Quick Add Material</h4>
+            <h4 className="text-sm font-semibold text-cyan-900">Quick Add Material</h4>
             <p className="text-[11px] text-gray-400">New material will appear in the master & selector</p>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"><X className="h-5 w-5" /></button>
+          <button onClick={onClose} className="p-1.5 rounded-lg text-gray-400 hover:text-slate-500 hover:bg-gray-100 transition-colors"><X className="h-5 w-5" /></button>
         </div>
         <div className="overflow-y-auto flex-1 px-5 py-4 grid grid-cols-2 gap-3">
           {[
             { label: "Item Type", node: (
               <select value={f.itemType} onChange={e => setF(p => ({ ...p, itemType: e.target.value }))}
-                className="w-full text-xs text-gray-900 border border-gray-200 rounded-xl px-3 py-2 bg-white focus:outline-none">
+                className="w-full text-xs text-cyan-900 border border-gray-200 rounded-xl px-3 py-2 bg-white focus:outline-none">
                 <option value="">— Select —</option>
                 {itemTypes.map((t: any) => <option key={t.id} value={t.name}>{t.name}</option>)}
               </select>
             )},
             { label: "Quality *", node: (
               <input value={f.quality} onChange={e => setF(p => ({ ...p, quality: e.target.value }))}
-                placeholder="e.g. Premium" className="w-full text-xs text-gray-900 border border-gray-200 rounded-xl px-3 py-2 focus:outline-none" />
+                placeholder="e.g. Premium" className="w-full text-xs text-cyan-900 border border-gray-200 rounded-xl px-3 py-2 focus:outline-none" />
             )},
             { label: "Size *", node: (
               <input value={f.size} onChange={e => setF(p => ({ ...p, size: e.target.value }))}
-                placeholder="e.g. 8mm" className="w-full text-xs text-gray-900 border border-gray-200 rounded-xl px-3 py-2 focus:outline-none" />
+                placeholder="e.g. 8mm" className="w-full text-xs text-cyan-900 border border-gray-200 rounded-xl px-3 py-2 focus:outline-none" />
             )},
             { label: "Color Name *", node: (
               <input value={f.colorName} onChange={e => setF(p => ({ ...p, colorName: e.target.value }))}
-                placeholder="e.g. Gold" className="w-full text-xs text-gray-900 border border-gray-200 rounded-xl px-3 py-2 focus:outline-none" />
+                placeholder="e.g. Gold" className="w-full text-xs text-cyan-900 border border-gray-200 rounded-xl px-3 py-2 focus:outline-none" />
             )},
             { label: "Unit Type *", node: (
               <select value={f.unitType} onChange={e => setF(p => ({ ...p, unitType: e.target.value }))}
-                className="w-full text-xs text-gray-900 border border-gray-200 rounded-xl px-3 py-2 bg-white focus:outline-none">
+                className="w-full text-xs text-cyan-900 border border-gray-200 rounded-xl px-3 py-2 bg-white focus:outline-none">
                 <option value="">— Select —</option>
                 {unitTypes.map((t: any) => <option key={t.id} value={t.name}>{t.name}</option>)}
               </select>
             )},
             { label: "Unit Price *", node: (
               <input type="number" min="0" step="any" value={f.unitPrice} onChange={e => setF(p => ({ ...p, unitPrice: e.target.value }))}
-                placeholder="0.00" className="w-full text-xs text-gray-900 border border-gray-200 rounded-xl px-3 py-2 focus:outline-none" />
+                placeholder="0.00" className="w-full text-xs text-cyan-900 border border-gray-200 rounded-xl px-3 py-2 focus:outline-none" />
             )},
             { label: "Current Stock", node: (
               <input type="number" min="0" step="any" value={f.currentStock} onChange={e => setF(p => ({ ...p, currentStock: e.target.value }))}
-                className="w-full text-xs text-gray-900 border border-gray-200 rounded-xl px-3 py-2 focus:outline-none" />
+                className="w-full text-xs text-cyan-900 border border-gray-200 rounded-xl px-3 py-2 focus:outline-none" />
             )},
             { label: "HSN Code *", node: (
               <select value={f.hsnCode} onChange={e => setF(p => ({ ...p, hsnCode: e.target.value }))}
-                className="w-full text-xs text-gray-900 border border-gray-200 rounded-xl px-3 py-2 bg-white focus:outline-none">
+                className="w-full text-xs text-cyan-900 border border-gray-200 rounded-xl px-3 py-2 bg-white focus:outline-none">
                 <option value="">— Select —</option>
                 {hsnOptions.map((h: any) => <option key={h.id} value={h.hsnCode}>{h.hsnCode}</option>)}
               </select>
             )},
             { label: "GST %", node: (
               <select value={f.gstPercent} onChange={e => setF(p => ({ ...p, gstPercent: e.target.value }))}
-                className="w-full text-xs text-gray-900 border border-gray-200 rounded-xl px-3 py-2 bg-white focus:outline-none">
+                className="w-full text-xs text-cyan-900 border border-gray-200 rounded-xl px-3 py-2 bg-white focus:outline-none">
                 {GST_OPTS.map(v => <option key={v} value={v}>{v}%</option>)}
               </select>
             )},
             { label: "Vendor", node: (
               <input value={f.vendor ?? ""} onChange={e => setF(p => ({ ...p, vendor: e.target.value }))}
-                placeholder="optional" className="w-full text-xs text-gray-900 border border-gray-200 rounded-xl px-3 py-2 focus:outline-none" />
+                placeholder="optional" className="w-full text-xs text-cyan-900 border border-gray-200 rounded-xl px-3 py-2 focus:outline-none" />
             )},
           ].map(({ label, node }) => (
             <div key={label}>
@@ -204,7 +204,7 @@ function QuickAddMaterialModal({ onClose, onCreated }: {
         <div className="px-5 py-3 border-t border-gray-200 flex justify-end gap-2">
           <button onClick={onClose} className="px-4 py-2 rounded-xl text-xs text-gray-500 border border-gray-200 hover:bg-gray-50">Cancel</button>
           <button onClick={handleSave} disabled={createMat.isPending}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gray-900 text-[#C9B45C] text-xs font-semibold hover:bg-black disabled:opacity-50">
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-cyan-900 text-[#C9B45C] text-xs font-semibold hover:bg-cyan-900 disabled:opacity-50">
             {createMat.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />} Add Material
           </button>
         </div>
@@ -252,63 +252,63 @@ function QuickAddFabricModal({ onClose, onCreated }: {
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col">
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
           <div>
-            <h4 className="text-sm font-semibold text-gray-900">Quick Add Fabric</h4>
+            <h4 className="text-sm font-semibold text-cyan-900">Quick Add Fabric</h4>
             <p className="text-[11px] text-gray-400">New fabric will appear in the master & selector</p>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"><X className="h-5 w-5" /></button>
+          <button onClick={onClose} className="p-1.5 rounded-lg text-gray-400 hover:text-slate-500 hover:bg-gray-100 transition-colors"><X className="h-5 w-5" /></button>
         </div>
         <div className="overflow-y-auto flex-1 px-5 py-4 grid grid-cols-2 gap-3">
           {[
             { label: "Fabric Type *", node: (
               <select value={f.fabricType} onChange={e => setF(p => ({ ...p, fabricType: e.target.value }))}
-                className="w-full text-xs text-gray-900 border border-gray-200 rounded-xl px-3 py-2 bg-white focus:outline-none">
+                className="w-full text-xs text-cyan-900 border border-gray-200 rounded-xl px-3 py-2 bg-white focus:outline-none">
                 <option value="">— Select —</option>
                 {fabricTypes.map((t: any) => <option key={t.id} value={t.name}>{t.name}</option>)}
               </select>
             )},
             { label: "Quality *", node: (
               <input value={f.quality} onChange={e => setF(p => ({ ...p, quality: e.target.value }))}
-                placeholder="e.g. Premium" className="w-full text-xs text-gray-900 border border-gray-200 rounded-xl px-3 py-2 focus:outline-none" />
+                placeholder="e.g. Premium" className="w-full text-xs text-cyan-900 border border-gray-200 rounded-xl px-3 py-2 focus:outline-none" />
             )},
             { label: "Color Name *", node: (
               <input value={f.colorName} onChange={e => setF(p => ({ ...p, colorName: e.target.value }))}
-                placeholder="e.g. Ivory" className="w-full text-xs text-gray-900 border border-gray-200 rounded-xl px-3 py-2 focus:outline-none" />
+                placeholder="e.g. Ivory" className="w-full text-xs text-cyan-900 border border-gray-200 rounded-xl px-3 py-2 focus:outline-none" />
             )},
             { label: "Width *", node: (
               <input type="number" min="0" step="any" value={f.width} onChange={e => setF(p => ({ ...p, width: e.target.value }))}
-                placeholder="e.g. 44" className="w-full text-xs text-gray-900 border border-gray-200 rounded-xl px-3 py-2 focus:outline-none" />
+                placeholder="e.g. 44" className="w-full text-xs text-cyan-900 border border-gray-200 rounded-xl px-3 py-2 focus:outline-none" />
             )},
             { label: "Unit Type *", node: (
               <select value={f.unitType} onChange={e => setF(p => ({ ...p, unitType: e.target.value }))}
-                className="w-full text-xs text-gray-900 border border-gray-200 rounded-xl px-3 py-2 bg-white focus:outline-none">
+                className="w-full text-xs text-cyan-900 border border-gray-200 rounded-xl px-3 py-2 bg-white focus:outline-none">
                 <option value="">— Select —</option>
                 {unitTypes.map((t: any) => <option key={t.id} value={t.name}>{t.name}</option>)}
               </select>
             )},
             { label: "Price/Meter *", node: (
               <input type="number" min="0" step="any" value={f.pricePerMeter} onChange={e => setF(p => ({ ...p, pricePerMeter: e.target.value }))}
-                placeholder="0.00" className="w-full text-xs text-gray-900 border border-gray-200 rounded-xl px-3 py-2 focus:outline-none" />
+                placeholder="0.00" className="w-full text-xs text-cyan-900 border border-gray-200 rounded-xl px-3 py-2 focus:outline-none" />
             )},
             { label: "Current Stock", node: (
               <input type="number" min="0" step="any" value={f.currentStock} onChange={e => setF(p => ({ ...p, currentStock: e.target.value }))}
-                className="w-full text-xs text-gray-900 border border-gray-200 rounded-xl px-3 py-2 focus:outline-none" />
+                className="w-full text-xs text-cyan-900 border border-gray-200 rounded-xl px-3 py-2 focus:outline-none" />
             )},
             { label: "HSN Code *", node: (
               <select value={f.hsnCode} onChange={e => setF(p => ({ ...p, hsnCode: e.target.value }))}
-                className="w-full text-xs text-gray-900 border border-gray-200 rounded-xl px-3 py-2 bg-white focus:outline-none">
+                className="w-full text-xs text-cyan-900 border border-gray-200 rounded-xl px-3 py-2 bg-white focus:outline-none">
                 <option value="">— Select —</option>
                 {hsnOptions.map((h: any) => <option key={h.id} value={h.hsnCode}>{h.hsnCode}</option>)}
               </select>
             )},
             { label: "GST %", node: (
               <select value={f.gstPercent} onChange={e => setF(p => ({ ...p, gstPercent: e.target.value }))}
-                className="w-full text-xs text-gray-900 border border-gray-200 rounded-xl px-3 py-2 bg-white focus:outline-none">
+                className="w-full text-xs text-cyan-900 border border-gray-200 rounded-xl px-3 py-2 bg-white focus:outline-none">
                 {GST_OPTS.map(v => <option key={v} value={v}>{v}%</option>)}
               </select>
             )},
             { label: "Vendor", node: (
               <input value={f.vendor ?? ""} onChange={e => setF(p => ({ ...p, vendor: e.target.value }))}
-                placeholder="optional" className="w-full text-xs text-gray-900 border border-gray-200 rounded-xl px-3 py-2 focus:outline-none" />
+                placeholder="optional" className="w-full text-xs text-cyan-900 border border-gray-200 rounded-xl px-3 py-2 focus:outline-none" />
             )},
           ].map(({ label, node }) => (
             <div key={label}>
@@ -320,7 +320,7 @@ function QuickAddFabricModal({ onClose, onCreated }: {
         <div className="px-5 py-3 border-t border-gray-200 flex justify-end gap-2">
           <button onClick={onClose} className="px-4 py-2 rounded-xl text-xs text-gray-500 border border-gray-200 hover:bg-gray-50">Cancel</button>
           <button onClick={handleSave} disabled={createFab.isPending}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gray-900 text-[#C9B45C] text-xs font-semibold hover:bg-black disabled:opacity-50">
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-cyan-900 text-[#C9B45C] text-xs font-semibold hover:bg-cyan-900 disabled:opacity-50">
             {createFab.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />} Add Fabric
           </button>
         </div>
@@ -442,7 +442,7 @@ function BomSection({ swatchOrderId, orderCode, swatchName, clientName }: {
   function exportToExcel() {
     const today = new Date().toLocaleDateString("en-IN");
     const header = [
-      ["ZARI EMBROIDERIES – Bill of Materials"],
+      ["ERP – Bill of Materials"],
       ["Order:", orderCode ?? "—", "Swatch:", swatchName ?? "—", "Client:", clientName ?? "—", "Date:", today],
       [],
       ["Code", "Material/Fabric", "Type", "Stock", "Avg Price", "Req Qty", "PO Target Price", "PO Qty", "PR Qty", "PR Total", "Consumed Qty", "Consumed Total"],
@@ -482,7 +482,7 @@ function BomSection({ swatchOrderId, orderCode, swatchName, clientName }: {
           <div className="flex items-center rounded-lg border border-gray-200 overflow-hidden text-[11px]">
             {(["all", "material", "fabric"] as const).map(f => (
               <button key={f} onClick={() => setTypeFilter(f)}
-                className={`px-2.5 py-1.5 font-medium transition-colors ${typeFilter === f ? "bg-gray-900 text-white" : "text-gray-500 hover:bg-gray-50"}`}>
+                className={`px-2.5 py-1.5 font-medium transition-colors ${typeFilter === f ? "bg-cyan-900 text-white" : "text-gray-500 hover:bg-gray-50"}`}>
                 {f === "all" ? "All" : f === "material" ? "MAT" : "FAB"}
               </button>
             ))}
@@ -494,7 +494,7 @@ function BomSection({ swatchOrderId, orderCode, swatchName, clientName }: {
             </button>
           )}
           <button onClick={() => setShowForm(v => !v)}
-            className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl bg-gray-900 text-[#C9B45C] hover:bg-black transition-colors">
+            className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl bg-cyan-900 text-[#C9B45C] hover:bg-cyan-900 transition-colors">
             <Plus className="h-3.5 w-3.5" /> Add Material/Fabric
           </button>
         </div>
@@ -551,7 +551,7 @@ function BomSection({ swatchOrderId, orderCode, swatchName, clientName }: {
               <div className="bg-white rounded-lg border border-gray-200 px-3 py-2">
                 <p className="text-[10px] text-gray-400">Current Stock</p>
                 {selectedInv ? (
-                  <p className="font-semibold text-gray-800">
+                  <p className="font-semibold text-cyan-900">
                     {parseFloat(selectedInv.current_stock).toFixed(2)}
                     <span className="text-gray-400 ml-1 text-[10px]">{form.unitType}</span>
                   </p>
@@ -572,7 +572,7 @@ function BomSection({ swatchOrderId, orderCode, swatchName, clientName }: {
               </div>
               <div className="bg-white rounded-lg border border-gray-200 px-3 py-2">
                 <p className="text-[10px] text-gray-400">Avg Price</p>
-                <p className="font-semibold text-gray-800">{form.avgUnitPrice}/{form.unitType}</p>
+                <p className="font-semibold text-cyan-900">{form.avgUnitPrice}/{form.unitType}</p>
               </div>
             </div>
           )}
@@ -581,17 +581,17 @@ function BomSection({ swatchOrderId, orderCode, swatchName, clientName }: {
               <label className="text-[10px] text-gray-500 font-medium">Required Qty</label>
               <input type="number" min="0" step="any" value={form.requiredQty}
                 onChange={e => setForm(f => ({ ...f, requiredQty: e.target.value }))}
-                className="w-full mt-0.5 text-xs text-gray-900 bg-white border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-gray-900/10"
+                className="w-full mt-0.5 text-xs text-cyan-900 bg-white border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-900/10"
                 placeholder="0" />
             </div>
             <div className="flex-1">
               <label className="text-[10px] text-gray-500 font-medium">Estimated Amount</label>
-              <div className="mt-0.5 text-xs border border-gray-100 rounded-xl px-3 py-2 bg-gray-50 font-semibold text-gray-700">
+              <div className="mt-0.5 text-xs border border-gray-100 rounded-xl px-3 py-2 bg-gray-50 font-semibold text-slate-500">
                 {estimatedAmount.toFixed(2)}
               </div>
             </div>
             <button onClick={handleAdd} disabled={addRow.isPending}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gray-900 text-[#C9B45C] text-xs font-semibold hover:bg-black transition-colors disabled:opacity-60">
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-cyan-900 text-[#C9B45C] text-xs font-semibold hover:bg-cyan-900 transition-colors disabled:opacity-60">
               {addRow.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />} Add
             </button>
             <button onClick={() => setShowForm(false)} className="p-2 rounded-xl text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors">
@@ -649,7 +649,7 @@ function BomSection({ swatchOrderId, orderCode, swatchName, clientName }: {
                       <span className={`text-[9px] px-1 py-0.5 rounded font-bold shrink-0 ${r.materialType === "fabric" ? "bg-purple-100 text-purple-700" : "bg-blue-100 text-blue-700"}`}>
                         {r.materialType === "fabric" ? "FAB" : "MAT"}
                       </span>
-                      <span className="text-gray-800 font-medium">{r.materialName}</span>
+                      <span className="text-cyan-900 font-medium">{r.materialName}</span>
                     </div>
                   </td>
                   <td className="px-3 py-2.5 whitespace-nowrap">
@@ -657,7 +657,7 @@ function BomSection({ swatchOrderId, orderCode, swatchName, clientName }: {
                       <div className="flex flex-col gap-0.5">
                         <div className="flex items-center gap-1">
                           <span className="text-[9px] text-gray-400 w-10 shrink-0">Current</span>
-                          <span className="font-semibold text-gray-800 text-[11px]">{parseFloat((r as any).liveCurrentStock).toFixed(2)}</span>
+                          <span className="font-semibold text-cyan-900 text-[11px]">{parseFloat((r as any).liveCurrentStock).toFixed(2)}</span>
                           <span className="text-gray-400 ml-0.5 text-[10px]">{r.unitType}</span>
                         </div>
                         <div className="flex items-center gap-1">
@@ -720,7 +720,7 @@ function BomSection({ swatchOrderId, orderCode, swatchName, clientName }: {
             {filteredRows.length > 0 && (
               <tr className="bg-gray-50 border-t border-gray-200">
                 <td colSpan={5} className="px-3 py-2 text-[10px] font-semibold text-gray-400">{filteredRows.length} item{filteredRows.length > 1 ? "s" : ""}</td>
-                <td className="px-3 py-2 font-bold text-gray-700 text-xs">
+                <td className="px-3 py-2 font-bold text-slate-500 text-xs">
                   {filteredRows.reduce((s, r) => s + (parseFloat(r.requiredQty) || 0), 0)}
                 </td>
                 <td className="px-3 py-2 font-bold text-amber-700 text-xs">
@@ -749,14 +749,14 @@ function BomSection({ swatchOrderId, orderCode, swatchName, clientName }: {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 p-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-base font-bold text-gray-900">Edit Required Qty</h3>
-              <button onClick={() => setEditRow(null)} className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100"><X className="h-4 w-4" /></button>
+              <h3 className="text-base font-bold text-cyan-900">Edit Required Qty</h3>
+              <button onClick={() => setEditRow(null)} className="p-1.5 rounded-lg text-gray-400 hover:text-slate-500 hover:bg-gray-100"><X className="h-4 w-4" /></button>
             </div>
             <div className="mb-4 p-3 bg-gray-50 rounded-xl text-sm">
-              <div className="font-semibold text-gray-800">[{editRow.materialCode}] {editRow.materialName}</div>
+              <div className="font-semibold text-cyan-900">[{editRow.materialCode}] {editRow.materialName}</div>
               <div className="text-xs text-violet-700 mt-1">Current Required Qty: <span className="font-semibold">{editRow?.requiredQty} {editRow?.unitType}</span></div>
             </div>
-            <label className="block text-xs font-semibold text-gray-700 mb-1">Adjust Required Qty <span className="text-red-500 ml-0.5">*</span></label>
+            <label className="block text-xs font-semibold text-slate-500 mb-1">Adjust Required Qty <span className="text-red-500 ml-0.5">*</span></label>
             <div className="flex gap-2 mb-2">
               <button type="button" onClick={() => setEditMode("add")}
                 className={`flex-1 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${editMode === "add" ? "bg-emerald-600 text-white border-emerald-600" : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"}`}>
@@ -787,7 +787,7 @@ function BomSection({ swatchOrderId, orderCode, swatchName, clientName }: {
               );
             })()}
             {(!editQty || parseFloat(editQty) <= 0) && <div className="mb-3" />}
-            <label className="block text-xs font-semibold text-gray-700 mb-1">Reason / Notes</label>
+            <label className="block text-xs font-semibold text-slate-500 mb-1">Reason / Notes</label>
             <textarea value={editNotes} onChange={e => setEditNotes(e.target.value)}
               placeholder="Why is the qty changing? (optional)"
               className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400 resize-none h-20 mb-4" />
@@ -845,8 +845,8 @@ function BomSection({ swatchOrderId, orderCode, swatchName, clientName }: {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 p-6 max-h-[80vh] flex flex-col">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-base font-bold text-gray-900 flex items-center gap-2"><History className="h-4 w-4 text-indigo-600" /> BOM Change History</h3>
-              <button onClick={() => setLogRowId(null)} className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100"><X className="h-4 w-4" /></button>
+              <h3 className="text-base font-bold text-cyan-900 flex items-center gap-2"><History className="h-4 w-4 text-indigo-600" /> BOM Change History</h3>
+              <button onClick={() => setLogRowId(null)} className="p-1.5 rounded-lg text-gray-400 hover:text-slate-500 hover:bg-gray-100"><X className="h-4 w-4" /></button>
             </div>
             {bomChangeLog.length === 0 ? (
               <p className="text-center text-sm text-gray-400 italic py-8">No changes recorded for this row.</p>
@@ -857,7 +857,7 @@ function BomSection({ swatchOrderId, orderCode, swatchName, clientName }: {
                   return (
                     <div key={entry.id} className="rounded-xl border border-gray-100 bg-gray-50 p-3 text-xs">
                       <div className="flex items-center justify-between mb-1">
-                        <span className="font-semibold text-gray-800">{parseFloat(entry.old_qty).toFixed(2)} → {parseFloat(entry.new_qty).toFixed(2)} {entry.material_name}</span>
+                        <span className="font-semibold text-cyan-900">{parseFloat(entry.old_qty).toFixed(2)} → {parseFloat(entry.new_qty).toFixed(2)} {entry.material_name}</span>
                         <span className={`font-bold ${delta > 0 ? "text-emerald-600" : "text-red-600"}`}>{delta > 0 ? "+" : ""}{delta.toFixed(2)}</span>
                       </div>
                       {entry.reservation_delta && parseFloat(entry.reservation_delta) !== 0 && (
@@ -887,9 +887,9 @@ function PaymentRow({ pay, onDelete }: { pay: PrPaymentRecord; onDelete: () => v
   };
   return (
     <tr className="border-b border-gray-50 hover:bg-gray-50/50">
-      <td className="px-3 py-2.5 text-gray-700 font-medium">{pay.paymentType}</td>
+      <td className="px-3 py-2.5 text-slate-500 font-medium">{pay.paymentType}</td>
       <td className="px-3 py-2.5 text-gray-600">{pay.paymentMode || "—"}</td>
-      <td className="px-3 py-2.5 font-semibold text-gray-900">{pay.amount}</td>
+      <td className="px-3 py-2.5 font-semibold text-cyan-900">{pay.amount}</td>
       <td className="px-3 py-2.5 text-gray-500">{pay.paymentDate ? new Date(pay.paymentDate).toLocaleDateString() : "—"}</td>
       <td className="px-3 py-2.5 text-gray-500">{pay.transactionStatus || "—"}</td>
       <td className="px-3 py-2.5"><StatusBadge status={pay.paymentStatus} map={PAYMENT_STATUS_COLORS} /></td>
@@ -947,7 +947,7 @@ function PrPaymentsPanel({ prId }: { prId: number }) {
           Payments {payments.length > 0 && <span className="text-gray-600">({payments.length})</span>}
         </p>
         <button onClick={() => setShowForm(v => !v)}
-          className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-lg bg-gray-900 text-[#C9B45C] hover:bg-black transition-colors">
+          className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-lg bg-cyan-900 text-[#C9B45C] hover:bg-cyan-900 transition-colors">
           <CreditCard className="h-3 w-3" /> Record Payment
         </button>
       </div>
@@ -958,37 +958,37 @@ function PrPaymentsPanel({ prId }: { prId: number }) {
             <div>
               <label className="text-[10px] text-gray-500 font-medium">Type</label>
               <select value={payForm.paymentType} onChange={e => setPayForm(f => ({ ...f, paymentType: e.target.value }))}
-                className="w-full mt-0.5 text-xs text-gray-900 bg-white border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none">
+                className="w-full mt-0.5 text-xs text-cyan-900 bg-white border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none">
                 {["Advance", "Partial", "Full"].map(v => <option key={v}>{v}</option>)}
               </select>
             </div>
             <div>
               <label className="text-[10px] text-gray-500 font-medium">Mode</label>
               <input value={payForm.paymentMode} onChange={e => setPayForm(f => ({ ...f, paymentMode: e.target.value }))}
-                className="w-full mt-0.5 text-xs text-gray-900 bg-white border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none"
+                className="w-full mt-0.5 text-xs text-cyan-900 bg-white border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none"
                 placeholder="Bank / UPI / Cash…" />
             </div>
             <div>
               <label className="text-[10px] text-gray-500 font-medium">Amount</label>
               <input type="number" min="0" step="any" value={payForm.amount} onChange={e => setPayForm(f => ({ ...f, amount: e.target.value }))}
-                className="w-full mt-0.5 text-xs text-gray-900 bg-white border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none"
+                className="w-full mt-0.5 text-xs text-cyan-900 bg-white border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none"
                 placeholder="0.00" />
             </div>
             <div>
               <label className="text-[10px] text-gray-500 font-medium">Date</label>
               <input type="date" value={payForm.paymentDate} onChange={e => setPayForm(f => ({ ...f, paymentDate: e.target.value }))}
-                className="w-full mt-0.5 text-xs text-gray-900 bg-white border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none" />
+                className="w-full mt-0.5 text-xs text-cyan-900 bg-white border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none" />
             </div>
             <div>
               <label className="text-[10px] text-gray-500 font-medium">Transaction Status</label>
               <input value={payForm.transactionStatus} onChange={e => setPayForm(f => ({ ...f, transactionStatus: e.target.value }))}
-                className="w-full mt-0.5 text-xs text-gray-900 bg-white border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none"
+                className="w-full mt-0.5 text-xs text-cyan-900 bg-white border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none"
                 placeholder="e.g. TXN123456" />
             </div>
             <div>
               <label className="text-[10px] text-gray-500 font-medium">Payment Status</label>
               <select value={payForm.paymentStatus} onChange={e => setPayForm(f => ({ ...f, paymentStatus: e.target.value }))}
-                className="w-full mt-0.5 text-xs text-gray-900 bg-white border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none">
+                className="w-full mt-0.5 text-xs text-cyan-900 bg-white border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none">
                 {["Pending", "Processing", "Completed", "Failed"].map(v => <option key={v}>{v}</option>)}
               </select>
             </div>
@@ -1001,7 +1001,7 @@ function PrPaymentsPanel({ prId }: { prId: number }) {
             {payForm.attachment && <button onClick={() => setPayForm(f => ({ ...f, attachment: null }))} className="text-gray-400 hover:text-red-500"><X className="h-3 w-3" /></button>}
             <input ref={fileRef} type="file" className="hidden" onChange={onFile} />
             <button onClick={handleAdd} disabled={addPay.isPending}
-              className="ml-auto flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-gray-900 text-[#C9B45C] text-xs font-semibold hover:bg-black transition-colors disabled:opacity-60">
+              className="ml-auto flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-cyan-900 text-[#C9B45C] text-xs font-semibold hover:bg-cyan-900 transition-colors disabled:opacity-60">
               {addPay.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Plus className="h-3 w-3" />} Save
             </button>
             <button onClick={() => setShowForm(false)} className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600"><X className="h-3.5 w-3.5" /></button>
@@ -1061,12 +1061,12 @@ function PrTableRow({ pr, poNumber, vendorName, bomItems }: { pr: PurchaseReceip
   return (
     <>
       <tr className="border-b border-gray-50 hover:bg-gray-50/50">
-        <td className="px-3 py-2.5 font-mono text-[10px] font-bold text-gray-700">{pr.prNumber}</td>
+        <td className="px-3 py-2.5 font-mono text-[10px] font-bold text-slate-500">{pr.prNumber}</td>
         <td className="px-3 py-2.5 font-mono text-[10px] text-amber-700 font-semibold">{poNumber}</td>
-        <td className="px-3 py-2.5 text-gray-700 text-xs">{vendorName}</td>
+        <td className="px-3 py-2.5 text-slate-500 text-xs">{vendorName}</td>
         <td className="px-3 py-2.5 text-gray-500 whitespace-nowrap text-xs">{new Date(pr.receivedDate).toLocaleDateString()}</td>
-        <td className="px-3 py-2.5 font-semibold text-gray-800 text-xs">{pr.receivedQty}</td>
-        <td className="px-3 py-2.5 text-gray-700 text-xs">{parseFloat(pr.actualPrice).toFixed(2)}</td>
+        <td className="px-3 py-2.5 font-semibold text-cyan-900 text-xs">{pr.receivedQty}</td>
+        <td className="px-3 py-2.5 text-slate-500 text-xs">{parseFloat(pr.actualPrice).toFixed(2)}</td>
         <td className="px-3 py-2.5 font-semibold text-blue-700 text-xs">{total.toFixed(2)}</td>
         <td className="px-3 py-2.5 max-w-[200px]">
           {(() => {
@@ -1086,7 +1086,7 @@ function PrTableRow({ pr, poNumber, vendorName, bomItems }: { pr: PurchaseReceip
                     <span className="text-[9px] px-1 py-0.5 rounded font-bold shrink-0 bg-gray-100 text-gray-500 font-mono">
                       {item.materialCode}
                     </span>
-                    <span className="text-[10px] text-gray-700 truncate">
+                    <span className="text-[10px] text-slate-500 truncate">
                       {item.materialName}
                     </span>
                   </div>
@@ -1104,7 +1104,7 @@ function PrTableRow({ pr, poNumber, vendorName, bomItems }: { pr: PurchaseReceip
         <td className="px-3 py-2.5">
           <div className="flex items-center gap-1">
             <button onClick={() => setOpen(v => !v)}
-              className={`flex items-center gap-1 text-[10px] font-medium px-2 py-1 rounded-lg border transition-colors ${open ? "bg-gray-900 text-[#C9B45C] border-gray-900" : "border-gray-200 text-gray-500 hover:bg-gray-50"}`}>
+              className={`flex items-center gap-1 text-[10px] font-medium px-2 py-1 rounded-lg border transition-colors ${open ? "bg-cyan-900 text-[#C9B45C] border-cyan-900" : "border-gray-200 text-gray-500 hover:bg-gray-50"}`}>
               <CreditCard className="h-3 w-3" /> Payments
               {open ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
             </button>
@@ -1131,7 +1131,7 @@ function PrTableRow({ pr, poNumber, vendorName, bomItems }: { pr: PurchaseReceip
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
             <div className="bg-white rounded-2xl shadow-xl w-full max-w-md">
               <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-                <h3 className="text-sm font-semibold text-gray-900">Edit Receipt — {pr.prNumber}</h3>
+                <h3 className="text-sm font-semibold text-cyan-900">Edit Receipt — {pr.prNumber}</h3>
                 <button onClick={() => setEditing(false)} className="p-1 rounded-lg hover:bg-gray-100"><X className="h-4 w-4 text-gray-500" /></button>
               </div>
               <div className="px-6 py-4 space-y-3">
@@ -1140,26 +1140,26 @@ function PrTableRow({ pr, poNumber, vendorName, bomItems }: { pr: PurchaseReceip
                   <label className="text-[10px] text-gray-500 font-medium">Actual Price <span className="text-red-500 ml-0.5">*</span></label>
                   <input type="number" min="0" step="any" value={editForm.actualPrice}
                     onChange={e => setEditForm(f => ({ ...f, actualPrice: e.target.value }))}
-                    className="w-full mt-1 border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-800 outline-none focus:border-[#C9B45C]" />
+                    className="w-full mt-1 border border-gray-200 rounded-xl px-3 py-2 text-xs text-cyan-900 outline-none focus:border-[#C9B45C]" />
                   <p className="text-[10px] text-amber-600 mt-1">Note: editing the price does not retroactively change weighted-average inventory cost.</p>
                 </div>
                 <div>
                   <label className="text-[10px] text-gray-500 font-medium">Received Date</label>
                   <input type="date" value={editForm.receivedDate}
                     onChange={e => setEditForm(f => ({ ...f, receivedDate: e.target.value }))}
-                    className="w-full mt-1 border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-800 outline-none focus:border-[#C9B45C]" />
+                    className="w-full mt-1 border border-gray-200 rounded-xl px-3 py-2 text-xs text-cyan-900 outline-none focus:border-[#C9B45C]" />
                 </div>
                 <div>
                   <label className="text-[10px] text-gray-500 font-medium">Warehouse Location</label>
                   <input type="text" value={editForm.warehouseLocation}
                     onChange={e => setEditForm(f => ({ ...f, warehouseLocation: e.target.value }))}
-                    className="w-full mt-1 border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-800 outline-none focus:border-[#C9B45C]" placeholder="Optional" />
+                    className="w-full mt-1 border border-gray-200 rounded-xl px-3 py-2 text-xs text-cyan-900 outline-none focus:border-[#C9B45C]" placeholder="Optional" />
                 </div>
               </div>
               <div className="px-6 py-4 border-t border-gray-200 flex justify-end gap-2">
                 <button onClick={() => setEditing(false)} className="px-4 py-2 rounded-xl text-xs text-gray-500 border border-gray-200 hover:bg-gray-50">Cancel</button>
                 <button onClick={saveEdit} disabled={updatePR.isPending}
-                  className="px-4 py-2 rounded-xl text-xs font-semibold bg-gray-900 text-[#C9B45C] hover:bg-black disabled:opacity-50">
+                  className="px-4 py-2 rounded-xl text-xs font-semibold bg-cyan-900 text-[#C9B45C] hover:bg-cyan-900 disabled:opacity-50">
                   {updatePR.isPending ? "Saving…" : "Save Changes"}
                 </button>
               </div>
@@ -1207,7 +1207,7 @@ function PrAccordion({ pr, swatchOrderId }: { pr: PurchaseReceiptRecord; swatchO
     <div className="rounded-xl border border-gray-200 overflow-hidden">
       <div className="flex items-center gap-3 px-4 py-3 bg-gray-50">
         <span className="text-[10px] font-mono font-bold text-gray-600">{pr.prNumber}</span>
-        <span className="text-xs text-gray-700 flex-1">Qty: <span className="font-semibold">{pr.receivedQty}</span> · Price: <span className="font-semibold">{pr.actualPrice}</span> · {pr.warehouseLocation || "No location"}</span>
+        <span className="text-xs text-slate-500 flex-1">Qty: <span className="font-semibold">{pr.receivedQty}</span> · Price: <span className="font-semibold">{pr.actualPrice}</span> · {pr.warehouseLocation || "No location"}</span>
         <StatusBadge status={pr.status} map={PR_STATUS_COLORS} />
         <button onClick={() => deletePR.mutate(pr.id)} disabled={deletePR.isPending}
           className="p-1.5 rounded-lg text-gray-500 hover:text-red-500 hover:bg-red-50 transition-colors">
@@ -1223,7 +1223,7 @@ function PrAccordion({ pr, swatchOrderId }: { pr: PurchaseReceiptRecord; swatchO
           <div className="flex items-center justify-between">
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Payments</p>
             <button onClick={() => setShowPayForm(v => !v)}
-              className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-lg bg-gray-900 text-[#C9B45C] hover:bg-black transition-colors">
+              className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-lg bg-cyan-900 text-[#C9B45C] hover:bg-cyan-900 transition-colors">
               <CreditCard className="h-3 w-3" /> Record Payment
             </button>
           </div>
@@ -1234,37 +1234,37 @@ function PrAccordion({ pr, swatchOrderId }: { pr: PurchaseReceiptRecord; swatchO
                 <div>
                   <label className="text-[10px] text-gray-500 font-medium">Type</label>
                   <select value={payForm.paymentType} onChange={e => setPayForm(f => ({ ...f, paymentType: e.target.value }))}
-                    className="w-full mt-0.5 text-xs text-gray-900 bg-white border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none">
+                    className="w-full mt-0.5 text-xs text-cyan-900 bg-white border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none">
                     {["Advance", "Partial", "Full"].map(v => <option key={v}>{v}</option>)}
                   </select>
                 </div>
                 <div>
                   <label className="text-[10px] text-gray-500 font-medium">Mode</label>
                   <input value={payForm.paymentMode} onChange={e => setPayForm(f => ({ ...f, paymentMode: e.target.value }))}
-                    className="w-full mt-0.5 text-xs text-gray-900 bg-white border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none"
+                    className="w-full mt-0.5 text-xs text-cyan-900 bg-white border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none"
                     placeholder="Bank / UPI / Cash…" />
                 </div>
                 <div>
                   <label className="text-[10px] text-gray-500 font-medium">Amount</label>
                   <input type="number" min="0" step="any" value={payForm.amount} onChange={e => setPayForm(f => ({ ...f, amount: e.target.value }))}
-                    className="w-full mt-0.5 text-xs text-gray-900 bg-white border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none"
+                    className="w-full mt-0.5 text-xs text-cyan-900 bg-white border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none"
                     placeholder="0.00" />
                 </div>
                 <div>
                   <label className="text-[10px] text-gray-500 font-medium">Date</label>
                   <input type="date" value={payForm.paymentDate} onChange={e => setPayForm(f => ({ ...f, paymentDate: e.target.value }))}
-                    className="w-full mt-0.5 text-xs text-gray-900 bg-white border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none" />
+                    className="w-full mt-0.5 text-xs text-cyan-900 bg-white border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none" />
                 </div>
                 <div>
                   <label className="text-[10px] text-gray-500 font-medium">Transaction Status</label>
                   <input value={payForm.transactionStatus} onChange={e => setPayForm(f => ({ ...f, transactionStatus: e.target.value }))}
-                    className="w-full mt-0.5 text-xs text-gray-900 bg-white border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none"
+                    className="w-full mt-0.5 text-xs text-cyan-900 bg-white border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none"
                     placeholder="e.g. TXN123456" />
                 </div>
                 <div>
                   <label className="text-[10px] text-gray-500 font-medium">Payment Status</label>
                   <select value={payForm.paymentStatus} onChange={e => setPayForm(f => ({ ...f, paymentStatus: e.target.value }))}
-                    className="w-full mt-0.5 text-xs text-gray-900 bg-white border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none">
+                    className="w-full mt-0.5 text-xs text-cyan-900 bg-white border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none">
                     {["Pending", "Processing", "Completed", "Failed"].map(v => <option key={v}>{v}</option>)}
                   </select>
                 </div>
@@ -1277,7 +1277,7 @@ function PrAccordion({ pr, swatchOrderId }: { pr: PurchaseReceiptRecord; swatchO
                 {payForm.attachment && <button onClick={() => setPayForm(f => ({ ...f, attachment: null }))} className="text-gray-400 hover:text-red-500"><X className="h-3 w-3" /></button>}
                 <input ref={fileRef} type="file" className="hidden" onChange={onFile} />
                 <button onClick={handleAddPayment} disabled={addPay.isPending}
-                  className="ml-auto flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-gray-900 text-[#C9B45C] text-xs font-semibold hover:bg-black transition-colors disabled:opacity-60">
+                  className="ml-auto flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-cyan-900 text-[#C9B45C] text-xs font-semibold hover:bg-cyan-900 transition-colors disabled:opacity-60">
                   {addPay.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Plus className="h-3 w-3" />} Save
                 </button>
                 <button onClick={() => setShowPayForm(false)} className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600"><X className="h-3.5 w-3.5" /></button>
@@ -1367,15 +1367,15 @@ function CreatePoModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-          <h4 className="text-sm font-semibold text-gray-900">Create Purchase Order</h4>
-          <button onClick={onClose} className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"><X className="h-5 w-5" /></button>
+          <h4 className="text-sm font-semibold text-cyan-900">Create Purchase Order</h4>
+          <button onClick={onClose} className="p-1.5 rounded-lg text-gray-400 hover:text-slate-500 hover:bg-gray-100 transition-colors"><X className="h-5 w-5" /></button>
         </div>
 
         <div className="overflow-y-auto flex-1 px-6 py-4 space-y-5">
           <div>
             <label className="text-[10px] text-gray-500 font-medium uppercase tracking-wide">Notes</label>
             <input value={notes} onChange={e => setNotes(e.target.value)}
-              className="w-full mt-1 text-xs text-gray-900 bg-white border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-gray-900/10"
+              className="w-full mt-1 text-xs text-cyan-900 bg-white border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-900/10"
               placeholder="Add notes…" />
           </div>
 
@@ -1408,7 +1408,7 @@ function CreatePoModal({
                         <tr key={r.id} className={`border-b border-gray-50 transition-colors ${ov.checked ? "bg-amber-50/50" : "hover:bg-gray-50/50"}`}>
                           <td className="px-3 py-2.5 text-center">
                             <input type="checkbox" checked={ov.checked} onChange={() => toggleRow(r.id)}
-                              className="w-3.5 h-3.5 rounded accent-gray-900 cursor-pointer" />
+                              className="w-3.5 h-3.5 rounded accent-cyan-900 cursor-pointer" />
                           </td>
                           <td className="px-3 py-2.5 font-mono text-[10px] text-gray-500">{r.materialCode}</td>
                           <td className="px-3 py-2.5">
@@ -1416,7 +1416,7 @@ function CreatePoModal({
                               <span className={`text-[9px] px-1 py-0.5 rounded font-bold shrink-0 ${r.materialType === "fabric" ? "bg-purple-100 text-purple-700" : "bg-blue-100 text-blue-700"}`}>
                                 {r.materialType === "fabric" ? "FAB" : "MAT"}
                               </span>
-                              <span className="text-gray-800">{r.materialName}</span>
+                              <span className="text-cyan-900">{r.materialName}</span>
                             </div>
                           </td>
                           <td className="px-3 py-2.5 text-gray-500">{r.requiredQty} {r.unitType}</td>
@@ -1424,26 +1424,26 @@ function CreatePoModal({
                             <input type="number" min="0" step="any" value={ov.targetPrice}
                               disabled={!ov.checked}
                               onChange={e => setField(r.id, "targetPrice", e.target.value)}
-                              className={`w-24 text-xs text-gray-900 bg-white border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-gray-900/20 ${!ov.checked ? "opacity-30 cursor-not-allowed" : ""}`} />
+                              className={`w-24 text-xs text-cyan-900 bg-white border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-cyan-900/20 ${!ov.checked ? "opacity-30 cursor-not-allowed" : ""}`} />
                           </td>
                           <td className="px-3 py-2.5">
                             <input type="number" min="0" step="any" value={ov.quantity}
                               disabled={!ov.checked}
                               onChange={e => setField(r.id, "quantity", e.target.value)}
-                              className={`w-20 text-xs text-gray-900 bg-white border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-gray-900/20 ${!ov.checked ? "opacity-30 cursor-not-allowed" : ""}`} />
+                              className={`w-20 text-xs text-cyan-900 bg-white border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-cyan-900/20 ${!ov.checked ? "opacity-30 cursor-not-allowed" : ""}`} />
                           </td>
                           <td className="px-3 py-2.5">
                             <select
                               value={ov.targetVendorId}
                               onChange={e => setItemVendor(r.id, e.target.value)}
                               disabled={!ov.checked}
-                              className={`w-36 text-xs text-gray-900 bg-white border border-gray-200 rounded-lg px-2 py-1 focus:outline-none disabled:opacity-40`}
+                              className={`w-36 text-xs text-cyan-900 bg-white border border-gray-200 rounded-lg px-2 py-1 focus:outline-none disabled:opacity-40`}
                             >
                               <option value="">— Vendor —</option>
                               {vendors.map(v => <option key={v.id} value={v.id}>{v.brandName}</option>)}
                             </select>
                           </td>
-                          <td className="px-3 py-2.5 text-right font-semibold text-gray-700">
+                          <td className="px-3 py-2.5 text-right font-semibold text-slate-500">
                             {ov.checked ? `${lineTotal.toFixed(2)}` : <span className="text-gray-300">—</span>}
                           </td>
                         </tr>
@@ -1456,7 +1456,7 @@ function CreatePoModal({
                         <td colSpan={6} className="px-3 py-2 text-right text-xs font-semibold text-gray-500">
                           {selectedItems.length} item{selectedItems.length > 1 ? "s" : ""} selected · Target Total
                         </td>
-                        <td className="px-3 py-2 text-right font-bold text-gray-900">{totalTarget.toFixed(2)}</td>
+                        <td className="px-3 py-2 text-right font-bold text-cyan-900">{totalTarget.toFixed(2)}</td>
                       </tr>
                     </tfoot>
                   )}
@@ -1468,7 +1468,7 @@ function CreatePoModal({
 
         <div className="px-6 py-4 border-t border-gray-200 flex gap-2 items-center">
           <button onClick={handleSubmit} disabled={isPending}
-            className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-gray-900 text-[#C9B45C] text-xs font-semibold hover:bg-black transition-colors disabled:opacity-60">
+            className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-cyan-900 text-[#C9B45C] text-xs font-semibold hover:bg-cyan-900 transition-colors disabled:opacity-60">
             {isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
             Create PO
           </button>
@@ -1522,16 +1522,16 @@ function EditSwatchPoModal({ po, vendors, onClose, onSave, saving }: {
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
           <div>
-            <h4 className="text-sm font-semibold text-gray-900">Edit Purchase Order</h4>
+            <h4 className="text-sm font-semibold text-cyan-900">Edit Purchase Order</h4>
             <p className="text-[11px] text-gray-400 mt-0.5">{po.poNumber}</p>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"><X className="h-5 w-5" /></button>
+          <button onClick={onClose} className="p-1.5 rounded-lg text-gray-400 hover:text-slate-500 hover:bg-gray-100 transition-colors"><X className="h-5 w-5" /></button>
         </div>
         <div className="overflow-y-auto flex-1 px-6 py-4 space-y-5">
           <div>
             <label className="text-[10px] text-gray-500 font-medium uppercase tracking-wide">Notes</label>
             <input value={notes} onChange={e => setNotes(e.target.value)}
-              className="w-full mt-1 text-xs text-gray-900 bg-white border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-gray-900/10"
+              className="w-full mt-1 text-xs text-cyan-900 bg-white border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-900/10"
               placeholder="Add notes…" />
           </div>
           {items.length > 0 && (
@@ -1552,25 +1552,25 @@ function EditSwatchPoModal({ po, vendors, onClose, onSave, saving }: {
                       return (
                         <tr key={i} className="border-b border-gray-50">
                           <td className="px-3 py-2.5 font-mono text-[10px] text-gray-500">{item.materialCode}</td>
-                          <td className="px-3 py-2.5 text-gray-800 font-medium">{item.materialName}
+                          <td className="px-3 py-2.5 text-cyan-900 font-medium">{item.materialName}
                             <span className="ml-1.5 text-[9px] font-bold px-1 py-0.5 rounded bg-blue-100 text-blue-600">{item.unitType}</span>
                           </td>
                           <td className="px-3 py-2.5">
                             <input type="number" min="0" step="any" value={ed.quantity}
                               onChange={e => setField(i, "quantity", e.target.value)}
-                              className="w-20 text-xs text-gray-900 border border-gray-200 rounded-lg px-2 py-1 focus:outline-none" />
+                              className="w-20 text-xs text-cyan-900 border border-gray-200 rounded-lg px-2 py-1 focus:outline-none" />
                           </td>
                           <td className="px-3 py-2.5">
                             <div className="flex items-center gap-1">
                               <span className="text-[10px] text-gray-400"></span>
                               <input type="number" min="0" step="any" value={ed.targetPrice}
                                 onChange={e => setField(i, "targetPrice", e.target.value)}
-                                className="w-24 text-xs text-gray-900 border border-gray-200 rounded-lg px-2 py-1 focus:outline-none" />
+                                className="w-24 text-xs text-cyan-900 border border-gray-200 rounded-lg px-2 py-1 focus:outline-none" />
                             </div>
                           </td>
                           <td className="px-3 py-2.5">
                             <select value={ed.targetVendorId} onChange={e => setVendor(i, e.target.value)}
-                              className="w-36 text-xs text-gray-900 border border-gray-200 rounded-lg px-2 py-1 bg-white focus:outline-none">
+                              className="w-36 text-xs text-cyan-900 border border-gray-200 rounded-lg px-2 py-1 bg-white focus:outline-none">
                               <option value="">— Vendor —</option>
                               {vendors.map(v => <option key={v.id} value={v.id}>{v.brandName}</option>)}
                             </select>
@@ -1587,7 +1587,7 @@ function EditSwatchPoModal({ po, vendors, onClose, onSave, saving }: {
         <div className="px-6 py-4 border-t border-gray-200 flex justify-end gap-2">
           <button onClick={onClose} className="px-4 py-2 rounded-xl text-xs text-gray-500 border border-gray-200 hover:bg-gray-50">Cancel</button>
           <button onClick={handleSave} disabled={saving}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gray-900 text-[#C9B45C] text-xs font-semibold hover:bg-black transition-colors disabled:opacity-50">
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-cyan-900 text-[#C9B45C] text-xs font-semibold hover:bg-cyan-900 transition-colors disabled:opacity-50">
             {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />} Save Changes
           </button>
         </div>
@@ -1628,7 +1628,7 @@ function PoCard({ po, swatchOrderId, onCreatePR, onExportPdf, vendors }: { po: P
       <div className="flex items-center gap-3 px-4 py-3.5">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs font-mono font-bold text-gray-700">{po.poNumber}</span>
+            <span className="text-xs font-mono font-bold text-slate-500">{po.poNumber}</span>
             <StatusBadge status={po.status} map={PO_STATUS_COLORS} />
             {items.length > 0 && (
               <span className="text-[10px] text-gray-400 flex items-center gap-0.5">
@@ -1647,7 +1647,7 @@ function PoCard({ po, swatchOrderId, onCreatePR, onExportPdf, vendors }: { po: P
         <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
           {canAdvance && nextStatus && (
             <button onClick={advance} disabled={updatePO.isPending}
-              className="flex items-center gap-1 text-[11px] px-2.5 py-1.5 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 font-medium transition-colors disabled:opacity-50">
+              className="flex items-center gap-1 text-[11px] px-2.5 py-1.5 rounded-lg border border-gray-200 text-slate-500 hover:bg-gray-50 font-medium transition-colors disabled:opacity-50">
               {updatePO.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <ArrowRight className="h-3 w-3" />}
               {nextStatus}
             </button>
@@ -1663,7 +1663,7 @@ function PoCard({ po, swatchOrderId, onCreatePR, onExportPdf, vendors }: { po: P
             {exporting ? <Loader2 className="h-3 w-3 animate-spin" /> : <FileDown className="h-3 w-3" />} PDF
           </button>
           <button onClick={() => setEditOpen(true)}
-            className="flex items-center gap-1 text-[11px] px-2.5 py-1.5 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 font-medium transition-colors">
+            className="flex items-center gap-1 text-[11px] px-2.5 py-1.5 rounded-lg border border-gray-200 text-slate-500 hover:bg-gray-50 font-medium transition-colors">
             <Pencil className="h-3 w-3" /> Edit
           </button>
           {canDelete && (
@@ -1693,18 +1693,18 @@ function PoCard({ po, swatchOrderId, onCreatePR, onExportPdf, vendors }: { po: P
               {items.map((item, i) => (
                 <tr key={i} className="border-b border-gray-50">
                   <td className="px-2 py-2 font-mono text-[10px] text-gray-500">{item.materialCode}</td>
-                  <td className="px-2 py-2 text-gray-800">{item.materialName}</td>
+                  <td className="px-2 py-2 text-cyan-900">{item.materialName}</td>
                   <td className="px-2 py-2 text-gray-500">{item.targetVendorName || po.vendorName || "—"}</td>
                   <td className="px-2 py-2 text-gray-600">{parseFloat(item.quantity).toFixed(2)} {item.unitType}</td>
                   <td className="px-2 py-2 text-gray-600">{parseFloat(item.targetPrice).toFixed(2)}</td>
-                  <td className="px-2 py-2 font-semibold text-gray-900">
+                  <td className="px-2 py-2 font-semibold text-cyan-900">
                     {((parseFloat(item.targetPrice) || 0) * (parseFloat(item.quantity) || 0)).toFixed(2)}
                   </td>
                 </tr>
               ))}
               <tr className="bg-gray-50">
                 <td colSpan={5} className="px-2 py-1.5 text-right text-[10px] font-semibold text-gray-500">Total Target</td>
-                <td className="px-2 py-1.5 font-bold text-gray-900">
+                <td className="px-2 py-1.5 font-bold text-cyan-900">
                   {items.reduce((s, i) => s + (parseFloat(i.targetPrice) || 0) * (parseFloat(i.quantity) || 0), 0).toFixed(2)}
                 </td>
               </tr>
@@ -1829,7 +1829,7 @@ function PoSection({ swatchOrderId, orderCode, swatchName, clientName }: {
     <div className="bg-white rounded-2xl border border-gray-200 p-5">
       <SectionHeader icon={<ShoppingCart className="h-4 w-4" />} title="Purchase Orders">
         <button onClick={() => setShowPoModal(true)}
-          className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl bg-gray-900 text-[#C9B45C] hover:bg-black transition-colors">
+          className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl bg-cyan-900 text-[#C9B45C] hover:bg-cyan-900 transition-colors">
           <Plus className="h-3.5 w-3.5" /> Create PO
         </button>
       </SectionHeader>
@@ -1866,16 +1866,16 @@ function PoSection({ swatchOrderId, orderCode, swatchName, clientName }: {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
           <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md space-y-4">
             <div className="flex items-center justify-between">
-              <h4 className="text-sm font-semibold text-gray-900">Create Purchase Receipt</h4>
-              <button onClick={() => setPrModal(null)} className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"><X className="h-5 w-5" /></button>
+              <h4 className="text-sm font-semibold text-cyan-900">Create Purchase Receipt</h4>
+              <button onClick={() => setPrModal(null)} className="p-1.5 rounded-lg text-gray-400 hover:text-slate-500 hover:bg-gray-100 transition-colors"><X className="h-5 w-5" /></button>
             </div>
-            <p className="text-xs text-gray-500">Vendor: <span className="font-semibold text-gray-700">{prModal.vendorName}</span></p>
+            <p className="text-xs text-gray-500">Vendor: <span className="font-semibold text-slate-500">{prModal.vendorName}</span></p>
             <div className="space-y-3">
               {prModal.bomItems.length > 1 && (
                 <div>
                   <label className="text-[10px] text-gray-500 font-medium">Item <span className="text-red-500 ml-0.5">*</span></label>
                   <select value={prForm.bomRowId} onChange={e => setPrForm(f => ({ ...f, bomRowId: e.target.value }))}
-                    className="w-full mt-0.5 text-xs text-gray-900 bg-white border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-gray-900/10">
+                    className="w-full mt-0.5 text-xs text-cyan-900 bg-white border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-cyan-900/10">
                     <option value="">— Select item —</option>
                     {prModal.bomItems.map(item => (
                       <option key={item.bomRowId} value={String(item.bomRowId)}>
@@ -1888,7 +1888,7 @@ function PoSection({ swatchOrderId, orderCode, swatchName, clientName }: {
               {prModal.bomItems.length === 1 && (
                 <div className="rounded-xl bg-gray-50 border border-gray-100 px-3 py-2.5">
                   <p className="text-[10px] text-gray-400 font-medium mb-0.5">Item</p>
-                  <p className="text-xs font-semibold text-gray-800">[{prModal.bomItems[0].materialCode}] {prModal.bomItems[0].materialName}</p>
+                  <p className="text-xs font-semibold text-cyan-900">[{prModal.bomItems[0].materialCode}] {prModal.bomItems[0].materialName}</p>
                   <p className="text-[10px] text-gray-500 mt-0.5">Ordered: {prModal.bomItems[0].quantity} {prModal.bomItems[0].unitType} @ {parseFloat(prModal.bomItems[0].targetPrice).toFixed(2)}</p>
                 </div>
               )}
@@ -1896,7 +1896,7 @@ function PoSection({ swatchOrderId, orderCode, swatchName, clientName }: {
                 <div className={`rounded-xl px-3 py-2 text-xs flex items-center gap-3 ${prItemStats.remaining <= 0 ? "bg-red-50 border border-red-200" : "bg-amber-50 border border-amber-200"}`}>
                   <div className="flex-1">
                     <span className="text-gray-500">Already received: </span>
-                    <span className="font-semibold text-gray-800">{prItemStats.alreadyReceived.toFixed(2)} {prItemStats.unitType}</span>
+                    <span className="font-semibold text-cyan-900">{prItemStats.alreadyReceived.toFixed(2)} {prItemStats.unitType}</span>
                     <span className="mx-2 text-gray-300">|</span>
                     <span className="text-gray-500">Remaining: </span>
                     <span className={`font-bold ${prItemStats.remaining <= 0 ? "text-red-600" : "text-green-700"}`}>
@@ -1910,7 +1910,7 @@ function PoSection({ swatchOrderId, orderCode, swatchName, clientName }: {
                 <label className="text-[10px] text-gray-500 font-medium">Received Quantity <span className="text-red-500 ml-0.5">*</span></label>
                 <input type="number" min="0" step="any" value={prForm.receivedQty}
                   onChange={e => setPrForm(f => ({ ...f, receivedQty: e.target.value }))}
-                  className="w-full mt-0.5 text-xs text-gray-900 bg-white border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-gray-900/10"
+                  className="w-full mt-0.5 text-xs text-cyan-900 bg-white border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-cyan-900/10"
                   placeholder="0"
                   max={prItemStats ? prItemStats.remaining : undefined} />
                 {prItemStats && prItemStats.remaining > 0 && (
@@ -1921,14 +1921,14 @@ function PoSection({ swatchOrderId, orderCode, swatchName, clientName }: {
                 <label className="text-[10px] text-gray-500 font-medium">Actual Price <span className="text-red-500 ml-0.5">*</span></label>
                 <input type="number" min="0" step="any" value={prForm.actualPrice}
                   onChange={e => setPrForm(f => ({ ...f, actualPrice: e.target.value }))}
-                  className="w-full mt-0.5 text-xs text-gray-900 bg-white border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-gray-900/10"
+                  className="w-full mt-0.5 text-xs text-cyan-900 bg-white border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-cyan-900/10"
                   placeholder="0.00" />
               </div>
               <div>
                 <label className="text-[10px] text-gray-500 font-medium">Warehouse Location</label>
                 <select value={prForm.warehouseLocation}
                   onChange={e => setPrForm(f => ({ ...f, warehouseLocation: e.target.value }))}
-                  className="w-full mt-0.5 text-xs text-gray-900 bg-white border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-gray-900/10">
+                  className="w-full mt-0.5 text-xs text-cyan-900 bg-white border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-cyan-900/10">
                   <option value="">— Select location —</option>
                   {activeWarehouses.map(w => <option key={w.id} value={w.name}>{w.name}</option>)}
                 </select>
@@ -1936,7 +1936,7 @@ function PoSection({ swatchOrderId, orderCode, swatchName, clientName }: {
             </div>
             <div className="flex gap-2 pt-1">
               <button onClick={handleCreatePR} disabled={createPR.isPending}
-                className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-gray-900 text-[#C9B45C] text-xs font-semibold hover:bg-black transition-colors disabled:opacity-60">
+                className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-cyan-900 text-[#C9B45C] text-xs font-semibold hover:bg-cyan-900 transition-colors disabled:opacity-60">
                 {createPR.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />} Create PR
               </button>
               <button onClick={() => setPrModal(null)}
@@ -1992,12 +1992,12 @@ function PrSection({ swatchOrderId }: { swatchOrderId: number }) {
       {prs.length > 0 && (
         <div className="flex flex-wrap gap-2 mb-4">
           <select value={filterPoId} onChange={e => setFilterPoId(e.target.value)}
-            className="text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-gray-300">
+            className="text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 bg-white text-slate-500 focus:outline-none focus:ring-1 focus:ring-gray-300">
             <option value="all">All POs</option>
             {pos.map(p => <option key={p.id} value={String(p.id)}>{p.poNumber} — {p.vendorName}</option>)}
           </select>
           <select value={filterBomRowId} onChange={e => setFilterBomRowId(e.target.value)}
-            className="text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-gray-300">
+            className="text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 bg-white text-slate-500 focus:outline-none focus:ring-1 focus:ring-gray-300">
             <option value="all">All Materials/Fabrics</option>
             {bomRows.map(r => (
               <option key={r.id} value={String(r.id)}>
@@ -2158,7 +2158,7 @@ function ConsumptionSection({ swatchOrderId }: { swatchOrderId: number }) {
         <div className="flex items-center gap-2 flex-wrap">
           {bomRows.length > 0 && (
             <select value={filterBomRowId} onChange={e => setFilterBomRowId(e.target.value)}
-              className="text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-gray-300">
+              className="text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 bg-white text-slate-500 focus:outline-none focus:ring-1 focus:ring-gray-300">
               <option value="all">All Materials/Fabrics</option>
               {bomRows.map(r => (
                 <option key={r.id} value={String(r.id)}>[{r.materialCode}] {r.materialName}</option>
@@ -2167,7 +2167,7 @@ function ConsumptionSection({ swatchOrderId }: { swatchOrderId: number }) {
           )}
           {bomRows.length > 0 && (
             <button onClick={openAddModal}
-              className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl bg-gray-900 text-[#C9B45C] hover:bg-black transition-colors">
+              className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl bg-cyan-900 text-[#C9B45C] hover:bg-cyan-900 transition-colors">
               <Plus className="h-3.5 w-3.5" /> Add Consumption
             </button>
           )}
@@ -2216,7 +2216,7 @@ function ConsumptionSection({ swatchOrderId }: { swatchOrderId: number }) {
                     <td className="px-3 py-2.5 font-mono text-[10px] text-gray-500">{r.materialCode}</td>
                     <td className="px-3 py-2.5">
                       <div className="flex items-center gap-1.5">
-                        <span className="text-gray-800">{r.materialName}</span>
+                        <span className="text-cyan-900">{r.materialName}</span>
                         <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${r.materialType === "fabric" ? "bg-purple-100 text-purple-600" : "bg-green-100 text-green-700"}`}>
                           {r.materialType === "fabric" ? "FAB" : "MAT"}
                         </span>
@@ -2233,7 +2233,7 @@ function ConsumptionSection({ swatchOrderId }: { swatchOrderId: number }) {
                       <span className="font-semibold text-violet-700">{parseFloat(r.requiredQty).toFixed(2)}</span>
                       <span className="text-gray-400 ml-1 text-[10px]">{r.unitType}</span>
                     </td> */}
-                    <td className="px-3 py-2.5 text-gray-700">{m.weightedAvg.toFixed(2)}</td>
+                    <td className="px-3 py-2.5 text-slate-500">{m.weightedAvg.toFixed(2)}</td>
                     <td className="px-3 py-2.5 text-amber-700 font-medium">{m.consumedQtyNum.toFixed(2)} {r.unitType}</td>
                     <td className="px-3 py-2.5 font-semibold text-red-700">{m.consumedTotal.toFixed(2)}</td>
                     <td className="px-3 py-2.5 text-gray-400 whitespace-nowrap text-[10px]">
@@ -2277,15 +2277,15 @@ function ConsumptionSection({ swatchOrderId }: { swatchOrderId: number }) {
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
           <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md space-y-4">
             <div className="flex items-center justify-between">
-              <h4 className="text-sm font-semibold text-gray-900">Add Consumption</h4>
-              <button onClick={() => setShowAddModal(false)} className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"><X className="h-5 w-5" /></button>
+              <h4 className="text-sm font-semibold text-cyan-900">Add Consumption</h4>
+              <button onClick={() => setShowAddModal(false)} className="p-1.5 rounded-lg text-gray-400 hover:text-slate-500 hover:bg-gray-100 transition-colors"><X className="h-5 w-5" /></button>
             </div>
             <div className="space-y-3">
               <div>
                 <label className="text-[10px] text-gray-500 font-medium">Material / Fabric <span className="text-red-500 ml-0.5">*</span></label>
                 <select value={addForm.bomRowId}
                   onChange={e => setAddForm(f => ({ ...f, bomRowId: e.target.value, warehouseLocation: "" }))}
-                  className="w-full mt-0.5 text-xs text-gray-900 bg-white border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-gray-900/10">
+                  className="w-full mt-0.5 text-xs text-cyan-900 bg-white border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-cyan-900/10">
                   <option value="">— Select item —</option>
                   {inStockRows.length === 0
                     ? <option disabled>No items in inventory</option>
@@ -2300,7 +2300,7 @@ function ConsumptionSection({ swatchOrderId }: { swatchOrderId: number }) {
                   <label className="text-[10px] text-gray-500 font-medium">Warehouse Location <span className="text-red-500 ml-0.5">*</span></label>
                   <select value={addForm.warehouseLocation}
                     onChange={e => setAddForm(f => ({ ...f, warehouseLocation: e.target.value }))}
-                    className="w-full mt-0.5 text-xs text-gray-900 bg-white border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-gray-900/10">
+                    className="w-full mt-0.5 text-xs text-cyan-900 bg-white border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-cyan-900/10">
                     <option value="">— Select location —</option>
                     {selectedItemLocationStocks.map(ls => (
                       <option key={ls.location} value={ls.location}>
@@ -2314,7 +2314,7 @@ function ConsumptionSection({ swatchOrderId }: { swatchOrderId: number }) {
                 <div className={`rounded-xl px-3 py-2.5 text-xs space-y-1.5 ${availableStock !== null && availableStock <= 0 ? "bg-red-50 border border-red-200" : reservedQty !== null ? "bg-violet-50 border border-violet-200" : "bg-gray-50 border border-gray-200"}`}>
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-gray-500">Live stock:</span>
-                    <span className="font-semibold text-gray-800">{selectedRowMetrics.stockNum.toFixed(2)}</span>
+                    <span className="font-semibold text-cyan-900">{selectedRowMetrics.stockNum.toFixed(2)}</span>
                     <span className="text-gray-500">{selectedRow.unitType}</span>
                   </div>
                   <div className="flex items-center gap-2 flex-wrap">
@@ -2338,7 +2338,7 @@ function ConsumptionSection({ swatchOrderId }: { swatchOrderId: number }) {
                 <label className="text-[10px] text-gray-500 font-medium">Consumed Quantity <span className="text-red-500 ml-0.5">*</span></label>
                 <input type="number" min="0" step="any" value={addForm.consumedQty}
                   onChange={e => setAddForm(f => ({ ...f, consumedQty: e.target.value }))}
-                  className="w-full mt-0.5 text-xs text-gray-900 bg-white border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-gray-900/10"
+                  className="w-full mt-0.5 text-xs text-cyan-900 bg-white border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-cyan-900/10"
                   placeholder="0"
                   max={availableStock !== null ? availableStock : undefined} />
                 {selectedRow && availableStock !== null && availableStock > 0 && (
@@ -2351,14 +2351,14 @@ function ConsumptionSection({ swatchOrderId }: { swatchOrderId: number }) {
                 <label className="text-[10px] text-gray-500 font-medium">Notes</label>
                 <input value={addForm.notes}
                   onChange={e => setAddForm(f => ({ ...f, notes: e.target.value }))}
-                  className="w-full mt-0.5 text-xs text-gray-900 bg-white border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-gray-900/10"
+                  className="w-full mt-0.5 text-xs text-cyan-900 bg-white border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-cyan-900/10"
                   placeholder="Optional notes..." />
               </div>
               <p className="text-[10px] text-gray-400">Consumed by and timestamp will be recorded automatically.</p>
             </div>
             <div className="flex gap-2 pt-1">
               <button onClick={handleAddConsumption} disabled={addEntry.isPending}
-                className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-gray-900 text-[#C9B45C] text-xs font-semibold hover:bg-black transition-colors disabled:opacity-60">
+                className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-cyan-900 text-[#C9B45C] text-xs font-semibold hover:bg-cyan-900 transition-colors disabled:opacity-60">
                 {addEntry.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />} Record Consumption
               </button>
               <button onClick={() => setShowAddModal(false)}
@@ -2373,16 +2373,16 @@ function ConsumptionSection({ swatchOrderId }: { swatchOrderId: number }) {
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[80vh] flex flex-col">
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
               <div>
-                <h4 className="text-sm font-semibold text-gray-900">Consumption Log</h4>
+                <h4 className="text-sm font-semibold text-cyan-900">Consumption Log</h4>
                 <p className="text-[11px] text-gray-400 mt-0.5">{logForDisplay.length} entr{logForDisplay.length === 1 ? "y" : "ies"}</p>
               </div>
               <div className="flex items-center gap-2">
                 <select value={filterBomRowId} onChange={e => setFilterBomRowId(e.target.value)}
-                  className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-gray-300">
+                  className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white text-slate-500 focus:outline-none focus:ring-1 focus:ring-gray-300">
                   <option value="all">All Items</option>
                   {bomRows.map(r => <option key={r.id} value={String(r.id)}>[{r.materialCode}] {r.materialName}</option>)}
                 </select>
-                <button onClick={() => setShowLogModal(false)} className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"><X className="h-5 w-5" /></button>
+                <button onClick={() => setShowLogModal(false)} className="p-1.5 rounded-lg text-gray-400 hover:text-slate-500 hover:bg-gray-100 transition-colors"><X className="h-5 w-5" /></button>
               </div>
             </div>
             <div className="overflow-auto flex-1 px-4 py-3">
@@ -2404,7 +2404,7 @@ function ConsumptionSection({ swatchOrderId }: { swatchOrderId: number }) {
                           {new Date(entry.consumedAt).toLocaleDateString("en-IN")} {new Date(entry.consumedAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
                         </td>
                         <td className="px-3 py-2.5 font-mono text-[10px] text-gray-500">{entry.materialCode}</td>
-                        <td className="px-3 py-2.5 text-gray-800">
+                        <td className="px-3 py-2.5 text-cyan-900">
                           <div className="flex items-center gap-1">
                             {entry.materialName}
                             <span className={`text-[9px] font-bold px-1 py-0.5 rounded-full ${entry.materialType === "fabric" ? "bg-purple-100 text-purple-600" : "bg-green-100 text-green-700"}`}>
@@ -2444,7 +2444,7 @@ function ConsumptionSection({ swatchOrderId }: { swatchOrderId: number }) {
             </div>
             <div className="px-6 py-4 border-t border-gray-200 flex justify-between items-center">
               <button onClick={openAddModal}
-                className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl bg-gray-900 text-[#C9B45C] hover:bg-black transition-colors">
+                className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl bg-cyan-900 text-[#C9B45C] hover:bg-cyan-900 transition-colors">
                 <Plus className="h-3.5 w-3.5" /> Add Consumption
               </button>
               <button onClick={() => setShowLogModal(false)}
@@ -2458,7 +2458,7 @@ function ConsumptionSection({ swatchOrderId }: { swatchOrderId: number }) {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md">
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-              <h3 className="text-sm font-semibold text-gray-900">Edit Consumption Entry</h3>
+              <h3 className="text-sm font-semibold text-cyan-900">Edit Consumption Entry</h3>
               <button onClick={() => setEditEntry(null)} className="p-1 rounded-lg hover:bg-gray-100"><X className="h-4 w-4 text-gray-500" /></button>
             </div>
             <div className="px-6 py-4 space-y-3">
@@ -2467,19 +2467,19 @@ function ConsumptionSection({ swatchOrderId }: { swatchOrderId: number }) {
                 <label className="text-[10px] text-gray-500 font-medium">Consumed Qty <span className="text-red-500 ml-0.5">*</span></label>
                 <input type="number" min="0" step="any" value={editEntry.consumedQty}
                   onChange={e => setEditEntry(s => s ? { ...s, consumedQty: e.target.value } : s)}
-                  className="w-full mt-1 border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-800 outline-none focus:border-[#C9B45C]" />
+                  className="w-full mt-1 border border-gray-200 rounded-xl px-3 py-2 text-xs text-cyan-900 outline-none focus:border-[#C9B45C]" />
               </div>
               <div>
                 <label className="text-[10px] text-gray-500 font-medium">Warehouse Location</label>
                 <input type="text" value={editEntry.warehouseLocation}
                   onChange={e => setEditEntry(s => s ? { ...s, warehouseLocation: e.target.value } : s)}
-                  className="w-full mt-1 border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-800 outline-none focus:border-[#C9B45C]" placeholder="Optional" />
+                  className="w-full mt-1 border border-gray-200 rounded-xl px-3 py-2 text-xs text-cyan-900 outline-none focus:border-[#C9B45C]" placeholder="Optional" />
               </div>
               <div>
                 <label className="text-[10px] text-gray-500 font-medium">Notes</label>
                 <input type="text" value={editEntry.notes}
                   onChange={e => setEditEntry(s => s ? { ...s, notes: e.target.value } : s)}
-                  className="w-full mt-1 border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-800 outline-none focus:border-[#C9B45C]" placeholder="Optional" />
+                  className="w-full mt-1 border border-gray-200 rounded-xl px-3 py-2 text-xs text-cyan-900 outline-none focus:border-[#C9B45C]" placeholder="Optional" />
               </div>
             </div>
             <div className="px-6 py-4 border-t border-gray-200 flex justify-end gap-2">
@@ -2492,7 +2492,7 @@ function ConsumptionSection({ swatchOrderId }: { swatchOrderId: number }) {
                     onError: (e: any) => toast({ title: e?.message ?? "Update failed", variant: "destructive" }),
                   },
                 )}
-                className="px-4 py-2 rounded-xl text-xs font-semibold bg-gray-900 text-[#C9B45C] hover:bg-black disabled:opacity-50">
+                className="px-4 py-2 rounded-xl text-xs font-semibold bg-cyan-900 text-[#C9B45C] hover:bg-cyan-900 disabled:opacity-50">
                 {updateEntry.isPending ? "Saving…" : "Save Changes"}
               </button>
             </div>
@@ -2582,7 +2582,7 @@ function ArtisanTimesheetSection({ swatchOrderId }: { swatchOrderId: number }) {
             {SHIFT_TYPES.map(t => <option key={t} value={t}>{SHIFT_LABELS[t]}</option>)}
           </select>
           <button onClick={() => { setEditingId(null); setForm(defaultArtisanForm); setShowModal(true); }}
-            className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl bg-gray-900 text-[#C9B45C] hover:bg-black transition-colors">
+            className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl bg-cyan-900 text-[#C9B45C] hover:bg-cyan-900 transition-colors">
             <Plus className="h-3.5 w-3.5" /> Add Artisan
           </button>
         </div>
@@ -2611,16 +2611,16 @@ function ArtisanTimesheetSection({ swatchOrderId }: { swatchOrderId: number }) {
                 <EmptyRow text={rows.length === 0 ? "No timesheet entries yet." : "No entries for selected type."} />
               ) : filtered.map(r => (
                 <tr key={r.id} className="border-b border-gray-50 hover:bg-gray-50/40">
-                  <td className="px-3 py-2.5 text-gray-800">{r.startDate}</td>
-                  <td className="px-3 py-2.5 text-gray-800">{r.endDate}</td>
+                  <td className="px-3 py-2.5 text-cyan-900">{r.startDate}</td>
+                  <td className="px-3 py-2.5 text-cyan-900">{r.endDate}</td>
                   <td className="px-3 py-2.5">
                     <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${SHIFT_COLORS[r.shiftType] ?? "bg-gray-100 text-gray-600"}`}>
                       {SHIFT_LABELS[r.shiftType] ?? r.shiftType}
                     </span>
                   </td>
-                  <td className="px-3 py-2.5 text-right text-gray-800">{r.noOfArtisans}</td>
-                  <td className="px-3 py-2.5 text-right text-gray-800">{parseFloat(r.totalHours).toFixed(1)}</td>
-                  <td className="px-3 py-2.5 text-right text-gray-800">{parseFloat(r.hourlyRate).toFixed(2)}</td>
+                  <td className="px-3 py-2.5 text-right text-cyan-900">{r.noOfArtisans}</td>
+                  <td className="px-3 py-2.5 text-right text-cyan-900">{parseFloat(r.totalHours).toFixed(1)}</td>
+                  <td className="px-3 py-2.5 text-right text-cyan-900">{parseFloat(r.hourlyRate).toFixed(2)}</td>
                   <td className="px-3 py-2.5 text-right font-semibold text-amber-700">{parseFloat(r.totalRate).toFixed(2)}</td>
                   <td className="px-3 py-2.5 text-gray-500 text-[10px]">{r.createdBy}</td>
                   <td className="px-3 py-2.5 text-right">
@@ -2656,7 +2656,7 @@ function ArtisanTimesheetSection({ swatchOrderId }: { swatchOrderId: number }) {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md">
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-              <h3 className="text-sm font-semibold text-gray-900">{editingId !== null ? "Edit" : "Add"} Artisan Timesheet Entry</h3>
+              <h3 className="text-sm font-semibold text-cyan-900">{editingId !== null ? "Edit" : "Add"} Artisan Timesheet Entry</h3>
               <button onClick={() => { setShowModal(false); setEditingId(null); }} className="p-1 rounded-lg hover:bg-gray-100"><X className="h-4 w-4 text-gray-500" /></button>
             </div>
             <div className="px-6 py-4 space-y-3">
@@ -2665,12 +2665,12 @@ function ArtisanTimesheetSection({ swatchOrderId }: { swatchOrderId: number }) {
                   <label className="text-[10px] text-gray-500 font-medium">No. of Artisans <span className="text-red-500 ml-0.5">*</span></label>
                   <input type="number" min="1" value={form.noOfArtisans}
                     onChange={e => setForm(f => ({ ...f, noOfArtisans: e.target.value }))}
-                    className="w-full mt-1 border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-800 outline-none focus:border-[#C9B45C]" />
+                    className="w-full mt-1 border border-gray-200 rounded-xl px-3 py-2 text-xs text-cyan-900 outline-none focus:border-[#C9B45C]" />
                 </div>
                 <div>
                   <label className="text-[10px] text-gray-500 font-medium">Shift Type <span className="text-red-500 ml-0.5">*</span></label>
                   <select value={form.shiftType} onChange={e => setForm(f => ({ ...f, shiftType: e.target.value }))}
-                    className="w-full mt-1 border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-800 outline-none focus:border-[#C9B45C]">
+                    className="w-full mt-1 border border-gray-200 rounded-xl px-3 py-2 text-xs text-cyan-900 outline-none focus:border-[#C9B45C]">
                     {SHIFT_TYPES.map(t => <option key={t} value={t}>{SHIFT_LABELS[t]}</option>)}
                   </select>
                 </div>
@@ -2680,13 +2680,13 @@ function ArtisanTimesheetSection({ swatchOrderId }: { swatchOrderId: number }) {
                   <label className="text-[10px] text-gray-500 font-medium">Start Date <span className="text-red-500 ml-0.5">*</span></label>
                   <input type="date" value={form.startDate}
                     onChange={e => setForm(f => ({ ...f, startDate: e.target.value }))}
-                    className="w-full mt-1 border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-800 outline-none focus:border-[#C9B45C]" />
+                    className="w-full mt-1 border border-gray-200 rounded-xl px-3 py-2 text-xs text-cyan-900 outline-none focus:border-[#C9B45C]" />
                 </div>
                 <div>
                   <label className="text-[10px] text-gray-500 font-medium">End Date <span className="text-red-500 ml-0.5">*</span></label>
                   <input type="date" value={form.endDate}
                     onChange={e => setForm(f => ({ ...f, endDate: e.target.value }))}
-                    className="w-full mt-1 border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-800 outline-none focus:border-[#C9B45C]" />
+                    className="w-full mt-1 border border-gray-200 rounded-xl px-3 py-2 text-xs text-cyan-900 outline-none focus:border-[#C9B45C]" />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
@@ -2694,13 +2694,13 @@ function ArtisanTimesheetSection({ swatchOrderId }: { swatchOrderId: number }) {
                   <label className="text-[10px] text-gray-500 font-medium">Total Hours <span className="text-red-500 ml-0.5">*</span></label>
                   <input type="number" min="0" step="0.5" value={form.totalHours}
                     onChange={e => setForm(f => ({ ...f, totalHours: e.target.value }))}
-                    className="w-full mt-1 border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-800 outline-none focus:border-[#C9B45C]" placeholder="0.0" />
+                    className="w-full mt-1 border border-gray-200 rounded-xl px-3 py-2 text-xs text-cyan-900 outline-none focus:border-[#C9B45C]" placeholder="0.0" />
                 </div>
                 <div>
                   <label className="text-[10px] text-gray-500 font-medium">Hourly Rate <span className="text-red-500 ml-0.5">*</span></label>
                   <input type="number" min="0" step="any" value={form.hourlyRate}
                     onChange={e => setForm(f => ({ ...f, hourlyRate: e.target.value }))}
-                    className="w-full mt-1 border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-800 outline-none focus:border-[#C9B45C]" placeholder="0.00" />
+                    className="w-full mt-1 border border-gray-200 rounded-xl px-3 py-2 text-xs text-cyan-900 outline-none focus:border-[#C9B45C]" placeholder="0.00" />
                 </div>
               </div>
               <div className="bg-amber-50 border border-amber-100 rounded-xl px-3 py-2 text-xs flex items-center justify-between">
@@ -2711,13 +2711,13 @@ function ArtisanTimesheetSection({ swatchOrderId }: { swatchOrderId: number }) {
                 <label className="text-[10px] text-gray-500 font-medium">Notes</label>
                 <input type="text" value={form.notes}
                   onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
-                  className="w-full mt-1 border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-800 outline-none focus:border-[#C9B45C]" placeholder="Optional" />
+                  className="w-full mt-1 border border-gray-200 rounded-xl px-3 py-2 text-xs text-cyan-900 outline-none focus:border-[#C9B45C]" placeholder="Optional" />
               </div>
             </div>
             <div className="px-6 py-4 border-t border-gray-200 flex justify-end gap-2">
               <button onClick={() => { setShowModal(false); setEditingId(null); }} className="px-4 py-2 rounded-xl text-xs text-gray-500 border border-gray-200 hover:bg-gray-50">Cancel</button>
               <button onClick={handleSave} disabled={createMutation.isPending || updateMutation.isPending}
-                className="px-4 py-2 rounded-xl text-xs font-semibold bg-gray-900 text-[#C9B45C] hover:bg-black disabled:opacity-50">
+                className="px-4 py-2 rounded-xl text-xs font-semibold bg-cyan-900 text-[#C9B45C] hover:bg-cyan-900 disabled:opacity-50">
                 {(createMutation.isPending || updateMutation.isPending) ? "Saving…" : (editingId !== null ? "Save Changes" : "Add Entry")}
               </button>
             </div>
@@ -2820,7 +2820,7 @@ function OutsourceJobSection({ swatchOrderId }: { swatchOrderId: number }) {
             {uniqueVendors.map(v => <option key={v} value={v}>{v}</option>)}
           </select>
           <button onClick={() => { setEditingId(null); setForm(defaultOutsourceForm); setShowModal(true); }}
-            className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl bg-gray-900 text-[#C9B45C] hover:bg-black transition-colors">
+            className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl bg-cyan-900 text-[#C9B45C] hover:bg-cyan-900 transition-colors">
             <Plus className="h-3.5 w-3.5" /> Add Job
           </button>
         </div>
@@ -2862,7 +2862,7 @@ function OutsourceJobSection({ swatchOrderId }: { swatchOrderId: number }) {
                 return (
                 <React.Fragment key={r.id}>
                   <tr className="border-b border-gray-50 hover:bg-gray-50/40">
-                    <td className="px-3 py-2.5 font-medium text-gray-800">{r.vendorName}</td>
+                    <td className="px-3 py-2.5 font-medium text-cyan-900">{r.vendorName}</td>
                     <td className="px-3 py-2.5 font-mono text-[10px] text-gray-500">{r.hsnCode}</td>
                     <td className="px-3 py-2.5">
                       <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700">{r.gstPercentage}%</span>
@@ -2870,7 +2870,7 @@ function OutsourceJobSection({ swatchOrderId }: { swatchOrderId: number }) {
                     <td className="px-3 py-2.5 text-gray-600">{r.issueDate}</td>
                     <td className="px-3 py-2.5 text-gray-400">{r.targetDate ?? "—"}</td>
                     <td className="px-3 py-2.5 text-gray-400">{r.deliveryDate ?? "—"}</td>
-                    <td className="px-3 py-2.5 text-right text-gray-800">{base.toFixed(2)}</td>
+                    <td className="px-3 py-2.5 text-right text-cyan-900">{base.toFixed(2)}</td>
                     <td className="px-3 py-2.5 text-right text-blue-700">{gstAmt.toFixed(2)}</td>
                     <td className="px-3 py-2.5 text-right font-semibold text-amber-700">{total.toFixed(2)}</td>
                     <td className="px-3 py-2.5 text-right font-semibold text-emerald-700">{paid.toFixed(2)}</td>
@@ -2885,7 +2885,7 @@ function OutsourceJobSection({ swatchOrderId }: { swatchOrderId: number }) {
                           </button>
                         ) : (
                           <button onClick={() => setExpandedPayRow(v => v === r.id ? null : r.id)}
-                            className={`flex items-center gap-1 text-[10px] font-medium px-2 py-1 rounded-lg border transition-colors ${expandedPayRow === r.id ? "bg-gray-900 text-[#C9B45C] border-gray-900" : "border-gray-200 text-gray-500 hover:bg-gray-50"}`}>
+                            className={`flex items-center gap-1 text-[10px] font-medium px-2 py-1 rounded-lg border transition-colors ${expandedPayRow === r.id ? "bg-cyan-900 text-[#C9B45C] border-cyan-900" : "border-gray-200 text-gray-500 hover:bg-gray-50"}`}>
                             <CreditCard className="h-3 w-3" /> Pay
                           </button>
                         )}
@@ -2921,7 +2921,7 @@ function OutsourceJobSection({ swatchOrderId }: { swatchOrderId: number }) {
               <tfoot>
                 <tr className="bg-gray-50 border-t border-gray-200">
                   <td colSpan={6} className="px-3 py-2 text-right text-[10px] font-semibold text-gray-400">Total</td>
-                  <td className="px-3 py-2 text-right font-bold text-gray-700">{grandBase.toFixed(2)}</td>
+                  <td className="px-3 py-2 text-right font-bold text-slate-500">{grandBase.toFixed(2)}</td>
                   <td className="px-3 py-2 text-right font-bold text-blue-700">{grandGst.toFixed(2)}</td>
                   <td className="px-3 py-2 text-right font-bold text-amber-700">{grandTotal.toFixed(2)}</td>
                   <td className="px-3 py-2 text-right font-bold text-emerald-700">{grandPaid.toFixed(2)}</td>
@@ -2938,7 +2938,7 @@ function OutsourceJobSection({ swatchOrderId }: { swatchOrderId: number }) {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg">
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-              <h3 className="text-sm font-semibold text-gray-900">{editingId !== null ? "Edit" : "Add"} Outsource Job</h3>
+              <h3 className="text-sm font-semibold text-cyan-900">{editingId !== null ? "Edit" : "Add"} Outsource Job</h3>
               <button onClick={() => { setShowModal(false); setEditingId(null); }} className="p-1 rounded-lg hover:bg-gray-100"><X className="h-4 w-4 text-gray-500" /></button>
             </div>
             <div className="px-6 py-4 space-y-3 max-h-[70vh] overflow-y-auto">
@@ -2954,7 +2954,7 @@ function OutsourceJobSection({ swatchOrderId }: { swatchOrderId: number }) {
                     }}
                     onFocus={() => setShowVendorDrop(true)}
                     placeholder="Search vendor by name or code..."
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-800 outline-none focus:border-[#C9B45C]" />
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-xs text-cyan-900 outline-none focus:border-[#C9B45C]" />
                   {form.vendorId && (
                     <button onClick={() => setForm(f => ({ ...f, vendorId: "", vendorName: "", vendorQuery: "" }))}
                       className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500"><X className="h-3 w-3" /></button>
@@ -2965,7 +2965,7 @@ function OutsourceJobSection({ swatchOrderId }: { swatchOrderId: number }) {
                         <button key={v.id} type="button"
                           onClick={() => { setForm(f => ({ ...f, vendorId: String(v.id), vendorName: v.brandName, vendorQuery: "" })); setShowVendorDrop(false); }}
                           className="w-full text-left px-3 py-2 text-xs hover:bg-gray-50 border-b border-gray-50 last:border-0">
-                          <span className="font-medium text-gray-800">{v.brandName}</span>
+                          <span className="font-medium text-cyan-900">{v.brandName}</span>
                           <span className="ml-2 text-gray-400 font-mono text-[10px]">{v.vendorCode}</span>
                         </button>
                       ))}
@@ -2986,7 +2986,7 @@ function OutsourceJobSection({ swatchOrderId }: { swatchOrderId: number }) {
                     }}
                     onFocus={() => setShowHsnDrop(true)}
                     placeholder="Search HSN code or description..."
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-800 outline-none focus:border-[#C9B45C]" />
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-xs text-cyan-900 outline-none focus:border-[#C9B45C]" />
                   {form.hsnId && (
                     <button onClick={() => setForm(f => ({ ...f, hsnId: "", hsnCode: "", gstPercentage: "", hsnQuery: "" }))}
                       className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500"><X className="h-3 w-3" /></button>
@@ -2997,7 +2997,7 @@ function OutsourceJobSection({ swatchOrderId }: { swatchOrderId: number }) {
                         <button key={h.id} type="button"
                           onClick={() => { setForm(f => ({ ...f, hsnId: String(h.id), hsnCode: h.hsnCode, gstPercentage: h.gstPercentage, hsnQuery: "" })); setShowHsnDrop(false); }}
                           className="w-full text-left px-3 py-2 text-xs hover:bg-gray-50 border-b border-gray-50 last:border-0">
-                          <span className="font-mono font-medium text-gray-800">{h.hsnCode}</span>
+                          <span className="font-mono font-medium text-cyan-900">{h.hsnCode}</span>
                           <span className="ml-2 text-gray-400 text-[10px]">{h.govtDescription}</span>
                           <span className="ml-1 text-blue-500 text-[10px] font-semibold">GST {h.gstPercentage}%</span>
                         </button>
@@ -3021,19 +3021,19 @@ function OutsourceJobSection({ swatchOrderId }: { swatchOrderId: number }) {
                   <label className="text-[10px] text-gray-500 font-medium">Issue Date <span className="text-red-500 ml-0.5">*</span></label>
                   <input type="date" value={form.issueDate}
                     onChange={e => setForm(f => ({ ...f, issueDate: e.target.value }))}
-                    className="w-full mt-1 border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-800 outline-none focus:border-[#C9B45C]" />
+                    className="w-full mt-1 border border-gray-200 rounded-xl px-3 py-2 text-xs text-cyan-900 outline-none focus:border-[#C9B45C]" />
                 </div>
                 <div>
                   <label className="text-[10px] text-gray-500 font-medium">Target Date</label>
                   <input type="date" value={form.targetDate}
                     onChange={e => setForm(f => ({ ...f, targetDate: e.target.value }))}
-                    className="w-full mt-1 border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-800 outline-none focus:border-[#C9B45C]" />
+                    className="w-full mt-1 border border-gray-200 rounded-xl px-3 py-2 text-xs text-cyan-900 outline-none focus:border-[#C9B45C]" />
                 </div>
                 <div>
                   <label className="text-[10px] text-gray-500 font-medium">Delivery Date</label>
                   <input type="date" value={form.deliveryDate}
                     onChange={e => setForm(f => ({ ...f, deliveryDate: e.target.value }))}
-                    className="w-full mt-1 border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-800 outline-none focus:border-[#C9B45C]" />
+                    className="w-full mt-1 border border-gray-200 rounded-xl px-3 py-2 text-xs text-cyan-900 outline-none focus:border-[#C9B45C]" />
                 </div>
               </div>
 
@@ -3041,19 +3041,19 @@ function OutsourceJobSection({ swatchOrderId }: { swatchOrderId: number }) {
                 <label className="text-[10px] text-gray-500 font-medium">Total Cost</label>
                 <input type="number" min="0" step="any" value={form.totalCost}
                   onChange={e => setForm(f => ({ ...f, totalCost: e.target.value }))}
-                  className="w-full mt-1 border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-800 outline-none focus:border-[#C9B45C]" placeholder="0.00" />
+                  className="w-full mt-1 border border-gray-200 rounded-xl px-3 py-2 text-xs text-cyan-900 outline-none focus:border-[#C9B45C]" placeholder="0.00" />
               </div>
               <div>
                 <label className="text-[10px] text-gray-500 font-medium">Notes</label>
                 <input type="text" value={form.notes}
                   onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
-                  className="w-full mt-1 border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-800 outline-none focus:border-[#C9B45C]" placeholder="Optional" />
+                  className="w-full mt-1 border border-gray-200 rounded-xl px-3 py-2 text-xs text-cyan-900 outline-none focus:border-[#C9B45C]" placeholder="Optional" />
               </div>
             </div>
             <div className="px-6 py-4 border-t border-gray-200 flex justify-end gap-2">
               <button onClick={() => setShowModal(false)} className="px-4 py-2 rounded-xl text-xs text-gray-500 border border-gray-200 hover:bg-gray-50">Cancel</button>
               <button onClick={handleSave} disabled={createMutation.isPending || updateMutation.isPending}
-                className="px-4 py-2 rounded-xl text-xs font-semibold bg-gray-900 text-[#C9B45C] hover:bg-black disabled:opacity-50">
+                className="px-4 py-2 rounded-xl text-xs font-semibold bg-cyan-900 text-[#C9B45C] hover:bg-cyan-900 disabled:opacity-50">
                 {(createMutation.isPending || updateMutation.isPending) ? "Saving…" : (editingId !== null ? "Save Changes" : "Add Job")}
               </button>
             </div>
@@ -3152,7 +3152,7 @@ function CustomChargesSection({ swatchOrderId }: { swatchOrderId: number }) {
             {uniqueVendors.map(v => <option key={v} value={v}>{v}</option>)}
           </select>
           <button onClick={() => { setEditingId(null); setForm(defaultCustomChargeForm); setShowModal(true); }}
-            className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl bg-gray-900 text-[#C9B45C] hover:bg-black transition-colors">
+            className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl bg-cyan-900 text-[#C9B45C] hover:bg-cyan-900 transition-colors">
             <Plus className="h-3.5 w-3.5" /> Add Charge
           </button>
         </div>
@@ -3193,15 +3193,15 @@ function CustomChargesSection({ swatchOrderId }: { swatchOrderId: number }) {
                 return (
                 <React.Fragment key={r.id}>
                   <tr className="border-b border-gray-50 hover:bg-gray-50/40">
-                    <td className="px-3 py-2.5 font-medium text-gray-800">{r.vendorName}</td>
+                    <td className="px-3 py-2.5 font-medium text-cyan-900">{r.vendorName}</td>
                     <td className="px-3 py-2.5 font-mono text-[10px] text-gray-500">{r.hsnCode}</td>
                     <td className="px-3 py-2.5">
                       <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700">{r.gstPercentage}%</span>
                     </td>
-                    <td className="px-3 py-2.5 text-gray-800">{r.description}</td>
-                    <td className="px-3 py-2.5 text-right text-gray-800">{parseFloat(r.unitPrice).toFixed(2)}</td>
-                    <td className="px-3 py-2.5 text-right text-gray-800">{parseFloat(r.quantity).toFixed(2)}</td>
-                    <td className="px-3 py-2.5 text-right text-gray-800">{base.toFixed(2)}</td>
+                    <td className="px-3 py-2.5 text-cyan-900">{r.description}</td>
+                    <td className="px-3 py-2.5 text-right text-cyan-900">{parseFloat(r.unitPrice).toFixed(2)}</td>
+                    <td className="px-3 py-2.5 text-right text-cyan-900">{parseFloat(r.quantity).toFixed(2)}</td>
+                    <td className="px-3 py-2.5 text-right text-cyan-900">{base.toFixed(2)}</td>
                     <td className="px-3 py-2.5 text-right text-blue-700">{gstAmt.toFixed(2)}</td>
                     <td className="px-3 py-2.5 text-right font-semibold text-amber-700">{total.toFixed(2)}</td>
                     <td className="px-3 py-2.5 text-right font-semibold text-emerald-700">{paid.toFixed(2)}</td>
@@ -3215,7 +3215,7 @@ function CustomChargesSection({ swatchOrderId }: { swatchOrderId: number }) {
                           </button>
                         ) : (
                           <button onClick={() => setExpandedPayRow(v => v === r.id ? null : r.id)}
-                            className={`flex items-center gap-1 text-[10px] font-medium px-2 py-1 rounded-lg border transition-colors ${expandedPayRow === r.id ? "bg-gray-900 text-[#C9B45C] border-gray-900" : "border-gray-200 text-gray-500 hover:bg-gray-50"}`}>
+                            className={`flex items-center gap-1 text-[10px] font-medium px-2 py-1 rounded-lg border transition-colors ${expandedPayRow === r.id ? "bg-cyan-900 text-[#C9B45C] border-cyan-900" : "border-gray-200 text-gray-500 hover:bg-gray-50"}`}>
                             <CreditCard className="h-3 w-3" /> Pay
                           </button>
                         )}
@@ -3251,7 +3251,7 @@ function CustomChargesSection({ swatchOrderId }: { swatchOrderId: number }) {
               <tfoot>
                 <tr className="bg-gray-50 border-t border-gray-200">
                   <td colSpan={6} className="px-3 py-2 text-right text-[10px] font-semibold text-gray-400">Total</td>
-                  <td className="px-3 py-2 text-right font-bold text-gray-700">{grandBase.toFixed(2)}</td>
+                  <td className="px-3 py-2 text-right font-bold text-slate-500">{grandBase.toFixed(2)}</td>
                   <td className="px-3 py-2 text-right font-bold text-blue-700">{grandGst.toFixed(2)}</td>
                   <td className="px-3 py-2 text-right font-bold text-amber-700">{grandTotal.toFixed(2)}</td>
                   <td className="px-3 py-2 text-right font-bold text-emerald-700">{grandPaid.toFixed(2)}</td>
@@ -3268,7 +3268,7 @@ function CustomChargesSection({ swatchOrderId }: { swatchOrderId: number }) {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg">
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-              <h3 className="text-sm font-semibold text-gray-900">{editingId !== null ? "Edit" : "Add"} Custom Charge</h3>
+              <h3 className="text-sm font-semibold text-cyan-900">{editingId !== null ? "Edit" : "Add"} Custom Charge</h3>
               <button onClick={() => { setShowModal(false); setEditingId(null); }} className="p-1 rounded-lg hover:bg-gray-100"><X className="h-4 w-4 text-gray-500" /></button>
             </div>
             <div className="px-6 py-4 space-y-3 max-h-[70vh] overflow-y-auto">
@@ -3285,7 +3285,7 @@ function CustomChargesSection({ swatchOrderId }: { swatchOrderId: number }) {
                     }}
                     onFocus={() => setShowVendorDrop(true)}
                     placeholder="Search vendor by name or code..."
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-800 outline-none focus:border-[#C9B45C]" />
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-xs text-cyan-900 outline-none focus:border-[#C9B45C]" />
                   {form.vendorId && (
                     <button onClick={() => setForm(f => ({ ...f, vendorId: "", vendorName: "", vendorQuery: "" }))}
                       className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500"><X className="h-3 w-3" /></button>
@@ -3296,7 +3296,7 @@ function CustomChargesSection({ swatchOrderId }: { swatchOrderId: number }) {
                         <button key={v.id} type="button"
                           onClick={() => { setForm(f => ({ ...f, vendorId: String(v.id), vendorName: v.brandName, vendorQuery: "" })); setShowVendorDrop(false); }}
                           className="w-full text-left px-3 py-2 text-xs hover:bg-gray-50 border-b border-gray-50 last:border-0">
-                          <span className="font-medium text-gray-800">{v.brandName}</span>
+                          <span className="font-medium text-cyan-900">{v.brandName}</span>
                           <span className="ml-2 text-gray-400 font-mono text-[10px]">{v.vendorCode}</span>
                         </button>
                       ))}
@@ -3317,7 +3317,7 @@ function CustomChargesSection({ swatchOrderId }: { swatchOrderId: number }) {
                     }}
                     onFocus={() => setShowHsnDrop(true)}
                     placeholder="Search HSN code or description..."
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-800 outline-none focus:border-[#C9B45C]" />
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-xs text-cyan-900 outline-none focus:border-[#C9B45C]" />
                   {form.hsnId && (
                     <button onClick={() => setForm(f => ({ ...f, hsnId: "", hsnCode: "", gstPercentage: "", hsnQuery: "" }))}
                       className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500"><X className="h-3 w-3" /></button>
@@ -3328,7 +3328,7 @@ function CustomChargesSection({ swatchOrderId }: { swatchOrderId: number }) {
                         <button key={h.id} type="button"
                           onClick={() => { setForm(f => ({ ...f, hsnId: String(h.id), hsnCode: h.hsnCode, gstPercentage: h.gstPercentage, hsnQuery: "" })); setShowHsnDrop(false); }}
                           className="w-full text-left px-3 py-2 text-xs hover:bg-gray-50 border-b border-gray-50 last:border-0">
-                          <span className="font-mono font-medium text-gray-800">{h.hsnCode}</span>
+                          <span className="font-mono font-medium text-cyan-900">{h.hsnCode}</span>
                           <span className="ml-2 text-gray-400 text-[10px]">{h.govtDescription}</span>
                           <span className="ml-1 text-blue-500 text-[10px] font-semibold">GST {h.gstPercentage}%</span>
                         </button>
@@ -3351,7 +3351,7 @@ function CustomChargesSection({ swatchOrderId }: { swatchOrderId: number }) {
                 <label className="text-[10px] text-gray-500 font-medium">Description <span className="text-red-500 ml-0.5">*</span></label>
                 <input type="text" value={form.description}
                   onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-                  className="w-full mt-1 border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-800 outline-none focus:border-[#C9B45C]"
+                  className="w-full mt-1 border border-gray-200 rounded-xl px-3 py-2 text-xs text-cyan-900 outline-none focus:border-[#C9B45C]"
                   placeholder="e.g. Embroidery work, Thread charges..." />
               </div>
 
@@ -3361,13 +3361,13 @@ function CustomChargesSection({ swatchOrderId }: { swatchOrderId: number }) {
                   <label className="text-[10px] text-gray-500 font-medium">Unit Price</label>
                   <input type="number" min="0" step="any" value={form.unitPrice}
                     onChange={e => setForm(f => ({ ...f, unitPrice: e.target.value }))}
-                    className="w-full mt-1 border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-800 outline-none focus:border-[#C9B45C]" placeholder="0.00" />
+                    className="w-full mt-1 border border-gray-200 rounded-xl px-3 py-2 text-xs text-cyan-900 outline-none focus:border-[#C9B45C]" placeholder="0.00" />
                 </div>
                 <div>
                   <label className="text-[10px] text-gray-500 font-medium">Quantity</label>
                   <input type="number" min="0" step="any" value={form.quantity}
                     onChange={e => setForm(f => ({ ...f, quantity: e.target.value }))}
-                    className="w-full mt-1 border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-800 outline-none focus:border-[#C9B45C]" placeholder="1" />
+                    className="w-full mt-1 border border-gray-200 rounded-xl px-3 py-2 text-xs text-cyan-900 outline-none focus:border-[#C9B45C]" placeholder="1" />
                 </div>
               </div>
 
@@ -3380,7 +3380,7 @@ function CustomChargesSection({ swatchOrderId }: { swatchOrderId: number }) {
             <div className="px-6 py-4 border-t border-gray-200 flex justify-end gap-2">
               <button onClick={() => { setShowModal(false); setEditingId(null); }} className="px-4 py-2 rounded-xl text-xs text-gray-500 border border-gray-200 hover:bg-gray-50">Cancel</button>
               <button onClick={handleSave} disabled={createMutation.isPending || updateMutation.isPending}
-                className="px-4 py-2 rounded-xl text-xs font-semibold bg-gray-900 text-[#C9B45C] hover:bg-black disabled:opacity-50">
+                className="px-4 py-2 rounded-xl text-xs font-semibold bg-cyan-900 text-[#C9B45C] hover:bg-cyan-900 disabled:opacity-50">
                 {(createMutation.isPending || updateMutation.isPending) ? "Saving…" : (editingId !== null ? "Save Changes" : "Add Charge")}
               </button>
             </div>

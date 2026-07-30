@@ -90,7 +90,7 @@ export default function ImportResultModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-6 space-y-4">
-        <h2 className="text-lg font-semibold text-gray-900">Import Complete</h2>
+        <h2 className="text-lg font-semibold text-cyan-900">Import Complete</h2>
 
         <div className={`grid gap-3 ${showSkipped ? "grid-cols-3" : "grid-cols-2"}`}>
           <div className="rounded-xl bg-emerald-50 border border-emerald-100 p-3 text-center">
@@ -161,7 +161,7 @@ export default function ImportResultModal({
 
         <button
           onClick={onClose}
-          className="w-full py-2.5 rounded-xl bg-gray-900 text-[#C9B45C] text-sm font-semibold hover:bg-gray-800 transition-colors"
+          className="w-full py-2.5 rounded-xl bg-cyan-900 text-[#C9B45C] text-sm font-semibold hover:bg-cyan-900 transition-colors"
         >
           Close
         </button>

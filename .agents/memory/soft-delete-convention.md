@@ -1,6 +1,6 @@
 ---
 name: Soft-delete convention (app-wide)
-description: How soft delete works across the ZARI ERP API — every table, deletes, reads, and the gotchas that bite.
+description: How soft delete works across the ERP API — every table, deletes, reads, and the gotchas that bite.
 ---
 
 # Soft delete is app-wide

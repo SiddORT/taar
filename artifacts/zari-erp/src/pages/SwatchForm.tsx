@@ -78,10 +78,10 @@ function LocalMediaPanel({ label, pending, onAdd, onRemove }: LocalMediaPanelPro
                   ? <img src={p.previewUrl} alt={p.file.name} className="w-full h-full object-cover" />
                   : <div className="flex flex-col items-center gap-1 p-1"><Film size={22} className="text-amber-400" /><span className="text-[9px] text-amber-700 truncate w-full text-center">{p.file.name}</span></div>
                 }
-                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100">
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-cyan-900/40 transition-all flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100">
                   {p.file.type.startsWith("image/") && (
                     <button type="button" onClick={() => setPreviewSrc(p.previewUrl)}
-                      className="p-1 rounded-full bg-white/90 text-gray-700 hover:bg-white shadow"><ZoomIn size={12} /></button>
+                      className="p-1 rounded-full bg-white/90 text-slate-500 hover:bg-white shadow"><ZoomIn size={12} /></button>
                   )}
                   <button type="button" onClick={() => onRemove(p.id)}
                     className="p-1 rounded-full bg-white/90 text-red-500 hover:bg-white shadow"><X size={12} /></button>
@@ -115,18 +115,18 @@ function InlineAddModal({ title, open, onClose, onAdd, adding }: {
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40">
       <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-sm">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-base font-semibold text-gray-900">{title}</h3>
+          <h3 className="text-base font-semibold text-cyan-900">{title}</h3>
           <button type="button" onClick={onClose} className="p-1 rounded hover:bg-gray-100 text-gray-400"><X size={16} /></button>
         </div>
         <form onSubmit={handleSubmit} className="space-y-3">
           <div>
             <input ref={inputRef} type="text" value={name} onChange={e => { setName(e.target.value); setErr(""); }}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900" placeholder="Enter name" />
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-cyan-900 focus:outline-none focus:ring-2 focus:ring-cyan-900" placeholder="Enter name" />
             {err && <p className="text-xs text-red-500 mt-1">{err}</p>}
           </div>
           <div className="flex justify-end gap-2 pt-1">
-            <button type="button" onClick={onClose} className="px-4 py-2 text-sm rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50">Cancel</button>
-            <button type="submit" disabled={adding} className="px-4 py-2 text-sm rounded-lg bg-gray-900 text-[#C9B45C] hover:bg-gray-800 disabled:opacity-60">{adding ? "Adding…" : "Add"}</button>
+            <button type="button" onClick={onClose} className="px-4 py-2 text-sm rounded-lg border border-gray-300 text-slate-500 hover:bg-gray-50">Cancel</button>
+            <button type="submit" disabled={adding} className="px-4 py-2 text-sm rounded-lg bg-cyan-900 text-[#C9B45C] hover:bg-cyan-900 disabled:opacity-60">{adding ? "Adding…" : "Add"}</button>
           </div>
         </form>
       </div>
@@ -374,12 +374,12 @@ export default function SwatchForm() {
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <button onClick={() => setLocation("/masters/swatches")}
-              className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 transition-colors">
+              className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-cyan-900 transition-colors">
               <ArrowLeft size={16} />
               Swatch Master
             </button>
             <span className="text-gray-300">/</span>
-            <h1 className="text-lg font-bold text-gray-900">
+            <h1 className="text-lg font-bold text-cyan-900">
               {isNew ? "New Swatch" : `Edit Swatch — ${existing?.swatchCode ?? ""}`}
             </h1>
           </div>
@@ -409,13 +409,13 @@ export default function SwatchForm() {
                   <div className="grid grid-cols-2 gap-x-5 gap-y-4">
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Client</label>
+                      <label className="block text-sm font-medium text-slate-500 mb-1">Client</label>
                       <SearchableSelect value={form.client} onChange={v => { setField("client", v);}}
                         options={clientOptions} placeholder="Select client" clearable disabled={!isNew}/>
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-medium text-slate-500 mb-1">
                         Swatch Code
                       </label>
 
@@ -429,41 +429,41 @@ export default function SwatchForm() {
                           value={form.swatchCode}
                           onChange={(e) => setField("swatchCode", e.target.value)}
                           disabled={!isNew}
-                          className="flex-1 border border-gray-300 rounded-r-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900"
+                          className="flex-1 border border-gray-300 rounded-r-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-900"
                           placeholder="SWA001"
                         />
                       </div>
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Swatch Name <span className="text-red-500">*</span></label>
+                      <label className="block text-sm font-medium text-slate-500 mb-1">Swatch Name <span className="text-red-500">*</span></label>
                       <input type="text" value={form.swatchName} maxLength={50}
                         onChange={e => setField("swatchName", e.target.value.slice(0, 50))}
                         placeholder="e.g. Silk Brocade"
-                        className={`w-full border rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 transition ${errors.swatchName ? "border-red-400 focus:ring-red-300" : "border-gray-300 focus:ring-gray-900"}`} />
+                        className={`w-full border rounded-lg px-3 py-2 text-sm text-cyan-900 focus:outline-none focus:ring-2 transition ${errors.swatchName ? "border-red-400 focus:ring-red-300" : "border-gray-300 focus:ring-cyan-900"}`} />
                       {errors.swatchName && <p className="text-xs text-red-500 mt-1">{errors.swatchName}</p>}
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Swatch Category</label>
+                      <label className="block text-sm font-medium text-slate-500 mb-1">Swatch Category</label>
                       <AddableSelect value={form.swatchCategory} onChange={v => setField("swatchCategory", v)}
                         onAdd={() => setAddCatOpen(true)} addLabel="+ Add New Category"
                         options={swatchCatOptions} placeholder="Select category" />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Base Fabric</label>
+                      <label className="block text-sm font-medium text-slate-500 mb-1">Base Fabric</label>
                       <SearchableSelect value={form.fabric} onChange={v => setField("fabric", v)}
                         options={fabricOptions.map(o => o.value)} placeholder="Select fabric" clearable />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
+                      <label className="block text-sm font-medium text-slate-500 mb-1">Location</label>
                       <div className="flex rounded-lg border border-gray-300 overflow-hidden mb-2">
                         {(["Inhouse", "Client"] as const).map(t => (
                           <button key={t} type="button"
                             onClick={() => setField("location", t === "Client" ? "Client" : "")}
-                            className={`flex-1 py-2 text-sm font-medium transition-colors ${locationType === t ? "bg-gray-100 text-gray-800 font-semibold" : "bg-white text-gray-400 hover:bg-gray-50"}`}>
+                            className={`flex-1 py-2 text-sm font-medium transition-colors ${locationType === t ? "bg-gray-100 text-cyan-900 font-semibold" : "bg-white text-gray-400 hover:bg-gray-50"}`}>
                             {t === "Client" ? "To Client" : "Inhouse"}
                           </button>
                         ))}
@@ -471,7 +471,7 @@ export default function SwatchForm() {
                       {locationType === "Inhouse" && (
                         <select value={warehouseValue}
                           onChange={e => setField("location", e.target.value)}
-                          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-gray-900">
+                          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-slate-500 bg-white focus:outline-none focus:ring-2 focus:ring-cyan-900">
                           <option value="">— Select warehouse —</option>
                           {activeWarehouses.map(w => <option key={w.id} value={w.name}>{w.name}</option>)}
                         </select>
@@ -479,15 +479,15 @@ export default function SwatchForm() {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                      <label className="block text-sm font-medium text-slate-500 mb-1">Date</label>
                       <input type="date" value={form.swatchDate} max={todayStr()}
                         onChange={e => setField("swatchDate", e.target.value)}
-                        className={`w-full border rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 transition ${errors.swatchDate ? "border-red-400 focus:ring-red-300" : "border-gray-300 focus:ring-gray-900"}`} />
+                        className={`w-full border rounded-lg px-3 py-2 text-sm text-slate-500 focus:outline-none focus:ring-2 transition ${errors.swatchDate ? "border-red-400 focus:ring-red-300" : "border-gray-300 focus:ring-cyan-900"}`} />
                       {errors.swatchDate && <p className="text-xs text-red-500 mt-1">{errors.swatchDate}</p>}
                     </div>
 
                     <div className="col-span-2">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-medium text-slate-500 mb-1">
                         Swatch Tags
                       </label>
 
@@ -506,39 +506,39 @@ export default function SwatchForm() {
                   <div className="grid grid-cols-2 gap-x-5 gap-y-4">
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Length</label>
+                      <label className="block text-sm font-medium text-slate-500 mb-1">Length</label>
                       <input type="number" value={form.length} min="0" step="0.01"
                         onKeyDown={e => { if (["e","E","+","-"].includes(e.key)) e.preventDefault(); }}
                         onChange={e => setField("length", e.target.value)}
                         placeholder="e.g. 120"
-                        className={`w-full border rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 transition ${errors.length ? "border-red-400 focus:ring-red-300" : "border-gray-300 focus:ring-gray-900"}`} />
+                        className={`w-full border rounded-lg px-3 py-2 text-sm text-cyan-900 focus:outline-none focus:ring-2 transition ${errors.length ? "border-red-400 focus:ring-red-300" : "border-gray-300 focus:ring-cyan-900"}`} />
                       {errors.length && <p className="text-xs text-red-500 mt-1">{errors.length}</p>}
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Width</label>
+                      <label className="block text-sm font-medium text-slate-500 mb-1">Width</label>
                       <input type="number" value={form.width} min="0" step="0.01"
                         onKeyDown={e => { if (["e","E","+","-"].includes(e.key)) e.preventDefault(); }}
                         onChange={e => setField("width", e.target.value)}
                         placeholder="e.g. 60"
-                        className={`w-full border rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 transition ${errors.width ? "border-red-400 focus:ring-red-300" : "border-gray-300 focus:ring-gray-900"}`} />
+                        className={`w-full border rounded-lg px-3 py-2 text-sm text-cyan-900 focus:outline-none focus:ring-2 transition ${errors.width ? "border-red-400 focus:ring-red-300" : "border-gray-300 focus:ring-cyan-900"}`} />
                       {errors.width && <p className="text-xs text-red-500 mt-1">{errors.width}</p>}
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Unit Type</label>
+                      <label className="block text-sm font-medium text-slate-500 mb-1">Unit Type</label>
                       <AddableSelect value={form.unitType} onChange={v => setField("unitType", v)}
                         onAdd={() => setAddUnitOpen(true)} addLabel="+ Add Unit Type"
                         options={unitOptions} placeholder="Select unit" />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Hours</label>
+                      <label className="block text-sm font-medium text-slate-500 mb-1">Hours</label>
                       <input type="number" value={form.hours} min="0" step="0.01"
                         onKeyDown={e => { if (["e","E","+","-"].includes(e.key)) e.preventDefault(); }}
                         onChange={e => setField("hours", e.target.value)}
                         placeholder="e.g. 4.5"
-                        className={`w-full border rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 transition ${errors.hours ? "border-red-400 focus:ring-red-300" : "border-gray-300 focus:ring-gray-900"}`} />
+                        className={`w-full border rounded-lg px-3 py-2 text-sm text-cyan-900 focus:outline-none focus:ring-2 transition ${errors.hours ? "border-red-400 focus:ring-red-300" : "border-gray-300 focus:ring-cyan-900"}`} />
                       {errors.hours && <p className="text-xs text-red-500 mt-1">{errors.hours}</p>}
                     </div>
                   </div>
@@ -546,9 +546,9 @@ export default function SwatchForm() {
 
                 {/* Status */}
                 <div className="flex items-center gap-3 pt-1">
-                  <span className="text-sm font-medium text-gray-700">Active</span>
+                  <span className="text-sm font-medium text-slate-500">Active</span>
                   <button type="button" onClick={() => setField("isActive", !form.isActive)}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${form.isActive ? "bg-gray-900" : "bg-gray-300"}`}>
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${form.isActive ? "bg-cyan-900" : "bg-gray-300"}`}>
                     <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${form.isActive ? "translate-x-6" : "translate-x-1"}`} />
                   </button>
                   <span className="text-sm text-gray-500">{form.isActive ? "Active" : "Inactive"}</span>
@@ -572,7 +572,7 @@ export default function SwatchForm() {
                     : (
                       <ul className="space-y-1.5">
                         {form.attachments.map((att, idx) => (
-                          <li key={idx} className="flex items-center gap-2 bg-white rounded-lg px-3 py-2 text-sm text-gray-700 border border-gray-100">
+                          <li key={idx} className="flex items-center gap-2 bg-white rounded-lg px-3 py-2 text-sm text-slate-500 border border-gray-100">
                             <Paperclip size={12} className="text-gray-400 shrink-0" />
                             <span className="flex-1 truncate text-xs">{att.name}</span>
                             <span className="text-xs text-gray-400 shrink-0">{(att.size / 1024).toFixed(1)} KB</span>

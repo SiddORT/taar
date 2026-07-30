@@ -13,7 +13,7 @@ import { useCurrency } from "@/contexts/CurrencyContext";
 
 const G = "#C6AF4B";
 const card = "rounded-2xl bg-white border border-[#C6AF4B]/15 shadow-[0_2px_16px_rgba(198,175,75,0.12),0_1px_3px_rgba(0,0,0,0.06)]";
-const inputCls = "w-full px-3 py-2 text-sm rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30 text-gray-900 bg-white";
+const inputCls = "w-full px-3 py-2 text-sm rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30 text-cyan-900 bg-white";
 const labelCls = "block text-xs font-semibold text-gray-500 mb-1";
 
 interface Design {
@@ -279,7 +279,7 @@ export default function QuotationForm() {
 
         {/* Page Header */}
         <div className="flex items-center gap-3">
-          <button onClick={() => navigate("/quotation")} className="p-2 rounded-xl hover:bg-gray-100 transition text-gray-500 hover:text-gray-700">
+          <button onClick={() => navigate("/quotation")} className="p-2 rounded-xl hover:bg-gray-100 transition text-gray-500 hover:text-slate-500">
             <ArrowLeft size={18} />
           </button>
           <div className="flex items-center gap-3">
@@ -287,7 +287,7 @@ export default function QuotationForm() {
               <FileText size={18} style={{ color: G }} />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-gray-900">{isEdit ? "Edit Quotation" : "New Quotation"}</h1>
+              <h1 className="text-xl font-bold text-cyan-900">{isEdit ? "Edit Quotation" : "New Quotation"}</h1>
               <p className="text-sm text-gray-400 mt-0.5">Fill in the details below</p>
             </div>
           </div>
@@ -319,7 +319,7 @@ export default function QuotationForm() {
             <div className="border border-[#C6AF4B]/20 rounded-xl bg-[#C6AF4B]/[0.04] p-4">
               <div className="flex items-center justify-between gap-3 mb-3">
                 <div>
-                  <p className="font-bold text-gray-900 text-base">{selectedClient.brandName}</p>
+                  <p className="font-bold text-cyan-900 text-base">{selectedClient.brandName}</p>
                   <p className="text-xs text-gray-400 font-mono">{selectedClient.clientCode}</p>
                 </div>
                 {clientState && (
@@ -338,14 +338,14 @@ export default function QuotationForm() {
                   <User size={13} className="text-gray-400 mt-0.5 shrink-0" />
                   <div>
                     <p className="text-xs text-gray-400">Contact Person</p>
-                    <p className="font-medium text-gray-800">{selectedClient.contactName}</p>
+                    <p className="font-medium text-cyan-900">{selectedClient.contactName}</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-2">
                   <Phone size={13} className="text-gray-400 mt-0.5 shrink-0" />
                   <div>
                     <p className="text-xs text-gray-400">Phone</p>
-                    <p className="font-medium text-gray-800">{selectedClient.contactNo}</p>
+                    <p className="font-medium text-cyan-900">{selectedClient.contactNo}</p>
                     {selectedClient.altContactNo && <p className="text-xs text-gray-500">{selectedClient.altContactNo}</p>}
                   </div>
                 </div>
@@ -353,7 +353,7 @@ export default function QuotationForm() {
                   <Mail size={13} className="text-gray-400 mt-0.5 shrink-0" />
                   <div>
                     <p className="text-xs text-gray-400">Email</p>
-                    <p className="font-medium text-gray-800 break-all">{selectedClient.email}</p>
+                    <p className="font-medium text-cyan-900 break-all">{selectedClient.email}</p>
                     {selectedClient.altEmail && <p className="text-xs text-gray-500 break-all">{selectedClient.altEmail}</p>}
                   </div>
                 </div>
@@ -362,7 +362,7 @@ export default function QuotationForm() {
                     <MapPin size={13} className="text-gray-400 mt-0.5 shrink-0" />
                     <div>
                       <p className="text-xs text-gray-400">State / City</p>
-                      <p className="font-medium text-gray-800">
+                      <p className="font-medium text-cyan-900">
                         {[
                           selectedClient.addresses?.find((a) => a.isBillingDefault)?.city ?? selectedClient.addresses?.[0]?.city,
                           clientState,
@@ -376,7 +376,7 @@ export default function QuotationForm() {
                     <CreditCard size={13} className="text-gray-400 mt-0.5 shrink-0" />
                     <div>
                       <p className="text-xs text-gray-400">Invoice Currency</p>
-                      <p className="font-medium text-gray-800">{selectedClient.invoiceCurrency}</p>
+                      <p className="font-medium text-cyan-900">{selectedClient.invoiceCurrency}</p>
                     </div>
                   </div>
                 )}
@@ -385,7 +385,7 @@ export default function QuotationForm() {
                     <span className="text-gray-400 text-xs mt-0.5 shrink-0">🌐</span>
                     <div>
                       <p className="text-xs text-gray-400">Country</p>
-                      <p className="font-medium text-gray-800">{selectedClient.country}</p>
+                      <p className="font-medium text-cyan-900">{selectedClient.country}</p>
                     </div>
                   </div>
                 )}
@@ -561,7 +561,7 @@ export default function QuotationForm() {
                             setCharges((p) => p.map((x, j) => j === i ? { ...x, price: v } : x));
                           }} />
                       </td>
-                      <td className="text-right py-1.5 font-semibold text-gray-800">{fmt(amt)}</td>
+                      <td className="text-right py-1.5 font-semibold text-cyan-900">{fmt(amt)}</td>
                       <td className="py-1.5 pl-2">
                         {charges.length > 1 && (
                           <button onClick={() => setCharges((p) => p.filter((_, j) => j !== i))} className="text-red-400 hover:text-red-600">
@@ -593,7 +593,7 @@ export default function QuotationForm() {
               </div>
               <div className="w-36">
                 <label className={labelCls}>Shipping Total</label>
-                <div className="px-3 py-2 text-sm rounded-xl border border-gray-200 bg-gray-50 text-gray-700 font-semibold">
+                <div className="px-3 py-2 text-sm rounded-xl border border-gray-200 bg-gray-50 text-slate-500 font-semibold">
                   {fmt(estimatedShippingCharges)}
                 </div>
               </div>
@@ -604,13 +604,13 @@ export default function QuotationForm() {
           <div className="mt-4 border-t border-gray-100 pt-4">
             <div className="flex flex-col items-end gap-2 text-sm">
               <div className="flex justify-between w-72">
-                <span className="text-gray-700 font-medium">Subtotal</span>
-                <span className="font-semibold text-gray-900">{fmt(subtotal)}</span>
+                <span className="text-slate-500 font-medium">Subtotal</span>
+                <span className="font-semibold text-cyan-900">{fmt(subtotal)}</span>
               </div>
               <div className="flex items-center justify-between w-72 gap-2">
                 <div className="flex items-center gap-2 flex-1">
                   <select
-                    className="text-xs rounded-lg border border-gray-200 px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30 bg-white text-gray-900 font-medium"
+                    className="text-xs rounded-lg border border-gray-200 px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30 bg-white text-cyan-900 font-medium"
                     value={gstTaxType} onChange={(e) => setGstTaxType(e.target.value)}>
                     <option value="GST">GST</option>
                     <option value="CGST+SGST">CGST+SGST</option>
@@ -618,20 +618,20 @@ export default function QuotationForm() {
                   </select>
                   <div className="flex items-center gap-1">
                     <input type="number" min="0" max="100" step="0.01"
-                      className="w-16 text-xs rounded-lg border border-gray-200 px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30 bg-white text-gray-900"
+                      className="w-16 text-xs rounded-lg border border-gray-200 px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30 bg-white text-cyan-900"
                       onKeyDown={(e) => { if (e.key === "-" || e.key === "e") e.preventDefault(); }}
                       value={gstRate} onChange={numChange(setGstRate)} />
-                    <span className="text-gray-700 text-xs">%</span>
+                    <span className="text-slate-500 text-xs">%</span>
                   </div>
                 </div>
-                <span className="font-semibold text-gray-900">{fmt(gstAmount)}</span>
+                <span className="font-semibold text-cyan-900">{fmt(gstAmount)}</span>
               </div>
               <div className="flex justify-between w-72">
-                <span className="text-gray-700 font-medium">Shipping</span>
-                <span className="font-semibold text-gray-900">{fmt(shipping)}</span>
+                <span className="text-slate-500 font-medium">Shipping</span>
+                <span className="font-semibold text-cyan-900">{fmt(shipping)}</span>
               </div>
               <div className="flex justify-between w-72 pt-1 border-t border-gray-200 mt-1">
-                <span className="font-bold text-gray-900">Total</span>
+                <span className="font-bold text-cyan-900">Total</span>
                 <span className="font-bold text-[#C6AF4B] text-lg">{fmt(total)}</span>
               </div>
             </div>
@@ -674,7 +674,7 @@ export default function QuotationForm() {
                 label: "Corporate",
                 preview: (
                   <div className="h-20 rounded-lg overflow-hidden border border-gray-100">
-                    <div className="h-10 w-full bg-gray-900 flex items-center px-2">
+                    <div className="h-10 w-full bg-cyan-900 flex items-center px-2">
                       <div className="h-2 w-2 rounded-full bg-[#C6AF4B] mr-1.5" />
                       <div className="h-1.5 w-1/2 rounded bg-white/50" />
                     </div>
@@ -690,7 +690,7 @@ export default function QuotationForm() {
                 label: "Minimal",
                 preview: (
                   <div className="h-20 rounded-lg overflow-hidden border border-gray-100 bg-white flex flex-col items-center justify-center gap-1.5 p-2">
-                    <div className="h-1.5 w-12 rounded bg-gray-800" />
+                    <div className="h-1.5 w-12 rounded bg-cyan-900" />
                     <div className="h-px w-16 bg-[#C6AF4B]" />
                     <div className="h-1 w-8 rounded bg-gray-300" />
                     <div className="h-1 w-10 rounded bg-gray-200" />
@@ -773,7 +773,7 @@ export default function QuotationForm() {
         {/* ─── Actions ─────────────────────────────────────────────────────── */}
         <div className="flex justify-end gap-3">
           <button onClick={() => navigate(isEdit ? `/quotation/${id}` : "/quotation")}
-            className="px-5 py-2.5 rounded-xl text-sm font-semibold border border-gray-200 hover:bg-gray-50 text-gray-700">
+            className="px-5 py-2.5 rounded-xl text-sm font-semibold border border-gray-200 hover:bg-gray-50 text-slate-500">
             Cancel
           </button>
           <button onClick={handleSave} disabled={saving}

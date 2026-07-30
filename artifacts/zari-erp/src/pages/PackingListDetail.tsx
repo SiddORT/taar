@@ -77,7 +77,7 @@ function Field({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div>
       <div className="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-0.5">{label}</div>
-      <div className="text-sm text-gray-900 font-medium">{value || "—"}</div>
+      <div className="text-sm text-cyan-900 font-medium">{value || "—"}</div>
     </div>
   );
 }
@@ -521,7 +521,7 @@ export default function PackingListDetail() {
               <Package className="h-5 w-5" style={{ color: G }} />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-gray-900">{pl?.pl_number ?? "Loading…"}</h1>
+              <h1 className="text-xl font-bold text-cyan-900">{pl?.pl_number ?? "Loading…"}</h1>
               {pl && (
                 <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${STATUS_COLORS[pl.status] ?? "bg-gray-100 text-gray-600"}`}>
                   {pl.status}
@@ -530,7 +530,7 @@ export default function PackingListDetail() {
             </div>
           </div>
           <div className="flex gap-2 ml-auto">
-            <button onClick={printPdf} className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium border border-gray-200 hover:bg-gray-50 text-gray-700">
+            <button onClick={printPdf} className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium border border-gray-200 hover:bg-gray-50 text-slate-500">
               <Printer className="h-4 w-4" />
               Print PDF
             </button>
@@ -557,10 +557,10 @@ export default function PackingListDetail() {
             {/* Info Cards Row */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {[
-                { label: "Total Packages", value: pl.packages.length, color: "text-gray-900" },
-                { label: "Total Items", value: totalItems, color: "text-gray-900" },
-                { label: "Total Net Weight", value: totalNetWeight > 0 ? `${totalNetWeight.toFixed(3)} kg` : "—", color: "text-gray-900" },
-                { label: "Total Gross Weight", value: totalGrossWeight > 0 ? `${totalGrossWeight.toFixed(3)} kg` : "—", color: "text-gray-900" },
+                { label: "Total Packages", value: pl.packages.length, color: "text-cyan-900" },
+                { label: "Total Items", value: totalItems, color: "text-cyan-900" },
+                { label: "Total Net Weight", value: totalNetWeight > 0 ? `${totalNetWeight.toFixed(3)} kg` : "—", color: "text-cyan-900" },
+                { label: "Total Gross Weight", value: totalGrossWeight > 0 ? `${totalGrossWeight.toFixed(3)} kg` : "—", color: "text-cyan-900" },
               ].map(({ label, value, color }) => (
                 <div key={label} className={`${card} p-4`}>
                   <div className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1">{label}</div>
@@ -580,7 +580,7 @@ export default function PackingListDetail() {
                     <div className="flex items-start gap-1.5">
                       <MapPin className="h-3.5 w-3.5 text-blue-400 mt-0.5 shrink-0" />
                       <div>
-                        <div className="text-sm font-medium text-gray-900">{pl.delivery_address_label}</div>
+                        <div className="text-sm font-medium text-cyan-900">{pl.delivery_address_label}</div>
                         <div className="text-xs text-gray-600">{addrParts.join(", ")}</div>
                       </div>
                     </div>
@@ -606,7 +606,7 @@ export default function PackingListDetail() {
                       <select
                         value={draftShipmentId}
                         onChange={e => setDraftShipmentId(e.target.value ? parseInt(e.target.value) : "")}
-                        className="flex-1 border border-gray-200 rounded-lg px-2 py-1.5 text-xs text-gray-900 focus:outline-none focus:ring-1 focus:ring-yellow-200"
+                        className="flex-1 border border-gray-200 rounded-lg px-2 py-1.5 text-xs text-cyan-900 focus:outline-none focus:ring-1 focus:ring-yellow-200"
                       >
                         <option value="">No shipment</option>
                         {shipments.map(s => (
@@ -631,7 +631,7 @@ export default function PackingListDetail() {
                     <div className="flex items-start gap-1.5">
                       <Truck className="h-3.5 w-3.5 text-gray-400 mt-0.5 shrink-0" />
                       <div>
-                        <div className="text-sm font-medium text-gray-900 font-mono">{pl.shipment_tracking}</div>
+                        <div className="text-sm font-medium text-cyan-900 font-mono">{pl.shipment_tracking}</div>
                         {pl.shipment_date && <div className="text-xs text-gray-600">{new Date(pl.shipment_date).toLocaleDateString("en-IN")}</div>}
                       </div>
                     </div>
@@ -647,7 +647,7 @@ export default function PackingListDetail() {
               <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
                 <div className="flex items-center gap-2">
                   <Box className="h-4 w-4" style={{ color: G }} />
-                  <h2 className="text-sm font-bold text-gray-900">Packages ({pl.packages.length})</h2>
+                  <h2 className="text-sm font-bold text-cyan-900">Packages ({pl.packages.length})</h2>
                 </div>
                 <button
                   onClick={handleAddPackage}
@@ -689,7 +689,7 @@ export default function PackingListDetail() {
                             {pkg.package_number}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <span className="font-semibold text-gray-800 text-sm">Package {pkg.package_number}</span>
+                            <span className="font-semibold text-cyan-900 text-sm">Package {pkg.package_number}</span>
                             <div className="flex flex-wrap gap-3 mt-0.5">
                               {dimStr && <span className="text-xs text-gray-400">📦 {dimStr}</span>}
                               {pkg.net_weight && <span className="text-xs text-gray-400">Net: {Number(pkg.net_weight).toFixed(3)} kg</span>}
@@ -759,7 +759,7 @@ export default function PackingListDetail() {
                                         type="number" step="0.01" min="0"
                                         value={dims[key]}
                                         onChange={e => setPkgDims(prev => ({ ...prev, [pkg.id]: { ...prev[pkg.id], [key]: e.target.value } }))}
-                                        className="w-full border border-blue-200 rounded-lg px-2.5 py-1.5 text-sm text-gray-900 bg-white focus:outline-none focus:ring-1 focus:ring-blue-300"
+                                        className="w-full border border-blue-200 rounded-lg px-2.5 py-1.5 text-sm text-cyan-900 bg-white focus:outline-none focus:ring-1 focus:ring-blue-300"
                                         placeholder="0"
                                       />
                                     </div>
@@ -799,7 +799,7 @@ export default function PackingListDetail() {
                                       key={src}
                                       onClick={() => { setCustomSource(src); setCustomSelected(null); setCustomLocation(""); setCustomSearch(""); setInvResults([]); }}
                                       className={`flex-1 py-1.5 text-xs font-semibold rounded-md capitalize transition-all ${
-                                        customSource === src ? "bg-white shadow text-gray-900" : "text-blue-700 hover:text-blue-900"
+                                        customSource === src ? "bg-white shadow text-cyan-900" : "text-blue-700 hover:text-blue-900"
                                       }`}
                                     >
                                       {src === "custom" ? "Free Text" : src.charAt(0).toUpperCase() + src.slice(1)}
@@ -843,11 +843,11 @@ export default function PackingListDetail() {
                                             className="w-full flex items-center justify-between px-3 py-2 hover:bg-blue-50 text-left transition-colors"
                                           >
                                             <div>
-                                              <div className="text-xs font-semibold text-gray-800 font-mono">{inv.code}</div>
+                                              <div className="text-xs font-semibold text-cyan-900 font-mono">{inv.code}</div>
                                               <div className="text-[11px] text-gray-500 truncate">{inv.name}</div>
                                             </div>
                                             <div className="text-right ml-3 shrink-0">
-                                              <div className="text-xs font-semibold text-gray-700">{inv.current_stock} {inv.unit ?? ""}</div>
+                                              <div className="text-xs font-semibold text-slate-500">{inv.current_stock} {inv.unit ?? ""}</div>
                                               <div className="text-[10px] text-gray-400">in stock</div>
                                             </div>
                                           </button>
@@ -859,7 +859,7 @@ export default function PackingListDetail() {
                                     {customSelected && (
                                       <div className="flex items-center justify-between bg-white border border-blue-200 rounded-lg px-3 py-2">
                                         <div>
-                                          <div className="text-xs font-semibold text-gray-800 font-mono">{customSelected.code}</div>
+                                          <div className="text-xs font-semibold text-cyan-900 font-mono">{customSelected.code}</div>
                                           <div className="text-[11px] text-gray-500">{customSelected.name}</div>
                                         </div>
                                         <div className="flex items-center gap-3">
@@ -881,7 +881,7 @@ export default function PackingListDetail() {
                                         <select
                                           value={customLocation}
                                           onChange={e => setCustomLocation(e.target.value)}
-                                          className="w-full border border-blue-200 rounded-lg px-2.5 py-1.5 text-xs text-gray-900 bg-white focus:outline-none focus:ring-1 focus:ring-blue-300"
+                                          className="w-full border border-blue-200 rounded-lg px-2.5 py-1.5 text-xs text-cyan-900 bg-white focus:outline-none focus:ring-1 focus:ring-blue-300"
                                         >
                                           <option value="">— No specific location —</option>
                                           {customSelected.location_stocks.map(ls => (
@@ -904,7 +904,7 @@ export default function PackingListDetail() {
                                       value={customQty}
                                       onChange={e => setCustomQty(e.target.value)}
                                       placeholder="0"
-                                      className="w-full border border-blue-200 rounded-lg px-2.5 py-1.5 text-xs text-gray-900 bg-white focus:outline-none focus:ring-1 focus:ring-blue-300"
+                                      className="w-full border border-blue-200 rounded-lg px-2.5 py-1.5 text-xs text-cyan-900 bg-white focus:outline-none focus:ring-1 focus:ring-blue-300"
                                     />
                                   </div>
                                   <div>
@@ -914,7 +914,7 @@ export default function PackingListDetail() {
                                       value={customUnit}
                                       onChange={e => setCustomUnit(e.target.value)}
                                       placeholder="pcs / m / kg"
-                                      className="w-full border border-blue-200 rounded-lg px-2.5 py-1.5 text-xs text-gray-900 bg-white focus:outline-none focus:ring-1 focus:ring-blue-300"
+                                      className="w-full border border-blue-200 rounded-lg px-2.5 py-1.5 text-xs text-cyan-900 bg-white focus:outline-none focus:ring-1 focus:ring-blue-300"
                                     />
                                   </div>
                                   <div>
@@ -924,7 +924,7 @@ export default function PackingListDetail() {
                                       value={customWeight}
                                       onChange={e => setCustomWeight(e.target.value)}
                                       placeholder="0.000"
-                                      className="w-full border border-blue-200 rounded-lg px-2.5 py-1.5 text-xs text-gray-900 bg-white focus:outline-none focus:ring-1 focus:ring-blue-300"
+                                      className="w-full border border-blue-200 rounded-lg px-2.5 py-1.5 text-xs text-cyan-900 bg-white focus:outline-none focus:ring-1 focus:ring-blue-300"
                                     />
                                   </div>
                                   <div>
@@ -934,7 +934,7 @@ export default function PackingListDetail() {
                                       value={customDesc}
                                       onChange={e => setCustomDesc(e.target.value)}
                                       placeholder="Optional note"
-                                      className="w-full border border-blue-200 rounded-lg px-2.5 py-1.5 text-xs text-gray-900 bg-white focus:outline-none focus:ring-1 focus:ring-blue-300"
+                                      className="w-full border border-blue-200 rounded-lg px-2.5 py-1.5 text-xs text-cyan-900 bg-white focus:outline-none focus:ring-1 focus:ring-blue-300"
                                     />
                                   </div>
                                 </div>
@@ -977,7 +977,7 @@ export default function PackingListDetail() {
                                           key={tab}
                                           onClick={() => setOrderTab(tab)}
                                           className={`flex-1 py-1.5 text-xs font-semibold rounded-md transition-all ${
-                                            orderTab === tab ? "bg-white shadow text-gray-900" : "text-amber-700 hover:text-amber-900"
+                                            orderTab === tab ? "bg-white shadow text-cyan-900" : "text-amber-700 hover:text-amber-900"
                                           }`}
                                         >
                                           {tab} ({tab === "Swatch" ? eligible.swatches.filter(o => !o.already_added).length : eligible.styles.filter(o => !o.already_added).length})
@@ -1005,7 +1005,7 @@ export default function PackingListDetail() {
                                         >
                                           <Plus className="h-3.5 w-3.5 shrink-0 text-amber-400 group-hover:text-amber-600" />
                                           <div className="min-w-0">
-                                            <div className="text-xs font-semibold text-gray-800 font-mono">{order.order_code}</div>
+                                            <div className="text-xs font-semibold text-cyan-900 font-mono">{order.order_code}</div>
                                             <div className="text-[11px] text-gray-500 truncate">{order.name}</div>
                                           </div>
                                           {addingItemId === order.id && (
@@ -1089,7 +1089,7 @@ export default function PackingListDetail() {
                                             <span className="text-xs px-2 py-0.5 rounded-full font-semibold bg-gray-100 text-gray-600">Custom</span>
                                           )}
                                         </td>
-                                        <td className="px-3 py-3 font-mono text-xs text-gray-700">
+                                        <td className="px-3 py-3 font-mono text-xs text-slate-500">
                                           {item.order_code ?? (item.item_source !== "order" && item.inventory_id ? `#${item.inventory_id}` : "—")}
                                         </td>
                                         <td className="px-3 py-3 text-gray-600 text-xs max-w-[140px]">
@@ -1108,7 +1108,7 @@ export default function PackingListDetail() {
                                               value={itemWeights[item.id] !== undefined ? itemWeights[item.id] : (item.item_weight ?? "")}
                                               onChange={e => setItemWeights(prev => ({ ...prev, [item.id]: e.target.value }))}
                                               onBlur={() => { if (itemWeights[item.id] !== undefined) handleSaveWeight(item, pkg.id); }}
-                                              className="w-20 border border-gray-200 rounded-lg px-2 py-1 text-xs text-gray-900 focus:outline-none focus:ring-1 focus:ring-yellow-200"
+                                              className="w-20 border border-gray-200 rounded-lg px-2 py-1 text-xs text-cyan-900 focus:outline-none focus:ring-1 focus:ring-yellow-200"
                                             />
                                             {savingWeightId === item.id && (
                                               <div className="h-3 w-3 rounded-full border border-gray-300 border-t-transparent animate-spin" />

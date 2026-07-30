@@ -235,8 +235,8 @@ export default function PackingLists() {
               <Package className="h-5 w-5" style={{ color: G }} />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-gray-900">Packing Lists</h1>
-              <p className="text-sm text-gray-900">Manage packing lists per client, delivery address and shipment</p>
+              <h1 className="text-xl font-bold text-cyan-900">Packing Lists</h1>
+              <p className="text-sm text-cyan-900">Manage packing lists per client, delivery address and shipment</p>
             </div>
           </div>
           <button
@@ -258,7 +258,7 @@ export default function PackingLists() {
                 value={search}
                 onChange={e => { setSearch(e.target.value); setPage(1); }}
                 placeholder="Search PL number, client, shipment..."
-                className="w-full pl-9 pr-8 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-yellow-200"
+                className="w-full pl-9 pr-8 py-2 border border-gray-200 rounded-lg text-sm text-cyan-900 focus:outline-none focus:ring-2 focus:ring-yellow-200"
               />
               {search && (
                 <button onClick={() => setSearch("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
@@ -269,7 +269,7 @@ export default function PackingLists() {
             <select
               value={filterClient}
               onChange={e => { setFilterClient(e.target.value); setPage(1); }}
-              className="border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-yellow-200"
+              className="border border-gray-200 rounded-lg px-3 py-2 text-sm text-cyan-900 focus:outline-none focus:ring-2 focus:ring-yellow-200"
             >
               <option value="">All Clients</option>
               {clients.map(c => <option key={c.id} value={String(c.id)}>{c.brandName}</option>)}
@@ -277,7 +277,7 @@ export default function PackingLists() {
             <select
               value={filterStatus}
               onChange={e => { setFilterStatus(e.target.value); setPage(1); }}
-              className="border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-yellow-200"
+              className="border border-gray-200 rounded-lg px-3 py-2 text-sm text-cyan-900 focus:outline-none focus:ring-2 focus:ring-yellow-200"
             >
               <option value="">All Statuses</option>
               {STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
@@ -312,32 +312,32 @@ export default function PackingLists() {
                   <thead>
                     <tr className="border-b border-gray-100 bg-gray-50">
                       {["#", "PL Number", "Client", "Delivery Address", "Shipment", "Destination", "Packages", "Net Wt", "Gross Wt", "Status", ""].map(h => (
-                        <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-gray-900 uppercase tracking-wider whitespace-nowrap">{h}</th>
+                        <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-cyan-900 uppercase tracking-wider whitespace-nowrap">{h}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-50">
                     {records.map((r, idx) => (
                       <tr key={r.id} className="hover:bg-gray-50 transition-colors">
-                        <td className="px-4 py-3 text-gray-900 text-xs font-medium whitespace-nowrap">{(page - 1) * LIMIT + idx + 1}</td>
-                        <td className="px-4 py-3 font-semibold text-gray-900 whitespace-nowrap">{r.pl_number}</td>
-                        <td className="px-4 py-3 text-gray-900">{r.client_name}</td>
+                        <td className="px-4 py-3 text-cyan-900 text-xs font-medium whitespace-nowrap">{(page - 1) * LIMIT + idx + 1}</td>
+                        <td className="px-4 py-3 font-semibold text-cyan-900 whitespace-nowrap">{r.pl_number}</td>
+                        <td className="px-4 py-3 text-cyan-900">{r.client_name}</td>
                         <td className="px-4 py-3">
                           {r.delivery_address_label ? (
                             <div className="flex items-start gap-1.5">
                               <MapPin className="h-3.5 w-3.5 text-gray-500 mt-0.5 shrink-0" />
                               <div>
-                                <div className="font-medium text-gray-900">{r.delivery_address_label}</div>
-                                <div className="text-xs text-gray-900">{[r.city, r.addr_country].filter(Boolean).join(", ")}</div>
+                                <div className="font-medium text-cyan-900">{r.delivery_address_label}</div>
+                                <div className="text-xs text-cyan-900">{[r.city, r.addr_country].filter(Boolean).join(", ")}</div>
                               </div>
                             </div>
-                          ) : <span className="text-gray-900">—</span>}
+                          ) : <span className="text-cyan-900">—</span>}
                         </td>
-                        <td className="px-4 py-3 text-gray-900 font-mono text-xs">{r.shipment_tracking ?? "—"}</td>
-                        <td className="px-4 py-3 text-gray-900">{r.destination_country ?? "—"}</td>
-                        <td className="px-4 py-3 text-gray-900 font-semibold">{r.total_packages ?? "0"}</td>
-                        <td className="px-4 py-3 text-gray-900 text-xs">{r.total_net_weight ? `${Number(r.total_net_weight).toFixed(2)} kg` : "—"}</td>
-                        <td className="px-4 py-3 text-gray-900 text-xs">{r.total_gross_weight ? `${Number(r.total_gross_weight).toFixed(2)} kg` : "—"}</td>
+                        <td className="px-4 py-3 text-cyan-900 font-mono text-xs">{r.shipment_tracking ?? "—"}</td>
+                        <td className="px-4 py-3 text-cyan-900">{r.destination_country ?? "—"}</td>
+                        <td className="px-4 py-3 text-cyan-900 font-semibold">{r.total_packages ?? "0"}</td>
+                        <td className="px-4 py-3 text-cyan-900 text-xs">{r.total_net_weight ? `${Number(r.total_net_weight).toFixed(2)} kg` : "—"}</td>
+                        <td className="px-4 py-3 text-cyan-900 text-xs">{r.total_gross_weight ? `${Number(r.total_gross_weight).toFixed(2)} kg` : "—"}</td>
                         <td className="px-4 py-3">
                           <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-semibold border ${STATUS_COLORS[r.status] ?? "bg-gray-50 text-gray-600 border-gray-200"}`}>
                             {r.status}
@@ -378,14 +378,14 @@ export default function PackingLists() {
               {/* Pagination */}
               {totalPages > 1 && (
                 <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200">
-                  <span className="text-sm text-gray-900">
+                  <span className="text-sm text-cyan-900">
                     {(page - 1) * LIMIT + 1}–{Math.min(page * LIMIT, total)} of {total}
                   </span>
                   <div className="flex items-center gap-1">
                     <button
                       onClick={() => setPage(p => Math.max(1, p - 1))}
                       disabled={page === 1}
-                      className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-900 disabled:opacity-40"
+                      className="p-1.5 rounded-lg hover:bg-gray-100 text-cyan-900 disabled:opacity-40"
                     >
                       <ChevronLeft className="h-4 w-4" />
                     </button>
@@ -394,7 +394,7 @@ export default function PackingLists() {
                         key={p}
                         onClick={() => setPage(p)}
                         className={`w-8 h-8 rounded-lg text-sm font-medium transition-colors ${
-                          p === page ? "text-white" : "text-gray-900 hover:bg-gray-100"
+                          p === page ? "text-white" : "text-cyan-900 hover:bg-gray-100"
                         }`}
                         style={p === page ? { backgroundColor: G } : {}}
                       >
@@ -404,7 +404,7 @@ export default function PackingLists() {
                     <button
                       onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                       disabled={page === totalPages}
-                      className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-900 disabled:opacity-40"
+                      className="p-1.5 rounded-lg hover:bg-gray-100 text-cyan-900 disabled:opacity-40"
                     >
                       <ChevronRight className="h-4 w-4" />
                     </button>

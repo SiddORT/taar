@@ -68,8 +68,8 @@ function formatDate(val: string | null | undefined) {
 }
 
 const sectionTitle = "text-xs font-semibold uppercase tracking-wider text-gray-400 mb-3";
-const labelCls = "block text-sm font-medium text-gray-700 mb-1";
-const inputCls = "w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm outline-none transition focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10";
+const labelCls = "block text-sm font-medium text-slate-500 mb-1";
+const inputCls = "w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-cyan-900 shadow-sm outline-none transition focus:border-cyan-900 focus:ring-2 focus:ring-cyan-900/10";
 const inputErrCls = "border-red-400 focus:border-red-500 focus:ring-red-200";
 
 export default function ItemMaster() {
@@ -396,15 +396,15 @@ export default function ItemMaster() {
             {rec.images?.[0] && (
               <img src={fileSrc(rec.images[0])} alt={rec.itemName} className="h-8 w-8 rounded object-cover border border-gray-100 flex-shrink-0" />
             )}
-            <span className="font-medium text-gray-900">{rec.itemName}</span>
+            <span className="font-medium text-cyan-900">{rec.itemName}</span>
           </div>
         );
       },
     },
     { key: "itemType", label: "Item Type", render: (r) => <span className="text-gray-600">{asItem(r).itemType || "—"}</span> },
     { key: "unitType", label: "Unit", render: (r) => <span className="text-gray-600">{asItem(r).unitType}</span> },
-    { key: "unitPrice", label: "Unit Price", render: (r) => <span className="text-gray-700">{fmt(parseFloat(asItem(r).unitPrice || "0"))}</span> },
-    { key: "currentStock", label: "Stock", render: (r) => <span className="font-medium text-gray-800">{asItem(r).currentStock}</span> },
+    { key: "unitPrice", label: "Unit Price", render: (r) => <span className="text-slate-500">{fmt(parseFloat(asItem(r).unitPrice || "0"))}</span> },
+    { key: "currentStock", label: "Stock", render: (r) => <span className="font-medium text-cyan-900">{asItem(r).currentStock}</span> },
     {
       key: "isActive", label: "Status",
       render: (r) => <StatusToggle isActive={asItem(r).isActive} onToggle={() => setConfirmToggleTarget(asItem(r))} loading={toggleMutation.isPending} />,
@@ -419,7 +419,7 @@ export default function ItemMaster() {
         const rec = asItem(r);
         return (
           <div className="flex gap-2">
-            <button onClick={() => openEdit(rec)} className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors" title="Edit">
+            <button onClick={() => openEdit(rec)} className="p-1.5 rounded-lg text-gray-400 hover:text-slate-500 hover:bg-gray-100 transition-colors" title="Edit">
               <Pencil className="h-4 w-4" />
             </button>
             <button onClick={() => setDeleteTarget(rec)} className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors" title="Delete">
@@ -450,12 +450,12 @@ export default function ItemMaster() {
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <button onClick={cancelForm}
-                className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 transition-colors">
+                className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-cyan-900 transition-colors">
                 <ArrowLeft className="h-4 w-4" />
                 Item Master
               </button>
               <span className="text-gray-300">/</span>
-              <h1 className="text-lg font-bold text-gray-900">
+              <h1 className="text-lg font-bold text-cyan-900">
                 {editRecord ? `Edit Item — ${editRecord.itemCode}` : "Add Item"}
               </h1>
             </div>
@@ -536,7 +536,7 @@ export default function ItemMaster() {
                     error={errors.hsnCode}
                   />
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-sm font-medium text-gray-700">GST %</label>
+                    <label className="text-sm font-medium text-slate-500">GST %</label>
                     <div className="relative">
                       <input type="text" readOnly value={form.gstPercent ? `${form.gstPercent}%` : ""}
                         placeholder="Auto-filled from HSN"
@@ -556,7 +556,7 @@ export default function ItemMaster() {
                     <span className="text-[10px] font-black uppercase tracking-[0.18em] text-indigo-600">Stock by Location</span>
                     {form.locationStocks.length > 0 && (
                       <span className="text-xs text-gray-500">
-                        · Total: <span className="font-semibold text-gray-800">{totalStock} {form.unitType || "units"}</span>
+                        · Total: <span className="font-semibold text-cyan-900">{totalStock} {form.unitType || "units"}</span>
                       </span>
                     )}
                   </div>
@@ -575,7 +575,7 @@ export default function ItemMaster() {
                       <div key={idx} className="flex gap-2 items-center">
                         <select value={ls.location}
                           onChange={(e) => updateLocationStock(idx, "location", e.target.value)}
-                          className="flex-1 rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100">
+                          className="flex-1 rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-cyan-900 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100">
                           <option value="">Select warehouse…</option>
                           {locationOptions.map((l) => <option key={l} value={l}>{l}</option>)}
                         </select>
@@ -593,7 +593,7 @@ export default function ItemMaster() {
                       </div>
                     ))}
                     <div className="border-t border-indigo-100 pt-2 flex justify-end">
-                      <span className="text-sm font-semibold text-gray-700">
+                      <span className="text-sm font-semibold text-slate-500">
                         Total Stock: <span className="text-indigo-700">{totalStock} {form.unitType || "units"}</span>
                       </span>
                     </div>
@@ -601,12 +601,12 @@ export default function ItemMaster() {
                 )}
                 {form.locationStocks.length === 0 && (
                   <div className="mt-3">
-                    <label className="text-sm font-medium text-gray-700">Current Stock</label>
+                    <label className="text-sm font-medium text-slate-500">Current Stock</label>
                     <input value={form.currentStock} maxLength={10}
                       onKeyDown={(e) => { if (e.key === "e" || e.key === "E" || e.key === "-" || e.key === "+") e.preventDefault(); }}
                       onChange={(e) => setForm((f) => ({ ...f, currentStock: e.target.value }))}
                       placeholder="e.g. 100"
-                      className={`mt-1 w-full rounded-lg border px-3.5 py-2.5 text-sm outline-none transition focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10 ${errors.currentStock ? "border-red-400 bg-red-50/30" : "border-gray-300 bg-white"}`} />
+                      className={`mt-1 w-full rounded-lg border px-3.5 py-2.5 text-sm outline-none transition focus:border-cyan-900 focus:ring-2 focus:ring-cyan-900/10 ${errors.currentStock ? "border-red-400 bg-red-50/30" : "border-gray-300 bg-white"}`} />
                     {errors.currentStock && <p className="text-xs text-red-500 mt-1">{errors.currentStock}</p>}
                   </div>
                 )}
@@ -647,10 +647,10 @@ export default function ItemMaster() {
                             <Star className="h-2.5 w-2.5 text-white fill-white" />
                           </div>
                         )}
-                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/35 transition-colors flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100">
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-cyan-900/35 transition-colors flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100">
                           <button type="button" onClick={() => openCarousel(form.images, imgIdx)}
                             className="p-1 rounded-full bg-white/90 hover:bg-white transition-colors" title="View">
-                            <ZoomIn className="h-3 w-3 text-gray-700" />
+                            <ZoomIn className="h-3 w-3 text-slate-500" />
                           </button>
                           {imgIdx !== 0 && (
                             <button type="button" onClick={() => setAsThumbnail(img.id)}
@@ -684,24 +684,24 @@ export default function ItemMaster() {
                 </div>
                 <div className="space-y-3">
                   <div className="flex flex-col gap-1">
-                    <label className="text-sm font-medium text-gray-700">Minimum Level</label>
+                    <label className="text-sm font-medium text-slate-500">Minimum Level</label>
                     <input type="number" min="0" placeholder="0" value={form.minimumLevel ?? ""}
                       onChange={(e) => setForm(f => ({ ...f, minimumLevel: e.target.value }))}
-                      className="border border-gray-300 rounded-lg px-3 py-2.5 text-sm bg-white outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-900" />
+                      className="border border-gray-300 rounded-lg px-3 py-2.5 text-sm bg-white outline-none focus:ring-2 focus:ring-cyan-900/10 focus:border-cyan-900" />
                     {errors.minimumLevel && <p className="text-xs text-red-500">{errors.minimumLevel}</p>}
                   </div>
                   <div className="flex flex-col gap-1">
-                    <label className="text-sm font-medium text-gray-700">Reorder Level</label>
+                    <label className="text-sm font-medium text-slate-500">Reorder Level</label>
                     <input type="number" min="0" placeholder="0" value={form.reorderLevel ?? ""}
                       onChange={(e) => setForm(f => ({ ...f, reorderLevel: e.target.value }))}
-                      className="border border-gray-300 rounded-lg px-3 py-2.5 text-sm bg-white outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-900" />
+                      className="border border-gray-300 rounded-lg px-3 py-2.5 text-sm bg-white outline-none focus:ring-2 focus:ring-cyan-900/10 focus:border-cyan-900" />
                     {errors.reorderLevel && <p className="text-xs text-red-500">{errors.reorderLevel}</p>}
                   </div>
                   <div className="flex flex-col gap-1">
-                    <label className="text-sm font-medium text-gray-700">Maximum Level</label>
+                    <label className="text-sm font-medium text-slate-500">Maximum Level</label>
                     <input type="number" min="0" placeholder="0" value={form.maximumLevel ?? ""}
                       onChange={(e) => setForm(f => ({ ...f, maximumLevel: e.target.value }))}
-                      className="border border-gray-300 rounded-lg px-3 py-2.5 text-sm bg-white outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-900" />
+                      className="border border-gray-300 rounded-lg px-3 py-2.5 text-sm bg-white outline-none focus:ring-2 focus:ring-cyan-900/10 focus:border-cyan-900" />
                     {errors.maximumLevel && <p className="text-xs text-red-500">{errors.maximumLevel}</p>}
                   </div>
                 </div>
@@ -712,11 +712,11 @@ export default function ItemMaster() {
               <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
                 <div className="flex items-center gap-3">
                   <div className="flex-1">
-                    <p className="text-sm font-medium text-gray-700">Status</p>
+                    <p className="text-sm font-medium text-slate-500">Status</p>
                     <p className="text-xs text-gray-400 mt-0.5">{form.isActive ? "Visible and active in the system" : "Hidden from active lists"}</p>
                   </div>
                   <button type="button" onClick={() => setForm((f) => ({ ...f, isActive: !f.isActive }))}
-                    className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors focus:outline-none ${form.isActive ? "bg-gray-900" : "bg-gray-300"}`}
+                    className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors focus:outline-none ${form.isActive ? "bg-cyan-900" : "bg-gray-300"}`}
                     role="switch" aria-checked={form.isActive}>
                     <span className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transform transition-transform ${form.isActive ? "translate-x-5" : "translate-x-0"}`} />
                   </button>
@@ -783,7 +783,7 @@ export default function ItemMaster() {
         {addItemTypeOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
             <div className="w-96 rounded-2xl bg-white p-6 shadow-xl space-y-4">
-              <h3 className="font-semibold text-gray-900">Add Item Type</h3>
+              <h3 className="font-semibold text-cyan-900">Add Item Type</h3>
               <input value={newItemTypeName} onChange={(e) => setNewItemTypeName(e.target.value)}
                 placeholder="Item type name…" className={inputCls} />
               <div className="flex justify-end gap-3">
@@ -794,7 +794,7 @@ export default function ItemMaster() {
                   await createItemType.mutateAsync({ name: newItemTypeName.trim(), isActive: true });
                   setForm((f) => ({ ...f, itemType: newItemTypeName.trim() }));
                   setNewItemTypeName(""); setAddItemTypeOpen(false);
-                }} className="px-4 py-2 rounded-lg bg-gray-900 text-sm font-medium text-white hover:bg-gray-800">Add</button>
+                }} className="px-4 py-2 rounded-lg bg-cyan-900 text-sm font-medium text-white hover:bg-cyan-900">Add</button>
               </div>
             </div>
           </div>
@@ -803,7 +803,7 @@ export default function ItemMaster() {
         {addUnitTypeOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
             <div className="w-96 rounded-2xl bg-white p-6 shadow-xl space-y-4">
-              <h3 className="font-semibold text-gray-900">Add Unit Type</h3>
+              <h3 className="font-semibold text-cyan-900">Add Unit Type</h3>
               <input value={newUnitTypeName} onChange={(e) => setNewUnitTypeName(e.target.value)}
                 placeholder="Unit type name…" className={inputCls} />
               <div className="flex justify-end gap-3">
@@ -814,7 +814,7 @@ export default function ItemMaster() {
                   await createUnitType.mutateAsync({ name: newUnitTypeName.trim(), isActive: true });
                   setForm((f) => ({ ...f, unitType: newUnitTypeName.trim() }));
                   setNewUnitTypeName(""); setAddUnitTypeOpen(false);
-                }} className="px-4 py-2 rounded-lg bg-gray-900 text-sm font-medium text-white hover:bg-gray-800">Add</button>
+                }} className="px-4 py-2 rounded-lg bg-cyan-900 text-sm font-medium text-white hover:bg-cyan-900">Add</button>
               </div>
             </div>
           </div>
@@ -823,7 +823,7 @@ export default function ItemMaster() {
         {addHSNOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
             <div className="w-[480px] rounded-2xl bg-white p-6 shadow-xl space-y-4">
-              <h3 className="font-semibold text-gray-900">Add HSN Code</h3>
+              <h3 className="font-semibold text-cyan-900">Add HSN Code</h3>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className={labelCls}>HSN Code <span className="text-red-500">*</span></label>
@@ -855,7 +855,7 @@ export default function ItemMaster() {
                   await createHSN.mutateAsync(hsnForm);
                   setForm((f) => ({ ...f, hsnCode: hsnForm.hsnCode, gstPercent: hsnForm.gstPercentage }));
                   setHsnForm(EMPTY_HSN_FORM); setHsnErrors({}); setAddHSNOpen(false);
-                }} className="px-4 py-2 rounded-lg bg-gray-900 text-sm font-medium text-white hover:bg-gray-800">Add HSN</button>
+                }} className="px-4 py-2 rounded-lg bg-cyan-900 text-sm font-medium text-white hover:bg-cyan-900">Add HSN</button>
               </div>
             </div>
           </div>
@@ -879,7 +879,7 @@ export default function ItemMaster() {
 
           {/* Export */}
           <button onClick={handleExportAll} disabled={exportLoading || isLoading}
-            className="flex items-center gap-2 rounded-lg border border-[#C9B45C]/50 bg-white px-3.5 py-2 text-sm font-medium text-gray-700 shadow-sm transition hover:border-[#C9B45C] hover:bg-amber-50/40 disabled:opacity-50"
+            className="flex items-center gap-2 rounded-lg border border-[#C9B45C]/50 bg-white px-3.5 py-2 text-sm font-medium text-slate-500 shadow-sm transition hover:border-[#C9B45C] hover:bg-amber-50/40 disabled:opacity-50"
             title="Export all to Excel">
             <FileDown className="h-4 w-4 text-[#C9B45C]" />
             {exportLoading ? "Exporting…" : "Export"}
@@ -888,19 +888,19 @@ export default function ItemMaster() {
           {/* Import */}
           <div className="relative" ref={importMenuRef}>
             <button onClick={() => setImportMenuOpen((v) => !v)} disabled={importLoading}
-              className="flex items-center gap-2 rounded-lg border border-[#C9B45C]/50 bg-white px-3.5 py-2 text-sm font-medium text-gray-700 shadow-sm transition hover:border-[#C9B45C] hover:bg-amber-50/40 disabled:opacity-50">
+              className="flex items-center gap-2 rounded-lg border border-[#C9B45C]/50 bg-white px-3.5 py-2 text-sm font-medium text-slate-500 shadow-sm transition hover:border-[#C9B45C] hover:bg-amber-50/40 disabled:opacity-50">
               <FileSpreadsheet className="h-4 w-4 text-[#C9B45C]" />
               {importLoading ? "Importing…" : "Import"}
             </button>
             {importMenuOpen && (
               <div className="absolute right-0 top-full mt-1 z-30 w-48 rounded-xl border border-gray-100 bg-white shadow-lg py-1">
                 <button onClick={() => { handleDownloadSample(); setImportMenuOpen(false); }}
-                  className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+                  className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-slate-500 hover:bg-gray-50 transition-colors">
                   <FileDown className="h-4 w-4 text-gray-400" />
                   Download Sample
                 </button>
                 <button onClick={() => { importInputRef.current?.click(); setImportMenuOpen(false); }}
-                  className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+                  className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-slate-500 hover:bg-gray-50 transition-colors">
                   <FileUp className="h-4 w-4 text-gray-400" />
                   Upload Excel
                 </button>
@@ -911,7 +911,7 @@ export default function ItemMaster() {
 
           {/* Status filter */}
           <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value as StatusFilter); setPage(1); }}
-            className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 shadow-sm outline-none transition focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10">
+            className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-slate-500 shadow-sm outline-none transition focus:border-cyan-900 focus:ring-2 focus:ring-cyan-900/10">
             {STATUS_FILTER_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
 

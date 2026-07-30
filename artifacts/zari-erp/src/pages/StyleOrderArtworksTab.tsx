@@ -18,7 +18,7 @@ import { useCurrency } from "@/contexts/CurrencyContext";
 const FEEDBACK_COLORS: Record<string, string> = {
   Pending:             "bg-gray-100 text-gray-600 border-gray-200",
   "In Review":         "bg-sky-50 text-sky-700 border-sky-200",
-  Approved:            "bg-gray-900 text-[#C9B45C] border-gray-900",
+  Approved:            "bg-cyan-900 text-[#C9B45C] border-cyan-900",
   "Revision Required": "bg-amber-50 text-amber-700 border-amber-200",
   Rejected:            "bg-red-50 text-red-700 border-red-200",
 };
@@ -33,7 +33,7 @@ function SectionCard({
       <div className="flex items-center gap-3 px-6 py-4 border-b border-gray-200 bg-gray-50/50">
         <div className={`flex items-center justify-center h-8 w-8 rounded-xl ${accentColor}`}>{icon}</div>
         <div>
-          <h2 className="text-sm font-semibold text-gray-900">{title}</h2>
+          <h2 className="text-sm font-semibold text-cyan-900">{title}</h2>
           <p className="text-xs text-gray-400">{subtitle}</p>
         </div>
       </div>
@@ -74,13 +74,13 @@ function ArtworkRow({
             onClick={() => onPreview(art.finalImages ?? [], 0)}
           />
         ) : (
-          <div className="h-8 w-8 rounded-lg bg-gray-900 flex items-center justify-center shrink-0">
+          <div className="h-8 w-8 rounded-lg bg-cyan-900 flex items-center justify-center shrink-0">
             <Palette className="h-4 w-4 text-[#C9B45C]" />
           </div>
         )}
         {/* Name & code */}
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-gray-900 truncate">{art.artworkName}</p>
+          <p className="text-sm font-semibold text-cyan-900 truncate">{art.artworkName}</p>
           <p className="text-xs text-gray-400 font-mono">{art.artworkCode}</p>
         </div>
         {/* Badges */}
@@ -92,7 +92,7 @@ function ArtworkRow({
             {art.artworkCreated}
           </span>
           {art.totalCost && (
-            <span className="text-xs font-medium text-gray-700">{fmt(Number(art.totalCost))}</span>
+            <span className="text-xs font-medium text-slate-500">{fmt(Number(art.totalCost))}</span>
           )}
         </div>
         {/* Actions */}
@@ -107,7 +107,7 @@ function ArtworkRow({
           ) : (
             <button
               onClick={() => setLocation(`/style-orders/${styleOrderId}/artworks/${art.id}`)}
-              className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-200 transition-colors"
+              className="p-1.5 rounded-lg text-gray-400 hover:text-slate-500 hover:bg-gray-200 transition-colors"
               title="Edit artwork"
             >
               <Pencil className="h-3.5 w-3.5" />
@@ -202,10 +202,10 @@ function ProductSection({
       {/* Product header */}
       <div className="flex items-center justify-between px-1">
         <div className="flex items-center gap-2">
-          <div className="h-6 w-6 rounded-lg bg-gray-900 flex items-center justify-center">
+          <div className="h-6 w-6 rounded-lg bg-cyan-900 flex items-center justify-center">
             <Package className="h-3 w-3 text-[#C9B45C]" />
           </div>
-          <span className="text-xs font-semibold text-gray-800">{productName}</span>
+          <span className="text-xs font-semibold text-cyan-900">{productName}</span>
           <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full border border-gray-200">
             {artworks.length} artwork{artworks.length !== 1 ? "s" : ""}
           </span>
@@ -215,7 +215,7 @@ function ProductSection({
             const qp = productId ? `?productId=${productId}&productName=${encodeURIComponent(productName)}` : "";
             setLocation(`/style-orders/${styleOrderId}/artworks/new${qp}`);
           }}
-          className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-dashed border-gray-300 text-xs text-gray-500 hover:border-gray-900 hover:text-gray-900 transition-colors font-medium"
+          className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-dashed border-gray-300 text-xs text-gray-500 hover:border-cyan-900 hover:text-cyan-900 transition-colors font-medium"
         >
           <Plus className="h-3 w-3" /> Add Artwork
         </button>
@@ -349,7 +349,7 @@ export default function StyleOrderArtworksTab({
     <>
       <SectionCard
         icon={<Palette className="h-4 w-4 text-[#C9B45C]" />}
-        accentColor="bg-gray-900"
+        accentColor="bg-cyan-900"
         title="Artworks"
         subtitle={`${totalCount} artwork${totalCount !== 1 ? "s" : ""} across ${products.length} product${products.length !== 1 ? "s" : ""}`}
       >
@@ -364,7 +364,7 @@ export default function StyleOrderArtworksTab({
             </div>
             <button
               onClick={() => setLocation(`/style-orders/${styleOrderId}/artworks/new`)}
-              className="flex items-center gap-2 px-4 py-3 rounded-xl border-2 border-dashed border-gray-300 text-sm text-gray-500 hover:border-gray-900 hover:text-gray-900 transition-colors w-full justify-center font-medium"
+              className="flex items-center gap-2 px-4 py-3 rounded-xl border-2 border-dashed border-gray-300 text-sm text-gray-500 hover:border-cyan-900 hover:text-cyan-900 transition-colors w-full justify-center font-medium"
             >
               <Plus className="h-4 w-4" /> New Artwork (Unassigned)
             </button>
@@ -402,7 +402,7 @@ export default function StyleOrderArtworksTab({
       {deleteConfirmId !== null && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
           <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm mx-4">
-            <h3 className="text-sm font-semibold text-gray-900 mb-2">Remove Artwork</h3>
+            <h3 className="text-sm font-semibold text-cyan-900 mb-2">Remove Artwork</h3>
             <p className="text-sm text-gray-500 mb-5">This artwork will be permanently removed from the order.</p>
             <div className="flex justify-end gap-2">
               <button onClick={() => setDeleteConfirmId(null)}

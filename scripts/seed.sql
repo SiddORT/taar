@@ -1,5 +1,5 @@
 -- ============================================================
--- ZARI ERP — Production Seed (Roles, Users, Permissions only)
+-- ERP — Production Seed (Roles, Users, Permissions only)
 -- Applied automatically on first deployment if DB is empty
 -- ============================================================
 

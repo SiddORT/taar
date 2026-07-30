@@ -80,9 +80,9 @@ function LocalMediaPanel({ label, pending, onAdd, onRemove }: LocalMediaPanelPro
                   ? <img src={p.previewUrl} alt={p.file.name} className="w-full h-full object-cover" />
                   : <div className="flex flex-col items-center gap-1 p-1"><Film size={22} className="text-amber-400" /><span className="text-[9px] text-amber-700 truncate w-full text-center">{p.file.name}</span></div>
                 }
-                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100">
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-cyan-900/40 transition-all flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100">
                   {p.file.type.startsWith("image/") && (
-                    <button type="button" onClick={() => setPreviewSrc(p.previewUrl)} className="p-1 rounded-full bg-white/90 text-gray-700 hover:bg-white shadow"><ZoomIn size={12} /></button>
+                    <button type="button" onClick={() => setPreviewSrc(p.previewUrl)} className="p-1 rounded-full bg-white/90 text-slate-500 hover:bg-white shadow"><ZoomIn size={12} /></button>
                   )}
                   <button type="button" onClick={() => onRemove(p.id)} className="p-1 rounded-full bg-white/90 text-red-500 hover:bg-white shadow"><X size={12} /></button>
                 </div>
@@ -194,7 +194,7 @@ function CreateSwatchMiniModal({ open, onClose, prefillClient, onCreated }: Crea
     }
   }
 
-  const sel = "w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-gray-900";
+  const sel = "w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-slate-500 bg-white focus:outline-none focus:ring-2 focus:ring-cyan-900";
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 p-4">
@@ -203,7 +203,7 @@ function CreateSwatchMiniModal({ open, onClose, prefillClient, onCreated }: Crea
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 sticky top-0 bg-white rounded-t-2xl z-10">
           <div className="flex items-center gap-2">
             <Link2 size={15} className="text-[#C6AF4B]" />
-            <h3 className="text-base font-semibold text-gray-900">Create &amp; Link New Swatch</h3>
+            <h3 className="text-base font-semibold text-cyan-900">Create &amp; Link New Swatch</h3>
           </div>
           <button type="button" onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 transition"><X size={16} /></button>
         </div>
@@ -215,44 +215,44 @@ function CreateSwatchMiniModal({ open, onClose, prefillClient, onCreated }: Crea
 
             {/* Swatch Name */}
             <div className="col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Swatch Name <span className="text-red-500">*</span></label>
+              <label className="block text-sm font-medium text-slate-500 mb-1">Swatch Name <span className="text-red-500">*</span></label>
               <input ref={nameRef} type="text" value={form.swatchName}
                 onChange={e => setF("swatchName", e.target.value.slice(0, 50))}
                 placeholder="Enter swatch name"
                 maxLength={50}
-                className={`w-full border rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900 ${errors.swatchName ? "border-red-400" : "border-gray-300"}`} />
+                className={`w-full border rounded-lg px-3 py-2 text-sm text-cyan-900 focus:outline-none focus:ring-2 focus:ring-cyan-900 ${errors.swatchName ? "border-red-400" : "border-gray-300"}`} />
               {errors.swatchName && <p className="text-xs text-red-500 mt-1">{errors.swatchName}</p>}
             </div>
 
             {/* Client */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Client</label>
+              <label className="block text-sm font-medium text-slate-500 mb-1">Client</label>
               <SearchableSelect value={form.client} onChange={v => setF("client", v)}
                 options={clientOptions} placeholder="Select client" clearable />
             </div>
 
             {/* Category */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Swatch Category</label>
+              <label className="block text-sm font-medium text-slate-500 mb-1">Swatch Category</label>
               <SearchableSelect value={form.swatchCategory} onChange={v => setF("swatchCategory", v)}
                 options={catOptions} placeholder="— None —" clearable />
             </div>
 
             {/* Base Fabric */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Base Fabric</label>
+              <label className="block text-sm font-medium text-slate-500 mb-1">Base Fabric</label>
               <SearchableSelect value={form.fabric} onChange={v => setF("fabric", v)}
                 options={fabricOptions} placeholder="Select fabric" clearable />
             </div>
 
             {/* Location */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
+              <label className="block text-sm font-medium text-slate-500 mb-1">Location</label>
               <div className="flex rounded-lg border border-gray-300 overflow-hidden mb-2">
                 {(["Inhouse", "Client"] as const).map(t => (
                   <button key={t} type="button"
                     onClick={() => setF("location", t === "Client" ? "Client" : "")}
-                    className={`flex-1 py-2 text-sm font-medium transition-colors ${miniLocType === t ? "bg-gray-100 text-gray-800 font-semibold" : "bg-white text-gray-400 hover:bg-gray-50"}`}>
+                    className={`flex-1 py-2 text-sm font-medium transition-colors ${miniLocType === t ? "bg-gray-100 text-cyan-900 font-semibold" : "bg-white text-gray-400 hover:bg-gray-50"}`}>
                     {t === "Client" ? "To Client" : "Inhouse"}
                   </button>
                 ))}
@@ -265,47 +265,47 @@ function CreateSwatchMiniModal({ open, onClose, prefillClient, onCreated }: Crea
 
             {/* Swatch Date */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Swatch Date</label>
+              <label className="block text-sm font-medium text-slate-500 mb-1">Swatch Date</label>
               <input type="date" value={form.swatchDate}
                 max={new Date().toISOString().split("T")[0]}
                 onChange={e => setF("swatchDate", e.target.value)}
-                className={`w-full border rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900 ${errors.swatchDate ? "border-red-400" : "border-gray-300"}`} />
+                className={`w-full border rounded-lg px-3 py-2 text-sm text-cyan-900 focus:outline-none focus:ring-2 focus:ring-cyan-900 ${errors.swatchDate ? "border-red-400" : "border-gray-300"}`} />
               {errors.swatchDate && <p className="text-xs text-red-500 mt-1">{errors.swatchDate}</p>}
             </div>
 
             {/* Hours */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Hours</label>
+              <label className="block text-sm font-medium text-slate-500 mb-1">Hours</label>
               <input type="text" value={form.hours}
                 onChange={e => setF("hours", e.target.value)}
                 placeholder="e.g. 4.5"
-                className={`w-full border rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900 ${errors.hours ? "border-red-400" : "border-gray-300"}`} />
+                className={`w-full border rounded-lg px-3 py-2 text-sm text-cyan-900 focus:outline-none focus:ring-2 focus:ring-cyan-900 ${errors.hours ? "border-red-400" : "border-gray-300"}`} />
               {errors.hours && <p className="text-xs text-red-500 mt-1">{errors.hours}</p>}
             </div>
 
             {/* Length */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Length</label>
+              <label className="block text-sm font-medium text-slate-500 mb-1">Length</label>
               <input type="text" value={form.length} maxLength={20}
                 onChange={e => setF("length", e.target.value)}
                 placeholder="e.g. 120"
-                className={`w-full border rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900 ${errors.length ? "border-red-400" : "border-gray-300"}`} />
+                className={`w-full border rounded-lg px-3 py-2 text-sm text-cyan-900 focus:outline-none focus:ring-2 focus:ring-cyan-900 ${errors.length ? "border-red-400" : "border-gray-300"}`} />
               {errors.length && <p className="text-xs text-red-500 mt-1">{errors.length}</p>}
             </div>
 
             {/* Width */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Width</label>
+              <label className="block text-sm font-medium text-slate-500 mb-1">Width</label>
               <input type="text" value={form.width} maxLength={20}
                 onChange={e => setF("width", e.target.value)}
                 placeholder="e.g. 60"
-                className={`w-full border rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900 ${errors.width ? "border-red-400" : "border-gray-300"}`} />
+                className={`w-full border rounded-lg px-3 py-2 text-sm text-cyan-900 focus:outline-none focus:ring-2 focus:ring-cyan-900 ${errors.width ? "border-red-400" : "border-gray-300"}`} />
               {errors.width && <p className="text-xs text-red-500 mt-1">{errors.width}</p>}
             </div>
 
             {/* Unit Type */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Unit Type</label>
+              <label className="block text-sm font-medium text-slate-500 mb-1">Unit Type</label>
               <SearchableSelect value={form.unitType} onChange={v => setF("unitType", v)}
                 options={unitOptions} placeholder="— None —" clearable />
             </div>
@@ -315,11 +315,11 @@ function CreateSwatchMiniModal({ open, onClose, prefillClient, onCreated }: Crea
           {/* Actions */}
           <div className="flex justify-end gap-3 pt-2 border-t border-gray-100">
             <button type="button" onClick={onClose}
-              className="px-5 py-2 text-sm rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition">
+              className="px-5 py-2 text-sm rounded-lg border border-gray-300 text-slate-500 hover:bg-gray-50 transition">
               Cancel
             </button>
             <button type="submit" disabled={createSwatch.isPending}
-              className="flex items-center gap-2 px-5 py-2 text-sm rounded-lg bg-gray-900 text-[#C6AF4B] hover:bg-gray-800 disabled:opacity-60 transition">
+              className="flex items-center gap-2 px-5 py-2 text-sm rounded-lg bg-cyan-900 text-[#C6AF4B] hover:bg-cyan-900 disabled:opacity-60 transition">
               {createSwatch.isPending ? <Loader2 size={13} className="animate-spin" /> : <Plus size={13} />}
               {createSwatch.isPending ? "Creating…" : "Create & Link Swatch"}
             </button>
@@ -339,7 +339,7 @@ function SectionHeader({ title }: { title: string }) {
 function FieldWrap({ label, required, error, children }: { label: string; required?: boolean; error?: string; children: React.ReactNode }) {
   return (
     <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1">
+      <label className="block text-sm font-medium text-slate-500 mb-1">
         {label}{required && <span className="text-red-500 ml-0.5">*</span>}
       </label>
       {children}
@@ -529,12 +529,12 @@ export default function StyleForm() {
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <button onClick={() => setLocation("/masters/styles")}
-              className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 transition-colors">
+              className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-cyan-900 transition-colors">
               <ArrowLeft size={16} />
               Style Master
             </button>
             <span className="text-gray-300">/</span>
-            <h1 className="text-lg font-bold text-gray-900">
+            <h1 className="text-lg font-bold text-cyan-900">
               {isNew ? "New Style" : `Edit Style — ${existing?.styleNo ?? ""}`}
             </h1>
           </div>
@@ -572,7 +572,7 @@ export default function StyleForm() {
 
                     {/* Style No — always read-only */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-medium text-slate-500 mb-1">
                         Style No
                       </label>
 
@@ -586,7 +586,7 @@ export default function StyleForm() {
                           value={form.styleNo}
                           onChange={(e) => setField("styleNo", e.target.value)}
                           disabled={!isNew}
-                          className="flex-1 rounded-r-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900/10"
+                          className="flex-1 rounded-r-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-900/10"
                           placeholder="STYLE001"
                         />
                       </div>
@@ -605,7 +605,7 @@ export default function StyleForm() {
                         onChange={e => setField("description", e.target.value)}
                         placeholder="Style description or name"
                         maxLength={200}
-                        className={`w-full border rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900 ${errors.description ? "border-red-400" : "border-gray-300"}`}
+                        className={`w-full border rounded-lg px-3 py-2 text-sm text-cyan-900 focus:outline-none focus:ring-2 focus:ring-cyan-900 ${errors.description ? "border-red-400" : "border-gray-300"}`}
                       />
                     </FieldWrap>
 
@@ -628,12 +628,12 @@ export default function StyleForm() {
                         value={form.shippingDate}
                         min={new Date().toISOString().split("T")[0]}
                         onChange={e => setField("shippingDate", e.target.value)}
-                        className={`w-full border rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900 ${errors.shippingDate ? "border-red-400" : "border-gray-300"}`}
+                        className={`w-full border rounded-lg px-3 py-2 text-sm text-cyan-900 focus:outline-none focus:ring-2 focus:ring-cyan-900 ${errors.shippingDate ? "border-red-400" : "border-gray-300"}`}
                       />
                     </FieldWrap>
 
                     <div className="col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-slate-500 mb-1">
                       Swatch Tags
                     </label>
 
@@ -651,7 +651,7 @@ export default function StyleForm() {
                           value={form.attachLink}
                           onChange={e => setField("attachLink", e.target.value)}
                           placeholder="https://…"
-                          className={`w-full border rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900 ${errors.attachLink ? "border-red-400" : "border-gray-300"}`}
+                          className={`w-full border rounded-lg px-3 py-2 text-sm text-cyan-900 focus:outline-none focus:ring-2 focus:ring-cyan-900 ${errors.attachLink ? "border-red-400" : "border-gray-300"}`}
                         />
                       </FieldWrap>
                     </div> */}
@@ -661,9 +661,9 @@ export default function StyleForm() {
 
                 {/* Active Status */}
                 <div className="flex items-center gap-3 pt-1">
-                  <label className="text-sm font-medium text-gray-700">Active</label>
+                  <label className="text-sm font-medium text-slate-500">Active</label>
                   <button type="button" onClick={() => setField("isActive", !form.isActive)}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${form.isActive ? "bg-gray-900" : "bg-gray-300"}`}>
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${form.isActive ? "bg-cyan-900" : "bg-gray-300"}`}>
                     <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${form.isActive ? "translate-x-6" : "translate-x-1"}`} />
                   </button>
                   <span className="text-sm text-gray-500">{form.isActive ? "Active" : "Inactive"}</span>

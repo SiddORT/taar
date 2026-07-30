@@ -17,13 +17,13 @@ const doc = new PDFDocument({
   size:   "A4",
   margin: 0,
   info: {
-    Title:   "ZARI ERP — Detailed Project Scope Document v2.0",
+    Title:   "ERP — Detailed Project Scope Document v2.0",
     Author:  "ZARI Embroideries",
     Subject: "Project Scope",
   },
 });
 
-const OUT = "ZARI_ERP_Scope_Document_v2.pdf";
+const OUT = "ERP_Scope_Document_v2.pdf";
 const stream = createWriteStream(OUT);
 doc.pipe(stream);
 
@@ -44,7 +44,7 @@ function addPage() {
   y = MT;
   // footer
   doc.font("Helvetica").fontSize(7).fillColor(GRAY)
-     .text("ZARI ERP  ·  Detailed Project Scope Document  ·  Version 2.0  ·  April 2026  ·  Confidential",
+     .text("ERP  ·  Detailed Project Scope Document  ·  Version 2.0  ·  April 2026  ·  Confidential",
            ML, PH - 28, { width: CW, align: "center" });
 }
 
@@ -228,7 +228,7 @@ doc.rect(0, PH / 2 - 90, PW, 180).fill(GOLD);
 
 // Title
 doc.font("Helvetica-Bold").fontSize(52).fillColor("#0D0D0D")
-   .text("ZARI ERP", 0, PH / 2 - 72, { width: PW, align: "center" });
+   .text("ERP", 0, PH / 2 - 72, { width: PW, align: "center" });
 doc.font("Helvetica").fontSize(16).fillColor("#0D0D0D")
    .text("Enterprise Resource Planning System", 0, PH / 2 - 14, { width: PW, align: "center" });
 doc.font("Helvetica-Bold").fontSize(20).fillColor("#0D0D0D")
@@ -245,12 +245,12 @@ addPage();
 // ── SECTION 1: Project Overview ───────────────────────────────────────────────
 banner("1.  Project Overview");
 h2("1.1  Background & Context");
-body("Zari Embroideries is a premium embroidery manufacturer and exporter supplying high-fashion brands across India and internationally. Prior to ZARI ERP, the business tracked its complex operational pipeline — swatch sampling, style production, inventory procurement, client invoicing, and logistics — across a fragmented mix of spreadsheets, WhatsApp messages, paper records, and ad-hoc tools.");
-body("ZARI ERP was purpose-built to unify every business function into a single, always-on web application, giving management, operations, and accounts teams a real-time, shared view of the entire business.");
+body("Zari Embroideries is a premium embroidery manufacturer and exporter supplying high-fashion brands across India and internationally. Prior to ERP, the business tracked its complex operational pipeline — swatch sampling, style production, inventory procurement, client invoicing, and logistics — across a fragmented mix of spreadsheets, WhatsApp messages, paper records, and ad-hoc tools.");
+body("ERP was purpose-built to unify every business function into a single, always-on web application, giving management, operations, and accounts teams a real-time, shared view of the entire business.");
 
 h2("1.2  Project Identity");
 infoTable([
-  ["Project Name",       "ZARI ERP — Enterprise Resource Planning System"],
+  ["Project Name",       "ERP — Enterprise Resource Planning System"],
   ["Client",             "Zari Embroideries"],
   ["Project Type",       "Custom Full-Stack Web Application (SaaS)"],
   ["Version",            "1.0 — Production Release (April 2026)"],
@@ -697,7 +697,7 @@ table(
   ["#", "Deliverable", "Status"],
   [8, 72, 20],
   [
-    [{ text: "1", bold: true, gold: true }, "Full-stack web application (ZARI ERP) — all 14 modules", { text: "Delivered", bold: true, gold: true }],
+    [{ text: "1", bold: true, gold: true }, "Full-stack web application (ERP) — all 14 modules", { text: "Delivered", bold: true, gold: true }],
     [{ text: "2", bold: true }, "React + Vite frontend with Tailwind brand theme", { text: "Delivered", bold: true, gold: true }],
     [{ text: "3", bold: true, gold: true }, "Node.js + Express REST API — 30+ route files", { text: "Delivered", bold: true, gold: true }],
     [{ text: "4", bold: true }, "PostgreSQL database with auto-migration schema", { text: "Delivered", bold: true, gold: true }],
@@ -716,7 +716,7 @@ table(
 addPage();
 banner("18.  Approval & Sign-off");
 space(16);
-body("By signing below, both parties confirm that this Detailed Scope Document accurately represents the agreed deliverables for the ZARI ERP project.");
+body("By signing below, both parties confirm that this Detailed Scope Document accurately represents the agreed deliverables for the ERP project.");
 space(30);
 
 // Sign-off boxes
@@ -746,7 +746,7 @@ doc.font("Helvetica").fontSize(9).fillColor(DARK)
 y = boxY + 160;
 space(30);
 doc.font("Helvetica").fontSize(8).fillColor(GRAY)
-   .text("ZARI ERP  ·  Detailed Project Scope Document  ·  Version 2.0  ·  April 2026  ·  Confidential", ML, y, { width: CW, align: "center" });
+   .text("ERP  ·  Detailed Project Scope Document  ·  Version 2.0  ·  April 2026  ·  Confidential", ML, y, { width: CW, align: "center" });
 
 // ── Finalise ──────────────────────────────────────────────────────────────────
 await new Promise((res, rej) => { stream.on("finish", res); stream.on("error", rej); doc.end(); });

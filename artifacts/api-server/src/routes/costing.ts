@@ -3344,7 +3344,7 @@ router.get("/po-action", async (req: Request, res: Response) => {
   const html = (title: string, icon: string, color: string, body: string) => `
     <!DOCTYPE html><html lang="en"><head><meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width,initial-scale=1"/>
-    <title>${title} — ZARI ERP</title>
+    <title>${title} — ERP</title>
     <style>
       *{box-sizing:border-box;margin:0;padding:0}
       body{background:#f8f9fb;font-family:'Helvetica Neue',Arial,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;}
@@ -3360,7 +3360,7 @@ router.get("/po-action", async (req: Request, res: Response) => {
       .footer{padding:16px 32px;background:#F9FAFB;border-top:1px solid #F0F0F0;text-align:center;font-size:11px;color:#9CA3AF;}
     </style></head><body>
     <div class="card">
-      <div class="header"><p class="header-title">ZARI ERP</p><p class="header-sub">ENTERPRISE RESOURCE PLANNING</p></div>
+      <div class="header"><p class="header-title">ERP</p><p class="header-sub">ENTERPRISE RESOURCE PLANNING</p></div>
       <div class="body">
         <div class="icon">${icon}</div>
         <div class="title">${title}</div>
@@ -3377,7 +3377,7 @@ router.get("/po-action", async (req: Request, res: Response) => {
   try {
     payload = jwt.verify(token, process.env.SESSION_SECRET ?? "secret") as { poId: number; action: string };
   } catch {
-    return res.status(400).send(html("Link Expired", "⏰", "#D97706", `<p class="msg">This approval link has expired or is invalid. Please log in to ZARI ERP to take action.</p>`));
+    return res.status(400).send(html("Link Expired", "⏰", "#D97706", `<p class="msg">This approval link has expired or is invalid. Please log in to ERP to take action.</p>`));
   }
 
   const { poId, action } = payload;

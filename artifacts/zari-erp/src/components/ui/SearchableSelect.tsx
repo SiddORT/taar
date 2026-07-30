@@ -87,13 +87,13 @@ export default function SearchableSelect({
       className="rounded-lg border border-gray-200 bg-white shadow-xl overflow-hidden">
       <div className="p-2 border-b border-gray-100">
         <input ref={searchRef} value={search} onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search..." className="w-full rounded-md border border-gray-200 px-2.5 py-1.5 text-sm text-gray-900 placeholder-gray-400 outline-none focus:border-gray-400" />
+          placeholder="Search..." className="w-full rounded-md border border-gray-200 px-2.5 py-1.5 text-sm text-cyan-900 placeholder-gray-400 outline-none focus:border-gray-400" />
       </div>
       <div className="max-h-52 overflow-y-auto">
         {filtered.length === 0 && <div className="px-3 py-4 text-sm text-gray-400 text-center">No results</div>}
         {filtered.map((opt) => (
           <button key={opt} type="button" onClick={() => select(opt)}
-            className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 transition-colors ${opt === value ? "bg-gray-50 font-medium text-gray-900" : "text-gray-700"}`}>
+            className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 transition-colors ${opt === value ? "bg-gray-50 font-medium text-cyan-900" : "text-slate-500"}`}>
             {opt}
           </button>
         ))}
@@ -113,15 +113,15 @@ export default function SearchableSelect({
   return (
     <div className="flex flex-col gap-1.5">
       {label && (
-        <label className="text-sm font-medium text-gray-700">
+        <label className="text-sm font-medium text-slate-500">
           {label}{required && <span className="text-red-500 ml-0.5">*</span>}
         </label>
       )}
       <div className="relative">
         <button ref={buttonRef} type="button" onClick={openDropdown}
           className={`w-full flex items-center justify-between rounded-lg border px-3.5 py-2.5 text-sm bg-white shadow-sm transition outline-none text-left
-            ${open ? "border-gray-900 ring-2 ring-gray-900/10" : error ? "border-red-400" : "border-gray-300 hover:border-gray-400"}`}>
-          <span className={(displayValue ?? value) ? "text-gray-900" : "text-gray-400"}>{displayValue ?? (value || placeholder)}</span>
+            ${open ? "border-cyan-900 ring-2 ring-cyan-900/10" : error ? "border-red-400" : "border-gray-300 hover:border-gray-400"}`}>
+          <span className={(displayValue ?? value) ? "text-cyan-900" : "text-gray-400"}>{displayValue ?? (value || placeholder)}</span>
           <div className="flex items-center gap-1 shrink-0">
             {clearable && value && (
               <span role="button" onClick={handleClear} className="text-gray-400 hover:text-gray-600 p-0.5 rounded">
@@ -277,7 +277,7 @@ export function SmallSearchSelect({
                 setSearch("");
               }}
               className={`w-full text-left px-3 py-2 text-xs hover:bg-gray-50 transition-colors ${
-                o.value === value ? "bg-gray-50 font-semibold text-gray-900" : "text-gray-700"
+                o.value === value ? "bg-gray-50 font-semibold text-cyan-900" : "text-slate-500"
               }`}
             >
               {o.label}
@@ -294,9 +294,9 @@ export function SmallSearchSelect({
         ref={buttonRef}
         type="button"
         onClick={handleOpen}
-        className="w-full text-left text-xs border border-gray-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-gray-900/10 flex items-center justify-between gap-1 transition-colors hover:border-gray-300"
+        className="w-full text-left text-xs border border-gray-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-cyan-900/10 flex items-center justify-between gap-1 transition-colors hover:border-gray-300"
       >
-        <span className={selected ? "text-gray-900 truncate" : "text-gray-400"}>
+        <span className={selected ? "text-cyan-900 truncate" : "text-gray-400"}>
           {selected?.label || placeholder}
         </span>
         <div className="flex items-center gap-0.5 shrink-0">

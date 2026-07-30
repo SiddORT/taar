@@ -334,7 +334,7 @@ export default function CreditDebitNotes() {
   const drafts  = notes.filter(n => n.status === "Draft").length;
 
   const card = "rounded-2xl bg-white border border-[#C6AF4B]/15 shadow-[0_2px_16px_rgba(198,175,75,0.12),0_1px_3px_rgba(0,0,0,0.06)]";
-  const sel  = "rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:outline-none focus:border-[#C6AF4B] bg-white";
+  const sel  = "rounded-xl border border-gray-200 px-3 py-2 text-sm text-slate-500 focus:outline-none focus:border-[#C6AF4B] bg-white";
   const inp  = "w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#C6AF4B] focus:ring-2 focus:ring-[#C6AF4B]/20 bg-white";
   const lbl  = "block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5";
 
@@ -351,7 +351,7 @@ export default function CreditDebitNotes() {
               <FileMinus2 size={20} style={{ color: G }} />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-gray-900">Credit / Debit Notes</h1>
+              <h1 className="text-xl font-bold text-cyan-900">Credit / Debit Notes</h1>
               <p className="text-sm text-gray-400 mt-0.5">Invoice corrections, adjustments &amp; balance notes</p>
             </div>
           </div>
@@ -367,7 +367,7 @@ export default function CreditDebitNotes() {
         {/* Summary cards */}
         <div className="grid grid-cols-4 gap-4">
           {[
-            { label: "Total Notes", val: notes.length, sub: "all time", color: "text-gray-900", raw: true },
+            { label: "Total Notes", val: notes.length, sub: "all time", color: "text-cyan-900", raw: true },
             { label: "Credit Notes Applied", val: `${fmt(totalCN+0)}`, sub: "balance reduced", color: "text-emerald-600", raw: false },
             { label: "Debit Notes Applied",  val: `${fmt(totalDN+0)}`, sub: "balance increased", color: "text-rose-600", raw: false },
             { label: "Pending Drafts", val: drafts, sub: "awaiting application", color: "text-amber-600", raw: true },
@@ -448,11 +448,11 @@ export default function CreditDebitNotes() {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-xs text-gray-500">{n.reference_type}</td>
-                    <td className="px-4 py-3 text-xs text-gray-700 font-mono">
+                    <td className="px-4 py-3 text-xs text-slate-500 font-mono">
                       {n.invoice_no ?? n.vendor_bill_number ?? "—"}
                     </td>
-                    <td className="px-4 py-3 text-xs text-gray-700 max-w-[120px] truncate">{n.party_name || "—"}</td>
-                    <td className="px-4 py-3 text-xs font-semibold text-gray-900 tabular-nums">{fmt(n.base_currency_amount+0)}</td>
+                    <td className="px-4 py-3 text-xs text-slate-500 max-w-[120px] truncate">{n.party_name || "—"}</td>
+                    <td className="px-4 py-3 text-xs font-semibold text-cyan-900 tabular-nums">{fmt(n.base_currency_amount+0)}</td>
                     <td className="px-4 py-3 text-xs font-mono text-gray-500">{n.currency_code}</td>
                     <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">{fmtDate(n.note_date)}</td>
                     <td className="px-4 py-3">
@@ -527,7 +527,7 @@ export default function CreditDebitNotes() {
           <div className="rounded-2xl bg-white border border-[#C6AF4B]/15 shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 sticky top-0 bg-white z-10">
               <div>
-                <h2 className="text-base font-bold text-gray-900">Create Credit / Debit Note</h2>
+                <h2 className="text-base font-bold text-cyan-900">Create Credit / Debit Note</h2>
                 <p className="text-xs text-gray-400 mt-0.5">All Applied notes immediately update outstanding balances</p>
               </div>
               <button onClick={() => setShowModal(false)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400"><X size={15} /></button>
@@ -710,7 +710,7 @@ export default function CreditDebitNotes() {
                         form.status === s
                           ? s === "Applied"
                             ? "border-blue-500 bg-blue-50 text-blue-700"
-                            : "border-gray-400 bg-gray-50 text-gray-700"
+                            : "border-gray-400 bg-gray-50 text-slate-500"
                           : "border-gray-200 text-gray-400 hover:border-gray-300"
                       }`}>
                       {s === "Applied" ? "Apply Now" : "Save as Draft"}
@@ -726,7 +726,7 @@ export default function CreditDebitNotes() {
 
               <div className="flex gap-3 pt-1 border-t border-gray-100">
                 <button type="button" onClick={() => setShowModal(false)}
-                  className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50">
+                  className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-slate-500 hover:bg-gray-50">
                   Cancel
                 </button>
                 <button type="submit" disabled={saving}

@@ -23,7 +23,7 @@ const G_DIM = "#A8943E";
 const card  = "rounded-2xl bg-white border border-[#C6AF4B]/15 shadow-[0_2px_16px_rgba(198,175,75,0.12),0_1px_3px_rgba(0,0,0,0.06)]";
 
 const STATUS_MAP: Record<string, { label: string; color: string; Icon: React.ElementType }> = {
-  Open:      { label: "OPEN",      color: "bg-gray-100 text-gray-700",   Icon: Clock },
+  Open:      { label: "OPEN",      color: "bg-gray-100 text-slate-500",   Icon: Clock },
   Received:  { label: "RECEIVED",  color: "bg-green-100 text-green-700", Icon: CheckCircle2 },
   Cancelled: { label: "CANCELLED", color: "bg-red-100 text-red-700",     Icon: XCircle },
 };
@@ -515,11 +515,11 @@ export default function PurchaseReceiptForm() {
             <div className="flex items-center gap-3">
               <button onClick={() => navigate("/procurement/purchase-receipts")}
                 className="p-2 rounded-xl hover:bg-[#C6AF4B]/10 transition-colors">
-                <ArrowLeft className="h-5 w-5 text-gray-700" />
+                <ArrowLeft className="h-5 w-5 text-slate-500" />
               </button>
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="font-mono text-lg font-bold text-gray-900">{pr.pr_number}</span>
+                  <span className="font-mono text-lg font-bold text-cyan-900">{pr.pr_number}</span>
                   <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold ${statusInfo.color}`}>
                     <statusInfo.Icon className="h-3 w-3" /> {statusInfo.label}
                   </span>
@@ -553,7 +553,7 @@ export default function PurchaseReceiptForm() {
                   });
                   logActivity(`Downloaded PDF for Purchase Receipt ${pr.pr_number} — ${pr.vendor_name}`);
                 }}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium text-gray-700 border border-gray-200 hover:bg-gray-50 transition-colors">
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium text-slate-500 border border-gray-200 hover:bg-gray-50 transition-colors">
                 <FileDown className="h-4 w-4" /> Download PDF
               </button>
             )}
@@ -562,7 +562,7 @@ export default function PurchaseReceiptForm() {
             {isOpen && !editMode && (
               <div className="flex items-center gap-2">
                 <button onClick={enterEditMode}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium text-gray-700 border border-gray-200 hover:bg-gray-50 transition-colors">
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium text-slate-500 border border-gray-200 hover:bg-gray-50 transition-colors">
                   <Edit2 className="h-4 w-4" /> Edit
                 </button>
                 <button onClick={() => setCancelConfirm(true)}
@@ -582,11 +582,11 @@ export default function PurchaseReceiptForm() {
             {isOpen && editMode && (
               <div className="flex items-center gap-2">
                 <button onClick={() => setEditMode(false)} disabled={actioning}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium text-gray-700 border border-gray-200 hover:bg-gray-50">
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium text-slate-500 border border-gray-200 hover:bg-gray-50">
                   <X className="h-4 w-4" /> Discard
                 </button>
                 <button onClick={() => handleSaveEdit(false)} disabled={actioning}
-                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold text-gray-900 border border-gray-200 hover:bg-gray-50 disabled:opacity-50">
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold text-cyan-900 border border-gray-200 hover:bg-gray-50 disabled:opacity-50">
                   <Save className="h-4 w-4" />
                   {actioning ? "Saving…" : "Save Changes"}
                 </button>
@@ -619,12 +619,12 @@ export default function PurchaseReceiptForm() {
                   <div key={label}>
                     <p className="text-xs text-gray-400 font-medium">{label}</p>
                     <input type="date" value={editDate} onChange={e => setEditDate(e.target.value)}
-                      className="mt-0.5 w-full px-2 py-1 text-sm text-gray-900 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30" />
+                      className="mt-0.5 w-full px-2 py-1 text-sm text-cyan-900 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30" />
                   </div>
                 ) : (
                   <div key={label}>
                     <p className="text-xs text-gray-400 font-medium">{label}</p>
-                    <p className="text-gray-900 mt-0.5 font-medium">{value}</p>
+                    <p className="text-cyan-900 mt-0.5 font-medium">{value}</p>
                   </div>
                 )
               ))}
@@ -640,7 +640,7 @@ export default function PurchaseReceiptForm() {
           {/* Items table */}
           <div className={card}>
             <div className="px-4 py-3 border-b border-gray-100">
-              <h3 className="text-sm font-semibold text-gray-700">
+              <h3 className="text-sm font-semibold text-slate-500">
                 {editMode ? "Edit Received Items" : "Received Items"}
               </h3>
             </div>
@@ -668,7 +668,7 @@ export default function PurchaseReceiptForm() {
                           <tr key={line.poItemId} className="hover:bg-gray-50">
                             <td className="px-3 py-3 text-xs text-gray-400">{i+1}</td>
                             <td className="px-3 py-3">
-                              <div className="text-sm font-medium text-gray-900">{line.itemName}</div>
+                              <div className="text-sm font-medium text-cyan-900">{line.itemName}</div>
                               <div className="text-xs text-gray-400">{line.itemCode}</div>
                             </td>
                             <td className="px-3 py-3 text-xs font-mono text-gray-500">{line.itemCode}</td>
@@ -703,7 +703,7 @@ export default function PurchaseReceiptForm() {
                     : pr.items.map((item, i) => (
                         <tr key={item.id} className="hover:bg-gray-50">
                           <td className="px-3 py-3 text-xs text-gray-400">{i+1}</td>
-                          <td className="px-3 py-3 text-sm font-medium text-gray-900">{item.item_name}</td>
+                          <td className="px-3 py-3 text-sm font-medium text-cyan-900">{item.item_name}</td>
                           <td className="px-3 py-3 text-xs font-mono text-gray-500">{item.item_code}</td>
                           {!pr.vendor_name && (
                             <td className="px-3 py-3 text-xs text-gray-500">{item.vendor_name ?? "—"}</td>
@@ -725,7 +725,7 @@ export default function PurchaseReceiptForm() {
             <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <FileText className="h-4 w-4" style={{ color: G }} />
-                <h3 className="text-sm font-semibold text-gray-700">Vendor Invoice</h3>
+                <h3 className="text-sm font-semibold text-slate-500">Vendor Invoice</h3>
                 {pr.vendor_invoice_number && (
                   <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-green-100 text-green-700">
                     <CheckCircle2 className="h-3 w-3" /> Uploaded
@@ -745,7 +745,7 @@ export default function PurchaseReceiptForm() {
                   <>
                     {invoiceFileUrl && (
                       <a href={invoiceFileUrl} target="_blank" rel="noopener noreferrer"
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-gray-700 border border-gray-200 hover:bg-gray-50">
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-slate-500 border border-gray-200 hover:bg-gray-50">
                         <FileDown className="h-3.5 w-3.5" /> View File
                       </a>
                     )}
@@ -758,7 +758,7 @@ export default function PurchaseReceiptForm() {
                         setInvRate(pr.vendor_invoice_exchange_rate ?? "1");
                         setShowInvoiceForm(true);
                       }}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-gray-700 border border-gray-200 hover:bg-gray-50">
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-slate-500 border border-gray-200 hover:bg-gray-50">
                       <Edit2 className="h-3.5 w-3.5" /> Replace
                     </button>
                     {(me as any)?.role === "admin" && (
@@ -792,7 +792,7 @@ export default function PurchaseReceiptForm() {
                   ].map(([label, value]) => (
                     <div key={label}>
                       <p className="text-xs text-gray-400 font-medium">{label}</p>
-                      <p className="text-gray-900 mt-0.5 font-medium">{value}</p>
+                      <p className="text-cyan-900 mt-0.5 font-medium">{value}</p>
                       {label === "Invoice Amount" && inrEquiv && (
                         <p className="text-[11px] text-gray-400 mt-0.5">{inrEquiv}</p>
                       )}
@@ -812,18 +812,18 @@ export default function PurchaseReceiptForm() {
                     <label className="block text-xs font-medium text-gray-600 mb-1">Invoice Number <span className="text-red-500">*</span></label>
                     <input type="text" value={invNumber} onChange={e => setInvNumber(e.target.value)}
                       placeholder="e.g. INV-2024-001"
-                      className="w-full px-3 py-2 text-sm text-gray-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30" />
+                      className="w-full px-3 py-2 text-sm text-cyan-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">Invoice Date</label>
                     <input type="date" value={invDate} onChange={e => setInvDate(e.target.value)}
-                      className="w-full px-3 py-2 text-sm text-gray-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30" />
+                      className="w-full px-3 py-2 text-sm text-cyan-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">Currency</label>
                     <select value={invCurrency}
                       onChange={e => { setInvCurrency(e.target.value); setInvRate(e.target.value === "INR" ? "1" : invRate === "1" ? "" : invRate); }}
-                      className="w-full px-3 py-2 text-sm text-gray-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30">
+                      className="w-full px-3 py-2 text-sm text-cyan-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30">
                       {CURRENCIES.map(c => <option key={c}>{c}</option>)}
                     </select>
                   </div>
@@ -835,7 +835,7 @@ export default function PurchaseReceiptForm() {
                     </label>
                     <input type="number" min="0" step="0.01" value={invAmount} onChange={e => setInvAmount(e.target.value)}
                       placeholder="0.00"
-                      className="w-full px-3 py-2 text-sm text-gray-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30" />
+                      className="w-full px-3 py-2 text-sm text-cyan-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30" />
                   </div>
                   {invCurrency !== "INR" && (
                     <div>
@@ -844,7 +844,7 @@ export default function PurchaseReceiptForm() {
                       </label>
                       <input type="number" min="0.000001" step="0.0001" value={invRate} onChange={e => setInvRate(e.target.value)}
                         placeholder="e.g. 83.50"
-                        className="w-full px-3 py-2 text-sm text-gray-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30" />
+                        className="w-full px-3 py-2 text-sm text-cyan-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30" />
                     </div>
                   )}
                   {invCurrency !== "INR" && parseFloat(invAmount) > 0 && parseFloat(invRate) > 0 && (
@@ -874,7 +874,7 @@ export default function PurchaseReceiptForm() {
                 </div>
                 <div className="flex items-center gap-2">
                   <button onClick={resetInvoiceForm}
-                    className="px-4 py-2 rounded-xl text-sm font-medium text-gray-700 border border-gray-200 hover:bg-gray-50">
+                    className="px-4 py-2 rounded-xl text-sm font-medium text-slate-500 border border-gray-200 hover:bg-gray-50">
                     Cancel
                   </button>
                   <button onClick={handleInvoiceUpload} disabled={invUploading}
@@ -904,13 +904,13 @@ export default function PurchaseReceiptForm() {
               <div className="flex items-start gap-3 mb-4">
                 <div className="p-2 bg-red-100 rounded-lg flex-shrink-0"><AlertTriangle className="h-5 w-5 text-red-600" /></div>
                 <div>
-                  <h3 className="text-sm font-bold text-gray-900">Remove Vendor Invoice?</h3>
+                  <h3 className="text-sm font-bold text-cyan-900">Remove Vendor Invoice?</h3>
                   <p className="text-xs text-gray-500 mt-1">This will remove invoice <span className="font-semibold">{pr.vendor_invoice_number}</span> and delete its ledger entry.</p>
                 </div>
               </div>
               <div className="flex gap-2 justify-end">
                 <button onClick={() => setInvDeleteConfirm(false)} disabled={invUploading}
-                  className="px-4 py-2 rounded-xl text-sm font-medium text-gray-700 border border-gray-200 hover:bg-gray-50">Keep</button>
+                  className="px-4 py-2 rounded-xl text-sm font-medium text-slate-500 border border-gray-200 hover:bg-gray-50">Keep</button>
                 <button onClick={handleInvoiceDelete} disabled={invUploading}
                   className="px-4 py-2 rounded-xl text-sm font-semibold text-white bg-red-600 hover:bg-red-700 disabled:opacity-50">
                   {invUploading ? "Removing…" : "Yes, Remove"}
@@ -927,7 +927,7 @@ export default function PurchaseReceiptForm() {
               <div className="flex items-start gap-3 mb-4">
                 <div className="p-2 bg-red-100 rounded-lg flex-shrink-0"><AlertTriangle className="h-5 w-5 text-red-600" /></div>
                 <div>
-                  <h3 className="text-sm font-bold text-gray-900">Cancel Purchase Receipt?</h3>
+                  <h3 className="text-sm font-bold text-cyan-900">Cancel Purchase Receipt?</h3>
                   <p className="text-xs text-gray-500 mt-1">
                     Cancel <span className="font-semibold">{pr.pr_number}</span>?
                     {pr.status === "Received" && (
@@ -938,7 +938,7 @@ export default function PurchaseReceiptForm() {
               </div>
               <div className="flex gap-2 justify-end">
                 <button onClick={() => setCancelConfirm(false)} disabled={actioning}
-                  className="px-4 py-2 rounded-xl text-sm font-medium text-gray-700 border border-gray-200 hover:bg-gray-50">Keep</button>
+                  className="px-4 py-2 rounded-xl text-sm font-medium text-slate-500 border border-gray-200 hover:bg-gray-50">Keep</button>
                 <button onClick={handleCancel} disabled={actioning}
                   className="px-4 py-2 rounded-xl text-sm font-semibold text-white bg-red-600 hover:bg-red-700 disabled:opacity-50">
                   {actioning ? "Cancelling…" : "Yes, Cancel"}
@@ -961,12 +961,12 @@ export default function PurchaseReceiptForm() {
         <div className="flex items-center gap-3">
           <button onClick={() => navigate("/procurement/purchase-receipts")}
             className="p-2 rounded-xl hover:bg-[#C6AF4B]/10 transition-colors">
-            <ArrowLeft className="h-5 w-5 text-gray-700" />
+            <ArrowLeft className="h-5 w-5 text-slate-500" />
           </button>
           <div>
             <div className="flex items-center gap-2">
               <PackageCheck className="h-5 w-5" style={{ color: G }} />
-              <h1 className="text-xl font-bold text-gray-900">New Purchase Receipt</h1>
+              <h1 className="text-xl font-bold text-cyan-900">New Purchase Receipt</h1>
             </div>
             <p className="text-sm text-gray-500 mt-0.5">Record goods received against a purchase order</p>
           </div>
@@ -974,14 +974,14 @@ export default function PurchaseReceiptForm() {
 
         {/* PO Selection */}
         <div className={`${card} p-5`}>
-          <h3 className="text-sm font-semibold text-gray-700 mb-4">Receipt Details</h3>
+          <h3 className="text-sm font-semibold text-slate-500 mb-4">Receipt Details</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Purchase Order <span className="text-red-500">*</span></label>
               <div className="relative">
                 <select value={selectedPoId}
                   onChange={e => setSelectedPoId(e.target.value ? parseInt(e.target.value) : "")}
-                  className="w-full appearance-none pl-3 pr-8 py-2 text-sm text-gray-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30 bg-white">
+                  className="w-full appearance-none pl-3 pr-8 py-2 text-sm text-cyan-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30 bg-white">
                   <option value="">Select open PO with pending items…</option>
                   {approvedPos.map(po => (
                     <option key={po.id} value={po.id}>
@@ -1000,17 +1000,17 @@ export default function PurchaseReceiptForm() {
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Received Date</label>
               <input type="date" value={receivedDate} onChange={e => setReceivedDate(e.target.value)}
-                className="w-full px-3 py-2 text-sm text-gray-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30" />
+                className="w-full px-3 py-2 text-sm text-cyan-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30" />
             </div>
           </div>
 
           {/* {poDetail && (
             <div className="mt-3 flex items-center gap-2">
               <span className="text-xs text-gray-500">Vendor:</span>
-              <span className="text-xs font-semibold text-gray-900">{poDetail.vendor_name}</span>
+              <span className="text-xs font-semibold text-cyan-900">{poDetail.vendor_name}</span>
               <span className="text-xs text-gray-400">·</span>
               <span className="text-xs text-gray-500">Source:</span>
-              <span className="text-xs font-semibold text-gray-900">{poDetail.reference_type}</span>
+              <span className="text-xs font-semibold text-cyan-900">{poDetail.reference_type}</span>
             </div>
           )} */}
 
@@ -1022,19 +1022,19 @@ export default function PurchaseReceiptForm() {
                   <span className="text-xs font-semibold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded">Item-Level</span>
                   <span className="text-xs text-gray-400">·</span>
                   <span className="text-xs text-gray-500">Vendors:</span>
-                  <span className="text-xs font-semibold text-gray-900">
+                  <span className="text-xs font-semibold text-cyan-900">
                     {Array.from(new Set(poDetail.items.map(i => i.vendor_name).filter(Boolean))).join(", ")}
                   </span>
                 </>
               ) : (
                 <>
                   <span className="text-xs text-gray-500">Vendor:</span>
-                  <span className="text-xs font-semibold text-gray-900">{poDetail.vendor_name ?? "—"}</span>
+                  <span className="text-xs font-semibold text-cyan-900">{poDetail.vendor_name ?? "—"}</span>
                 </>
               )}
               <span className="text-xs text-gray-400">·</span>
               <span className="text-xs text-gray-500">Source:</span>
-              <span className="text-xs font-semibold text-gray-900">{poDetail.reference_type}</span>
+              <span className="text-xs font-semibold text-cyan-900">{poDetail.reference_type}</span>
             </div>
           )}
         </div>
@@ -1043,7 +1043,7 @@ export default function PurchaseReceiptForm() {
         {selectedPoId && (
           <div className={card}>
             <div className="px-4 py-3 border-b border-gray-100">
-              <h3 className="text-sm font-semibold text-gray-700">Items to Receive</h3>
+              <h3 className="text-sm font-semibold text-slate-500">Items to Receive</h3>
               <p className="text-xs text-gray-500 mt-0.5">Enter quantities for items you are receiving in this delivery</p>
             </div>
             {loadingPo ? (
@@ -1053,7 +1053,7 @@ export default function PurchaseReceiptForm() {
             ) : lines.length === 0 ? (
               <div className="px-4 py-8 text-center">
                 <CheckCircle2 className="h-8 w-8 text-green-500 mx-auto mb-2" />
-                <p className="text-sm text-gray-700 font-medium">All items fully received</p>
+                <p className="text-sm text-slate-500 font-medium">All items fully received</p>
                 <p className="text-xs text-gray-400">This PO has no pending quantities</p>
               </div>
             ) : (
@@ -1089,7 +1089,7 @@ export default function PurchaseReceiptForm() {
                         <tr key={line.poItemId} className="hover:bg-gray-50">
                           <td className="px-3 py-3 text-xs text-gray-400">{idx+1}</td>
                           <td className="px-3 py-3">
-                            <div className="text-sm font-medium text-gray-900">{line.itemName}</div>
+                            <div className="text-sm font-medium text-cyan-900">{line.itemName}</div>
                             <div className="text-xs text-gray-400">{line.itemCode}</div>
                             {mappableItemIds.has(line.poItemId) && (
                               <div className="mt-1.5 min-w-[180px]">
@@ -1110,7 +1110,7 @@ export default function PurchaseReceiptForm() {
                           </td>
                           {poDetail?.vendor_mode === "item" && (
                             <td className="px-3 py-3">
-                              <div className="text-xs font-medium text-gray-700">{line.vendorName ?? "—"}</div>
+                              <div className="text-xs font-medium text-slate-500">{line.vendorName ?? "—"}</div>
                             </td>
                           )}
                           <td className="px-3 py-3 text-xs text-gray-500">{line.unitType || "—"}</td>
@@ -1122,7 +1122,7 @@ export default function PurchaseReceiptForm() {
                               value={line.quantity}
                               onChange={e => updateLine(idx, "quantity", e.target.value)}
                               placeholder="0.000"
-                              className={`w-full px-2 py-1.5 text-sm text-gray-900 border rounded-lg focus:outline-none focus:ring-2 text-right
+                              className={`w-full px-2 py-1.5 text-sm text-cyan-900 border rounded-lg focus:outline-none focus:ring-2 text-right
                                 "border-red-400 focus:ring-red-200" : "border-gray-200 focus:ring-[#C6AF4B]/30"}`} />
                             {/* {isOver && <p className="text-[10px] text-red-500 mt-0.5">Exceeds pending</p>} */}
                           </td>
@@ -1134,7 +1134,7 @@ export default function PurchaseReceiptForm() {
                               value={line.unitPrice}
                               onChange={e => updateLine(idx, "unitPrice", e.target.value)}
                               className={`w-full px-2 py-1.5 text-sm border rounded-lg focus:outline-none focus:ring-2 text-right
-                                ${variance > 0.005 ? "border-red-300 text-red-700 focus:ring-red-200" : variance < -0.005 ? "border-green-300 text-green-700 focus:ring-green-200" : "border-gray-200 text-gray-900 focus:ring-[#C6AF4B]/30"}`} />
+                                ${variance > 0.005 ? "border-red-300 text-red-700 focus:ring-red-200" : variance < -0.005 ? "border-green-300 text-green-700 focus:ring-green-200" : "border-gray-200 text-cyan-900 focus:ring-[#C6AF4B]/30"}`} />
                             {Math.abs(variance) > 0.005 && nowNum > 0 && (
                               <p className={`text-[10px] mt-0.5 text-right ${variance > 0 ? "text-red-500" : "text-green-600"}`}>
                                 {variance > 0 ? `+${fmt(variance)}` : `-${fmt(Math.abs(variance))}`}
@@ -1151,7 +1151,7 @@ export default function PurchaseReceiptForm() {
                                 <select
                                   value={line.warehouseLocation}
                                   onChange={e => updateLine(idx, "warehouseLocation", e.target.value)}
-                                  className="w-full appearance-none pl-2 pr-6 py-1.5 text-sm text-gray-900 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30 bg-white"
+                                  className="w-full appearance-none pl-2 pr-6 py-1.5 text-sm text-cyan-900 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30 bg-white"
                                 >
                                   <option value="">Select location…</option>
                                   {warehouses.map(wh => (
@@ -1167,14 +1167,14 @@ export default function PurchaseReceiptForm() {
                                   value={line.warehouseLocation}
                                   onChange={e => updateLine(idx, "warehouseLocation", e.target.value)}
                                   placeholder="Bin / shelf…"
-                                  className="w-full px-2 py-1.5 text-sm text-gray-900 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30" /> 
+                                  className="w-full px-2 py-1.5 text-sm text-cyan-900 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30" /> 
                                   )}
                           </td>
                           <td className="px-3 py-3">
                             {line.itemImage ? (
                               <div className="relative group w-10 h-10 rounded-lg overflow-hidden border border-gray-200">
                                 <img src={line.itemImage} alt="" className="w-full h-full object-cover" />
-                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+                                <div className="absolute inset-0 bg-black/0 group-hover:bg-cyan-900/40 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
                                   <button type="button" onClick={() => updateLine(idx, "itemImage", "")}
                                     className="p-0.5 rounded-full bg-white/90"><X className="h-2.5 w-2.5 text-red-500" /></button>
                                 </div>
@@ -1186,7 +1186,7 @@ export default function PurchaseReceiptForm() {
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3 20.25h18a.75.75 0 00.75-.75V5.25A.75.75 0 0021 4.5H3A.75.75 0 002.25 5.25v14.25c0 .414.336.75.75.75zM12 10.5a1.5 1.5 0 100-3 1.5 1.5 0 000 3z" />
                                   </svg>
                                 </div>
-                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+                                <div className="absolute inset-0 bg-black/0 group-hover:bg-cyan-900/30 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
                                   <Camera className="h-3.5 w-3.5 text-white" />
                                 </div>
                                 <input type="file" accept="image/*" className="hidden" onChange={e => {
@@ -1220,12 +1220,12 @@ export default function PurchaseReceiptForm() {
             <div className={`${card} p-4`}>
               <div className="flex items-center gap-2 mb-3">
                 <TrendingUp className="h-4 w-4" style={{ color: G }} />
-                <h3 className="text-sm font-semibold text-gray-700">Pricing Summary</h3>
+                <h3 className="text-sm font-semibold text-slate-500">Pricing Summary</h3>
               </div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div>
                   <p className="text-xs text-gray-500">Items Receiving</p>
-                  <p className="text-lg font-bold text-gray-900">{validLines.length}</p>
+                  <p className="text-lg font-bold text-cyan-900">{validLines.length}</p>
                 </div>
                 <div>
                   <p className="text-xs text-amber-600 font-medium">Target Value</p>
@@ -1233,7 +1233,7 @@ export default function PurchaseReceiptForm() {
                 </div>
                 <div>
                   <p className="text-xs text-gray-600 font-medium">Received Value</p>
-                  <p className="text-lg font-bold text-gray-900">{fmt(receivedTotal+0)}</p>
+                  <p className="text-lg font-bold text-cyan-900">{fmt(receivedTotal+0)}</p>
                 </div>
                 <div>
                   <p className={`text-xs font-medium ${Math.abs(variance) < 0.01 ? "text-gray-500" : variance > 0 ? "text-red-600" : "text-green-600"}`}>
@@ -1254,13 +1254,13 @@ export default function PurchaseReceiptForm() {
             <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <FileText className="h-4 w-4" style={{ color: G }} />
-                <h3 className="text-sm font-semibold text-gray-700">Vendor Invoice</h3>
+                <h3 className="text-sm font-semibold text-slate-500">Vendor Invoice</h3>
                 <span className="text-xs text-gray-400">(Optional)</span>
               </div>
               {!showInvoiceForm && !invNumber && (
                 <button
                   onClick={() => setShowInvoiceForm(true)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-gray-700 border border-gray-200 hover:bg-gray-50">
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-slate-500 border border-gray-200 hover:bg-gray-50">
                   + Add Invoice
                 </button>
               )}
@@ -1280,18 +1280,18 @@ export default function PurchaseReceiptForm() {
                     <label className="block text-xs font-medium text-gray-600 mb-1">Invoice Number</label>
                     <input type="text" value={invNumber} onChange={e => setInvNumber(e.target.value)}
                       placeholder="e.g. INV-2024-001"
-                      className="w-full px-3 py-2 text-sm text-gray-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30" />
+                      className="w-full px-3 py-2 text-sm text-cyan-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">Invoice Date</label>
                     <input type="date" value={invDate} onChange={e => setInvDate(e.target.value)}
-                      className="w-full px-3 py-2 text-sm text-gray-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30" />
+                      className="w-full px-3 py-2 text-sm text-cyan-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">Currency</label>
                     <select value={invCurrency}
                       onChange={e => { setInvCurrency(e.target.value); setInvRate(e.target.value === "INR" ? "1" : invRate === "1" ? "" : invRate); }}
-                      className="w-full px-3 py-2 text-sm text-gray-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30">
+                      className="w-full px-3 py-2 text-sm text-cyan-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30">
                       {CURRENCIES.map(c => <option key={c}>{c}</option>)}
                     </select>
                   </div>
@@ -1301,7 +1301,7 @@ export default function PurchaseReceiptForm() {
                     <label className="block text-xs font-medium text-gray-600 mb-1">Invoice Amount ({invCurrency})</label>
                     <input type="number" min="0" step="0.01" value={invAmount} onChange={e => setInvAmount(e.target.value)}
                       placeholder="0.00"
-                      className="w-full px-3 py-2 text-sm text-gray-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30" />
+                      className="w-full px-3 py-2 text-sm text-cyan-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30" />
                   </div>
                   {invCurrency !== "INR" && (
                     <div>
@@ -1310,7 +1310,7 @@ export default function PurchaseReceiptForm() {
                       </label>
                       <input type="number" min="0.000001" step="0.0001" value={invRate} onChange={e => setInvRate(e.target.value)}
                         placeholder="e.g. 83.50"
-                        className="w-full px-3 py-2 text-sm text-gray-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30" />
+                        className="w-full px-3 py-2 text-sm text-cyan-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30" />
                     </div>
                   )}
                   {invCurrency !== "INR" && parseFloat(invAmount) > 0 && parseFloat(invRate) > 0 && (
@@ -1351,11 +1351,11 @@ export default function PurchaseReceiptForm() {
         {selectedPoId && lines.length > 0 && (
           <div className="flex justify-end gap-3">
             <button onClick={() => navigate("/procurement/purchase-receipts")}
-              className="px-5 py-2.5 rounded-xl text-sm font-medium text-gray-700 border border-gray-200 hover:bg-gray-50">
+              className="px-5 py-2.5 rounded-xl text-sm font-medium text-slate-500 border border-gray-200 hover:bg-gray-50">
               Cancel
             </button>
             <button onClick={() => handleSubmit(false)} disabled={submitting}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-gray-900 border border-gray-200 hover:bg-gray-50 disabled:opacity-50">
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-cyan-900 border border-gray-200 hover:bg-gray-50 disabled:opacity-50">
               <Save className="h-4 w-4" />
               {submitting ? "Saving…" : "Save as Draft"}
             </button>

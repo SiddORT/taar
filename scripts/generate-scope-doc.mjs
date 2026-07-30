@@ -149,7 +149,7 @@ const pb = () => p([new PageBreak()]);
 // ────────────────────────────────────────────────────────────────────────────
 const cover = [
   sp(1000),
-  p(runG("ZARI ERP", 96), { alignment: AlignmentType.CENTER }),
+  p(runG("ERP", 96), { alignment: AlignmentType.CENTER }),
   p(run("Enterprise Resource Planning System", { size: 36, color: GRAY }), { alignment: AlignmentType.CENTER }),
   sp(40),
   p(run("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━", { color: GOLD, size: 26 }), { alignment: AlignmentType.CENTER }),
@@ -169,12 +169,12 @@ const sec1 = [
   ...banner("1.  Project Overview"),
 
   h2("1.1  Background & Context"),
-  body("Zari Embroideries is a premium embroidery manufacturer and exporter supplying high-fashion brands across India and internationally. Prior to ZARI ERP, the business tracked its complex operational pipeline — swatch sampling, style production, inventory procurement, client invoicing, and logistics — across a fragmented mix of spreadsheets, WhatsApp messages, paper records, and ad-hoc tools."),
-  body("ZARI ERP was purpose-built to unify every business function into a single, always-on web application, giving management, operations, and accounts teams a real-time, shared view of the entire business from one screen."),
+  body("Zari Embroideries is a premium embroidery manufacturer and exporter supplying high-fashion brands across India and internationally. Prior to ERP, the business tracked its complex operational pipeline — swatch sampling, style production, inventory procurement, client invoicing, and logistics — across a fragmented mix of spreadsheets, WhatsApp messages, paper records, and ad-hoc tools."),
+  body("ERP was purpose-built to unify every business function into a single, always-on web application, giving management, operations, and accounts teams a real-time, shared view of the entire business from one screen."),
 
   h2("1.2  Project Identity"),
   infoTable([
-    ["Project Name",       "ZARI ERP — Enterprise Resource Planning System"],
+    ["Project Name",       "ERP — Enterprise Resource Planning System"],
     ["Client",             "Zari Embroideries"],
     ["Project Type",       "Custom Full-Stack Web Application (SaaS)"],
     ["Version",            "1.0 — Production Release (April 2026)"],
@@ -504,7 +504,7 @@ const sec5 = [
 // ────────────────────────────────────────────────────────────────────────────
 const sec6 = [
   ...banner("6.  Style Orders Module"),
-  body("Style Orders are the primary production orders in ZARI ERP. They cover the full lifecycle of a custom embroidery production run — from initial briefing through artworks, costing, invoicing, and final shipment."),
+  body("Style Orders are the primary production orders in ERP. They cover the full lifecycle of a custom embroidery production run — from initial briefing through artworks, costing, invoicing, and final shipment."),
 
   h2("6.1  Status Workflow"),
   statusFlow(["Draft", "Issued", "In Production", "In Review", "Pending Approval", "Completed", "Rejected", "Cancelled"]),
@@ -755,7 +755,7 @@ const sec9 = [
 // ────────────────────────────────────────────────────────────────────────────
 const sec10 = [
   ...banner("10.  Accounts & Finance Module"),
-  body("The Accounts module is the financial hub of ZARI ERP, providing unified tracking of all income (sales invoices, client payments) and expenditure (vendor bills, purchase payments) with real-time dashboards, ledgers, and GST-compliant invoicing."),
+  body("The Accounts module is the financial hub of ERP, providing unified tracking of all income (sales invoices, client payments) and expenditure (vendor bills, purchase payments) with real-time dashboards, ledgers, and GST-compliant invoicing."),
 
   h2("10.1  Accounts Dashboard"),
   h4("Global Filters (applied across all dashboard figures simultaneously)"),
@@ -1022,7 +1022,7 @@ const sec13 = [
 // ────────────────────────────────────────────────────────────────────────────
 const sec14 = [
   ...banner("14.  Built-in User Manual"),
-  body("ZARI ERP includes a comprehensive built-in User Manual accessible from within the application at /help. It is available to all logged-in users without any external documentation dependency."),
+  body("ERP includes a comprehensive built-in User Manual accessible from within the application at /help. It is available to all logged-in users without any external documentation dependency."),
 
   h2("14.1  Features"),
   bull("12 sections covering every module: Introduction, Getting Started, Dashboard, Masters, Swatch Orders, Style Orders, Quotations, Accounts, Inventory, Procurement, Logistics, and Settings."),
@@ -1060,7 +1060,7 @@ const sec14 = [
 // ────────────────────────────────────────────────────────────────────────────
 const sec15 = [
   ...banner("15.  Out of Scope"),
-  body("The following are explicitly excluded from the current version of ZARI ERP:"),
+  body("The following are explicitly excluded from the current version of ERP:"),
   bull("Native mobile application (iOS / Android)."),
   bull("Third-party accounting software integration (Tally, Zoho Books, QuickBooks, Busy)."),
   bull("E-commerce storefront or public customer-facing ordering portal."),
@@ -1109,7 +1109,7 @@ const sec17 = [
     width: { size: 100, type: WidthType.PERCENTAGE },
     rows: [
       hdrRow("#", "Deliverable", "Status"),
-      tRow(boldCell("1"), cell("Full-stack web application (ZARI ERP) — all 14 modules"), boldCell("Delivered", GREEN, GREEN_L)),
+      tRow(boldCell("1"), cell("Full-stack web application (ERP) — all 14 modules"), boldCell("Delivered", GREEN, GREEN_L)),
       tRow(boldCell("2", MID,"F9FAFB"), cell("React + Vite frontend with Tailwind brand theme"), boldCell("Delivered", GREEN, GREEN_L)),
       tRow(boldCell("3"), cell("Node.js + Express REST API — 30+ route files"), boldCell("Delivered", GREEN, GREEN_L)),
       tRow(boldCell("4", MID,"F9FAFB"), cell("PostgreSQL database with auto-migration schema"), boldCell("Delivered", GREEN, GREEN_L)),
@@ -1133,7 +1133,7 @@ const sec17 = [
 const sec18 = [
   ...banner("18.  Approval & Sign-off"),
   sp(160),
-  body("By signing below, both parties confirm that this Detailed Scope Document accurately represents the agreed deliverables for the ZARI ERP project."),
+  body("By signing below, both parties confirm that this Detailed Scope Document accurately represents the agreed deliverables for the ERP project."),
   sp(200),
 
   new Table({
@@ -1178,7 +1178,7 @@ const sec18 = [
   }),
 
   sp(400),
-  p(runI("ZARI ERP — Detailed Project Scope Document  ·  Version 2.0  ·  April 2026  ·  Confidential"), { alignment: AlignmentType.CENTER }),
+  p(runI("ERP — Detailed Project Scope Document  ·  Version 2.0  ·  April 2026  ·  Confidential"), { alignment: AlignmentType.CENTER }),
 ];
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -1226,5 +1226,5 @@ const doc = new Document({
 });
 
 const buffer = await Packer.toBuffer(doc);
-writeFileSync("ZARI_ERP_Scope_Document_v2.docx", buffer);
-console.log("✓  Generated: ZARI_ERP_Scope_Document_v2.docx");
+writeFileSync("ERP_Scope_Document_v2.docx", buffer);
+console.log("✓  Generated: ERP_Scope_Document_v2.docx");

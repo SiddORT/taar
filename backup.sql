@@ -542,7 +542,7 @@ CREATE TABLE public.company_gst_settings (
     default_service_gst_rate numeric(5,2) DEFAULT '18'::numeric NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
-    company_name text DEFAULT 'ZARI EMBROIDERIES'::text NOT NULL,
+    company_name text DEFAULT 'ERP'::text NOT NULL,
     company_address text DEFAULT ''::text NOT NULL,
     company_phone text DEFAULT ''::text NOT NULL,
     company_email text DEFAULT ''::text NOT NULL
@@ -4397,7 +4397,7 @@ COPY public.clients (id, client_code, brand_name, contact_name, email, alt_email
 --
 
 COPY public.company_gst_settings (gst_settings_id, company_gstin, company_state, company_country, export_under_lut_enabled, reverse_charge_enabled, gst_mode, default_service_gst_rate, created_at, updated_at, company_name, company_address, company_phone, company_email) FROM stdin;
-1	27ABCDE1234F1Z5	Maharashtra	India	t	f	Auto Detect	18.00	2026-04-20 03:55:26.814494+00	2026-04-20 03:55:26.814494+00	ZARI EMBROIDERIES	ecstacy park mulund west	+91 9090909090	accounts@zarierp.com
+1	27ABCDE1234F1Z5	Maharashtra	India	t	f	Auto Detect	18.00	2026-04-20 03:55:26.814494+00	2026-04-20 03:55:26.814494+00	ERP	ecstacy park mulund west	+91 9090909090	accounts@zarierp.com
 \.
 
 

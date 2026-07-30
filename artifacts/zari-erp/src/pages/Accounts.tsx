@@ -130,7 +130,7 @@ function PaymentModal({ invoice, onClose }: { invoice: AccountInvoice; onClose: 
       <div className={`${card} w-full max-w-lg`} onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
           <div>
-            <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">
+            <h2 className="text-base font-bold text-cyan-900 flex items-center gap-2">
               {direction === "Received"
                 ? <ArrowDownLeft size={16} className="text-emerald-500" />
                 : <ArrowUpRight size={16} className="text-amber-600" />}
@@ -221,7 +221,7 @@ function PaymentModal({ invoice, onClose }: { invoice: AccountInvoice; onClose: 
 
           <div className="flex gap-3 pt-1">
             <button type="button" onClick={onClose}
-              className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+              className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-slate-500 hover:bg-gray-50 transition-colors">
               Cancel
             </button>
             <button type="submit" disabled={addPmt.isPending}
@@ -290,9 +290,9 @@ function PaymentsHistory({ invoiceId }: { invoiceId: number }) {
           {payments.map((p, i) => (
             <tr key={p.payment_id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/50">
               <td className="py-2 text-gray-400">{i + 1}</td>
-              <td className="py-2 text-gray-700">{fmtDate(p.payment_date)}</td>
-              <td className="py-2 text-gray-700">{p.payment_type}</td>
-              <td className="py-2 text-right font-medium text-gray-900 tabular-nums">
+              <td className="py-2 text-slate-500">{fmtDate(p.payment_date)}</td>
+              <td className="py-2 text-slate-500">{p.payment_type}</td>
+              <td className="py-2 text-right font-medium text-cyan-900 tabular-nums">
                 {p.currency_code} {(p.payment_amount)}
               </td>
               <td className="py-2 text-right text-gray-600 tabular-nums">{fmtH(p.base_currency_amount)}</td>
@@ -346,7 +346,7 @@ function InvoiceRow({
             {direction === "Client"
               ? <ArrowDownLeft size={13} className="text-emerald-500 shrink-0" />
               : <ArrowUpRight size={13} className="text-amber-500 shrink-0" />}
-            <span className="text-sm text-gray-700 font-medium truncate max-w-[160px]">
+            <span className="text-sm text-slate-500 font-medium truncate max-w-[160px]">
               {direction === "Vendor" ? inv.vendor_name || inv.party_name : inv.party_name}
             </span>
           </div>
@@ -356,7 +356,7 @@ function InvoiceRow({
             {direction === "Client" ? "Receivable" : "Payable"}
           </span>
         </td>
-        <td className="px-4 py-3 text-right tabular-nums text-sm font-medium text-gray-900">
+        <td className="px-4 py-3 text-right tabular-nums text-sm font-medium text-cyan-900">
           {fmt(inv.total_amount)}
         </td>
         <td className="px-4 py-3 text-right tabular-nums text-sm text-emerald-600 font-medium">
@@ -418,7 +418,7 @@ function SummaryCard({ label, value, color, icon }: { label: string; value: stri
       </div>
       <div>
         <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">{label}</p>
-        <p className="text-xl font-bold text-gray-900 tabular-nums mt-0.5">{value}</p>
+        <p className="text-xl font-bold text-cyan-900 tabular-nums mt-0.5">{value}</p>
       </div>
     </div>
   );
@@ -530,7 +530,7 @@ export default function Accounts() {
         {/* Page header */}
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+            <h1 className="text-2xl font-bold text-cyan-900 flex items-center gap-2">
               <Wallet size={22} style={{ color: G }} /> Accounts
             </h1>
             <p className="text-sm text-gray-400 mt-0.5">Invoice payment tracking — client receivables &amp; vendor payables</p>
@@ -586,7 +586,7 @@ export default function Accounts() {
 
             {/* Status filter */}
             <select value={status} onChange={e => { setStatus(e.target.value); setPage(1); }}
-              className="border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white text-gray-700 focus:outline-none focus:border-[#C6AF4B]">
+              className="border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white text-slate-500 focus:outline-none focus:border-[#C6AF4B]">
               <option value="all">All Statuses</option>
               {["Generated","Sent","Partially Paid","Overdue","Paid"].map(s => <option key={s}>{s}</option>)}
             </select>

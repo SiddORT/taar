@@ -114,7 +114,7 @@ function ClassicTemplate({ inv, company, tpl }: { inv: PreviewInvoice; company: 
       {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 32, borderBottom: "3px solid #1a1a1a", paddingBottom: 20 }}>
         <div>
-          <div style={{ fontSize: 28, fontWeight: 800, letterSpacing: 2, color: "#1a1a1a" }}>{company.name || "ZARI EMBROIDERIES"}</div>
+          <div style={{ fontSize: 28, fontWeight: 800, letterSpacing: 2, color: "#1a1a1a" }}>{company.name || "ERP"}</div>
           {company.address && <div style={{ fontSize: 11, color: "#555", marginTop: 3, whiteSpace: "pre-line", lineHeight: 1.5 }}>{company.address}</div>}
           {(company.phone || company.email) && (
             <div style={{ fontSize: 11, color: "#555", marginTop: 2 }}>
@@ -263,7 +263,7 @@ function ModernTemplate({ inv, company, tpl }: { inv: PreviewInvoice; company: C
       {/* Dark header */}
       <div style={{ background: "#1C1C2E", color: "#fff", padding: "32px 40px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div>
-          <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: 1.5, color: G }}>{company.name || "ZARI EMBROIDERIES"}</div>
+          <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: 1.5, color: G }}>{company.name || "ERP"}</div>
           {company.address && <div style={{ fontSize: 10, color: "#bbb", marginTop: 2, whiteSpace: "pre-line", lineHeight: 1.5 }}>{company.address}</div>}
           {(company.phone || company.email) && (
             <div style={{ fontSize: 10, color: "#aaa", marginTop: 2 }}>
@@ -425,7 +425,7 @@ function PremiumTemplate({ inv, company, tpl }: { inv: PreviewInvoice; company: 
       {/* Gold gradient header */}
       <div style={{ background: "linear-gradient(135deg, #8B6914 0%, #C6AF4B 50%, #8B6914 100%)", padding: "36px 48px" }}>
         <div style={{ textAlign: "center" }}>
-          <div style={{ fontSize: 30, fontWeight: 700, letterSpacing: 4, color: "#fff", textShadow: "0 1px 3px rgba(0,0,0,0.3)" }}>{company.name || "ZARI EMBROIDERIES"}</div>
+          <div style={{ fontSize: 30, fontWeight: 700, letterSpacing: 4, color: "#fff", textShadow: "0 1px 3px rgba(0,0,0,0.3)" }}>{company.name || "ERP"}</div>
           {company.address && (
             <div style={{ fontSize: 10, color: "rgba(255,255,255,0.8)", marginTop: 4, whiteSpace: "pre-line", lineHeight: 1.6 }}>{company.address}</div>
           )}
@@ -556,7 +556,7 @@ function PremiumTemplate({ inv, company, tpl }: { inv: PreviewInvoice; company: 
       </div>
 
       <div style={{ background: "linear-gradient(135deg, #8B6914 0%, #C6AF4B 50%, #8B6914 100%)", color: "rgba(255,255,255,0.7)", fontSize: 10, textAlign: "center", padding: "10px 48px" }}>
-        Thank you for your business · ZARI EMBROIDERIES
+        Thank you for your business · ERP
       </div>
     </div>
   );
@@ -565,7 +565,7 @@ function PremiumTemplate({ inv, company, tpl }: { inv: PreviewInvoice; company: 
 // ---- Main Modal ----
 export default function InvoicePreviewModal({ invoiceId, formSnapshot, onClose }: Props) {
   const [inv, setInv] = useState<PreviewInvoice | null>(formSnapshot ?? null);
-  const [company, setCompany] = useState<CompanyInfo>({ name: "ZARI EMBROIDERIES", address: "", phone: "", email: "", gstin: "", state: "", country: "India" });
+  const [company, setCompany] = useState<CompanyInfo>({ name: "ERP", address: "", phone: "", email: "", gstin: "", state: "", country: "India" });
   const [template, setTemplate] = useState<Template>({ layout: "classic", payment_terms: "", notes: "" });
   const [loading, setLoading] = useState(!formSnapshot);
   const printRef = useRef<HTMLDivElement>(null);
@@ -579,7 +579,7 @@ export default function InvoicePreviewModal({ invoiceId, formSnapshot, onClose }
         ]);
         if (gstData?.data) {
           setCompany({
-            name:    gstData.data.company_name    || "ZARI EMBROIDERIES",
+            name:    gstData.data.company_name    || "ERP",
             address: gstData.data.company_address || "",
             phone:   gstData.data.company_phone   || "",
             email:   gstData.data.company_email   || "",
@@ -677,7 +677,7 @@ export default function InvoicePreviewModal({ invoiceId, formSnapshot, onClose }
         {/* Modal toolbar */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 sticky top-0 bg-white rounded-t-2xl z-10">
           <div className="flex items-center gap-3">
-            <span className="font-bold text-gray-800 text-base">Invoice Preview</span>
+            <span className="font-bold text-cyan-900 text-base">Invoice Preview</span>
             {inv && <span className="text-xs text-gray-400 font-mono">{inv.invoiceNo}</span>}
             <span className="text-xs px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 capitalize">{template.layout}</span>
           </div>
@@ -691,7 +691,7 @@ export default function InvoicePreviewModal({ invoiceId, formSnapshot, onClose }
               <Printer size={14} />
               Download / Print PDF
             </button>
-            <button onClick={onClose} className="p-2 rounded-xl text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition">
+            <button onClick={onClose} className="p-2 rounded-xl text-gray-400 hover:text-slate-500 hover:bg-gray-100 transition">
               <X size={18} />
             </button>
           </div>

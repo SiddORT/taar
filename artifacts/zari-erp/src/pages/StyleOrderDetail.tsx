@@ -143,7 +143,7 @@ const EMPTY_FORM: FormState = {
 };
 
 // ── Shared helpers (defined outside component to avoid re-render focus loss) ─
-const inputCls = "w-full px-3 py-2.5 text-sm text-gray-900 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-[#C9B45C]/25 focus:border-[#C9B45C]/50 placeholder:text-gray-400 transition-colors";
+const inputCls = "w-full px-3 py-2.5 text-sm text-cyan-900 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-[#C9B45C]/25 focus:border-[#C9B45C]/50 placeholder:text-gray-400 transition-colors";
 
 function fileToAttachment(file: File): Promise<FileAttachment> {
   return new Promise((resolve, reject) => {
@@ -172,9 +172,9 @@ function FilePreviewModal({ file, onClose }: { file: FileAttachment | null; onCl
           ) : (
             <div className="p-8 text-center">
               <FileText className="h-16 w-16 text-gray-300 mx-auto mb-3" />
-              <p className="text-sm font-medium text-gray-700 mb-1">{file.name}</p>
+              <p className="text-sm font-medium text-slate-500 mb-1">{file.name}</p>
               <p className="text-xs text-gray-400 mb-4">Preview not available for this file type</p>
-              <a href={file.data} download={file.name} className="inline-block px-4 py-2 bg-gray-900 text-[#C9B45C] rounded-lg text-sm font-semibold">Download</a>
+              <a href={file.data} download={file.name} className="inline-block px-4 py-2 bg-cyan-900 text-[#C9B45C] rounded-lg text-sm font-semibold">Download</a>
             </div>
           )}
         </div>
@@ -213,7 +213,7 @@ function FileUploadZone({ files, onChange, accept, icon, label }: {
         <div className="flex flex-col items-center gap-2">
           <div className="h-10 w-10 rounded-xl bg-gray-100 flex items-center justify-center text-gray-400">{icon}</div>
           <div>
-            <p className="text-sm font-medium text-gray-700">{label}</p>
+            <p className="text-sm font-medium text-slate-500">{label}</p>
             <p className="text-xs text-gray-400 mt-0.5">Click to browse or drag & drop</p>
           </div>
         </div>
@@ -228,7 +228,7 @@ function FileUploadZone({ files, onChange, accept, icon, label }: {
                 <img src={f.data} alt={f.name} className="h-14 w-14 rounded-lg object-cover border border-gray-200 shrink-0 cursor-pointer hover:opacity-80"
                   onClick={() => setPreviewFile(f)} />
               ) : f.type.startsWith("video/") ? (
-                <div className="h-10 w-10 rounded-lg bg-gray-900 flex items-center justify-center shrink-0 cursor-pointer hover:opacity-80"
+                <div className="h-10 w-10 rounded-lg bg-cyan-900 flex items-center justify-center shrink-0 cursor-pointer hover:opacity-80"
                   onClick={() => setPreviewFile(f)}>
                   <Video className="h-5 w-5 text-[#C9B45C]" />
                 </div>
@@ -239,10 +239,10 @@ function FileUploadZone({ files, onChange, accept, icon, label }: {
                 </div>
               )}
               <div className="flex-1 min-w-0 flex flex-col justify-center gap-0.5">
-                <span className="text-xs font-medium text-gray-700 truncate">{f.name}</span>
+                <span className="text-xs font-medium text-slate-500 truncate">{f.name}</span>
                 <span className="text-xs text-gray-400">{(f.size / 1024).toFixed(0)} KB</span>
               </div>
-              <button onClick={() => setPreviewFile(f)} className="text-gray-400 hover:text-gray-800 transition-colors shrink-0" title="Preview">
+              <button onClick={() => setPreviewFile(f)} className="text-gray-400 hover:text-cyan-900 transition-colors shrink-0" title="Preview">
                 <Eye className="h-3.5 w-3.5" />
               </button>
               <button onClick={() => remove(i)} className="text-gray-400 hover:text-red-500 transition-colors shrink-0" title="Remove">
@@ -267,7 +267,7 @@ function SectionCard({ icon, title, subtitle, accentColor, children }: {
           {icon}
         </div>
         <div>
-          <h2 className="text-sm font-semibold text-gray-900">{title}</h2>
+          <h2 className="text-sm font-semibold text-cyan-900">{title}</h2>
           <p className="text-xs text-gray-400">{subtitle}</p>
         </div>
         <div className="ml-auto h-1 w-8 rounded-full bg-gradient-to-r from-[#C9B45C]/40 to-transparent" />
@@ -295,7 +295,7 @@ function PlaceholderTab({ icon, label }: { icon: string; label: string }) {
       <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-gray-100 to-gray-50 border border-gray-200 flex items-center justify-center mb-4 shadow-sm">
         <span className="text-2xl">{icon}</span>
       </div>
-      <p className="text-sm font-semibold text-gray-700">{label}</p>
+      <p className="text-sm font-semibold text-slate-500">{label}</p>
       <p className="text-xs text-gray-400 mt-1.5">Save the order first to unlock this tab.</p>
     </div>
   );
@@ -577,12 +577,12 @@ export default function StyleOrderDetail() {
           <div className="px-6 md:px-8 py-3.5 max-w-6xl mx-auto flex items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               <button onClick={() => setLocation("/style-orders")}
-                className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 transition-colors">
+                className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-cyan-900 transition-colors">
                 <ArrowLeft className="h-4 w-4" />
                 Style Orders
               </button>
               <span className="text-gray-300">/</span>
-              <span className="text-sm font-bold font-mono text-gray-900">{orderCode}</span>
+              <span className="text-sm font-bold font-mono text-cyan-900">{orderCode}</span>
             </div>
             <div className="flex items-center gap-3">
               <div className="relative shrink-0">
@@ -615,8 +615,8 @@ export default function StyleOrderDetail() {
                 <button key={tab.label} onClick={() => setActiveTab(tab.label)}
                   className={`px-4 py-2.5 text-xs font-medium whitespace-nowrap border-b-2 transition-all ${
                     activeTab === tab.label
-                      ? "border-[#C9B45C] text-gray-900 font-semibold"
-                      : "border-transparent text-gray-400 hover:text-gray-700 hover:border-gray-300"
+                      ? "border-[#C9B45C] text-cyan-900 font-semibold"
+                      : "border-transparent text-gray-400 hover:text-slate-500 hover:border-gray-300"
                   }`}>
                   {tab.label}
                 </button>
@@ -632,7 +632,7 @@ export default function StyleOrderDetail() {
             <div className="space-y-5">
 
               {/* ── Identity ──────────────────────────────────────────────── */}
-              <SectionCard icon={<User className="h-4 w-4 text-[#C9B45C]" />} accentColor="bg-gray-900"
+              <SectionCard icon={<User className="h-4 w-4 text-[#C9B45C]" />} accentColor="bg-cyan-900"
                 title="Identity" subtitle="Core details of this style order">
                 <div className="grid grid-cols-2 gap-4">
                   <Field label="Style Name *">
@@ -658,7 +658,7 @@ export default function StyleOrderDetail() {
                   {/* {selectedClient && (
                     <div className="col-span-2 bg-gradient-to-r from-violet-50 to-purple-50 border border-violet-100 rounded-xl px-4 py-2.5">
                       <div className="flex items-center flex-wrap gap-x-2 gap-y-0.5 text-xs text-gray-600">
-                        {selectedClient.contactName && <span className="font-medium text-gray-800">{selectedClient.contactName}</span>}
+                        {selectedClient.contactName && <span className="font-medium text-cyan-900">{selectedClient.contactName}</span>}
                         {selectedClient.email && <><span className="text-gray-300">·</span><span>{selectedClient.email}</span></>}
                         {selectedClient.contactNo && <><span className="text-gray-300">·</span><span>{selectedClient.contactNo}</span></>}
                         {selectedClient.country && <><span className="text-gray-300">·</span><span>{selectedClient.country}</span></>}
@@ -683,10 +683,10 @@ export default function StyleOrderDetail() {
                     <Field label="Chargeable Order" hint="Enable if this order requires a client invoice">
                       <div className="flex items-center gap-3 pt-1.5">
                         <button type="button" onClick={() => set("isChargeable", !form.isChargeable)}
-                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${form.isChargeable ? "bg-gray-900" : "bg-gray-200"}`}>
+                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${form.isChargeable ? "bg-cyan-900" : "bg-gray-200"}`}>
                           <span className={`inline-block h-4 w-4 rounded-full shadow transform transition-transform ${form.isChargeable ? "translate-x-6 bg-[#C9B45C]" : "translate-x-1 bg-white"}`} />
                         </button>
-                        <span className={`text-sm font-medium ${form.isChargeable ? "text-gray-900" : "text-gray-400"}`}>
+                        <span className={`text-sm font-medium ${form.isChargeable ? "text-cyan-900" : "text-gray-400"}`}>
                           {form.isChargeable ? "Yes — Invoice will be generated" : "No — Non-billable"}
                         </span>
                       </div>
@@ -695,10 +695,10 @@ export default function StyleOrderDetail() {
                     <Field label="In-house Order" hint="Enable if this is an internal production order (no external client)">
                       <div className="flex items-center gap-3 pt-1.5">
                         <button type="button" onClick={() => set("isInhouse", !form.isInhouse)}
-                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${form.isInhouse ? "bg-gray-900" : "bg-gray-200"}`}>
+                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${form.isInhouse ? "bg-cyan-900" : "bg-gray-200"}`}>
                           <span className={`inline-block h-4 w-4 rounded-full shadow transform transition-transform ${form.isInhouse ? "translate-x-6 bg-[#C9B45C]" : "translate-x-1 bg-white"}`} />
                         </button>
-                        <span className={`text-sm font-medium ${form.isInhouse ? "text-gray-900" : "text-gray-400"}`}>
+                        <span className={`text-sm font-medium ${form.isInhouse ? "text-cyan-900" : "text-gray-400"}`}>
                           {form.isInhouse ? "Yes — Internal production order" : "No — Client order"}
                         </span>
                       </div>
@@ -725,7 +725,7 @@ export default function StyleOrderDetail() {
               </SectionCard>
 
               {/* ── Planning ──────────────────────────────────────────────── */}
-              <SectionCard icon={<CalendarDays className="h-4 w-4 text-[#C9B45C]" />} accentColor="bg-gray-900"
+              <SectionCard icon={<CalendarDays className="h-4 w-4 text-[#C9B45C]" />} accentColor="bg-cyan-900"
                 title="Planning" subtitle="Dates, timing and assignment details">
                 <div className="grid grid-cols-3 gap-4">
                   <Field label="Order Issue Date">
@@ -755,7 +755,7 @@ export default function StyleOrderDetail() {
               </SectionCard>
 
               {/* ── Notes ────────────────────────────────────────────────── */}
-              <SectionCard icon={<MessageSquare className="h-4 w-4 text-[#C9B45C]" />} accentColor="bg-gray-900"
+              <SectionCard icon={<MessageSquare className="h-4 w-4 text-[#C9B45C]" />} accentColor="bg-cyan-900"
                 title="Notes" subtitle="Description, internal remarks and client instructions">
                 <div className="grid grid-cols-3 gap-4">
                   <Field label="Description">
@@ -792,7 +792,7 @@ export default function StyleOrderDetail() {
           {/* ══ TAB: Completion Tracking ══════════════════════════════════ */}
           {activeTab === "Completion Tracking" && (
             <div className="space-y-5">
-              <SectionCard icon={<CheckCircle2 className="h-4 w-4 text-[#C9B45C]" />} accentColor="bg-gray-900"
+              <SectionCard icon={<CheckCircle2 className="h-4 w-4 text-[#C9B45C]" />} accentColor="bg-cyan-900"
                 title="Completion Tracking" subtitle="Record actual timings, revisions and approval">
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-3">
@@ -835,7 +835,7 @@ export default function StyleOrderDetail() {
           {/* ══ TAB: References ════════════════════════════════════════════ */}
           {activeTab === "References" && <div className="space-y-5">
 
-            <SectionCard icon={<Layers className="h-4 w-4 text-[#C9B45C]" />} accentColor="bg-gray-900"
+            <SectionCard icon={<Layers className="h-4 w-4 text-[#C9B45C]" />} accentColor="bg-cyan-900"
               title="References" subtitle="Link related styles and swatches, add remarks for each">
               <div className="grid grid-cols-2 gap-6">
                 {/* Style References */}
@@ -917,7 +917,7 @@ export default function StyleOrderDetail() {
               </div>
             </SectionCard>
 
-            <SectionCard icon={<Paperclip className="h-4 w-4 text-[#C9B45C]" />} accentColor="bg-gray-900"
+            <SectionCard icon={<Paperclip className="h-4 w-4 text-[#C9B45C]" />} accentColor="bg-cyan-900"
               title="Attachments" subtitle="Reference documents, WIP and final images & videos">
               {/* Row 1: Reference Docs + Reference Images */}
               <div className="grid grid-cols-2 gap-6 mb-6">
@@ -998,7 +998,7 @@ export default function StyleOrderDetail() {
                 Cancel
               </button>
               <button onClick={() => { void handleSave(); }} disabled={saving}
-                className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gray-900 text-[#C9B45C] text-sm font-medium hover:bg-black transition-colors disabled:opacity-60 shadow-sm">
+                className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-cyan-900 text-[#C9B45C] text-sm font-medium hover:bg-cyan-900 transition-colors disabled:opacity-60 shadow-sm">
                 {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                 {saving ? "Saving…" : "Save Changes"}
               </button>
@@ -1033,11 +1033,11 @@ export default function StyleOrderDetail() {
               {/* Estimate Items */}
               <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
                 <div className="flex items-center gap-3 px-6 py-4 border-b border-gray-200 bg-gray-50/50">
-                  <div className="flex items-center justify-center h-8 w-8 rounded-xl bg-gray-900">
+                  <div className="flex items-center justify-center h-8 w-8 rounded-xl bg-cyan-900">
                     <span className="text-sm">📊</span>
                   </div>
                   <div className="flex-1">
-                    <h2 className="text-sm font-semibold text-gray-900">Estimate Items</h2>
+                    <h2 className="text-sm font-semibold text-cyan-900">Estimate Items</h2>
                     <p className="text-xs text-gray-400">Enter rates for each cost component</p>
                   </div>
                 </div>
@@ -1056,7 +1056,7 @@ export default function StyleOrderDetail() {
                           <td className="px-6 py-3">
                             {item.isCustom ? (
                               <input
-                                className="w-full text-sm text-gray-900 bg-transparent border-b border-dashed border-gray-300 focus:border-gray-900 focus:outline-none py-0.5 placeholder:text-gray-400"
+                                className="w-full text-sm text-cyan-900 bg-transparent border-b border-dashed border-gray-300 focus:border-cyan-900 focus:outline-none py-0.5 placeholder:text-gray-400"
                                 placeholder="Service name…"
                                 value={item.label}
                                 onChange={e => {
@@ -1066,7 +1066,7 @@ export default function StyleOrderDetail() {
                                 }}
                               />
                             ) : (
-                              <span className="text-sm font-medium text-gray-800">{item.label}</span>
+                              <span className="text-sm font-medium text-cyan-900">{item.label}</span>
                             )}
                           </td>
                           <td className="px-6 py-3">
@@ -1077,7 +1077,7 @@ export default function StyleOrderDetail() {
                                 min="0"
                                 step="0.01"
                                 placeholder="0.00"
-                                className="w-32 text-right text-sm text-gray-900 border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-gray-900/10 placeholder:text-gray-300 bg-white"
+                                className="w-32 text-right text-sm text-cyan-900 border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-cyan-900/10 placeholder:text-gray-300 bg-white"
                                 value={item.rate}
                                 onChange={e => {
                                   const updated = [...form.estimate];
@@ -1110,7 +1110,7 @@ export default function StyleOrderDetail() {
                       const customId = `custom_${Date.now()}`;
                       set("estimate", [...form.estimate, { id: customId, label: "", rate: "", isCustom: true }]);
                     }}
-                    className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-900 transition-colors font-medium">
+                    className="flex items-center gap-2 text-sm text-gray-500 hover:text-cyan-900 transition-colors font-medium">
                     <Plus className="h-4 w-4" />
                     Add Custom Service
                   </button>
@@ -1127,11 +1127,11 @@ export default function StyleOrderDetail() {
                 return (
                   <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
                     <div className="flex items-center gap-3 px-6 py-4 border-b border-gray-200 bg-gray-50/50">
-                      <div className="flex items-center justify-center h-8 w-8 rounded-xl bg-gray-900">
+                      <div className="flex items-center justify-center h-8 w-8 rounded-xl bg-cyan-900">
                         <span className="text-sm">💰</span>
                       </div>
                       <div>
-                        <h2 className="text-sm font-semibold text-gray-900">Summary</h2>
+                        <h2 className="text-sm font-semibold text-cyan-900">Summary</h2>
                         <p className="text-xs text-gray-400">
                           {lineItems.length > 0
                             ? `${lineItems.length} item${lineItems.length !== 1 ? "s" : ""} · Total ${fmt(total)}`
@@ -1155,15 +1155,15 @@ export default function StyleOrderDetail() {
                           <tbody className="divide-y divide-gray-50">
                             {lineItems.map((it, i) => (
                               <tr key={i} className="hover:bg-gray-50/50">
-                                <td className="px-6 py-3 text-sm text-gray-700">{it.label}</td>
-                                <td className="px-6 py-3 text-sm text-right text-gray-900 font-medium tabular-nums">
+                                <td className="px-6 py-3 text-sm text-slate-500">{it.label}</td>
+                                <td className="px-6 py-3 text-sm text-right text-cyan-900 font-medium tabular-nums">
                                   {fmt(parseFloat(it.rate))}
                                 </td>
                               </tr>
                             ))}
                           </tbody>
                           <tfoot>
-                            <tr className="border-t-2 border-gray-200 bg-gray-900">
+                            <tr className="border-t-2 border-gray-200 bg-cyan-900">
                               <td className="px-6 py-3.5 text-sm font-semibold text-[#C9B45C]">Grand Total</td>
                               <td className="px-6 py-3.5 text-sm font-bold text-right text-[#C9B45C] tabular-nums">
                                 {fmt(total)}
@@ -1237,7 +1237,7 @@ export default function StyleOrderDetail() {
       {addDeptOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
           <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm mx-4">
-            <h3 className="text-sm font-semibold text-gray-900 mb-4">Add Department</h3>
+            <h3 className="text-sm font-semibold text-cyan-900 mb-4">Add Department</h3>
             <input
               autoFocus
               className={inputCls}

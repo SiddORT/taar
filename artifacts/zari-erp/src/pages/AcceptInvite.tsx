@@ -56,9 +56,9 @@ export default function AcceptInvite() {
           <span className="text-[9px] font-medium tracking-[0.25em] text-gray-400 uppercase">EMBROIDERIES</span>
         </div>
         <div>
-          <p className="text-4xl font-light leading-tight">You've been<br />invited to join<br />ZARI ERP.</p>
+          <p className="text-4xl font-light leading-tight">You've been<br />invited to join<br />ERP.</p>
         </div>
-        <p className="text-xs text-gray-500">ZARI EMBROIDERIES © {new Date().getFullYear()}</p>
+        <p className="text-xs text-gray-500">ERP © {new Date().getFullYear()}</p>
       </div>
 
       <div className="flex-1 flex items-center justify-center bg-[#f8f9fb] px-6">
@@ -68,16 +68,16 @@ export default function AcceptInvite() {
               <div className="flex justify-center">
                 <CheckCircle2 className="h-12 w-12 text-green-500" />
               </div>
-              <h2 className="text-lg font-semibold text-gray-900">Account Activated!</h2>
+              <h2 className="text-lg font-semibold text-cyan-900">Account Activated!</h2>
               <p className="text-sm text-gray-500">Your account is ready. You can now sign in with your email and the password you just set.</p>
               <button onClick={() => setLocation("/login")}
-                className="w-full py-2.5 rounded-xl text-sm font-medium bg-gray-900 text-[#C9B45C] hover:bg-gray-800 transition-colors">
+                className="w-full py-2.5 rounded-xl text-sm font-medium bg-cyan-900 text-[#C9B45C] hover:bg-cyan-900 transition-colors">
                 Go to Sign In
               </button>
             </div>
           ) : tokenError ? (
             <div className="text-center space-y-4">
-              <h2 className="text-lg font-semibold text-gray-900">Invalid Invite</h2>
+              <h2 className="text-lg font-semibold text-cyan-900">Invalid Invite</h2>
               <p className="text-sm text-red-500">{tokenError}</p>
               <p className="text-xs text-gray-400">Please ask your admin to send a new invite link.</p>
             </div>
@@ -86,15 +86,15 @@ export default function AcceptInvite() {
           ) : (
             <>
               <div className="mb-6">
-                <h2 className="text-lg font-semibold text-gray-900">Set Your Password</h2>
+                <h2 className="text-lg font-semibold text-cyan-900">Set Your Password</h2>
                 <p className="text-sm text-gray-400 mt-1">Welcome, <strong>{userData.username}</strong>! Set a password for <strong>{userData.email}</strong>.</p>
               </div>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">New Password</label>
+                  <label className="block text-sm font-medium text-slate-500 mb-1">New Password</label>
                   <div className="relative">
                     <input type={showPass ? "text" : "password"} value={password} onChange={e => { setPassword(e.target.value); setError(""); }}
-                      className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm pr-10 focus:outline-none focus:ring-2 focus:ring-gray-900"
+                      className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm pr-10 focus:outline-none focus:ring-2 focus:ring-cyan-900"
                       placeholder="Min 8 characters" required />
                     <button type="button" onClick={() => setShowPass(v => !v)}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
@@ -103,14 +103,14 @@ export default function AcceptInvite() {
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Confirm Password</label>
+                  <label className="block text-sm font-medium text-slate-500 mb-1">Confirm Password</label>
                   <input type="password" value={confirm} onChange={e => { setConfirm(e.target.value); setError(""); }}
-                    className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900"
+                    className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-900"
                     placeholder="Re-enter your password" required />
                 </div>
                 {error && <p className="text-xs text-red-500">{error}</p>}
                 <button type="submit" disabled={loading}
-                  className="w-full py-2.5 rounded-xl text-sm font-medium bg-gray-900 text-[#C9B45C] hover:bg-gray-800 disabled:opacity-60 transition-colors">
+                  className="w-full py-2.5 rounded-xl text-sm font-medium bg-cyan-900 text-[#C9B45C] hover:bg-cyan-900 disabled:opacity-60 transition-colors">
                   {loading ? "Activating…" : "Activate Account"}
                 </button>
               </form>
