@@ -917,7 +917,7 @@ function buildOpenApi(endpoints: Endpoint[]) {
         ``,
         `Auto-generated from \`artifacts/api-server/src/routes/\` — ${totalEndpoints} endpoints across ${moduleCount} modules. Request/response shapes are extracted from Zod schemas and route handler usage; where a shape could not be statically inferred, a permissive \`object\` is used.`,
       ].join("\n"),
-      contact: { name: "Zari Embroideries", email: "admin@example.com" },
+      contact: { name: "ERP", email: "admin@example.com" },
     },
     servers: [
       { url: "http://localhost", description: "Local dev (Replit shared proxy on :80)" },

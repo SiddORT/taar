@@ -9,7 +9,7 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
-import ZariLogo from "@assets/image_1776152751088.png";
+import logo from "@assets/symbol.png";
 
 interface SidebarProps {
   collapsed: boolean;
@@ -37,7 +37,7 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
       {/* Logo */}
       <div className={`flex items-center h-16 border-b border-gray-100 px-4 shrink-0 ${collapsed ? "justify-center" : "justify-between"}`}>
         {!collapsed && (
-          <img src={ZariLogo} alt="ERP" className="h-8 w-auto" />
+          <img src={logo} alt="ERP" className="h-8 w-auto" />
         )}
         {collapsed && (
           <div className="h-8 w-8 bg-cyan-900 rounded-md flex items-center justify-center">

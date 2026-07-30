@@ -135,11 +135,11 @@ export async function ensureSettingsTables() {
       INSERT INTO invoice_templates (name, layout, payment_terms, notes, is_default) VALUES
       ('Classic', 'classic',
         'Payment due within 30 days of invoice date. Late payments attract 2% interest per month.',
-        'Thank you for your business. Please make all cheques payable to Zari Embroideries.',
+        'Thank you for your business. Please make all cheques payable to ERP.',
         TRUE),
       ('Modern', 'modern',
         'Net 15 — Payment due within 15 days of invoice date. Bank transfer preferred.',
-        'We value your partnership. For billing queries contact accounts@zariembroideries.com.',
+        'We value your partnership. For billing queries contact accounts@erp.com.',
         FALSE),
       ('Premium', 'premium',
         'Advance payment required prior to dispatch. 50% on order, 50% before shipment.',

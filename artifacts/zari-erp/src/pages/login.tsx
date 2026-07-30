@@ -98,7 +98,7 @@ export default function Login() {
 
         {/* Mobile logo */}
         <div className="md:hidden mb-10 flex justify-center">
-          <img src={logo} alt="ZARI Embroideries" className="h-10 w-auto" />
+          <img src={logo} alt="ERP" className="h-10 w-auto" />
         </div>
 
         {/* Login card */}
@@ -130,7 +130,7 @@ export default function Login() {
                 autoCapitalize="none"
                 autoComplete="email"
                 autoCorrect="off"
-                placeholder="name@zarierp.com"
+                placeholder="name@erp.com"
                 disabled={loginMutation.isPending}
                 {...form.register("email")}
                 className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-cyan-900 placeholder-gray-400 shadow-sm outline-none transition focus:border-cyan-900 focus:ring-2 focus:ring-cyan-900/10 disabled:opacity-50"

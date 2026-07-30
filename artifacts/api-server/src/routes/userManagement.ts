@@ -17,7 +17,7 @@ function buildInviteUrl(token: string): string {
 
 const router: IRouter = Router();
 
-export const SUPERUSER_EMAIL = "admin@zarierp";
+export const SUPERUSER_EMAIL = "admin@erp";
 
 export const ALL_PERMISSIONS = [
   /* ── Dashboard ─────────────────────────────────────────── */

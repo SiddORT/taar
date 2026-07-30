@@ -7,7 +7,7 @@ import { ArrowLeft, Eye, EyeOff, CheckCircle2 } from "lucide-react";
 import { useForgotPassword, useResetPassword } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
 import ZariButton from "@/components/ui/ZariButton";
-import ZariLogo from "@assets/image_1776152751088.png";
+import logo from "@assets/symbol.png";
 
 const requestSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address." }),
@@ -96,7 +96,7 @@ export default function ForgotPassword() {
       {/* LEFT — dark branding panel */}
       <div className="hidden md:flex flex-col flex-1 bg-black px-16 py-12 justify-between">
         <div>
-          <img src={ZariLogo} alt="ZARI Embroideries" className="h-14 w-auto brightness-90" />
+          <img src={logo} alt="ERP" className="h-14 w-auto brightness-90" />
         </div>
         <div>
           <h1 className="text-5xl font-serif text-white leading-tight tracking-tight max-w-md">
@@ -115,7 +115,7 @@ export default function ForgotPassword() {
 
         {/* Mobile logo */}
         <div className="md:hidden mb-10">
-          <img src={ZariLogo} alt="ZARI Embroideries" className="h-10 w-auto" />
+          <img src={logo} alt="ERP" className="h-10 w-auto" />
         </div>
 
         <div className="w-full max-w-md bg-white rounded-2xl shadow-lg px-10 py-10">
@@ -149,7 +149,7 @@ export default function ForgotPassword() {
                     type="email"
                     autoCapitalize="none"
                     autoComplete="email"
-                    placeholder="name@zarierp.com"
+                    placeholder="name@erp.com"
                     disabled={forgotMutation.isPending}
                     {...requestForm.register("email")}
                     className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-cyan-900 placeholder-gray-400 shadow-sm outline-none transition focus:border-cyan-900 focus:ring-2 focus:ring-cyan-900/10 disabled:opacity-50"

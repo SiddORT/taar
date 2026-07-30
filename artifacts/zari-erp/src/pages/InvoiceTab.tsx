@@ -301,8 +301,8 @@ export default function InvoiceTab({
           <div className="flex items-start justify-between">
             <div>
               <div className="flex items-baseline gap-2 mb-0.5">
-                <span className="text-2xl font-black tracking-wider text-cyan-900">ZARI</span>
-                <span className="text-xs font-light tracking-[0.3em] text-gray-400 uppercase">Embroideries</span>
+                <span className="text-2xl font-black tracking-wider text-cyan-900">ERP</span>
+                {/* <span className="text-xs font-light tracking-[0.3em] text-gray-400 uppercase">Embroideries</span> */}
               </div>
               <p className="text-[10px] text-gray-400 leading-relaxed">Enterprise Resource Planning</p>
             </div>
@@ -327,7 +327,7 @@ export default function InvoiceTab({
             {/* FROM — Company */}
             <div>
               <p className="text-[10px] font-bold uppercase tracking-widest text-[#C9B45C] mb-3">From</p>
-              <p className="text-sm font-black text-cyan-900 mb-0.5">ZARI Embroideries</p>
+              <p className="text-sm font-black text-cyan-900 mb-0.5">ERP</p>
               <p className="text-xs text-gray-500 leading-relaxed">
                 [Your Company Address]<br />
                 City, State — PIN<br />

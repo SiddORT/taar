@@ -214,15 +214,12 @@ export default function TopNavbar({ username = "", role = "", onLogout = () => {
           <Link href="/dashboard" className="flex items-center gap-2.5 leading-none select-none shrink-0 mr-4">
             <img
               src={logo}
-              alt="Zari Embroideries"
+              alt="Logo"
               className="h-9 w-auto object-contain"
             />
             {/* <span className="flex flex-col leading-none">
               <span className="text-base font-bold tracking-widest uppercase" style={{ color: "#C9B45C", letterSpacing: "0.18em" }}>
-                ZARI
-              </span>
-              <span className="text-[9px] font-medium tracking-[0.25em] text-gray-400 uppercase">
-                EMBROIDERIES
+                ERP
               </span>
             </span> */}
           </Link>

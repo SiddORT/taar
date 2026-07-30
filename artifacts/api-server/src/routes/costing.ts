@@ -1279,7 +1279,7 @@ router.post("/po", requireAuth, async (req, res) => {
     const adminEmails = adminUsers.map(u => u.email).filter(Boolean) as string[];
 
     if (adminEmails.length > 0 && createdPOs.length > 0) {
-      const apiBase = process.env.API_BASE_URL ?? `https://${process.env.REPLIT_DEV_DOMAIN ?? "zari-erp.replit.app"}`;
+      const apiBase = process.env.API_BASE_URL ?? `https://${process.env.REPLIT_DEV_DOMAIN ?? "erp.replit.app"}`;
       const frontendUrl = process.env.FRONTEND_URL;
       const erpUrl = `${frontendUrl}/swatch-orders/${swatchOrderId}`;
 
@@ -2479,7 +2479,7 @@ router.post("/style-po", requireAuth, async (req, res) => {
     if (adminEmails.length > 0 && createdPOs.length > 0) {
       const apiBase =
         process.env.API_BASE_URL ??
-        `https://${process.env.REPLIT_DEV_DOMAIN ?? "zari-erp.replit.app"}`;
+        `https://${process.env.REPLIT_DEV_DOMAIN ?? "erp.replit.app"}`;
 
       const erpUrl = `${apiBase}/costing`;
 
@@ -3366,7 +3366,7 @@ router.get("/po-action", async (req: Request, res: Response) => {
         <div class="title">${title}</div>
         ${body}
       </div>
-      <div class="footer">ZARI Embroideries &copy; ${new Date().getFullYear()}</div>
+      <div class="footer">ERP &copy; ${new Date().getFullYear()}</div>
     </div></body></html>`;
 
   if (!token) {

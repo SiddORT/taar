@@ -52,8 +52,8 @@ export default function AcceptInvite() {
     <div className="min-h-[100dvh] flex">
       <div className="hidden md:flex md:w-1/2 bg-black flex-col justify-between p-10 text-white">
         <div className="flex flex-col leading-none select-none">
-          <span className="text-base font-bold tracking-widest uppercase" style={{ color: "#C9B45C", letterSpacing: "0.18em" }}>ZARI</span>
-          <span className="text-[9px] font-medium tracking-[0.25em] text-gray-400 uppercase">EMBROIDERIES</span>
+          <span className="text-base font-bold tracking-widest uppercase" style={{ color: "#C9B45C", letterSpacing: "0.18em" }}>ERP</span>
+          {/* <span className="text-[9px] font-medium tracking-[0.25em] text-gray-400 uppercase">EMBROIDERIES</span> */}
         </div>
         <div>
           <p className="text-4xl font-light leading-tight">You've been<br />invited to join<br />ERP.</p>
