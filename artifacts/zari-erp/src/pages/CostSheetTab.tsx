@@ -268,8 +268,8 @@ export default function CostSheetTab({
         <div className="flex items-start justify-between mb-6 pb-4 border-b border-gray-200">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <span className="text-lg font-black tracking-wider text-cyan-900">ZARI</span>
-              <span className="text-xs font-light tracking-[0.3em] text-gray-400">EMBROIDERIES</span>
+              <span className="text-lg font-black tracking-wider text-cyan-900">ERP</span>
+              {/* <span className="text-xs font-light tracking-[0.3em] text-gray-400">EMBROIDERIES</span> */}
             </div>
             <p className="text-[10px] text-gray-400">Enterprise Resource Planning System</p>
           </div>

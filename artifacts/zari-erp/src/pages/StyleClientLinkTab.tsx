@@ -62,7 +62,7 @@ function ChatBubble({ msg }: { msg: ClientMessageRecord }) {
           </div>
         )}
         <p className={`text-[10px] ${isTeam ? "text-white/40 text-right" : "text-gray-400"}`}>
-          {isTeam ? "ZARI" : "Client"} · {new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+          {isTeam ? "ERP" : "Client"} · {new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
           {" "}{new Date(msg.createdAt).toLocaleDateString()}
         </p>
       </div>

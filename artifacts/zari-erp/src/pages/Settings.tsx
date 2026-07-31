@@ -2081,7 +2081,7 @@ function GSTSettingsTab({ card, inp, label, toast }: any) {
                 value={form.company_email}
                 onChange={e => f("company_email", e.target.value)}
                 className={inp}
-                placeholder="accounts@zariembroideries.com"
+                placeholder="accounts@erp.com"
               />
             </div>
           </div>

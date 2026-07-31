@@ -215,7 +215,7 @@ function OverviewContent() {
       <SectionHeader icon={BookOpen} title="ERP — User Manual" subtitle="Complete guide for using the Enterprise Resource Planning system" />
       <div className="prose-sm text-slate-500 leading-relaxed mb-6">
         <p className="mb-3">
-          Welcome to <strong>ERP</strong> — the complete enterprise management system built exclusively for Zari Embroideries. 
+          Welcome to <strong>ERP</strong> — the complete enterprise management system built exclusively for ERP. 
           This manual covers every module of the system, from managing clients and orders to tracking inventory, generating invoices, and shipping goods.
         </p>
         <p>

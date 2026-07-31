@@ -65,7 +65,7 @@ export async function sendInviteEmail(to: string, username: string, inviteUrl: s
             <p class="note">This invite link expires in <strong>7 days</strong>. If you were not expecting this invitation, you can safely ignore this email.</p>
           </div>
           <div class="footer">
-            <p>ZARI Embroideries &copy; ${new Date().getFullYear()} &mdash; This is an automated message, please do not reply.</p>
+            <p>ERP &copy; ${new Date().getFullYear()} &mdash; This is an automated message, please do not reply.</p>
           </div>
         </div>
       </div>
@@ -128,7 +128,7 @@ export async function sendAdminPasswordResetEmail(to: string, username: string, 
             <p class="note">This link expires in <strong>7 days</strong>. If you did not request a reset, contact your administrator immediately.</p>
           </div>
           <div class="footer">
-            <p>ZARI Embroideries &copy; ${new Date().getFullYear()} &mdash; This is an automated message, please do not reply.</p>
+            <p>ERP &copy; ${new Date().getFullYear()} &mdash; This is an automated message, please do not reply.</p>
           </div>
         </div>
       </div>
@@ -224,7 +224,7 @@ export async function sendPoApprovalRequestEmail(opts: {
             <p style="font-size:12px; color:#9CA3AF; margin-top:20px;">These one-click links are valid for 7 days. Once approved, purchase receipts will be enabled for this order.</p>
           </div>
           <div class="footer">
-            <p>ZARI Embroideries &copy; ${new Date().getFullYear()} &mdash; This is an automated notification, please do not reply.</p>
+            <p>ERP &copy; ${new Date().getFullYear()} &mdash; This is an automated notification, please do not reply.</p>
           </div>
         </div>
       </div>
@@ -285,7 +285,7 @@ export async function sendPasswordResetEmail(to: string, token: string): Promise
             <p>If you did not request a password reset, you can safely ignore this email — your password will not change.</p>
           </div>
           <div class="footer">
-            <p>ZARI Embroideries &copy; ${new Date().getFullYear()} &mdash; This is an automated message, please do not reply.</p>
+            <p>ERP &copy; ${new Date().getFullYear()} &mdash; This is an automated message, please do not reply.</p>
           </div>
         </div>
       </div>

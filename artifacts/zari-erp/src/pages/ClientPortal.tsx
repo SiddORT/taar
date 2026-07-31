@@ -185,7 +185,7 @@ function ChatBubble({ msg }: { msg: PortalMessage }) {
         </div>
 
         <p className={`text-[9px] sm:text-[10px] font-medium px-1 ${isTeam ? "text-stone-400" : "text-stone-400 text-right"}`}>
-          {isTeam ? "ZARI Team" : "You"} &bull; {new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+          {isTeam ? "ERP Team" : "You"} &bull; {new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
         </p>
       </div>
 
@@ -543,7 +543,7 @@ export default function ClientPortal() {
             <div className="min-w-0">
               <p className="text-[8px] sm:text-[9px] text-stone-400 uppercase tracking-widest font-semibold leading-none">Review Portal</p>
               <h2 className="text-xs sm:text-sm md:text-base font-bold text-white truncate max-w-[140px] sm:max-w-xs md:max-w-sm mt-0.5">
-                {data.link.portalTitle ?? "ZARI Embroideries"}
+                {data.link.portalTitle ?? "ERP"}
               </h2>
             </div>
           </div>

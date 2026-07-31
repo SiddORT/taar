@@ -2,7 +2,7 @@
 
 ## Overview
 
-ERP is a full-stack ERP authentication system built for Zari Embroideries. It is designed to streamline business operations, from procurement and inventory management to order processing and quotations. The system aims to centralize various business functions into a single platform, enhancing efficiency and data consistency. Key capabilities include comprehensive authentication, master data management for HSN, materials, and fabrics, a unified procurement workflow (Purchase Order to Purchase Receipt), and a robust quotation module with revision and conversion features.
+ERP is a full-stack ERP authentication system built for ERP. It is designed to streamline business operations, from procurement and inventory management to order processing and quotations. The system aims to centralize various business functions into a single platform, enhancing efficiency and data consistency. Key capabilities include comprehensive authentication, master data management for HSN, materials, and fabrics, a unified procurement workflow (Purchase Order to Purchase Receipt), and a robust quotation module with revision and conversion features.
 
 ## User Preferences
 

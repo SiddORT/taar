@@ -6,13 +6,13 @@ import { logger } from "./logger";
 const USERS = [
   {
     username: "admin",
-    email: "admin@zarierp.com",
+    email: "admin@erp.com",
     password: "Admin@123",
     role: "admin",
   },
   {
     username: "root",
-    email: "root@zarierp.com",
+    email: "root@erp.com",
     password: "Root@123",
     role: "admin",
   },
