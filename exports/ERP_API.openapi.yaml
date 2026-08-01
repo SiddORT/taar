@@ -18,7 +18,7 @@ info:
     are extracted from Zod schemas and route handler usage; where a shape could not be statically inferred, a permissive
     `object` is used.
   contact:
-    name: Zari Embroideries
+    name: Admin
     email: admin@example.com
 servers:
   - url: http://localhost

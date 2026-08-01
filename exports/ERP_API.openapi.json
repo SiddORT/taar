@@ -5,7 +5,7 @@
     "version": "1.0.0",
     "description": "Complete API reference for the ERP backend (Express 5 + PostgreSQL + Drizzle ORM).\n\n**Authentication.** Most endpoints require a Bearer JWT obtained from `POST /api/auth/login`. Send the token in the `Authorization: Bearer <token>` header.\n\n**Base path.** All endpoints are served under `/api`. The platform reverse proxy listens on port 80 in development and `$REPLIT_DOMAINS` in production.\n\nAuto-generated from `artifacts/api-server/src/routes/` — 436 endpoints across 45 modules. Request/response shapes are extracted from Zod schemas and route handler usage; where a shape could not be statically inferred, a permissive `object` is used.",
     "contact": {
-      "name": "Zari Embroideries",
+      "name": "Admin",
       "email": "admin@example.com"
     }
   },
