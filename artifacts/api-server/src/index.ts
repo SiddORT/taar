@@ -53,9 +53,9 @@ app.listen(port, async (err) => {
     logger.error({ err: seedErr }, "Failed to seed admin user");
   }
 
-  try {
-    await seedMasterData();
-  } catch (seedErr) {
-    logger.error({ err: seedErr }, "Failed to seed master data");
-  }
+  // try {
+  //   await seedMasterData();
+  // } catch (seedErr) {
+  //   logger.error({ err: seedErr }, "Failed to seed master data");
+  // }
 });
