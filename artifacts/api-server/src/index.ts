@@ -5,6 +5,7 @@ import { seedAdminUser } from "./lib/seed";
 import { seedIfEmpty } from "./seed";
 import { ensureShippingTables } from "./routes/shipping";
 import { ensureSettingsTables } from "./routes/settings";
+import { seedMasterData } from "./seeders/masterSeeder";
 
 const rawPort = process.env["PORT"];
 
@@ -50,5 +51,11 @@ app.listen(port, async (err) => {
     await seedAdminUser();
   } catch (seedErr) {
     logger.error({ err: seedErr }, "Failed to seed admin user");
+  }
+
+  try {
+    await seedMasterData();
+  } catch (seedErr) {
+    logger.error({ err: seedErr }, "Failed to seed master data");
   }
 });
