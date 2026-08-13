@@ -1264,6 +1264,7 @@ export async function seedMasterData(): Promise<void> {
   await seedClients();
   await seedVendors();
   await seedStyleCategories();
+  await seedShippingVendors();
 
   // 4. Data that references warehouses, clients, vendors, HSN, etc.
   await seedMaterials();
@@ -1271,7 +1272,6 @@ export async function seedMasterData(): Promise<void> {
   await seedSwatches();
   await seedStyles();
   await seedItems();
-  await seedShippingVendors();
 
   console.log("[master-seed] Master data seeding completed.");
 }
