@@ -231,31 +231,31 @@ async function seedWarehouseLocations(): Promise<void> {
 async function seedHsn(): Promise<void> {
   const hsnData = [
     {
-      hsnCode: "5208.11",
+      hsnCode: "520811",
       gstPercentage: "5",
       govtDescription: "Cotton fabrics, plain weave",
       createdBy: "system",
     },
     {
-      hsnCode: "5209.12",
+      hsnCode: "520912",
       gstPercentage: "12",
       govtDescription: "Cotton fabrics, denim",
       createdBy: "system",
     },
     {
-      hsnCode: "5407.10",
+      hsnCode: "540710",
       gstPercentage: "18",
       govtDescription: "Woven fabrics of synthetic filament yarn",
       createdBy: "system",
     },
     {
-      hsnCode: "5513.11",
+      hsnCode: "551311",
       gstPercentage: "5",
       govtDescription: "Woven fabrics of synthetic staple fibres",
       createdBy: "system",
     },
     {
-      hsnCode: "6203.42",
+      hsnCode: "620342",
       gstPercentage: "12",
       govtDescription: "Men's trousers of cotton",
       createdBy: "system",
