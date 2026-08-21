@@ -161,6 +161,36 @@ router.get("/eligible-orders-for-packing", requireAuth, async (req, res) => {
 // ═══════════════════════════════════════════════════════════════
 // PACKING LISTS — LIST + DETAIL + CREATE + UPDATE + DELETE
 // ═══════════════════════════════════════════════════════════════
+router.get("/packing-lists/order-artwork-image", requireAuth, async (req, res) => {
+  try {
+    const { type, item_id } = req.query as { type: string; item_id: string };
+    if (!type || !item_id) return res.status(400).json({ error: "type and item_id required" });
+    let rows: any[] = [];
+    if (type === "Swatch") {
+      const r = await pool.query(
+        `SELECT final_images FROM artworks
+         WHERE swatch_order_id = $1 AND is_deleted = false
+           AND final_images IS NOT NULL AND jsonb_array_length(final_images) > 0
+         ORDER BY id DESC LIMIT 1`,
+        [item_id]
+      );
+      rows = r.rows;
+    } else if (type === "Style") {
+      const r = await pool.query(
+        `SELECT final_images FROM style_order_artworks
+         WHERE style_order_id = $1 AND is_deleted = false
+           AND final_images IS NOT NULL AND jsonb_array_length(final_images) > 0
+         ORDER BY id DESC LIMIT 1`,
+        [item_id]
+      );
+      rows = r.rows;
+    }
+    if (!rows.length) return res.json({ data: null });
+    const images = rows[0].final_images;
+    const first = Array.isArray(images) && images.length > 0 ? images[0] : null;
+    return res.json({ data: first ?? null });
+  } catch (e) { return err(res, e, "Failed to fetch order artwork image"); }
+});
 
 // GET /api/packing-lists
 router.get("/packing-lists", requireAuth, async (req, res) => {
@@ -843,36 +873,7 @@ router.get("/packing-lists/item-images/:filename", async (req, res) => {
   } catch (e) { return err(res, e, "Failed to serve image"); }
 });
 
-router.get("/packing-lists/order-artwork-image", requireAuth, async (req, res) => {
-  try {
-    const { type, item_id } = req.query as { type: string; item_id: string };
-    if (!type || !item_id) return res.status(400).json({ error: "type and item_id required" });
-    let rows: any[] = [];
-    if (type === "Swatch") {
-      const r = await pool.query(
-        `SELECT final_images FROM artworks
-         WHERE swatch_order_id = $1 AND is_deleted = false
-           AND final_images IS NOT NULL AND jsonb_array_length(final_images) > 0
-         ORDER BY id DESC LIMIT 1`,
-        [item_id]
-      );
-      rows = r.rows;
-    } else if (type === "Style") {
-      const r = await pool.query(
-        `SELECT final_images FROM style_order_artworks
-         WHERE style_order_id = $1 AND is_deleted = false
-           AND final_images IS NOT NULL AND jsonb_array_length(final_images) > 0
-         ORDER BY id DESC LIMIT 1`,
-        [item_id]
-      );
-      rows = r.rows;
-    }
-    if (!rows.length) return res.json({ data: null });
-    const images = rows[0].final_images;
-    const first = Array.isArray(images) && images.length > 0 ? images[0] : null;
-    return res.json({ data: first ?? null });
-  } catch (e) { return err(res, e, "Failed to fetch order artwork image"); }
-});
+
 
 router.post(
   "/packing-lists/:id/packages/:pkgId/items/:itemId/image",
