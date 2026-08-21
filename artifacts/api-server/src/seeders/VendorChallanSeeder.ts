@@ -67,32 +67,6 @@ export async function seedVendorChallans(): Promise<void> {
       ],
       status: "Draft",
     },
-    // Haldiram's – Refreshments
-    {
-      vendorCode: "VEN011",
-      challanDate: "2026-08-21",
-      challanType: "Other Expense",
-      description: "Refreshments ordered for client visit",
-      remarks: "Client meeting expense",
-      lineItems: [
-        { description: "Tea", quantity: "10", unit: "Cups", rate: "50", amount: "500.00" },
-        { description: "Sandwich", quantity: "10", unit: "Piece", rate: "100", amount: "1000.00" },
-      ],
-      status: "Draft",
-    },
-    // Bikaji Foods – Pantry stock
-    {
-      vendorCode: "VEN012",
-      challanDate: "2026-08-22",
-      challanType: "Other Expense",
-      description: "Snacks supplied for office pantry",
-      remarks: "Monthly pantry order",
-      lineItems: [
-        { description: "Namkeen", quantity: "5", unit: "Kilogram", rate: "200", amount: "1000.00" },
-        { description: "Sweets", quantity: "2", unit: "Kilogram", rate: "350", amount: "700.00" },
-      ],
-      status: "Draft",
-    },
     // 6. Sutlej Textiles – Material (embellishments)
     {
         vendorCode: "VEN003",
