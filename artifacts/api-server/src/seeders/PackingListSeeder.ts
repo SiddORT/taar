@@ -1,41 +1,6 @@
 // seed-packing-lists.ts
 import { db, clientsTable, deliveryAddresses, packingLists, packingPackages, packingPackageItems, swatchOrdersTable, styleOrdersTable, orderShippingDetails, usersTable } from "@workspace/db";
-import { eq, and, like, desc, sql } from "drizzle-orm";
-
-// Generate the next PL number with collision retry
-async function getNextPLNumber(tx: typeof db): Promise<string> {
-  const year = new Date().getFullYear();
-  const prefix = `PL-${year}-`;
-
-  // Find the current highest numeric suffix for the year
-  // We need to extract the numeric part and cast to integer
-  const result = await tx
-    .select({
-      maxNum: sql<number>`COALESCE(MAX(CAST(SUBSTRING(${packingLists.plNumber}, LENGTH(${prefix})+1) AS INTEGER)), 0)`,
-    })
-    .from(packingLists)
-    .where(like(packingLists.plNumber, `${prefix}%`));
-
-  let nextNum = (result[0]?.maxNum ?? 0) + 1;
-  let candidate = `${prefix}${String(nextNum).padStart(4, '0')}`;
-
-  // Retry if the candidate already exists (should not happen with MAX query, but for safety)
-  // We'll loop until we find a free number (max 100 attempts to avoid infinite)
-  for (let attempt = 0; attempt < 100; attempt++) {
-    const exists = await tx
-      .select({ id: packingLists.id })
-      .from(packingLists)
-      .where(eq(packingLists.plNumber, candidate))
-      .limit(1);
-    if (exists.length === 0) {
-      return candidate;
-    }
-    // Otherwise increment and try again
-    nextNum++;
-    candidate = `${prefix}${String(nextNum).padStart(4, '0')}`;
-  }
-  throw new Error("Unable to generate unique PL number after 100 attempts");
-}
+import { eq, and, like, sql } from "drizzle-orm";
 
 export async function seedPackingLists(): Promise<void> {
   // 1. Get creator
@@ -46,7 +11,7 @@ export async function seedPackingLists(): Promise<void> {
     creatorEmail = admin ? admin.email : users[0].email;
   }
 
-  // 2. Fetch active clients (id is integer; clientId in orders is text, so we convert)
+  // 2. Fetch active clients
   const clients = await db
     .select({
       id: clientsTable.id,
@@ -67,7 +32,7 @@ export async function seedPackingLists(): Promise<void> {
 
   await db.transaction(async (tx) => {
     for (const client of clients) {
-      // 3a. Get delivery addresses for this client
+      // 3a. Get delivery addresses
       const addresses = await tx
         .select()
         .from(deliveryAddresses)
@@ -75,7 +40,7 @@ export async function seedPackingLists(): Promise<void> {
 
       if (addresses.length === 0) continue;
 
-      // 3b. Get completed swatch orders (clientId stored as text)
+      // 3b. Completed swatch orders
       const swatchOrders = await tx
         .select({ id: swatchOrdersTable.id, orderCode: swatchOrdersTable.orderCode })
         .from(swatchOrdersTable)
@@ -85,7 +50,7 @@ export async function seedPackingLists(): Promise<void> {
           eq(swatchOrdersTable.isDeleted, false)
         ));
 
-      // 3c. Get completed style orders
+      // 3c. Completed style orders
       const styleOrders = await tx
         .select({ id: styleOrdersTable.id, orderCode: styleOrdersTable.orderCode })
         .from(styleOrdersTable)
@@ -106,7 +71,7 @@ export async function seedPackingLists(): Promise<void> {
       const defaultAddr = addresses.find((a) => a.isDefault);
       const deliveryAddress = defaultAddr || addresses[0];
 
-      // 3e. Find an existing shipment for any of these orders
+      // 3e. Find shipment for any of these orders
       let shipmentId: number | null = null;
       for (const order of completedOrders) {
         const shipment = await tx
@@ -124,8 +89,29 @@ export async function seedPackingLists(): Promise<void> {
         }
       }
 
-      // 3f. Generate a unique PL number (with retry)
-      const plNumber = await getNextPLNumber(tx);
+      // 3f. Generate unique PL number (inline, using tx)
+      const year = new Date().getFullYear();
+      const prefix = `PL-${year}-`;
+      const result = await tx
+        .select({
+          maxNum: sql<number>`COALESCE(MAX(CAST(SUBSTRING(${packingLists.plNumber}, LENGTH(${prefix})+1) AS INTEGER)), 0)`,
+        })
+        .from(packingLists)
+        .where(like(packingLists.plNumber, `${prefix}%`));
+
+      let nextNum = (result[0]?.maxNum ?? 0) + 1;
+      let plNumber = `${prefix}${String(nextNum).padStart(4, '0')}`;
+      // Safety loop (unlikely needed)
+      for (let attempt = 0; attempt < 100; attempt++) {
+        const exists = await tx
+          .select({ id: packingLists.id })
+          .from(packingLists)
+          .where(eq(packingLists.plNumber, plNumber))
+          .limit(1);
+        if (exists.length === 0) break;
+        nextNum++;
+        plNumber = `${prefix}${String(nextNum).padStart(4, '0')}`;
+      }
 
       // 3g. Insert packing list
       const [packingList] = await tx
@@ -142,8 +128,7 @@ export async function seedPackingLists(): Promise<void> {
           isDeleted: false,
           deletedBy: null,
           deletedAt: null,
-          // These will be set after package creation
-          packageCount: 1, // we'll create exactly one package per PL
+          packageCount: 1,
           netWeight: "0",
           grossWeight: "0",
         })
@@ -178,7 +163,7 @@ export async function seedPackingLists(): Promise<void> {
 
       const packageId = pkg.id;
 
-      // 3i. Insert package items for each order
+      // 3i. Insert package items
       for (const order of completedOrders) {
         await tx.insert(packingPackageItems).values({
           packageId,
@@ -192,14 +177,13 @@ export async function seedPackingLists(): Promise<void> {
         insertedItems++;
       }
 
-      // 3j. Update the packing list with actual weights and package count
+      // 3j. Update packing list with actual weights
       await tx
         .update(packingLists)
         .set({
           packageCount: 1,
           netWeight: String(netWeight),
           grossWeight: String(grossWeight),
-          // updatedAt will be updated automatically by the DB if defined with default
         })
         .where(eq(packingLists.id, plId));
 
