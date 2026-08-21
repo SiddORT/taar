@@ -506,7 +506,7 @@ export async function seedMaterials(): Promise<void> {
           minimumLevel: data.minimumLevel ? parseFloat(data.minimumLevel) : null,
           maximumLevel: data.maximumLevel ? parseFloat(data.maximumLevel) : null,
           createdBy: "system",
-        })
+        } as any)
         .onConflictDoNothing()
         .returning({ id: materialsTable.id, materialCode: materialsTable.materialCode });
 
