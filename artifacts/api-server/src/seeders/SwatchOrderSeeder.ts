@@ -932,8 +932,8 @@ function generateSwatchOrderData(
     cancelReason: cancelReason,
     approvalDate: approvalDate,
     revisionCount: faker.number.int({ min: 0, max: 5 }),
-    createdBy: faker.helpers.arrayElement(['admin@zarierp.com', 'manager@zarierp.com', 'designer@zarierp.com']),
-    updatedBy: faker.helpers.arrayElement(['admin@zarierp.com', 'manager@zarierp.com', 'designer@zarierp.com']),
+    createdBy: faker.helpers.arrayElement(['admin@taar.com', 'system']),
+    updatedBy: faker.helpers.arrayElement(['admin@taar.com', 'system']),
     tags: tags
   };
 }

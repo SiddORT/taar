@@ -483,7 +483,7 @@ export async function seedArtworks(count: number = 30): Promise<void> {
         refImages: refImages,
         wipImages: wipImages,
         finalImages: finalImages,
-        createdBy: faker.helpers.arrayElement(['admin@zarierp.com', 'designer@zarierp.com', 'manager@zarierp.com']),
+        createdBy: faker.helpers.arrayElement(['admin@taar.com', 'system']),
       };
 
       // If outsourced, add vendor details
