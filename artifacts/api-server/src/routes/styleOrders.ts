@@ -66,7 +66,22 @@ router.get("/style-orders", requireAuth, async (req, res) => {
   const where = and(...conditions);
 
   const [rows, countRows] = await Promise.all([
-    db.select().from(styleOrdersTable).where(where).orderBy(desc(styleOrdersTable.createdAt)).limit(limitNum).offset(offset),
+    db
+    .select({
+      id: styleOrdersTable.id,
+      orderCode: styleOrdersTable.orderCode,
+      styleName: styleOrdersTable.styleName,
+      clientName: styleOrdersTable.clientName,
+      orderStatus: styleOrdersTable.orderStatus,
+      priority: styleOrdersTable.priority,
+      deliveryDate: styleOrdersTable.deliveryDate,
+      quantity: styleOrdersTable.quantity,
+      season: styleOrdersTable.season,
+      colorway: styleOrdersTable.colorway,
+      isChargeable: styleOrdersTable.isChargeable,
+      isInhouse: styleOrdersTable.isInhouse,
+    })
+    .from(styleOrdersTable).where(where).orderBy(desc(styleOrdersTable.createdAt)).limit(limitNum).offset(offset),
     db.select({ id: styleOrdersTable.id }).from(styleOrdersTable).where(where),
   ]);
 
