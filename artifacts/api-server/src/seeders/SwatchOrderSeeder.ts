@@ -718,9 +718,18 @@ function generateClientInstruction(): string {
   return faker.helpers.arrayElement(CLIENT_INSTRUCTIONS);
 }
 
-function generateDate(): string {
-  return faker.date.future({ years: 1 }).toISOString().slice(0, 10);
+// ------------------------------
+// NEW DATE GENERATION (FIXED RANGE)
+// ------------------------------
+function generateDateInRange(monthsPast: number = 3, monthsFuture: number = 3): string {
+  const now = new Date();
+  const start = new Date(now);
+  start.setMonth(start.getMonth() - monthsPast);
+  const end = new Date(now);
+  end.setMonth(end.getMonth() + monthsFuture);
+  return faker.date.between({ from: start, to: end }).toISOString().slice(0, 10);
 }
+// ---------------------------------
 
 function getFabric(fabrics: Fabric[]): { fabricId: string | null; fabricName: string | null } {
   if (fabrics.length === 0) {
@@ -776,8 +785,17 @@ function generateSwatchOrderData(
   unitTypes: UnitType[],
   departments: Department[]
 ): SwatchOrderSeedData {
-  const orderIssueDate = generateDate();
-  const deliveryDate = faker.date.future({ years: 1, refDate: orderIssueDate }).toISOString().slice(0, 10);
+  // === DATE RANGE FIX ===
+  const orderIssueDate = generateDateInRange();
+  // deliveryDate between orderIssueDate and 3 months later
+  const maxDelivery = new Date(orderIssueDate);
+  maxDelivery.setMonth(maxDelivery.getMonth() + 3);
+  const deliveryDate = faker.date.between({
+    from: new Date(orderIssueDate),
+    to: maxDelivery
+  }).toISOString().slice(0, 10);
+  // =======================
+
   const hasLining = faker.datatype.boolean({ probability: 0.4 });
   const fabric = getFabric(fabrics);
   const liningFabric = getLiningFabric(fabrics, hasLining);
@@ -852,9 +870,9 @@ function generateSwatchOrderData(
       return faker.date.recent().toTimeString().slice(0, 5); 
     }, { probability: 0.7 }) || '';
     
-    tentativeDeliveryDate = faker.date.future({ 
-      years: 1, 
-      refDate: actualStartDate 
+    tentativeDeliveryDate = faker.date.between({
+      from: new Date(),
+      to: new Date(new Date().setMonth(new Date().getMonth() + 2))
     }).toISOString().slice(0, 10);
     
     delayReason = faker.helpers.maybe(function() {
