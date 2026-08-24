@@ -275,8 +275,21 @@ function getRandomFabricType(): string | null {
   ]);
 }
 
+// ✅ NEW: Generate date within ±3 months from today
 function generateDate(): string {
-  return faker.date.future({ years: 1 }).toISOString().slice(0, 10);
+  const now = new Date();
+  const past3Months = new Date(now);
+  past3Months.setMonth(now.getMonth() - 3);
+  const future3Months = new Date(now);
+  future3Months.setMonth(now.getMonth() + 3);
+  return faker.date.between({ from: past3Months, to: future3Months }).toISOString().slice(0, 10);
+}
+
+// ✅ Helper to add days to a date string
+function addDays(dateStr: string, days: number): string {
+  const d = new Date(dateStr);
+  d.setDate(d.getDate() + days);
+  return d.toISOString().slice(0, 10);
 }
 
 function generateTargetHours(): string | null {
@@ -301,7 +314,7 @@ function generateStyleReferences(styles: StyleOrderRef[]): ReferenceItem[] {
   const count = faker.number.int({ min: 1, max: Math.min(3, styles.length) });
   const selected = faker.helpers.arrayElements(styles, count);
   return selected.map((s) => ({
-    id: 'swo:' + s.id,                     // prefix "swo:" + DB id
+    id: 'swo:' + s.id,
     label: (s.orderCode || '') + ' – ' + s.styleName,
     remark: faker.helpers.maybe(() => faker.helpers.arrayElement(REFERENCE_REMARKS), { probability: 0.3 }) || '',
   }));
@@ -312,7 +325,7 @@ function generateSwatchReferences(swatches: SwatchRef[]): ReferenceItem[] {
   const count = faker.number.int({ min: 1, max: Math.min(2, swatches.length) });
   const selected = faker.helpers.arrayElements(swatches, count);
   return selected.map((s) => ({
-    id: String(s.id),                      // numeric ID only (no prefix)
+    id: String(s.id),
     label: (s.swatchCode || '') + ' – ' + s.swatchName,
     remark: faker.helpers.maybe(() => faker.helpers.arrayElement(REFERENCE_REMARKS), { probability: 0.2 }) || '',
   }));
@@ -420,14 +433,12 @@ export async function seedStyleOrders(count: number = 50): Promise<void> {
     .where(and(eq(departmentsTable.isActive, true), eq(departmentsTable.isDeleted, false)));
   console.log(`   Found ${departments.length} departments`);
 
-  // Fetch existing style orders to use as references
   const existingStyles = await db
     .select({ id: styleOrdersTable.id, orderCode: styleOrdersTable.orderCode, styleName: styleOrdersTable.styleName })
     .from(styleOrdersTable)
     .where(eq(styleOrdersTable.isDeleted, false));
   console.log(`   Found ${existingStyles.length} existing style orders for references`);
 
-  // Fetch swatches to use as references
   const swatches = await db
     .select({ id: swatchesTable.id, swatchCode: swatchesTable.swatchCode, swatchName: swatchesTable.swatchName })
     .from(swatchesTable)
@@ -443,18 +454,16 @@ export async function seedStyleOrders(count: number = 50): Promise<void> {
 
   let created = 0;
   for (let i = 0; i < count; i++) {
-    // Pick a random client (or null)
     const client = clients.length > 0 ? faker.helpers.arrayElement(clients) : null;
     const clientId = client ? String(client.id) : null;
     const clientName = client ? client.brandName : null;
 
+    // Generate orderIssueDate within ±3 months
     const orderIssueDate = generateDate();
-    const deliveryDate = faker.date.future({ years: 1, refDate: orderIssueDate }).toISOString().slice(0, 10);
     const status = getRandomStatus();
     const isChargeable = faker.datatype.boolean({ probability: 0.7 });
     const isInhouse = faker.datatype.boolean({ probability: 0.3 });
 
-    // Generate core attributes
     const styleName = faker.commerce.productName() + ' ' + faker.helpers.arrayElement(['Dress', 'Blouse', 'Jacket', 'Skirt', 'Shirt', 'Kurta', 'Saree', 'Lehenga']);
     const styleNo = faker.helpers.maybe(() => faker.string.alphanumeric(8).toUpperCase(), { probability: 0.7 }) || '';
     const fabricType = getRandomFabricType();
@@ -467,17 +476,12 @@ export async function seedStyleOrders(count: number = 50): Promise<void> {
     const priority = getRandomPriority();
     const targetHours = generateTargetHours();
 
-    // Generate references (using actual DB records)
     const styleReferences = generateStyleReferences(existingStyles);
     const swatchReferences = generateSwatchReferences(swatches);
-
-    // Generate estimate
     const estimate = generateEstimate();
-
-    // Generate tags
     const tags = generateStyleTags(styleName, fabricType, season);
 
-    // Generate dates for status
+    // Generate dates based on status, all within the ±3 months window
     let approvalDate = null;
     let actualStartDate = null;
     let actualStartTime = null;
@@ -486,39 +490,38 @@ export async function seedStyleOrders(count: number = 50): Promise<void> {
     let tentativeDeliveryDate = null;
     let delayReason = null;
     let cancelReason = null;
+    let deliveryDate = addDays(orderIssueDate, faker.number.int({ min: 7, max: 60 }));
 
     if (status === 'Completed') {
-      const base = new Date(orderIssueDate);
-      approvalDate = faker.date.between({ from: new Date(base.getTime() + 1*24*60*60*1000), to: new Date(base.getTime() + 7*24*60*60*1000) }).toISOString().slice(0,10);
+      approvalDate = addDays(orderIssueDate, faker.number.int({ min: 1, max: 7 }));
       const startBase = new Date(approvalDate);
-      actualStartDate = faker.date.between({ from: new Date(startBase.getTime() + 1*24*60*60*1000), to: new Date(startBase.getTime() + 3*24*60*60*1000) }).toISOString().slice(0,10);
+      actualStartDate = addDays(approvalDate, faker.number.int({ min: 1, max: 3 }));
       actualStartTime = faker.helpers.maybe(() => faker.date.recent().toTimeString().slice(0,5), { probability: 0.7 }) || '';
-      const compBase = new Date(actualStartDate);
-      actualCompletionDate = faker.date.between({ from: new Date(compBase.getTime() + 5*24*60*60*1000), to: new Date(compBase.getTime() + 15*24*60*60*1000) }).toISOString().slice(0,10);
+      actualCompletionDate = addDays(actualStartDate, faker.number.int({ min: 5, max: 15 }));
       actualCompletionTime = faker.helpers.maybe(() => faker.date.recent().toTimeString().slice(0,5), { probability: 0.7 }) || '';
-      tentativeDeliveryDate = faker.date.between({ from: new Date(actualCompletionDate), to: new Date(new Date(actualCompletionDate).getTime() + 5*24*60*60*1000) }).toISOString().slice(0,10);
+      deliveryDate = addDays(actualCompletionDate, faker.number.int({ min: 1, max: 5 }));
+      tentativeDeliveryDate = deliveryDate;
       delayReason = faker.helpers.maybe(() => faker.helpers.arrayElement(['Fabric delay', 'Artwork revision', 'Machine breakdown']), { probability: 0.3 }) || null;
     } else if (status === 'In Progress') {
-      const base = new Date(orderIssueDate);
-      approvalDate = faker.date.between({ from: new Date(base.getTime() + 1*24*60*60*1000), to: new Date(base.getTime() + 5*24*60*60*1000) }).toISOString().slice(0,10);
-      const startBase = new Date(approvalDate);
-      actualStartDate = faker.date.between({ from: new Date(startBase.getTime() + 1*24*60*60*1000), to: new Date(startBase.getTime() + 3*24*60*60*1000) }).toISOString().slice(0,10);
+      approvalDate = addDays(orderIssueDate, faker.number.int({ min: 1, max: 5 }));
+      actualStartDate = addDays(approvalDate, faker.number.int({ min: 1, max: 3 }));
       actualStartTime = faker.helpers.maybe(() => faker.date.recent().toTimeString().slice(0,5), { probability: 0.7 }) || '';
-      tentativeDeliveryDate = faker.date.future({ years: 1, refDate: actualStartDate }).toISOString().slice(0,10);
+      tentativeDeliveryDate = addDays(actualStartDate, faker.number.int({ min: 5, max: 30 }));
+      deliveryDate = tentativeDeliveryDate || addDays(orderIssueDate, 30);
       delayReason = faker.helpers.maybe(() => faker.helpers.arrayElement(['Fabric delay', 'Artwork revision']), { probability: 0.3 }) || null;
     } else if (status === 'Pending') {
-      approvalDate = faker.helpers.maybe(() => faker.date.between({ from: new Date(orderIssueDate), to: new Date(new Date(orderIssueDate).getTime() + 3*24*60*60*1000) }).toISOString().slice(0,10), { probability: 0.5 }) || null;
+      approvalDate = faker.helpers.maybe(() => addDays(orderIssueDate, faker.number.int({ min: 1, max: 3 })), { probability: 0.5 }) || null;
+      deliveryDate = addDays(orderIssueDate, faker.number.int({ min: 10, max: 30 }));
+    } else if (status === 'Draft') {
+      deliveryDate = addDays(orderIssueDate, faker.number.int({ min: 15, max: 45 }));
     } else if (status === 'Cancelled') {
       cancelReason = faker.helpers.arrayElement(['Client cancelled', 'Budget issues', 'Design not approved', 'Production problems']);
+      deliveryDate = addDays(orderIssueDate, faker.number.int({ min: 5, max: 15 }));
     }
 
-    // Generate order code
     const orderCode = await generateOrderCode(clientId);
-
-    // Load real images (or placeholders if missing)
     const { refImages, wipImages, finalImages } = await loadStyleImages(orderCode);
 
-    // Insert
     try {
       await db.transaction(async (tx) => {
         const [order] = await tx.insert(styleOrdersTable).values({
@@ -567,7 +570,6 @@ export async function seedStyleOrders(count: number = 50): Promise<void> {
           createdAt: new Date(),
         }).returning();
 
-        // Insert tags
         if (tags.length > 0 && order) {
           const tagValues = tags.map((tag) => ({
             entityType: 'style_order',
@@ -577,7 +579,7 @@ export async function seedStyleOrders(count: number = 50): Promise<void> {
           await tx.insert(entityTagsTable).values(tagValues).onConflictDoNothing();
         }
 
-        console.log(`Created style order: ${styleName} (Code: ${orderCode}, ID: ${order?.id})`);
+        console.log(`✅ Created style order: ${styleName} (Code: ${orderCode}, ID: ${order?.id})`);
       });
       created++;
     } catch (error) {
