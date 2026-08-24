@@ -44,6 +44,10 @@ import { seedQuotations } from "./QuotationSeeder";
 import {seedPackingLists} from "./PackingListSeeder";
 import {seedInvoices} from "./InvoiceSeeder";
 import {seedBankAccounts} from "./BankAccountSeeder";
+import {seedStockAdjustments} from "./StockAdjustmentsSeeder";
+import {seedCreditDebitNotes} from "./CreditDebitNotesSeeders";
+import {seedOtherExpenses} from "./OtherExpensesSeeder";
+import {seedStockAlertsWithNewRecords} from "./StockAlertsWithNewRecordsSeeder";
 
 type SeederFunction = () => Promise<void>;
 
@@ -87,6 +91,10 @@ const seeders: Record<string, SeederFunction> = {
   QuotationSeeder:seedQuotations,
   PackingListSeeder:seedPackingLists,
   InvoiceSeeder:seedInvoices,
+  StockAdjustmentsSeeder:seedStockAdjustments,
+  CreditDebitNotesSeeders:seedCreditDebitNotes,
+  OtherExpensesSeeder:seedOtherExpenses,
+  StockAlertsWithNewRecordsSeeder:seedStockAlertsWithNewRecords,
 };
 
 // Order in which seeders must run (respects foreign key dependencies)
@@ -130,8 +138,13 @@ const seederOrder: string[] = [
   "QuotationSeeder",
   "PackingListSeeder",
   "InvoiceSeeder",
+  "StockAdjustmentsSeeder",
+  "CreditDebitNotesSeeders",
+  "OtherExpensesSeeder",
+  "StockAlertsWithNewRecordsSeeder",
 ];
 
+// If seeding all truncate these manually : material_reservations, inventory_items, swatch_bom
 // Mapping: seeder name -> table name(s) it inserts into (for truncation)
 const seederTables: Record<string, string[]> = {
   BankAccountSeeder:["bank_accounts"],
@@ -152,7 +165,6 @@ const seederTables: Record<string, string[]> = {
   FabricSeeder: ["fabrics"],
   SwatchOrderSeeder : ["swatch_orders"],
   ArtworkSeeder:["artworks"],
-  SwatchBomSeeder: ["swatch_bom"],
   PurchaseOrderSeeder: ["purchase_orders", "purchase_order_items"],
   PurchaseReceiptSeeder: ["purchase_receipts", "purchase_receipt_items", "stock_ledger", "inventory_stock_logs"],
   ArtisanTimesheetSeeder: ["artisan_timesheets"],
@@ -166,6 +178,9 @@ const seederTables: Record<string, string[]> = {
   QuotationSeeder:["quotations", "quotation_custom_charges", "quotation_designs", "quotation_feedback_logs"],
   PackingListSeeder:["packing_lists", "packing_packages"],
   InvoiceSeeder:["invoices"],
+  StockAdjustmentsSeeder:["stock_adjustments"],
+  CreditDebitNotesSeeders:["credit_debit_notes"],
+  OtherExpensesSeeder:["other_expenses"]
 };
 
 // All tables for full truncation
