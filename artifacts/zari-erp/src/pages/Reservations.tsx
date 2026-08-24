@@ -362,11 +362,11 @@ export default function Reservations() {
               <p className="text-sm text-gray-500 mt-0.5">Reserve inventory for styles and swatches</p>
             </div>
           </div>
-          <button onClick={openForm}
+          {/* <button onClick={openForm}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white shadow-sm"
             style={{ background: `linear-gradient(135deg, ${G}, #A8943E)` }}>
             <Plus className="h-4 w-4" /> New Reservation
-          </button>
+          </button> */}
         </div>
 
         {/* Filters */}
@@ -791,7 +791,7 @@ export default function Reservations() {
                 {/* Qty split rows */}
                 <div className="space-y-3">
                   {/* Consumed */}
-                  <div className="flex items-center gap-3">
+                  {/* <div className="flex items-center gap-3">
                     <div className="flex items-center gap-2 w-32 flex-shrink-0">
                       <div className="p-1 rounded bg-blue-50"><ArrowRightLeft className="h-3.5 w-3.5 text-blue-600" /></div>
                       <span className="text-xs font-medium text-slate-500">Consumed</span>
@@ -802,7 +802,7 @@ export default function Reservations() {
                       className={`flex-1 px-3 py-1.5 text-sm text-cyan-900 text-right rounded-lg border focus:outline-none focus:ring-2 ${cOver ? "border-red-400 focus:ring-red-200" : "border-gray-200 focus:ring-blue-200"}`} />
                     <span className="text-xs text-gray-400 w-12 flex-shrink-0">{convertModal.resv.unit_type || ""}</span>
                   </div>
-                  <p className="text-[11px] text-blue-600 -mt-1 pl-36">Material actually used in production — consumption will deduct stock separately.</p>
+                  <p className="text-[11px] text-blue-600 -mt-1 pl-36">Material actually used in production — consumption will deduct stock separately.</p> */}
 
                   {/* Released */}
                   <div className="flex items-center gap-3">

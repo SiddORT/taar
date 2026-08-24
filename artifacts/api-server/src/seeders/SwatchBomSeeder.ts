@@ -1,4 +1,17 @@
-import { db, swatchBomTable, swatchOrdersTable, materialsTable, fabricsTable, eq, and, sql } from "@workspace/db";
+import {
+  db,
+  swatchBomTable,
+  swatchOrdersTable,
+  inventoryItemsTable,
+  materialReservationsTable,
+  stockLedgerTable,
+  materialsTable,
+  fabricsTable,
+  usersTable,
+  eq,
+  and,
+  sql,
+} from "@workspace/db";
 import { faker } from "@faker-js/faker";
 
 // ============================================
@@ -21,7 +34,7 @@ interface MaterialOrFabric {
 // ============================================
 
 function getRandomQuantity(maxStock: number): string {
-  // Generate a random quantity between 1 and 20% of max stock, but at least 1 and at most maxStock
+  // Generate a quantity that doesn't exceed available stock (use 20% of stock, min 1)
   const max = Math.min(maxStock, Math.max(1, Math.floor(maxStock * 0.2)));
   const qty = faker.number.int({ min: 1, max: Math.max(1, max) });
   return qty.toString();
@@ -34,13 +47,156 @@ function calculateEstimatedAmount(qty: string, price: string): string {
 }
 
 // ============================================
+// Core Reservation Function (copied from StyleBom seeder)
+// ============================================
+
+async function autoReserveForBomSeeder(opts: {
+  materialType: string;
+  materialId: number;
+  orderId: number;
+  reservationType: "Style" | "Swatch";
+  reqQty: number;
+  bomRowId: number;
+  materialName: string;
+  actor: string;
+}): Promise<{ status: "created" | "updated" | "skipped"; reason?: string; inventoryId?: number }> {
+  const { materialType, materialId, orderId, reservationType, reqQty, bomRowId, materialName, actor } = opts;
+
+  // 1. Fetch inventory record
+  const invRows = await db
+    .select({
+      id: inventoryItemsTable.id,
+      availableStock: inventoryItemsTable.availableStock,
+      currentStock: inventoryItemsTable.currentStock,
+    })
+    .from(inventoryItemsTable)
+    .where(
+      and(
+        eq(inventoryItemsTable.sourceType, materialType),
+        eq(inventoryItemsTable.sourceId, materialId),
+        eq(inventoryItemsTable.isDeleted, false)
+      )
+    )
+    .limit(1);
+
+  if (!invRows.length) {
+    return { status: "skipped", reason: "No inventory record for this material" };
+  }
+
+  const inv = invRows[0];
+  const avail = parseFloat(inv.availableStock ?? "0");
+  const inventoryId = inv.id;
+
+  if (reqQty > avail) {
+    return {
+      status: "skipped",
+      reason: `Insufficient available stock — required ${reqQty}, available ${avail.toFixed(3)}`,
+      inventoryId,
+    };
+  }
+
+  // Determine the reserved column name in snake_case
+  const colName = reservationType === "Style" ? "style_reserved_qty" : "swatch_reserved_qty";
+
+  return await db.transaction(async (tx) => {
+    // Check for existing active reservation
+    const existingRes = await tx
+      .select({
+        id: materialReservationsTable.id,
+        reservedQuantity: materialReservationsTable.reservedQuantity,
+      })
+      .from(materialReservationsTable)
+      .where(
+        and(
+          eq(materialReservationsTable.inventoryId, inventoryId),
+          eq(materialReservationsTable.reservationType, reservationType),
+          eq(materialReservationsTable.referenceId, orderId),
+          eq(materialReservationsTable.status, "Active"),
+          eq(materialReservationsTable.isDeleted, false)
+        )
+      )
+      .orderBy(sql`${materialReservationsTable.id} DESC`)
+      .limit(1);
+
+    let resultStatus: "created" | "updated";
+
+    if (existingRes.length > 0) {
+      // Update existing reservation
+      const oldQty = parseFloat(existingRes[0].reservedQuantity);
+      const delta = reqQty - oldQty;
+      await tx
+        .update(materialReservationsTable)
+        .set({
+          reservedQuantity: reqQty.toString(),
+          remarks: `BOM row ${bomRowId} — ${materialName}`,
+        })
+        .where(eq(materialReservationsTable.id, existingRes[0].id));
+
+      if (delta !== 0) {
+        await tx.execute(
+          sql`UPDATE inventory_items SET ${sql.raw(colName)} = ${sql.raw(colName)}::numeric + ${delta} WHERE id = ${inventoryId}`
+        );
+      }
+      resultStatus = "updated";
+    } else {
+      // Create new reservation
+      const today = new Date().toISOString().slice(0, 10);
+      await tx.insert(materialReservationsTable).values({
+        itemId: inventoryId,
+        inventoryId,
+        reservationType,
+        referenceId: orderId,
+        reservedQuantity: reqQty.toString(),
+        status: "Active",
+        remarks: `BOM row ${bomRowId} — ${materialName}`,
+        reservedBy: actor,
+        reservationDate: today,
+      });
+
+      await tx.execute(
+        sql`UPDATE inventory_items SET ${sql.raw(colName)} = ${sql.raw(colName)}::numeric + ${reqQty} WHERE id = ${inventoryId}`
+      );
+      resultStatus = "created";
+    }
+
+    // Recalculate available_stock and update last_updated_at
+    await tx.execute(
+      sql`UPDATE inventory_items SET available_stock = GREATEST(0, current_stock::numeric - style_reserved_qty::numeric - swatch_reserved_qty::numeric), last_updated_at = NOW() WHERE id = ${inventoryId}`
+    );
+
+    // Stock ledger entry for new reservations only
+    if (resultStatus === "created") {
+      const bal = await tx
+        .select({ currentStock: inventoryItemsTable.currentStock })
+        .from(inventoryItemsTable)
+        .where(eq(inventoryItemsTable.id, inventoryId))
+        .limit(1);
+
+      await tx.insert(stockLedgerTable).values({
+        itemId: inventoryId,
+        transactionType: `${reservationType.toLowerCase()}_reservation`,
+        referenceNumber: String(orderId),
+        referenceType: reservationType,
+        inQuantity: "0",
+        outQuantity: reqQty.toString(),
+        balanceQuantity: bal[0].currentStock,
+        remarks: `Reserved ${reqQty} for ${reservationType} Order #${orderId} (BOM row ${bomRowId})`,
+        createdBy: actor,
+      });
+    }
+
+    return { status: resultStatus, inventoryId };
+  });
+}
+
+// ============================================
 // Main Seed Function
 // ============================================
 
 export async function seedSwatchBom(count: number = 50): Promise<void> {
-  console.log('\n📦 Starting SwatchBomSeeder with ' + count + ' BOM entries...\n');
+  console.log(`\n📦 Starting SwatchBomSeeder (generating 1-4 entries per order, with auto-reservation)...\n`);
 
-  // 1. Fetch swatch orders that are not deleted
+  // 1. Fetch swatch orders
   const swatchOrders = await db
     .select({
       id: swatchOrdersTable.id,
@@ -54,9 +210,18 @@ export async function seedSwatchBom(count: number = 50): Promise<void> {
     console.warn('⚠️ No swatch orders found. Please run SwatchOrderSeeder first.');
     return;
   }
-  console.log('   ✅ Found ' + swatchOrders.length + ' swatch orders');
+  console.log(`   ✅ Found ${swatchOrders.length} swatch orders`);
 
-  // 2. Fetch all active materials
+  // 2. Fetch active users
+  const users = await db
+    .select({ email: usersTable.email })
+    .from(usersTable)
+    .where(eq(usersTable.isActive, true));
+
+  if (users.length === 0) console.warn("⚠️ No active users. Using 'system'.");
+  const actor = users.length > 0 ? users[0].email : "system";
+
+  // 3. Fetch materials with stock > 0
   const materials = await db
     .select({
       id: materialsTable.id,
@@ -71,12 +236,13 @@ export async function seedSwatchBom(count: number = 50): Promise<void> {
     .where(
       and(
         eq(materialsTable.isActive, true),
-        eq(materialsTable.isDeleted, false)
+        eq(materialsTable.isDeleted, false),
+        sql`${materialsTable.currentStock}::numeric > 0`
       )
     );
-  console.log('   ✅ Found ' + materials.length + ' materials');
+  console.log(`   ✅ Found ${materials.length} materials with stock > 0`);
 
-  // 3. Fetch all active fabrics
+  // 4. Fetch fabrics with stock > 0
   const fabrics = await db
     .select({
       id: fabricsTable.id,
@@ -93,17 +259,18 @@ export async function seedSwatchBom(count: number = 50): Promise<void> {
     .where(
       and(
         eq(fabricsTable.isActive, true),
-        eq(fabricsTable.isDeleted, false)
+        eq(fabricsTable.isDeleted, false),
+        sql`${fabricsTable.currentStock}::numeric > 0`
       )
     );
-  console.log('   ✅ Found ' + fabrics.length + ' fabrics');
+  console.log(`   ✅ Found ${fabrics.length} fabrics with stock > 0`);
 
   if (materials.length === 0 && fabrics.length === 0) {
-    console.warn('⚠️ No materials or fabrics found. Please seed Materials and Fabrics first.');
+    console.warn('⚠️ No materials or fabrics with stock. Cannot create BOM entries.');
     return;
   }
 
-  // 4. Build a combined pool of items
+  // 5. Build item pool
   const itemPool: MaterialOrFabric[] = [];
 
   materials.forEach(m => {
@@ -133,33 +300,26 @@ export async function seedSwatchBom(count: number = 50): Promise<void> {
     });
   });
 
-  console.log('   📋 Total items available: ' + itemPool.length);
+  console.log(`   📋 Total items with stock: ${itemPool.length}`);
 
-  // 5. Generate BOM entries for each swatch order
+  // 6. Generate BOM entries with reservations
   let totalInserted = 0;
+  let totalReserved = 0;
+  let totalSkipped = 0;
 
   for (const order of swatchOrders) {
-    // Determine how many BOM entries for this order (1-4)
     const numItems = faker.number.int({ min: 1, max: Math.min(4, itemPool.length) });
-
-    // Pick random items without replacement for this order
     const selectedItems = faker.helpers.arrayElements(itemPool, numItems);
 
     for (const item of selectedItems) {
       const stockNum = parseFloat(item.currentStock) || 0;
-      if (stockNum <= 0) {
-        // Skip items with zero stock (or we can set a default small quantity)
-        console.log(`  ⚠️ Skipping ${item.code} (stock 0) for order ${order.id}`);
-        continue;
-      }
+      if (stockNum <= 0) continue;
 
       const requiredQty = getRandomQuantity(stockNum);
+      const reqQtyNum = parseFloat(requiredQty) || 0;
       const estimatedAmount = calculateEstimatedAmount(requiredQty, item.avgUnitPrice);
 
-      // Check if this BOM entry already exists for this order and item
-      // To avoid duplicates, we can check by swatchOrderId + materialType + materialId
-      // But we'll rely on the runner to truncate the table before seeding.
-      // However, to be safe, we'll check and skip if exists.
+      // Check for duplicate BOM entry (same order + item)
       const existing = await db
         .select({ id: swatchBomTable.id })
         .from(swatchBomTable)
@@ -177,52 +337,70 @@ export async function seedSwatchBom(count: number = 50): Promise<void> {
         continue;
       }
 
-      // Insert the BOM entry
-      const insertData = {
-        swatchOrderId: order.id,
-        styleOrderId: null, // Not used for swatch orders
-        materialType: item.type,
-        materialId: item.id,
-        materialCode: item.code,
-        materialName: item.name,
-        currentStock: item.currentStock,
-        avgUnitPrice: item.avgUnitPrice,
-        unitType: item.unitType,
-        warehouseLocation: item.warehouseLocation,
-        requiredQty: requiredQty,
-        estimatedAmount: estimatedAmount,
-        consumedQty: '0',
-        targetVendorId: null,
-        targetVendorName: null,
-        createdBy: faker.helpers.arrayElement(['system', 'admin@taar.com']),
-        createdAt: new Date(),
-        updatedBy: null,
-        updatedAt: null,
-        isDeleted: false,
-        deletedBy: null,
-        deletedAt: null,
-      };
+      // Insert BOM row
+      const [bomRow] = await db
+        .insert(swatchBomTable)
+        .values({
+          swatchOrderId: order.id,
+          styleOrderId: null,
+          materialType: item.type,
+          materialId: item.id,
+          materialCode: item.code,
+          materialName: item.name,
+          currentStock: item.currentStock,
+          avgUnitPrice: item.avgUnitPrice,
+          unitType: item.unitType,
+          warehouseLocation: item.warehouseLocation,
+          requiredQty,
+          estimatedAmount,
+          consumedQty: '0',
+          targetVendorId: null,
+          targetVendorName: null,
+          createdBy: actor,
+          createdAt: new Date(),
+          isDeleted: false,
+        })
+        .returning();
 
-      try {
-        await db.insert(swatchBomTable).values(insertData);
-        totalInserted++;
-        console.log(`  ✅ Inserted BOM: ${item.code} (${item.type}) for order ${order.id} - Qty: ${requiredQty}, Est: ${estimatedAmount}`);
-      } catch (error) {
-        console.error(`  ❌ Failed to insert BOM for order ${order.id}, item ${item.code}:`, error);
+      console.log(`  ✅ Inserted BOM row ${bomRow.id} for order ${order.id}: ${item.code} (${item.type}) - Qty: ${requiredQty}, Est: ${estimatedAmount}`);
+
+      // Auto-reserve (matching API)
+      if (reqQtyNum > 0) {
+        const reservation = await autoReserveForBomSeeder({
+          materialType: item.type,
+          materialId: item.id,
+          orderId: order.id,
+          reservationType: "Swatch",
+          reqQty: reqQtyNum,
+          bomRowId: bomRow.id,
+          materialName: item.name,
+          actor,
+        });
+
+        if (reservation.status === "created" || reservation.status === "updated") {
+          totalReserved++;
+          console.log(`     🔒 Reservation ${reservation.status} for ${item.name} (qty ${requiredQty})`);
+        } else {
+          totalSkipped++;
+          console.log(`     ⚠️ Skipped reservation: ${reservation.reason}`);
+        }
       }
+
+      totalInserted++;
     }
   }
 
-  console.log(`\n✅ SwatchBomSeeder completed! Inserted ${totalInserted} BOM entries.`);
+  console.log(`\n✅ SwatchBomSeeder completed.`);
+  console.log(`   📋 Inserted ${totalInserted} BOM entries`);
+  console.log(`   🔒 Reserved ${totalReserved} items (${totalSkipped} skipped due to insufficient stock)`);
 }
 
 // ============================================
-// Self-execution for ESM
+// Self-execution
 // ============================================
 
-var isMainModule = import.meta.url === 'file://' + process.argv[1];
-
+const isMainModule = import.meta.url === "file://" + process.argv[1];
 if (isMainModule) {
-  var count = parseInt(process.argv[2]) || 50;
+  const count = parseInt(process.argv[2]) || 50;
   seedSwatchBom(count).catch(console.error);
 }

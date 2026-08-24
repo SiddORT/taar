@@ -418,11 +418,11 @@ export default function VendorLedgerDetail() {
               style={{ background: `${G}15`, color: G_DIM, border: `1px solid ${G}30` }}>
               <Plus className="h-4 w-4" /> Add Charge
             </button>
-            <button onClick={openPayGeneral}
+            {/* <button onClick={openPayGeneral}
               className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-white transition-all hover:opacity-80"
               style={{ background: G_DIM }}>
               <CreditCard className="h-4 w-4" /> Record Payment
-            </button>
+            </button> */}
           </div>
         </div>
 
