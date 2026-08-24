@@ -62,7 +62,21 @@ router.get("/swatch-orders", requireAuth, async (req, res): Promise<void> => {
 
   const where = and(...conditions);
   const [rows, countRow] = await Promise.all([
-    db.select().from(swatchOrdersTable).where(where).orderBy(desc(swatchOrdersTable.createdAt)).limit(lim).offset(offset),
+    db
+    .select({
+      id: swatchOrdersTable.id,
+      orderCode: swatchOrdersTable.orderCode,
+      swatchName: swatchOrdersTable.swatchName,
+      orderStatus: swatchOrdersTable.orderStatus,
+      priority: swatchOrdersTable.priority,
+      clientName: swatchOrdersTable.clientName,
+      deliveryDate: swatchOrdersTable.deliveryDate,
+      quantity: swatchOrdersTable.quantity,
+      fabricName: swatchOrdersTable.fabricName,
+      isChargeable: swatchOrdersTable.isChargeable,
+      isInhouse: swatchOrdersTable.isInhouse,
+    })
+    .from(swatchOrdersTable).where(where).orderBy(desc(swatchOrdersTable.createdAt)).limit(lim).offset(offset),
     db.select({ count: sql<number>`count(*)` }).from(swatchOrdersTable).where(where),
   ]);
 
