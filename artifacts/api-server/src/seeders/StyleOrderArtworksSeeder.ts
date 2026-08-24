@@ -425,20 +425,169 @@ export async function seedStyleOrderArtworks(count: number = 30): Promise<void> 
   let created = 0;
   const artworksToCreate: StyleOrderArtworkSeedData[] = [];
 
-  // Determine total artworks (at least 1 per style order)
-  const totalArtworks = Math.max(count, styleOrders.length);
+  // Calculate base artworks and extra artworks
+  const totalOrders = styleOrders.length;
+  const baseArtworksPerOrder = 1;
+  const extraArtworks = Math.max(0, count - totalOrders);
+  
+  console.log(`   📊 Will create at least 1 artwork per order (${totalOrders} orders)`);
+  if (extraArtworks > 0) {
+    console.log(`   📊 Plus ${extraArtworks} additional artworks distributed randomly`);
+  }
 
+  // FIRST PASS: Create exactly 1 artwork for every style order
   for (const order of styleOrders) {
-    if (created >= totalArtworks) break;
-
-    const remaining = totalArtworks - created;
-    const maxArtworks = Math.min(3, remaining);
-    const numArtworks = faker.number.int({ min: 1, max: maxArtworks });
-
     // Get products for this order (if any)
     const orderProducts = productsByOrder[order.id] || [];
 
-    for (let i = 0; i < numArtworks && created < totalArtworks; i++) {
+    // Decide whether to link to a product (60% chance if products exist)
+    let linkedProduct = null;
+    if (orderProducts.length > 0 && faker.datatype.boolean({ probability: 0.6 })) {
+      linkedProduct = faker.helpers.arrayElement(orderProducts);
+    }
+
+    const isInhouse = faker.datatype.boolean({ probability: 0.7 });
+    const workHours = faker.number.int({ min: 2, max: 40 }).toString();
+    const hourlyRate = faker.number.int({ min: 50, max: 500 }).toString();
+    const totalCost = (parseInt(workHours) * parseInt(hourlyRate)).toString();
+
+    // Generate artwork name
+    const artworkName = generateArtworkNameFromStyle(
+      order.styleName,
+      linkedProduct?.productName,
+      0
+    );
+
+    // Load images if we have a code for this order
+    let refImages: ImageItem[] = [];
+    let wipImages: ImageItem[] = [];
+    let finalImages: ImageItem[] = [];
+
+    let orderCode: string | null = null;
+
+    if (order.orderCode && availableImageCodes.has(order.orderCode)) {
+      orderCode = order.orderCode;
+    } else if (availableImageCodes.size > 0) {
+      // Fallback: pick a random available code
+      orderCode = faker.helpers.arrayElement(Array.from(availableImageCodes));
+    }
+
+    if (orderCode) {
+      const images = await loadStyleArtworkImages(orderCode);
+      refImages = images.refImages;
+      wipImages = images.wipImages;
+      finalImages = images.finalImages;
+    }
+
+    // Build base data
+    const artworkData: StyleOrderArtworkSeedData = {
+      styleOrderId: order.id,
+      styleOrderProductId: linkedProduct?.id || null,
+      styleOrderProductName: linkedProduct?.productName || null,
+      artworkName: artworkName,
+      unitLength: faker.number.int({ min: 10, max: 200 }).toString(),
+      unitWidth: faker.number.int({ min: 10, max: 200 }).toString(),
+      unitType: faker.helpers.arrayElement(unitTypeNames),
+      artworkCreated: isInhouse ? "Inhouse" : "Outsourced",
+      workHours: workHours,
+      hourlyRate: hourlyRate,
+      totalCost: totalCost,
+      feedbackStatus: getRandomFeedbackStatus(),
+      files: [],
+      refImages: refImages,
+      wipImages: wipImages,
+      finalImages: finalImages,
+      videos: [],
+      createdBy: users.length > 0 ? faker.helpers.arrayElement(users).email : "system",
+    };
+
+    // If outsourced, add outsource details
+    if (!isInhouse) {
+      artworkData.outsourceVendorId = faker.string.numeric(5);
+      artworkData.outsourceVendorName =
+        faker.company.name() + " " + faker.helpers.arrayElement(["Studio", "Designs", "Creations"]);
+      artworkData.outsourcePaymentDate = faker.date.recent().toISOString().slice(0, 10);
+      artworkData.outsourcePaymentAmount = faker.number.int({ min: 1000, max: 50000 }).toString();
+      artworkData.outsourcePaymentMode = getRandomPaymentMode();
+      artworkData.outsourceTransactionId = "TXN-" + faker.string.alphanumeric(8).toUpperCase();
+      artworkData.outsourcePaymentStatus = getRandomPaymentStatus();
+    }
+
+    // Add toile details (with 70% probability)
+    if (faker.datatype.boolean({ probability: 0.7 })) {
+      artworkData.toileMakingCost = faker.number.int({ min: 500, max: 10000 }).toString();
+      artworkData.toileVendorId = faker.string.numeric(5);
+      artworkData.toileVendorName = faker.company.name() + " " + faker.helpers.arrayElement(["Toile", "Sample"]);
+      artworkData.toileCost = faker.number.int({ min: 300, max: 8000 }).toString();
+      artworkData.toilePaymentType = getRandomPaymentType();
+      artworkData.toilePaymentDate = faker.date.recent().toISOString().slice(0, 10);
+      artworkData.toilePaymentMode = getRandomPaymentMode();
+      artworkData.toilePaymentStatus = getRandomPaymentStatus();
+      artworkData.toilePaymentAmount = faker.number.int({ min: 500, max: 9000 }).toString();
+      artworkData.toileTransactionId = "TXN-" + faker.string.alphanumeric(8).toUpperCase();
+      artworkData.toileRemarks = faker.lorem.sentence();
+      artworkData.toileImages = [
+        {
+          data: generatePlaceholderBase64(),
+          name: "toile-sample.jpg",
+          size: 0,
+          type: "image/jpeg",
+        },
+      ];
+    }
+
+    // Add pattern details (with 70% probability)
+    if (faker.datatype.boolean({ probability: 0.7 })) {
+      artworkData.patternType = faker.helpers.arrayElement(["CAD", "Manual", "Digital", "Paper"]);
+      artworkData.patternMakingCost = faker.number.int({ min: 1000, max: 15000 }).toString();
+      artworkData.patternDoc = [
+        {
+          data: generatePlaceholderBase64(),
+          name: "pattern-doc.pdf",
+          size: 0,
+          type: "application/pdf",
+        },
+      ];
+      artworkData.patternOuthouseDoc = [
+        {
+          data: generatePlaceholderBase64(),
+          name: "outhouse-pattern.pdf",
+          size: 0,
+          type: "application/pdf",
+        },
+      ];
+      artworkData.patternVendorId = faker.string.numeric(5);
+      artworkData.patternVendorName = faker.company.name() + " " + faker.helpers.arrayElement(["Pattern", "Tech"]);
+      artworkData.patternPaymentType = getRandomPaymentType();
+      artworkData.patternPaymentMode = getRandomPaymentMode();
+      artworkData.patternPaymentStatus = getRandomPaymentStatus();
+      artworkData.patternPaymentAmount = faker.number.int({ min: 1000, max: 12000 }).toString();
+      artworkData.patternTransactionId = "TXN-" + faker.string.alphanumeric(8).toUpperCase();
+      artworkData.patternPaymentDate = faker.date.recent().toISOString().slice(0, 10);
+      artworkData.patternRemarks = faker.lorem.sentence();
+    }
+
+    artworksToCreate.push(artworkData);
+    created++;
+  }
+
+  // SECOND PASS: Distribute extra artworks randomly among orders
+  if (extraArtworks > 0) {
+    console.log(`   🎲 Distributing ${extraArtworks} extra artworks...`);
+    
+    // Create a pool of order IDs to distribute extra artworks
+    const orderPool = styleOrders.map(order => order.id);
+    
+    for (let i = 0; i < extraArtworks; i++) {
+      // Pick a random order for this extra artwork
+      const targetOrderId = faker.helpers.arrayElement(orderPool);
+      const targetOrder = styleOrders.find(o => o.id === targetOrderId);
+      
+      if (!targetOrder) continue;
+
+      // Get products for this order (if any)
+      const orderProducts = productsByOrder[targetOrder.id] || [];
+
       // Decide whether to link to a product (60% chance if products exist)
       let linkedProduct = null;
       if (orderProducts.length > 0 && faker.datatype.boolean({ probability: 0.6 })) {
@@ -450,12 +599,11 @@ export async function seedStyleOrderArtworks(count: number = 30): Promise<void> 
       const hourlyRate = faker.number.int({ min: 50, max: 500 }).toString();
       const totalCost = (parseInt(workHours) * parseInt(hourlyRate)).toString();
 
-      // Generate artwork name
-      const baseName = linkedProduct ? linkedProduct.productName : order.styleName;
+      // Generate artwork name with variation index
       const artworkName = generateArtworkNameFromStyle(
-        order.styleName,
+        targetOrder.styleName,
         linkedProduct?.productName,
-        i
+        i + 1
       );
 
       // Load images if we have a code for this order
@@ -465,10 +613,9 @@ export async function seedStyleOrderArtworks(count: number = 30): Promise<void> 
 
       let orderCode: string | null = null;
 
-      if (order.orderCode && availableImageCodes.has(order.orderCode)) {
-        orderCode = order.orderCode;
+      if (targetOrder.orderCode && availableImageCodes.has(targetOrder.orderCode)) {
+        orderCode = targetOrder.orderCode;
       } else if (availableImageCodes.size > 0) {
-        // Fallback: pick a random available code
         orderCode = faker.helpers.arrayElement(Array.from(availableImageCodes));
       }
 
@@ -477,14 +624,11 @@ export async function seedStyleOrderArtworks(count: number = 30): Promise<void> 
         refImages = images.refImages;
         wipImages = images.wipImages;
         finalImages = images.finalImages;
-        console.log("  📸 Loaded images from: " + orderCode);
-      } else {
-        console.log("  ⚠️ No images available, using placeholders");
       }
 
       // Build base data
       const artworkData: StyleOrderArtworkSeedData = {
-        styleOrderId: order.id,
+        styleOrderId: targetOrder.id,
         styleOrderProductId: linkedProduct?.id || null,
         styleOrderProductName: linkedProduct?.productName || null,
         artworkName: artworkName,
@@ -677,6 +821,6 @@ export async function seedStyleOrderArtworks(count: number = 30): Promise<void> 
 const isMainModule = import.meta.url === "file://" + process.argv[1];
 
 if (isMainModule) {
-  const count = parseInt(process.argv[2]) || 30;
+  const count = parseInt(process.argv[2])|| 100;
   seedStyleOrderArtworks(count).catch(console.error);
 }
