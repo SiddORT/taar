@@ -578,7 +578,7 @@ function BomSection({ swatchOrderId, orderCode, swatchName, clientName }: {
           )}
           <div className="flex gap-2 items-end">
             <div className="flex-1">
-              <label className="text-[10px] text-gray-500 font-medium">Required Qty</label>
+              <label className="text-[10px] text-gray-500 font-medium">Required / Reserved Qty</label>
               <input type="number" min="0" step="any" value={form.requiredQty}
                 onChange={e => setForm(f => ({ ...f, requiredQty: e.target.value }))}
                 className="w-full mt-0.5 text-xs text-cyan-900 bg-white border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-900/10"
@@ -624,7 +624,7 @@ function BomSection({ swatchOrderId, orderCode, swatchName, clientName }: {
                   </span>
                 </span>
               </th>
-              <th className="text-left text-[10px] font-semibold text-violet-500 px-3 py-2 whitespace-nowrap">Req Qty</th>
+              <th className="text-left text-[10px] font-semibold text-violet-500 px-3 py-2 whitespace-nowrap">Req / Reserved Qty</th>
               <th className="text-left text-[10px] font-semibold text-amber-500 px-3 py-2 whitespace-nowrap">PO Total</th>
               <th className="text-left text-[10px] font-semibold text-amber-500 px-3 py-2 whitespace-nowrap">PO Qty</th>
               <th className="text-left text-[10px] font-semibold text-blue-500 px-3 py-2 whitespace-nowrap">PR Qty</th>
@@ -749,14 +749,14 @@ function BomSection({ swatchOrderId, orderCode, swatchName, clientName }: {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 p-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-base font-bold text-cyan-900">Edit Required Qty</h3>
+              <h3 className="text-base font-bold text-cyan-900">Edit Req / Reserved Qty</h3>
               <button onClick={() => setEditRow(null)} className="p-1.5 rounded-lg text-gray-400 hover:text-slate-500 hover:bg-gray-100"><X className="h-4 w-4" /></button>
             </div>
             <div className="mb-4 p-3 bg-gray-50 rounded-xl text-sm">
               <div className="font-semibold text-cyan-900">[{editRow.materialCode}] {editRow.materialName}</div>
-              <div className="text-xs text-violet-700 mt-1">Current Required Qty: <span className="font-semibold">{editRow?.requiredQty} {editRow?.unitType}</span></div>
+              <div className="text-xs text-violet-700 mt-1">Current Req / Reserved Qty: <span className="font-semibold">{editRow?.requiredQty} {editRow?.unitType}</span></div>
             </div>
-            <label className="block text-xs font-semibold text-slate-500 mb-1">Adjust Required Qty <span className="text-red-500 ml-0.5">*</span></label>
+            <label className="block text-xs font-semibold text-slate-500 mb-1">Adjust Req / Reserved Qty<span className="text-red-500 ml-0.5">*</span></label>
             <div className="flex gap-2 mb-2">
               <button type="button" onClick={() => setEditMode("add")}
                 className={`flex-1 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${editMode === "add" ? "bg-emerald-600 text-white border-emerald-600" : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"}`}>
