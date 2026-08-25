@@ -1,30 +1,51 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useLocation } from "wouter";
 import {
-  Search, ChevronDown, CalendarRange, X, AlertTriangle,
-  Bookmark, CheckCircle2, XCircle, RefreshCw, ArrowRightLeft,
-  Plus, Trash2, Shield, Flame, PackageOpen, MoreHorizontal,
+  Search,
+  ChevronDown,
+  CalendarRange,
+  X,
+  AlertTriangle,
+  Bookmark,
+  CheckCircle2,
+  XCircle,
+  RefreshCw,
+  ArrowRightLeft,
+  Plus,
+  Trash2,
+  Shield,
+  Flame,
+  PackageOpen,
+  MoreHorizontal,
 } from "lucide-react";
-import { useGetMe, getGetMeQueryKey, useLogout } from "@workspace/api-client-react";
+import {
+  useGetMe,
+  getGetMeQueryKey,
+  useLogout,
+} from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { customFetch } from "@workspace/api-client-react";
 import TopNavbar from "@/components/layout/TopNavbar";
 import { useToast } from "@/hooks/use-toast";
+import { SmallSearchSelect } from "@/components/ui/SearchableSelect";
 
-const G    = "#C6AF4B";
-const card = "rounded-2xl bg-white border border-[#C6AF4B]/15 shadow-[0_2px_16px_rgba(198,175,75,0.12),0_1px_3px_rgba(0,0,0,0.06)]";
-const thCls = "px-3 py-3 text-left text-xs font-semibold text-cyan-900 uppercase tracking-wide whitespace-nowrap";
+const G = "#C6AF4B";
+const card =
+  "rounded-2xl bg-white border border-[#C6AF4B]/15 shadow-[0_2px_16px_rgba(198,175,75,0.12),0_1px_3px_rgba(0,0,0,0.06)]";
+const thCls =
+  "px-3 py-3 text-left text-xs font-semibold text-cyan-900 uppercase tracking-wide whitespace-nowrap";
 const tdCls = "px-3 py-3 text-sm text-cyan-900";
 
-const STATUS_META: Record<string, { color: string; Icon: React.ElementType }> = {
-  Active:    { color: "bg-amber-100 text-amber-700",  Icon: Bookmark },
-  Converted: { color: "bg-blue-100 text-blue-700",    Icon: ArrowRightLeft },
-  Released:  { color: "bg-green-100 text-green-700",  Icon: CheckCircle2 },
-  Cancelled: { color: "bg-red-100 text-red-700",      Icon: XCircle },
+const STATUS_META: Record<string, { color: string; Icon: React.ElementType }> =
+{
+  Active: { color: "bg-amber-100 text-amber-700", Icon: Bookmark },
+  Converted: { color: "bg-blue-100 text-blue-700", Icon: ArrowRightLeft },
+  Released: { color: "bg-green-100 text-green-700", Icon: CheckCircle2 },
+  Cancelled: { color: "bg-red-100 text-red-700", Icon: XCircle },
 };
 
 const TYPE_COLOR: Record<string, string> = {
-  Style:  "bg-indigo-50 text-indigo-700",
+  Style: "bg-indigo-50 text-indigo-700",
   Swatch: "bg-purple-50 text-purple-700",
 };
 
@@ -64,7 +85,11 @@ interface OrderOption {
 }
 
 function fmtDate(s: string) {
-  return new Date(s).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+  return new Date(s).toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
 }
 
 // Trim trailing zeros: 1.000 → "1", 0.500 → "0.5", 1.250 → "1.25", 0.001 → "0.001"
@@ -77,17 +102,29 @@ function fmtQty(v: string | number) {
 // Extract a clean human-readable message from an ApiError or generic error.
 // customFetch's ApiError.message is "HTTP 400 Bad Request: detail" — strip the prefix.
 function errMsg(err: unknown, fallback: string): string {
-  const e = err as { data?: { error?: string; message?: string }; message?: string };
-  return e?.data?.error || e?.data?.message
-       || (e?.message ? e.message.replace(/^HTTP\s+\d+[^:]*:\s*/i, "") : fallback);
+  const e = err as {
+    data?: { error?: string; message?: string };
+    message?: string;
+  };
+  return (
+    e?.data?.error ||
+    e?.data?.message ||
+    (e?.message ? e.message.replace(/^HTTP\s+\d+[^:]*:\s*/i, "") : fallback)
+  );
 }
 
 function StatusBadge({ s }: { s: string }) {
-  const meta = STATUS_META[s] ?? { color: "bg-gray-100 text-gray-600", Icon: Bookmark };
+  const meta = STATUS_META[s] ?? {
+    color: "bg-gray-100 text-gray-600",
+    Icon: Bookmark,
+  };
   const { color, Icon } = meta;
   return (
-    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold ${color}`}>
-      <Icon className="h-3 w-3" />{s.toUpperCase()}
+    <span
+      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold ${color}`}
+    >
+      <Icon className="h-3 w-3" />
+      {s.toUpperCase()}
     </span>
   );
 }
@@ -95,38 +132,45 @@ function StatusBadge({ s }: { s: string }) {
 export default function Reservations() {
   const [, navigate] = useLocation();
   const { data: me, isError } = useGetMe();
-  const token   = localStorage.getItem("zarierp_token");
+  const token = localStorage.getItem("zarierp_token");
   const isAdmin = (me as { role?: string } | undefined)?.role === "admin";
   const queryClient = useQueryClient();
   const { mutateAsync: logoutMutate } = useLogout();
   const { toast } = useToast();
 
   const handleLogout = async () => {
-    await logoutMutate(undefined).catch(() => {});
+    await logoutMutate(undefined).catch(() => { });
     queryClient.removeQueries({ queryKey: getGetMeQueryKey() });
     localStorage.removeItem("zarierp_token");
     navigate("/login");
   };
 
-  const [rows, setRows]     = useState<Reservation[]>([]);
-  const [total, setTotal]   = useState(0);
+  const [rows, setRows] = useState<Reservation[]>([]);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [page, setPage]     = useState(1);
+  const [page, setPage] = useState(1);
   const limit = 20;
   const totalPages = Math.max(1, Math.ceil(total / limit));
 
-  const [search,          setSearch]          = useState("");
+  const [search, setSearch] = useState("");
   const [reservationType, setReservationType] = useState("all");
-  const [status,          setStatus]          = useState("all");
-  const [fromDate,        setFromDate]        = useState("");
-  const [toDate,          setToDate]          = useState("");
+  const [status, setStatus] = useState("all");
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
 
   const [openActionId, setOpenActionId] = useState<number | null>(null);
   const actionMenuRef = useRef<HTMLDivElement | null>(null);
   const [actioning, setActioning] = useState<number | null>(null);
-  const [confirmAction, setConfirmAction] = useState<{ resv: Reservation; action: "release" | "cancel" | "delete" } | null>(null);
+  const [confirmAction, setConfirmAction] = useState<{
+    resv: Reservation;
+    action: "release" | "cancel" | "delete";
+  } | null>(null);
   const [convertModal, setConvertModal] = useState<{
-    resv: Reservation; consumed: string; released: string; wastage: string; submitting: boolean;
+    resv: Reservation;
+    consumed: string;
+    released: string;
+    wastage: string;
+    submitting: boolean;
   } | null>(null);
 
   const [showForm, setShowForm] = useState(false);
@@ -145,12 +189,17 @@ export default function Reservations() {
   });
   const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => { if (isError) navigate("/login"); }, [isError, navigate]);
+  useEffect(() => {
+    if (isError) navigate("/login");
+  }, [isError, navigate]);
 
   useEffect(() => {
     if (!openActionId) return;
     const handler = (e: MouseEvent) => {
-      if (actionMenuRef.current && !actionMenuRef.current.contains(e.target as Node)) {
+      if (
+        actionMenuRef.current &&
+        !actionMenuRef.current.contains(e.target as Node)
+      ) {
         setOpenActionId(null);
       }
     };
@@ -160,11 +209,11 @@ export default function Reservations() {
 
   const buildQs = useCallback(() => {
     const p = new URLSearchParams({ page: String(page), limit: String(limit) });
-    if (search)               p.set("search",          search);
+    if (search) p.set("search", search);
     if (reservationType !== "all") p.set("reservationType", reservationType);
-    if (status !== "all")     p.set("status",           status);
-    if (fromDate)             p.set("fromDate",         fromDate);
-    if (toDate)               p.set("toDate",           toDate);
+    if (status !== "all") p.set("status", status);
+    if (fromDate) p.set("fromDate", fromDate);
+    if (toDate) p.set("toDate", toDate);
     return p.toString();
   }, [search, reservationType, status, fromDate, toDate, page]);
 
@@ -177,52 +226,126 @@ export default function Reservations() {
         setRows(d.rows);
         setTotal(d.total);
       })
-      .catch(() => toast({ title: "Failed to load reservations", variant: "destructive" }))
+      .catch(() =>
+        toast({ title: "Failed to load reservations", variant: "destructive" }),
+      )
       .finally(() => setLoading(false));
   }, [token, buildQs, toast]);
 
-  useEffect(() => { loadData(); }, [loadData]);
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
-  const loadInvItems = useCallback(() => {
+  const loadInvItems = useCallback((searchQuery = "") => {
     if (!token) return;
     setLoadingItems(true);
-    customFetch(`/api/inventory/items?limit=500&_t=${Date.now()}`)
+
+    const query = new URLSearchParams({
+      limit: "500",
+      ...(searchQuery ? { search: searchQuery } : {}),
+      _t: Date.now().toString(),
+    }).toString();
+
+    customFetch(`/api/inventory/items?${query}`)
       .then((r: unknown) => {
         const d = r as { data: InvItem[] };
-        // Defensive dedupe by id in case the API ever returns duplicates
-        const unique = Array.from(new Map((d.data ?? []).map(i => [i.id, i])).values());
-        setInvItems(unique);
+        setInvItems((prevItems) => {
+          const fetched = d.data ?? [];
+          // Keep previously selected item so its label doesn't disappear from the trigger button
+          const currentSelected = prevItems.find((i) => i.id === Number(form.inventoryId));
+          const combined = currentSelected && !fetched.some((i) => i.id === currentSelected.id)
+            ? [currentSelected, ...fetched]
+            : fetched;
+
+          return Array.from(new Map(combined.map((i) => [i.id, i])).values());
+        });
       })
       .catch(() => {})
       .finally(() => setLoadingItems(false));
-  }, [token]);
+  }, [token, form.inventoryId]);
 
-  const loadOrders = () => {
-    if (!token || (styleOrders.length && swatchOrders.length)) return;
-    setLoadingOrders(true);
-    Promise.all([
-      customFetch(`/api/style-orders?limit=500&_t=${Date.now()}`),
-      customFetch(`/api/swatch-orders?limit=500&_t=${Date.now()}`),
-    ])
-      .then(([sr, sw]) => {
-        const sd = sr as { data: Array<{ id: number; orderCode: string; styleName: string; clientName: string | null }> };
-        const wd = sw as { data: Array<{ id: number; orderCode: string; swatchName: string; clientName: string | null }> };
-        setStyleOrders((sd.data ?? []).map(o => ({ id: o.id, orderCode: o.orderCode, label: o.styleName, clientName: o.clientName })));
-        setSwatchOrders((wd.data ?? []).map(o => ({ id: o.id, orderCode: o.orderCode, label: o.swatchName, clientName: o.clientName })));
-      })
-      .catch(() => {})
-      .finally(() => setLoadingOrders(false));
+  const loadOrders = useCallback(
+    (type: "Style" | "Swatch", searchQuery = "") => {
+      if (!token) return;
+      setLoadingOrders(true);
+
+      const endpoint =
+        type === "Style" ? "/api/style-orders" : "/api/swatch-orders";
+      const query = new URLSearchParams({
+        limit: "50",
+        ...(searchQuery ? { search: searchQuery } : {}),
+        _t: Date.now().toString(),
+      }).toString();
+
+      customFetch(`${endpoint}?${query}`)
+        .then((r: unknown) => {
+          if (type === "Style") {
+            const sd = r as {
+              data: Array<{
+                id: number;
+                orderCode: string;
+                styleName: string;
+                clientName: string | null;
+              }>;
+            };
+            setStyleOrders(
+              (sd.data ?? []).map((o) => ({
+                id: o.id,
+                orderCode: o.orderCode,
+                label: o.styleName,
+                clientName: o.clientName,
+              })),
+            );
+          } else {
+            const wd = r as {
+              data: Array<{
+                id: number;
+                orderCode: string;
+                swatchName: string;
+                clientName: string | null;
+              }>;
+            };
+            setSwatchOrders(
+              (wd.data ?? []).map((o) => ({
+                id: o.id,
+                orderCode: o.orderCode,
+                label: o.swatchName,
+                clientName: o.clientName,
+              })),
+            );
+          }
+        })
+        .catch(() => { })
+        .finally(() => setLoadingOrders(false));
+    },
+    [token],
+  );
+
+  const openForm = () => {
+    loadInvItems();
+    loadOrders(form.reservationType as "Style" | "Swatch");
+    setShowForm(true);
   };
-
-  const openForm = () => { loadInvItems(); loadOrders(); setShowForm(true); };
-
   const handleSubmit = async () => {
-    if (!form.inventoryId || !form.referenceId || !form.reservedQuantity || !form.reservationDate) {
-      toast({ title: "Please fill all required fields", variant: "destructive" }); return;
+    if (
+      !form.inventoryId ||
+      !form.referenceId ||
+      !form.reservedQuantity ||
+      !form.reservationDate
+    ) {
+      toast({
+        title: "Please fill all required fields",
+        variant: "destructive",
+      });
+      return;
     }
     const qty = parseFloat(form.reservedQuantity);
     if (isNaN(qty) || qty <= 0) {
-      toast({ title: "Reserved quantity must be greater than 0", variant: "destructive" }); return;
+      toast({
+        title: "Reserved quantity must be greater than 0",
+        variant: "destructive",
+      });
+      return;
     }
     setSubmitting(true);
     try {
@@ -240,31 +363,55 @@ export default function Reservations() {
       });
       toast({ title: "Reservation created successfully" });
       setShowForm(false);
-      setForm({ inventoryId: "", reservationType: "Style", referenceId: "", reservedQuantity: "", remarks: "", reservationDate: new Date().toISOString().slice(0, 10) });
+      setForm({
+        inventoryId: "",
+        reservationType: "Style",
+        referenceId: "",
+        reservedQuantity: "",
+        remarks: "",
+        reservationDate: new Date().toISOString().slice(0, 10),
+      });
       loadData();
       loadInvItems();
     } catch (err: unknown) {
-      toast({ title: errMsg(err, "Failed to create reservation"), variant: "destructive" });
+      toast({
+        title: errMsg(err, "Failed to create reservation"),
+        variant: "destructive",
+      });
     } finally {
       setSubmitting(false);
     }
   };
 
-  const handleAction = async (resv: Reservation, action: "release" | "cancel" | "delete") => {
+  const handleAction = async (
+    resv: Reservation,
+    action: "release" | "cancel" | "delete",
+  ) => {
     setActioning(resv.id);
     try {
       if (action === "delete") {
-        await customFetch(`/api/inventory/reservations/${resv.id}`, { method: "DELETE" });
+        await customFetch(`/api/inventory/reservations/${resv.id}`, {
+          method: "DELETE",
+        });
       } else {
-        await customFetch(`/api/inventory/reservations/${resv.id}/${action}`, { method: "PATCH" });
+        await customFetch(`/api/inventory/reservations/${resv.id}/${action}`, {
+          method: "PATCH",
+        });
       }
-      const labels: Record<string, string> = { release: "Released", cancel: "Cancelled", delete: "Deleted" };
+      const labels: Record<string, string> = {
+        release: "Released",
+        cancel: "Cancelled",
+        delete: "Deleted",
+      };
       toast({ title: `Reservation ${labels[action]}` });
       setConfirmAction(null);
       loadData();
       loadInvItems();
     } catch (err: unknown) {
-      toast({ title: errMsg(err, `Failed to ${action}`), variant: "destructive" });
+      toast({
+        title: errMsg(err, `Failed to ${action}`),
+        variant: "destructive",
+      });
     } finally {
       setActioning(null);
     }
@@ -278,14 +425,17 @@ export default function Reservations() {
     const w = parseFloat(wastage) || 0;
     const reserved = parseFloat(resv.reserved_quantity);
     if (Math.abs(c + r + w - reserved) > 0.001) {
-      toast({ title: "Consumed + Released + Wastage must equal the reserved quantity", variant: "destructive" });
+      toast({
+        title: "Consumed + Released + Wastage must equal the reserved quantity",
+        variant: "destructive",
+      });
       return;
     }
     if (c < 0 || r < 0 || w < 0) {
       toast({ title: "Quantities cannot be negative", variant: "destructive" });
       return;
     }
-    setConvertModal(m => m ? { ...m, submitting: true } : null);
+    setConvertModal((m) => (m ? { ...m, submitting: true } : null));
     try {
       await customFetch(`/api/inventory/reservations/${resv.id}/convert`, {
         method: "PATCH",
@@ -297,60 +447,85 @@ export default function Reservations() {
       loadData();
       loadInvItems();
     } catch (err: unknown) {
-      toast({ title: errMsg(err, "Failed to convert reservation"), variant: "destructive" });
-      setConvertModal(m => m ? { ...m, submitting: false } : null);
+      toast({
+        title: errMsg(err, "Failed to convert reservation"),
+        variant: "destructive",
+      });
+      setConvertModal((m) => (m ? { ...m, submitting: false } : null));
     }
   };
 
-  const selectedItem = invItems.find(i => i.id === Number(form.inventoryId));
+  const selectedItem = invItems.find((i) => i.id === Number(form.inventoryId));
 
   const ACTION_META: Record<string, { label: string; btnCls: string }> = {
-    release: { label: "Release",  btnCls: "bg-green-600 hover:bg-green-700 text-white" },
-    cancel:  { label: "Cancel",   btnCls: "bg-orange-500 hover:bg-orange-600 text-white" },
-    delete:  { label: "Delete",   btnCls: "bg-red-600 hover:bg-red-700 text-white" },
+    release: {
+      label: "Release",
+      btnCls: "bg-green-600 hover:bg-green-700 text-white",
+    },
+    cancel: {
+      label: "Cancel",
+      btnCls: "bg-orange-500 hover:bg-orange-600 text-white",
+    },
+    delete: {
+      label: "Delete",
+      btnCls: "bg-red-600 hover:bg-red-700 text-white",
+    },
   };
 
-  if (loading) return (
-    <div className="min-h-screen" style={{ background: "#F8F6F0" }}>
-      <TopNavbar username="" role="" onLogout={() => {}} isLoggingOut={false} />
-      <div className="py-6 px-6 max-w-screen-2xl mx-auto space-y-5 animate-pulse">
-        <div className="flex items-center justify-between flex-wrap gap-3">
-          <div className="space-y-2">
-            <div className="h-6 w-52 bg-gray-200 rounded-lg" />
-            <div className="h-4 w-64 bg-gray-100 rounded" />
-          </div>
-          <div className="h-9 w-36 bg-gray-200 rounded-xl" />
-        </div>
-        <div className="bg-white rounded-2xl shadow-sm p-4">
-          <div className="flex flex-wrap gap-3">
-            <div className="h-9 w-52 bg-gray-100 rounded-xl" />
-            <div className="h-9 w-36 bg-gray-100 rounded-xl" />
-            <div className="h-9 w-36 bg-gray-100 rounded-xl" />
-            <div className="h-9 w-32 bg-gray-100 rounded-xl" />
-          </div>
-        </div>
-        <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-          <div className="h-11 bg-gray-50 border-b border-gray-100" />
-          {[...Array(7)].map((_, i) => (
-            <div key={i} className="h-14 border-t border-gray-50 px-5 flex items-center gap-6">
-              <div className="h-3.5 bg-gray-100 rounded w-28" />
-              <div className="h-3.5 bg-gray-100 rounded w-36" />
-              <div className="h-3.5 bg-gray-100 rounded w-20" />
-              <div className="h-3.5 bg-gray-100 rounded w-16" />
-              <div className="h-5 bg-gray-100 rounded-full w-16 ml-auto" />
+  if (loading)
+    return (
+      <div className="min-h-screen" style={{ background: "#F8F6F0" }}>
+        <TopNavbar
+          username=""
+          role=""
+          onLogout={() => { }}
+          isLoggingOut={false}
+        />
+        <div className="py-6 px-6 max-w-screen-2xl mx-auto space-y-5 animate-pulse">
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <div className="space-y-2">
+              <div className="h-6 w-52 bg-gray-200 rounded-lg" />
+              <div className="h-4 w-64 bg-gray-100 rounded" />
             </div>
-          ))}
-          <div className="h-12 border-t border-gray-100" />
+            <div className="h-9 w-36 bg-gray-200 rounded-xl" />
+          </div>
+          <div className="bg-white rounded-2xl shadow-sm p-4">
+            <div className="flex flex-wrap gap-3">
+              <div className="h-9 w-52 bg-gray-100 rounded-xl" />
+              <div className="h-9 w-36 bg-gray-100 rounded-xl" />
+              <div className="h-9 w-36 bg-gray-100 rounded-xl" />
+              <div className="h-9 w-32 bg-gray-100 rounded-xl" />
+            </div>
+          </div>
+          <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+            <div className="h-11 bg-gray-50 border-b border-gray-100" />
+            {[...Array(7)].map((_, i) => (
+              <div
+                key={i}
+                className="h-14 border-t border-gray-50 px-5 flex items-center gap-6"
+              >
+                <div className="h-3.5 bg-gray-100 rounded w-28" />
+                <div className="h-3.5 bg-gray-100 rounded w-36" />
+                <div className="h-3.5 bg-gray-100 rounded w-20" />
+                <div className="h-3.5 bg-gray-100 rounded w-16" />
+                <div className="h-5 bg-gray-100 rounded-full w-16 ml-auto" />
+              </div>
+            ))}
+            <div className="h-12 border-t border-gray-100" />
+          </div>
         </div>
       </div>
-    </div>
-  );
+    );
 
   return (
     <div className="min-h-screen" style={{ background: "#F8F6F0" }}>
-      <TopNavbar username={(me as any)?.name ?? ""} role={(me as any)?.role ?? ""} onLogout={handleLogout} isLoggingOut={false} />
+      <TopNavbar
+        username={(me as any)?.name ?? ""}
+        role={(me as any)?.role ?? ""}
+        onLogout={handleLogout}
+        isLoggingOut={false}
+      />
       <div className="py-6 px-6 max-w-screen-2xl mx-auto space-y-5">
-
         {/* Header */}
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-3">
@@ -358,15 +533,21 @@ export default function Reservations() {
               <Bookmark className="h-5 w-5" style={{ color: G }} />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-cyan-900">Material Reservations</h1>
-              <p className="text-sm text-gray-500 mt-0.5">Reserve inventory for styles and swatches</p>
+              <h1 className="text-xl font-bold text-cyan-900">
+                Material Reservations
+              </h1>
+              <p className="text-sm text-gray-500 mt-0.5">
+                Reserve inventory for styles and swatches
+              </p>
             </div>
           </div>
-          {/* <button onClick={openForm}
+          <button
+            onClick={openForm}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white shadow-sm"
-            style={{ background: `linear-gradient(135deg, ${G}, #A8943E)` }}>
+            style={{ background: `linear-gradient(135deg, ${G}, #A8943E)` }}
+          >
             <Plus className="h-4 w-4" /> New Reservation
-          </button> */}
+          </button>
         </div>
 
         {/* Filters */}
@@ -374,14 +555,27 @@ export default function Reservations() {
           <div className="flex flex-wrap gap-3">
             <div className="relative min-w-[220px]">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
-              <input type="text" placeholder="Search item name or code…" value={search}
-                onChange={e => { setSearch(e.target.value); setPage(1); }}
-                className="w-full pl-8 pr-3 py-2 text-sm text-cyan-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30" />
+              <input
+                type="text"
+                placeholder="Search item name or code…"
+                value={search}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setPage(1);
+                }}
+                className="w-full pl-8 pr-3 py-2 text-sm text-cyan-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30"
+              />
             </div>
 
             <div className="relative">
-              <select value={reservationType} onChange={e => { setReservationType(e.target.value); setPage(1); }}
-                className="appearance-none pl-3 pr-8 py-2 text-sm text-cyan-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30 bg-white min-w-[150px]">
+              <select
+                value={reservationType}
+                onChange={(e) => {
+                  setReservationType(e.target.value);
+                  setPage(1);
+                }}
+                className="appearance-none pl-3 pr-8 py-2 text-sm text-cyan-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30 bg-white min-w-[150px]"
+              >
                 <option value="all">All Types</option>
                 <option value="Style">Style</option>
                 <option value="Swatch">Swatch</option>
@@ -390,8 +584,14 @@ export default function Reservations() {
             </div>
 
             <div className="relative">
-              <select value={status} onChange={e => { setStatus(e.target.value); setPage(1); }}
-                className="appearance-none pl-3 pr-8 py-2 text-sm text-cyan-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30 bg-white min-w-[150px]">
+              <select
+                value={status}
+                onChange={(e) => {
+                  setStatus(e.target.value);
+                  setPage(1);
+                }}
+                className="appearance-none pl-3 pr-8 py-2 text-sm text-cyan-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30 bg-white min-w-[150px]"
+              >
                 <option value="all">All Status</option>
                 <option value="Active">Active</option>
                 <option value="Released">Released</option>
@@ -403,35 +603,64 @@ export default function Reservations() {
 
             <div className="flex items-center gap-1 border border-gray-200 rounded-xl px-2 py-1 bg-white">
               <CalendarRange className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
-              <input type="date" value={fromDate} max={toDate || undefined}
-                onChange={e => {
+              <input
+                type="date"
+                value={fromDate}
+                max={toDate || undefined}
+                onChange={(e) => {
                   const v = e.target.value;
                   if (v && toDate && v > toDate) {
-                    toast({ title: "From date cannot be after To date", variant: "destructive" });
+                    toast({
+                      title: "From date cannot be after To date",
+                      variant: "destructive",
+                    });
                     return;
                   }
-                  setFromDate(v); setPage(1);
+                  setFromDate(v);
+                  setPage(1);
                 }}
-                className="text-xs text-cyan-900 border-0 outline-none bg-transparent w-[110px]" />
+                className="text-xs text-cyan-900 border-0 outline-none bg-transparent w-[110px]"
+              />
               <span className="text-gray-300 text-xs">—</span>
-              <input type="date" value={toDate} min={fromDate || undefined}
-                onChange={e => {
+              <input
+                type="date"
+                value={toDate}
+                min={fromDate || undefined}
+                onChange={(e) => {
                   const v = e.target.value;
                   if (v && fromDate && v < fromDate) {
-                    toast({ title: "To date cannot be before From date", variant: "destructive" });
+                    toast({
+                      title: "To date cannot be before From date",
+                      variant: "destructive",
+                    });
                     return;
                   }
-                  setToDate(v); setPage(1);
+                  setToDate(v);
+                  setPage(1);
                 }}
-                className="text-xs text-cyan-900 border-0 outline-none bg-transparent w-[110px]" />
+                className="text-xs text-cyan-900 border-0 outline-none bg-transparent w-[110px]"
+              />
             </div>
 
-            {(search || reservationType !== "all" || status !== "all" || fromDate || toDate) && (
-              <button onClick={() => { setSearch(""); setReservationType("all"); setStatus("all"); setFromDate(""); setToDate(""); setPage(1); }}
-                className="flex items-center gap-1 text-xs text-slate-500 px-3 py-2 rounded-xl border border-gray-200 hover:bg-gray-50">
-                <X className="h-3.5 w-3.5" /> Clear
-              </button>
-            )}
+            {(search ||
+              reservationType !== "all" ||
+              status !== "all" ||
+              fromDate ||
+              toDate) && (
+                <button
+                  onClick={() => {
+                    setSearch("");
+                    setReservationType("all");
+                    setStatus("all");
+                    setFromDate("");
+                    setToDate("");
+                    setPage(1);
+                  }}
+                  className="flex items-center gap-1 text-xs text-slate-500 px-3 py-2 rounded-xl border border-gray-200 hover:bg-gray-50"
+                >
+                  <X className="h-3.5 w-3.5" /> Clear
+                </button>
+              )}
           </div>
         </div>
 
@@ -455,107 +684,197 @@ export default function Reservations() {
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {loading ? (
-                  <tr><td colSpan={10} className="px-4 py-12 text-center">
-                    <div className="flex flex-col items-center gap-2">
-                      <div className="h-8 w-8 rounded-full border-2 border-[#C6AF4B] border-t-transparent animate-spin" />
-                      <span className="text-sm text-slate-500">Loading…</span>
-                    </div>
-                  </td></tr>
-                ) : rows.length === 0 ? (
-                  <tr><td colSpan={10} className="px-4 py-16 text-center">
-                    <Bookmark className="h-10 w-10 text-gray-300 mx-auto mb-2" />
-                    <p className="text-sm text-slate-500 font-medium">No reservations found</p>
-                    <p className="text-xs text-gray-400 mt-1">Create a reservation to reserve materials for a style or swatch</p>
-                  </td></tr>
-                ) : rows.map((r, idx) => (
-                  <tr key={r.id} className="hover:bg-[#C6AF4B]/5 transition-colors">
-                    <td className={tdCls}><span className="text-xs text-gray-400">{(page-1)*limit+idx+1}</span></td>
-                    <td className={tdCls}>
-                      <div className="text-sm font-medium text-cyan-900">{r.item_name}</div>
-                      <div className="text-xs text-gray-400 font-mono">{r.item_code}</div>
-                      {r.remarks && <div className="text-xs text-gray-400 italic mt-0.5">{r.remarks}</div>}
-                    </td>
-                    <td className={tdCls}>
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold ${TYPE_COLOR[r.reservation_type] ?? "bg-gray-100 text-gray-600"}`}>
-                        {r.reservation_type}
-                      </span>
-                    </td>
-                    <td className={tdCls}>
-                      <div className="text-sm font-mono font-semibold text-cyan-900">
-                        {r.reference_code ?? `#${r.reference_id}`}
-                      </div>
-                      {r.reference_name && (
-                        <div className="text-[11px] text-gray-400 truncate max-w-[120px]">{r.reference_name}</div>
-                      )}
-                    </td>
-                    <td className={tdCls}>
-                      <span className="text-sm font-mono font-semibold" style={{ color: G }}>
-                        {fmtQty(r.reserved_quantity)} {r.unit_type || ""}
-                      </span>
-                    </td>
-                    <td className={tdCls}>
-                      <span className={`text-sm font-mono ${parseFloat(r.available_stock) <= 0 ? "text-red-600 font-bold" : "text-slate-500"}`}>
-                        {fmtQty(r.available_stock)}
-                      </span>
-                    </td>
-                    <td className={tdCls}><span className="text-xs">{fmtDate(r.reservation_date)}</span></td>
-                    <td className={tdCls}><StatusBadge s={r.status} /></td>
-                    <td className={tdCls}><span className="text-xs text-gray-500">{r.reserved_by || "—"}</span></td>
-                    <td className={tdCls}>
-                      <div className="relative" ref={openActionId === r.id ? actionMenuRef : undefined}>
-                        <button
-                          onClick={() => setOpenActionId(openActionId === r.id ? null : r.id)}
-                          className="p-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-100 transition-colors">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </button>
-
-                        {openActionId === r.id && (
-                          <div className="absolute right-0 z-30 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-xl min-w-[160px] py-1">
-
-                            {r.status === "Active" && (
-                              <button
-                                onClick={() => { setOpenActionId(null); setConvertModal({ resv: r, consumed: fmtQty(r.reserved_quantity), released: "0", wastage: "0", submitting: false }); }}
-                                className="w-full text-left px-3 py-2 text-xs text-blue-700 hover:bg-blue-50 flex items-center gap-2.5">
-                                <ArrowRightLeft className="h-3.5 w-3.5" /> Convert
-                              </button>
-                            )}
-
-                            {r.status === "Active" && isAdmin && (
-                              <button
-                                onClick={() => { setOpenActionId(null); setConfirmAction({ resv: r, action: "release" }); }}
-                                className="w-full text-left px-3 py-2 text-xs text-green-700 hover:bg-green-50 flex items-center gap-2.5">
-                                <RefreshCw className="h-3.5 w-3.5" /> Release
-                              </button>
-                            )}
-
-                            {r.status === "Active" && isAdmin && (
-                              <button
-                                onClick={() => { setOpenActionId(null); setConfirmAction({ resv: r, action: "cancel" }); }}
-                                className="w-full text-left px-3 py-2 text-xs text-orange-600 hover:bg-orange-50 flex items-center gap-2.5">
-                                <XCircle className="h-3.5 w-3.5" /> Cancel
-                              </button>
-                            )}
-
-                            {isAdmin && (
-                              <>
-                                {(r.status === "Active") && <div className="mx-2 my-1 border-t border-gray-100" />}
-                                <button
-                                  onClick={() => { setOpenActionId(null); setConfirmAction({ resv: r, action: "delete" }); }}
-                                  className="w-full text-left px-3 py-2 text-xs text-red-600 hover:bg-red-50 flex items-center gap-2.5">
-                                  <Trash2 className="h-3.5 w-3.5" /> Delete
-                                </button>
-                              </>
-                            )}
-
-                            {!isAdmin && r.status !== "Active" && (
-                              <div className="px-3 py-2 text-xs text-gray-400">No actions available</div>
-                            )}
-                          </div>
-                        )}
+                  <tr>
+                    <td colSpan={10} className="px-4 py-12 text-center">
+                      <div className="flex flex-col items-center gap-2">
+                        <div className="h-8 w-8 rounded-full border-2 border-[#C6AF4B] border-t-transparent animate-spin" />
+                        <span className="text-sm text-slate-500">Loading…</span>
                       </div>
                     </td>
                   </tr>
-                ))}
+                ) : rows.length === 0 ? (
+                  <tr>
+                    <td colSpan={10} className="px-4 py-16 text-center">
+                      <Bookmark className="h-10 w-10 text-gray-300 mx-auto mb-2" />
+                      <p className="text-sm text-slate-500 font-medium">
+                        No reservations found
+                      </p>
+                      <p className="text-xs text-gray-400 mt-1">
+                        Create a reservation to reserve materials for a style or
+                        swatch
+                      </p>
+                    </td>
+                  </tr>
+                ) : (
+                  rows.map((r, idx) => (
+                    <tr
+                      key={r.id}
+                      className="hover:bg-[#C6AF4B]/5 transition-colors"
+                    >
+                      <td className={tdCls}>
+                        <span className="text-xs text-gray-400">
+                          {(page - 1) * limit + idx + 1}
+                        </span>
+                      </td>
+                      <td className={tdCls}>
+                        <div className="text-sm font-medium text-cyan-900">
+                          {r.item_name}
+                        </div>
+                        <div className="text-xs text-gray-400 font-mono">
+                          {r.item_code}
+                        </div>
+                        {r.remarks && (
+                          <div className="text-xs text-gray-400 italic mt-0.5">
+                            {r.remarks}
+                          </div>
+                        )}
+                      </td>
+                      <td className={tdCls}>
+                        <span
+                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold ${TYPE_COLOR[r.reservation_type] ?? "bg-gray-100 text-gray-600"}`}
+                        >
+                          {r.reservation_type}
+                        </span>
+                      </td>
+                      <td className={tdCls}>
+                        <div className="text-sm font-mono font-semibold text-cyan-900">
+                          {r.reference_code ?? `#${r.reference_id}`}
+                        </div>
+                        {r.reference_name && (
+                          <div className="text-[11px] text-gray-400 truncate max-w-[120px]">
+                            {r.reference_name}
+                          </div>
+                        )}
+                      </td>
+                      <td className={tdCls}>
+                        <span
+                          className="text-sm font-mono font-semibold"
+                          style={{ color: G }}
+                        >
+                          {fmtQty(r.reserved_quantity)} {r.unit_type || ""}
+                        </span>
+                      </td>
+                      <td className={tdCls}>
+                        <span
+                          className={`text-sm font-mono ${parseFloat(r.available_stock) <= 0 ? "text-red-600 font-bold" : "text-slate-500"}`}
+                        >
+                          {fmtQty(r.available_stock)}
+                        </span>
+                      </td>
+                      <td className={tdCls}>
+                        <span className="text-xs">
+                          {fmtDate(r.reservation_date)}
+                        </span>
+                      </td>
+                      <td className={tdCls}>
+                        <StatusBadge s={r.status} />
+                      </td>
+                      <td className={tdCls}>
+                        <span className="text-xs text-gray-500">
+                          {r.reserved_by || "—"}
+                        </span>
+                      </td>
+                      <td className={tdCls}>
+                        <div
+                          className="relative"
+                          ref={
+                            openActionId === r.id ? actionMenuRef : undefined
+                          }
+                        >
+                          <button
+                            onClick={() =>
+                              setOpenActionId(
+                                openActionId === r.id ? null : r.id,
+                              )
+                            }
+                            className="p-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-100 transition-colors"
+                          >
+                            <MoreHorizontal className="h-4 w-4" />
+                          </button>
+
+                          {openActionId === r.id && (
+                            <div className="absolute right-0 z-30 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-xl min-w-[160px] py-1">
+                              {r.status === "Active" && (
+                                <button
+                                  onClick={() => {
+                                    setOpenActionId(null);
+                                    setConvertModal({
+                                      resv: r,
+                                      consumed: fmtQty(r.reserved_quantity),
+                                      released: "0",
+                                      wastage: "0",
+                                      submitting: false,
+                                    });
+                                  }}
+                                  className="w-full text-left px-3 py-2 text-xs text-blue-700 hover:bg-blue-50 flex items-center gap-2.5"
+                                >
+                                  <ArrowRightLeft className="h-3.5 w-3.5" />{" "}
+                                  Convert
+                                </button>
+                              )}
+
+                              {r.status === "Active" && isAdmin && (
+                                <button
+                                  onClick={() => {
+                                    setOpenActionId(null);
+                                    setConfirmAction({
+                                      resv: r,
+                                      action: "release",
+                                    });
+                                  }}
+                                  className="w-full text-left px-3 py-2 text-xs text-green-700 hover:bg-green-50 flex items-center gap-2.5"
+                                >
+                                  <RefreshCw className="h-3.5 w-3.5" /> Release
+                                </button>
+                              )}
+
+                              {r.status === "Active" && isAdmin && (
+                                <button
+                                  onClick={() => {
+                                    setOpenActionId(null);
+                                    setConfirmAction({
+                                      resv: r,
+                                      action: "cancel",
+                                    });
+                                  }}
+                                  className="w-full text-left px-3 py-2 text-xs text-orange-600 hover:bg-orange-50 flex items-center gap-2.5"
+                                >
+                                  <XCircle className="h-3.5 w-3.5" /> Cancel
+                                </button>
+                              )}
+
+                              {isAdmin && (
+                                <>
+                                  {r.status === "Active" && (
+                                    <div className="mx-2 my-1 border-t border-gray-100" />
+                                  )}
+                                  <button
+                                    onClick={() => {
+                                      setOpenActionId(null);
+                                      setConfirmAction({
+                                        resv: r,
+                                        action: "delete",
+                                      });
+                                    }}
+                                    className="w-full text-left px-3 py-2 text-xs text-red-600 hover:bg-red-50 flex items-center gap-2.5"
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" /> Delete
+                                  </button>
+                                </>
+                              )}
+
+                              {!isAdmin && r.status !== "Active" && (
+                                <div className="px-3 py-2 text-xs text-gray-400">
+                                  No actions available
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
@@ -563,25 +882,36 @@ export default function Reservations() {
           {total > limit && (
             <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200">
               <span className="text-xs text-slate-500">
-                Showing {(page-1)*limit+1}–{Math.min(page*limit, total)} of {total}
+                Showing {(page - 1) * limit + 1}–{Math.min(page * limit, total)}{" "}
+                of {total}
               </span>
               <div className="flex items-center gap-1">
-                <button onClick={() => setPage(p => Math.max(1, p-1))} disabled={page===1}
-                  className="p-1.5 rounded-lg hover:bg-gray-100 disabled:opacity-40">
+                <button
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                  className="p-1.5 rounded-lg hover:bg-gray-100 disabled:opacity-40"
+                >
                   <ChevronDown className="h-4 w-4 text-slate-500 -rotate-90" />
                 </button>
                 {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                  const pg = Math.max(1, Math.min(totalPages-4, page-2)) + i;
+                  const pg =
+                    Math.max(1, Math.min(totalPages - 4, page - 2)) + i;
                   return (
-                    <button key={pg} onClick={() => setPage(pg)}
-                      className={`min-w-[32px] h-8 rounded-lg text-xs font-medium ${pg===page ? "text-white" : "text-slate-500 hover:bg-gray-100"}`}
-                      style={pg===page ? { background: G } : {}}>
+                    <button
+                      key={pg}
+                      onClick={() => setPage(pg)}
+                      className={`min-w-[32px] h-8 rounded-lg text-xs font-medium ${pg === page ? "text-white" : "text-slate-500 hover:bg-gray-100"}`}
+                      style={pg === page ? { background: G } : {}}
+                    >
                       {pg}
                     </button>
                   );
                 })}
-                <button onClick={() => setPage(p => Math.min(totalPages, p+1))} disabled={page===totalPages}
-                  className="p-1.5 rounded-lg hover:bg-gray-100 disabled:opacity-40">
+                <button
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={page === totalPages}
+                  className="p-1.5 rounded-lg hover:bg-gray-100 disabled:opacity-40"
+                >
                   <ChevronDown className="h-4 w-4 text-slate-500 rotate-90" />
                 </button>
               </div>
@@ -589,7 +919,9 @@ export default function Reservations() {
           )}
           {total > 0 && total <= limit && (
             <div className="px-4 py-3 border-t border-gray-200">
-              <span className="text-xs text-gray-500">{total} record{total !== 1 ? "s" : ""}</span>
+              <span className="text-xs text-gray-500">
+                {total} record{total !== 1 ? "s" : ""}
+              </span>
             </div>
           )}
         </div>
@@ -602,98 +934,183 @@ export default function Reservations() {
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
               <div className="flex items-center gap-2">
                 <Bookmark className="h-5 w-5" style={{ color: G }} />
-                <h2 className="text-base font-bold text-cyan-900">New Reservation</h2>
+                <h2 className="text-base font-bold text-cyan-900">
+                  New Reservation
+                </h2>
               </div>
-              <button onClick={() => setShowForm(false)} className="p-1.5 rounded-lg hover:bg-gray-100">
+              <button
+                onClick={() => setShowForm(false)}
+                className="p-1.5 rounded-lg hover:bg-gray-100"
+              >
                 <X className="h-4 w-4 text-gray-500" />
               </button>
             </div>
             <div className="p-5 space-y-4">
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Inventory Item <span className="text-red-500">*</span></label>
-                <select value={form.inventoryId}
-                  onChange={e => setForm(f => ({ ...f, inventoryId: e.target.value ? parseInt(e.target.value) : "" }))}
-                  className="w-full appearance-none pl-3 pr-8 py-2 text-sm text-cyan-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30 bg-white">
-                  <option value="">{loadingItems ? "Loading items…" : "Select item…"}</option>
-                  {invItems.map(i => (
-                    <option key={i.id} value={i.id}>
-                      {i.item_name} ({i.item_code}) — {fmtQty(i.available_stock)} avail.
-                    </option>
-                  ))}
-                </select>
+                <label className="block text-xs font-medium text-gray-600 mb-1">
+                  Inventory Item <span className="text-red-500">*</span>
+                </label>
+                <SmallSearchSelect
+                  placeholder={loadingItems ? "Loading items…" : "Select item…"}
+                  value={form.inventoryId ? String(form.inventoryId) : ""}
+                  onChange={(val) => {
+                    setForm((f) => ({
+                      ...f,
+                      inventoryId: val ? Number(val) : "",
+                    }));
+                    // Reload full initial list after selection or clearing
+                    loadInvItems();
+                  }}
+                  onSearch={(q) => loadInvItems(q)}
+                  options={invItems.map((i) => ({
+                    value: String(i.id),
+                    label: `${i.item_name} (${i.item_code}) — ${fmtQty(i.available_stock)} avail.`,
+                  }))}
+                />
                 {selectedItem && (
                   <p className="text-xs mt-1 text-amber-600 font-medium">
-                    Available stock: {fmtQty(selectedItem.available_stock)} {selectedItem.unit_type || ""}
+                    Available stock: {fmtQty(selectedItem.available_stock)}{" "}
+                    {selectedItem.unit_type || ""}
                   </p>
                 )}
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Reservation Type <span className="text-red-500">*</span></label>
-                  <select value={form.reservationType}
-                    onChange={e => setForm(f => ({ ...f, reservationType: e.target.value, referenceId: "" }))}
-                    className="w-full appearance-none pl-3 pr-8 py-2 text-sm text-cyan-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30 bg-white">
+                  <label className="block text-xs font-medium text-gray-600 mb-1">
+                    Reservation Type <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={form.reservationType}
+                    onChange={(e) => {
+                      const type = e.target.value as "Style" | "Swatch";
+                      setForm((f) => ({
+                        ...f,
+                        reservationType: type,
+                        referenceId: "",
+                      }));
+                      loadOrders(type);
+                    }}
+                    className="w-full appearance-none pl-3 pr-8 py-2 text-sm text-cyan-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30 bg-white"
+                  >
                     <option value="Style">Style</option>
                     <option value="Swatch">Swatch</option>
                   </select>
                 </div>
+
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">
-                    {form.reservationType === "Style" ? "Style Order" : "Swatch Order"} <span className="text-red-500">*</span>
+                    {form.reservationType === "Style"
+                      ? "Style Order"
+                      : "Swatch Order"}{" "}
+                    <span className="text-red-500">*</span>
                   </label>
-                  <select value={form.referenceId}
-                    onChange={e => setForm(f => ({ ...f, referenceId: e.target.value }))}
-                    className="w-full appearance-none pl-3 pr-8 py-2 text-sm text-cyan-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30 bg-white">
-                    <option value="">
-                      {loadingOrders ? "Loading…" : `Select ${form.reservationType === "Style" ? "style" : "swatch"} order…`}
-                    </option>
-                    {(form.reservationType === "Style" ? styleOrders : swatchOrders).map(o => (
-                      <option key={o.id} value={o.id}>
-                        {o.orderCode} — {o.label}{o.clientName ? ` (${o.clientName})` : ""}
-                      </option>
-                    ))}
-                  </select>
+                  <SmallSearchSelect
+                    placeholder={
+                      loadingOrders
+                        ? "Loading…"
+                        : `Select ${form.reservationType.toLowerCase()} order…`
+                    }
+                    value={form.referenceId}
+                    onChange={(val) => {
+                      setForm((f) => ({ ...f, referenceId: val }));
+                      // Reload full initial list for current type after selection or clearing
+                      loadOrders(form.reservationType as "Style" | "Swatch");
+                    }}
+                    onSearch={(q) =>
+                      loadOrders(form.reservationType as "Style" | "Swatch", q)
+                    }
+                    options={(form.reservationType === "Style"
+                      ? styleOrders
+                      : swatchOrders
+                    ).map((o) => ({
+                      value: String(o.id),
+                      label: `${o.orderCode} — ${o.label}${o.clientName ? ` (${o.clientName})` : ""}`,
+                    }))}
+                  />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Reserved Quantity <span className="text-red-500">*</span></label>
-                  <input type="number" min="0.001" step="0.001" value={form.reservedQuantity}
-                    onChange={e => setForm(f => ({ ...f, reservedQuantity: e.target.value }))}
+                  <label className="block text-xs font-medium text-gray-600 mb-1">
+                    Reserved Quantity <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    min="0.001"
+                    step="0.001"
+                    value={form.reservedQuantity}
+                    onChange={(e) =>
+                      setForm((f) => ({
+                        ...f,
+                        reservedQuantity: e.target.value,
+                      }))
+                    }
                     placeholder="0.000"
                     className={`w-full px-3 py-2 text-sm text-cyan-900 rounded-xl border focus:outline-none focus:ring-2 text-right
-                      ${selectedItem && parseFloat(form.reservedQuantity) > parseFloat(selectedItem.available_stock)
-                        ? "border-red-400 focus:ring-red-200" : "border-gray-200 focus:ring-[#C6AF4B]/30"}`} />
-                  {selectedItem && parseFloat(form.reservedQuantity) > parseFloat(selectedItem.available_stock) && (
-                    <p className="text-[11px] text-red-500 mt-0.5">Exceeds available stock</p>
-                  )}
+                      ${selectedItem &&
+                        parseFloat(form.reservedQuantity) >
+                        parseFloat(selectedItem.available_stock)
+                        ? "border-red-400 focus:ring-red-200"
+                        : "border-gray-200 focus:ring-[#C6AF4B]/30"
+                      }`}
+                  />
+                  {selectedItem &&
+                    parseFloat(form.reservedQuantity) >
+                    parseFloat(selectedItem.available_stock) && (
+                      <p className="text-[11px] text-red-500 mt-0.5">
+                        Exceeds available stock
+                      </p>
+                    )}
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Reservation Date <span className="text-red-500">*</span></label>
-                  <input type="date" value={form.reservationDate}
-                    onChange={e => setForm(f => ({ ...f, reservationDate: e.target.value }))}
-                    className="w-full px-3 py-2 text-sm text-cyan-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30" />
+                  <label className="block text-xs font-medium text-gray-600 mb-1">
+                    Reservation Date <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    value={form.reservationDate}
+                    onChange={(e) =>
+                      setForm((f) => ({
+                        ...f,
+                        reservationDate: e.target.value,
+                      }))
+                    }
+                    className="w-full px-3 py-2 text-sm text-cyan-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30"
+                  />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Remarks</label>
-                <input type="text" value={form.remarks}
-                  onChange={e => setForm(f => ({ ...f, remarks: e.target.value }))}
+                <label className="block text-xs font-medium text-gray-600 mb-1">
+                  Remarks
+                </label>
+                <input
+                  type="text"
+                  value={form.remarks}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, remarks: e.target.value }))
+                  }
                   placeholder="Optional notes…"
-                  className="w-full px-3 py-2 text-sm text-cyan-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30" />
+                  className="w-full px-3 py-2 text-sm text-cyan-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30"
+                />
               </div>
             </div>
             <div className="flex justify-end gap-3 px-5 py-4 border-t border-gray-200">
-              <button onClick={() => setShowForm(false)} disabled={submitting}
-                className="px-4 py-2 rounded-xl text-sm font-medium text-slate-500 border border-gray-200 hover:bg-gray-50 disabled:opacity-50">
+              <button
+                onClick={() => setShowForm(false)}
+                disabled={submitting}
+                className="px-4 py-2 rounded-xl text-sm font-medium text-slate-500 border border-gray-200 hover:bg-gray-50 disabled:opacity-50"
+              >
                 Cancel
               </button>
-              <button onClick={handleSubmit} disabled={submitting}
+              <button
+                onClick={handleSubmit}
+                disabled={submitting}
                 className="px-5 py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-50"
-                style={{ background: `linear-gradient(135deg, ${G}, #A8943E)` }}>
+                style={{ background: `linear-gradient(135deg, ${G}, #A8943E)` }}
+              >
                 {submitting ? "Creating…" : "Create Reservation"}
               </button>
             </div>
@@ -706,43 +1123,73 @@ export default function Reservations() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
           <div className={`${card} w-full max-w-sm p-6`}>
             <div className="flex items-start gap-3 mb-4">
-              <div className={`p-2 rounded-lg flex-shrink-0 ${
-                confirmAction.action === "delete" ? "bg-red-100" :
-                confirmAction.action === "release" ? "bg-green-100" : "bg-orange-100"
-              }`}>
-                {confirmAction.action === "delete" ? <Trash2 className="h-5 w-5 text-red-600" /> :
-                 confirmAction.action === "release" ? <RefreshCw className="h-5 w-5 text-green-600" /> :
-                 <XCircle className="h-5 w-5 text-orange-600" />}
+              <div
+                className={`p-2 rounded-lg flex-shrink-0 ${confirmAction.action === "delete"
+                  ? "bg-red-100"
+                  : confirmAction.action === "release"
+                    ? "bg-green-100"
+                    : "bg-orange-100"
+                  }`}
+              >
+                {confirmAction.action === "delete" ? (
+                  <Trash2 className="h-5 w-5 text-red-600" />
+                ) : confirmAction.action === "release" ? (
+                  <RefreshCw className="h-5 w-5 text-green-600" />
+                ) : (
+                  <XCircle className="h-5 w-5 text-orange-600" />
+                )}
               </div>
               <div>
                 <h3 className="text-sm font-bold text-cyan-900">
-                  {confirmAction.action === "delete" ? "Delete Reservation?" :
-                   confirmAction.action === "release" ? "Release Reservation?" : "Cancel Reservation?"}
+                  {confirmAction.action === "delete"
+                    ? "Delete Reservation?"
+                    : confirmAction.action === "release"
+                      ? "Release Reservation?"
+                      : "Cancel Reservation?"}
                 </h3>
                 <p className="text-xs text-gray-500 mt-1">
-                  {confirmAction.resv.item_name} — {fmtQty(confirmAction.resv.reserved_quantity)} {confirmAction.resv.unit_type || "units"} for {confirmAction.resv.reservation_type} {confirmAction.resv.reference_code ?? `#${confirmAction.resv.reference_id}`}.
-                  {confirmAction.action === "release" && " Reserved qty will be returned to available stock."}
-                  {confirmAction.action === "cancel" && " Reserved qty will be returned to available stock."}
-                  {confirmAction.action === "delete" && " This will permanently remove this record."}
+                  {confirmAction.resv.item_name} —{" "}
+                  {fmtQty(confirmAction.resv.reserved_quantity)}{" "}
+                  {confirmAction.resv.unit_type || "units"} for{" "}
+                  {confirmAction.resv.reservation_type}{" "}
+                  {confirmAction.resv.reference_code ??
+                    `#${confirmAction.resv.reference_id}`}
+                  .
+                  {confirmAction.action === "release" &&
+                    " Reserved qty will be returned to available stock."}
+                  {confirmAction.action === "cancel" &&
+                    " Reserved qty will be returned to available stock."}
+                  {confirmAction.action === "delete" &&
+                    " This will permanently remove this record."}
                 </p>
               </div>
             </div>
             {confirmAction.action === "release" && !isAdmin && (
               <div className="flex items-center gap-2 p-2 bg-amber-50 rounded-lg mb-3">
                 <Shield className="h-4 w-4 text-amber-600 flex-shrink-0" />
-                <p className="text-xs text-amber-700">Admin permission required to release reservations.</p>
+                <p className="text-xs text-amber-700">
+                  Admin permission required to release reservations.
+                </p>
               </div>
             )}
             <div className="flex gap-2 justify-end">
-              <button onClick={() => setConfirmAction(null)} disabled={actioning !== null}
-                className="px-4 py-2 rounded-xl text-sm font-medium text-slate-500 border border-gray-200 hover:bg-gray-50">
+              <button
+                onClick={() => setConfirmAction(null)}
+                disabled={actioning !== null}
+                className="px-4 py-2 rounded-xl text-sm font-medium text-slate-500 border border-gray-200 hover:bg-gray-50"
+              >
                 No
               </button>
               <button
-                onClick={() => handleAction(confirmAction.resv, confirmAction.action)}
+                onClick={() =>
+                  handleAction(confirmAction.resv, confirmAction.action)
+                }
                 disabled={actioning !== null}
-                className={`px-4 py-2 rounded-xl text-sm font-semibold disabled:opacity-50 ${ACTION_META[confirmAction.action].btnCls}`}>
-                {actioning !== null ? "Processing…" : ACTION_META[confirmAction.action].label}
+                className={`px-4 py-2 rounded-xl text-sm font-semibold disabled:opacity-50 ${ACTION_META[confirmAction.action].btnCls}`}
+              >
+                {actioning !== null
+                  ? "Processing…"
+                  : ACTION_META[confirmAction.action].label}
               </button>
             </div>
           </div>
@@ -750,48 +1197,68 @@ export default function Reservations() {
       )}
 
       {/* Convert to Consumption Modal */}
-      {convertModal && (() => {
-        const reserved = parseFloat(convertModal.resv.reserved_quantity);
-        const c = parseFloat(convertModal.consumed) || 0;
-        const r = parseFloat(convertModal.released) || 0;
-        const w = parseFloat(convertModal.wastage) || 0;
-        const allocated = c + r + w;
-        const remaining = +(reserved - allocated).toFixed(3);
-        const cOver = c > reserved;
-        const rOver = r > reserved;
-        const wOver = w > reserved;
-        const valid = Math.abs(remaining) < 0.001 && c >= 0 && r >= 0 && w >= 0 && !cOver && !rOver && !wOver;
-        return (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-            <div className={`${card} w-full max-w-md`}>
-              {/* Header */}
-              <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
-                <div className="flex items-center gap-2">
-                  <div className="p-1.5 rounded-lg bg-blue-100">
-                    <ArrowRightLeft className="h-4 w-4 text-blue-600" />
+      {convertModal &&
+        (() => {
+          const reserved = parseFloat(convertModal.resv.reserved_quantity);
+          const c = parseFloat(convertModal.consumed) || 0;
+          const r = parseFloat(convertModal.released) || 0;
+          const w = parseFloat(convertModal.wastage) || 0;
+          const allocated = c + r + w;
+          const remaining = +(reserved - allocated).toFixed(3);
+          const cOver = c > reserved;
+          const rOver = r > reserved;
+          const wOver = w > reserved;
+          const valid =
+            Math.abs(remaining) < 0.001 &&
+            c >= 0 &&
+            r >= 0 &&
+            w >= 0 &&
+            !cOver &&
+            !rOver &&
+            !wOver;
+          return (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+              <div className={`${card} w-full max-w-md`}>
+                {/* Header */}
+                <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 rounded-lg bg-blue-100">
+                      <ArrowRightLeft className="h-4 w-4 text-blue-600" />
+                    </div>
+                    <h2 className="text-sm font-bold text-cyan-900">
+                      Convert to Consumption
+                    </h2>
                   </div>
-                  <h2 className="text-sm font-bold text-cyan-900">Convert to Consumption</h2>
-                </div>
-                <button onClick={() => setConvertModal(null)} className="p-1.5 rounded-lg hover:bg-gray-100">
-                  <X className="h-4 w-4 text-gray-500" />
-                </button>
-              </div>
-
-              <div className="px-5 py-4 space-y-4">
-                {/* Item info */}
-                <div className="bg-gray-50 rounded-xl px-4 py-3">
-                  <p className="text-sm font-semibold text-cyan-900">{convertModal.resv.item_name}</p>
-                  <p className="text-xs text-gray-500 mt-0.5">
-                    {convertModal.resv.reservation_type} {convertModal.resv.reference_code ?? `#${convertModal.resv.reference_id}`} &middot; Reserved:{" "}
-                    <span className="font-bold" style={{ color: G }}>{fmtQty(reserved)}</span>{" "}
-                    {convertModal.resv.unit_type || ""}
-                  </p>
+                  <button
+                    onClick={() => setConvertModal(null)}
+                    className="p-1.5 rounded-lg hover:bg-gray-100"
+                  >
+                    <X className="h-4 w-4 text-gray-500" />
+                  </button>
                 </div>
 
-                {/* Qty split rows */}
-                <div className="space-y-3">
-                  {/* Consumed */}
-                  {/* <div className="flex items-center gap-3">
+                <div className="px-5 py-4 space-y-4">
+                  {/* Item info */}
+                  <div className="bg-gray-50 rounded-xl px-4 py-3">
+                    <p className="text-sm font-semibold text-cyan-900">
+                      {convertModal.resv.item_name}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      {convertModal.resv.reservation_type}{" "}
+                      {convertModal.resv.reference_code ??
+                        `#${convertModal.resv.reference_id}`}{" "}
+                      &middot; Reserved:{" "}
+                      <span className="font-bold" style={{ color: G }}>
+                        {fmtQty(reserved)}
+                      </span>{" "}
+                      {convertModal.resv.unit_type || ""}
+                    </p>
+                  </div>
+
+                  {/* Qty split rows */}
+                  <div className="space-y-3">
+                    {/* Consumed */}
+                    {/* <div className="flex items-center gap-3">
                     <div className="flex items-center gap-2 w-32 flex-shrink-0">
                       <div className="p-1 rounded bg-blue-50"><ArrowRightLeft className="h-3.5 w-3.5 text-blue-600" /></div>
                       <span className="text-xs font-medium text-slate-500">Consumed</span>
@@ -804,62 +1271,120 @@ export default function Reservations() {
                   </div>
                   <p className="text-[11px] text-blue-600 -mt-1 pl-36">Material actually used in production — consumption will deduct stock separately.</p> */}
 
-                  {/* Released */}
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-2 w-32 flex-shrink-0">
-                      <div className="p-1 rounded bg-green-50"><PackageOpen className="h-3.5 w-3.5 text-green-600" /></div>
-                      <span className="text-xs font-medium text-slate-500">Released</span>
+                    {/* Released */}
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2 w-32 flex-shrink-0">
+                        <div className="p-1 rounded bg-green-50">
+                          <PackageOpen className="h-3.5 w-3.5 text-green-600" />
+                        </div>
+                        <span className="text-xs font-medium text-slate-500">
+                          Released
+                        </span>
+                      </div>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.001"
+                        value={convertModal.released}
+                        onChange={(e) =>
+                          setConvertModal((m) =>
+                            m ? { ...m, released: e.target.value } : null,
+                          )
+                        }
+                        className={`flex-1 px-3 py-1.5 text-sm text-cyan-900 text-right rounded-lg border focus:outline-none focus:ring-2 ${rOver ? "border-red-400 focus:ring-red-200" : "border-gray-200 focus:ring-green-200"}`}
+                      />
+                      <span className="text-xs text-gray-400 w-12 flex-shrink-0">
+                        {convertModal.resv.unit_type || ""}
+                      </span>
                     </div>
-                    <input type="number" min="0" step="0.001"
-                      value={convertModal.released}
-                      onChange={e => setConvertModal(m => m ? { ...m, released: e.target.value } : null)}
-                      className={`flex-1 px-3 py-1.5 text-sm text-cyan-900 text-right rounded-lg border focus:outline-none focus:ring-2 ${rOver ? "border-red-400 focus:ring-red-200" : "border-gray-200 focus:ring-green-200"}`} />
-                    <span className="text-xs text-gray-400 w-12 flex-shrink-0">{convertModal.resv.unit_type || ""}</span>
-                  </div>
-                  <p className="text-[11px] text-green-600 -mt-1 pl-36">Unused material — freed back to available stock.</p>
+                    <p className="text-[11px] text-green-600 -mt-1 pl-36">
+                      Unused material — freed back to available stock.
+                    </p>
 
-                  {/* Wastage */}
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-2 w-32 flex-shrink-0">
-                      <div className="p-1 rounded bg-red-50"><Flame className="h-3.5 w-3.5 text-red-500" /></div>
-                      <span className="text-xs font-medium text-slate-500">Wastage</span>
+                    {/* Wastage */}
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2 w-32 flex-shrink-0">
+                        <div className="p-1 rounded bg-red-50">
+                          <Flame className="h-3.5 w-3.5 text-red-500" />
+                        </div>
+                        <span className="text-xs font-medium text-slate-500">
+                          Wastage
+                        </span>
+                      </div>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.001"
+                        value={convertModal.wastage}
+                        onChange={(e) =>
+                          setConvertModal((m) =>
+                            m ? { ...m, wastage: e.target.value } : null,
+                          )
+                        }
+                        className={`flex-1 px-3 py-1.5 text-sm text-cyan-900 text-right rounded-lg border focus:outline-none focus:ring-2 ${wOver ? "border-red-400 focus:ring-red-200" : "border-gray-200 focus:ring-red-200"}`}
+                      />
+                      <span className="text-xs text-gray-400 w-12 flex-shrink-0">
+                        {convertModal.resv.unit_type || ""}
+                      </span>
                     </div>
-                    <input type="number" min="0" step="0.001"
-                      value={convertModal.wastage}
-                      onChange={e => setConvertModal(m => m ? { ...m, wastage: e.target.value } : null)}
-                      className={`flex-1 px-3 py-1.5 text-sm text-cyan-900 text-right rounded-lg border focus:outline-none focus:ring-2 ${wOver ? "border-red-400 focus:ring-red-200" : "border-gray-200 focus:ring-red-200"}`} />
-                    <span className="text-xs text-gray-400 w-12 flex-shrink-0">{convertModal.resv.unit_type || ""}</span>
+                    <p className="text-[11px] text-red-500 -mt-1 pl-36">
+                      Material damaged or discarded — written off from stock.
+                    </p>
                   </div>
-                  <p className="text-[11px] text-red-500 -mt-1 pl-36">Material damaged or discarded — written off from stock.</p>
+
+                  {/* Running total */}
+                  <div
+                    className={`flex items-center justify-between px-4 py-2.5 rounded-xl border ${valid ? "border-green-200 bg-green-50" : "border-red-200 bg-red-50"}`}
+                  >
+                    <span className="text-xs font-medium text-gray-600">
+                      Total allocated
+                    </span>
+                    <span
+                      className={`text-sm font-bold ${valid ? "text-green-700" : "text-red-600"}`}
+                    >
+                      {fmtQty(allocated)} / {fmtQty(reserved)}{" "}
+                      {convertModal.resv.unit_type || ""}
+                      {!valid && remaining !== 0 && (
+                        <span className="ml-1 text-[11px] font-normal">
+                          (
+                          {remaining > 0
+                            ? `${fmtQty(remaining)} unallocated`
+                            : `${fmtQty(Math.abs(remaining))} over`}
+                          )
+                        </span>
+                      )}
+                    </span>
+                  </div>
                 </div>
 
-                {/* Running total */}
-                <div className={`flex items-center justify-between px-4 py-2.5 rounded-xl border ${valid ? "border-green-200 bg-green-50" : "border-red-200 bg-red-50"}`}>
-                  <span className="text-xs font-medium text-gray-600">Total allocated</span>
-                  <span className={`text-sm font-bold ${valid ? "text-green-700" : "text-red-600"}`}>
-                    {fmtQty(allocated)} / {fmtQty(reserved)} {convertModal.resv.unit_type || ""}
-                    {!valid && remaining !== 0 && (
-                      <span className="ml-1 text-[11px] font-normal">({remaining > 0 ? `${fmtQty(remaining)} unallocated` : `${fmtQty(Math.abs(remaining))} over`})</span>
-                    )}
-                  </span>
+                <div className="flex justify-end gap-3 px-5 py-4 border-t border-gray-200">
+                  <button
+                    onClick={() => setConvertModal(null)}
+                    disabled={convertModal.submitting}
+                    className="px-4 py-2 rounded-xl text-sm font-medium text-slate-500 border border-gray-200 hover:bg-gray-50 disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleConvert}
+                    disabled={!valid || convertModal.submitting}
+                    className="px-5 py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-50"
+                    style={{
+                      background: valid
+                        ? "linear-gradient(135deg, #3B82F6, #2563EB)"
+                        : undefined,
+                      backgroundColor: valid ? undefined : "#9CA3AF",
+                    }}
+                  >
+                    {convertModal.submitting
+                      ? "Converting…"
+                      : "Confirm Conversion"}
+                  </button>
                 </div>
-              </div>
-
-              <div className="flex justify-end gap-3 px-5 py-4 border-t border-gray-200">
-                <button onClick={() => setConvertModal(null)} disabled={convertModal.submitting}
-                  className="px-4 py-2 rounded-xl text-sm font-medium text-slate-500 border border-gray-200 hover:bg-gray-50 disabled:opacity-50">
-                  Cancel
-                </button>
-                <button onClick={handleConvert} disabled={!valid || convertModal.submitting}
-                  className="px-5 py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-50"
-                  style={{ background: valid ? "linear-gradient(135deg, #3B82F6, #2563EB)" : undefined, backgroundColor: valid ? undefined : "#9CA3AF" }}>
-                  {convertModal.submitting ? "Converting…" : "Confirm Conversion"}
-                </button>
               </div>
             </div>
-          </div>
-        );
-      })()}
+          );
+        })()}
     </div>
   );
 }

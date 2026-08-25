@@ -1,4 +1,15 @@
-import { db, swatchOrdersTable, outsourceJobsTable, customChargesTable, costingPaymentsTable, eq, and, sql } from "@workspace/db";
+import { 
+  db, 
+  swatchOrdersTable, 
+  styleOrdersTable,
+  outsourceJobsTable, 
+  customChargesTable, 
+  costingPaymentsTable, 
+  eq, 
+  and, 
+  sql,
+  or
+} from "@workspace/db";
 import { faker } from "@faker-js/faker";
 
 // ============================================
@@ -10,7 +21,7 @@ interface CostingPaymentSeedData {
   vendorName: string;
   referenceType: string;
   referenceId: number;
-  swatchOrderId: number;
+  swatchOrderId: number | null;
   styleOrderId: number | null;
   paymentType: string;
   paymentMode: string;
@@ -22,6 +33,13 @@ interface CostingPaymentSeedData {
   currencyCode: string;
   exchangeRateSnapshot: string;
   createdBy: string;
+}
+
+interface OrderInfo {
+  id: number;
+  orderCode: string;
+  name: string;
+  type: 'swatch' | 'style';
 }
 
 // ============================================
@@ -142,13 +160,14 @@ function calculatePaymentAmountFromJob(totalCost: string, paymentType: string): 
 }
 
 /**
- * Create payment for a single item
+ * Create payment for a single item (job or charge)
  */
 function createPaymentForItem(
   item: {
     type: 'outsource_job' | 'custom_charge';
     id: number;
-    swatchOrderId: number;
+    swatchOrderId: number | null;
+    styleOrderId: number | null;
     vendorId: number;
     vendorName: string;
     amount: string;
@@ -156,8 +175,7 @@ function createPaymentForItem(
     createdAt?: Date | null;
     description?: string | null;
   },
-  swatchOrder: any,
-  paymentIndex: number
+  order: OrderInfo
 ): CostingPaymentSeedData {
   // Generate payment details
   const paymentType = getRandomPaymentType();
@@ -212,7 +230,7 @@ function createPaymentForItem(
     referenceType: item.type,
     referenceId: item.id,
     swatchOrderId: item.swatchOrderId,
-    styleOrderId: null,
+    styleOrderId: item.styleOrderId,
     paymentType: paymentType,
     paymentMode: paymentMode,
     paymentAmount: paymentAmount,
@@ -230,15 +248,15 @@ function createPaymentForItem(
 // Main Seed Function
 // ============================================
 
-export async function seedCostingPayments(count: number = 20): Promise<void> {
-  console.log('\n💰 Starting CostingPaymentSeeder...\n');
+export async function seedCostingPayments(): Promise<void> {
+  console.log('\n💰 Starting CostingPaymentSeeder for all completed orders...\n');
 
   // 1. Fetch all completed swatch orders
   const completedSwatchOrders = await db
     .select({
       id: swatchOrdersTable.id,
       orderCode: swatchOrdersTable.orderCode,
-      swatchName: swatchOrdersTable.swatchName,
+      name: swatchOrdersTable.swatchName,
     })
     .from(swatchOrdersTable)
     .where(
@@ -250,18 +268,43 @@ export async function seedCostingPayments(count: number = 20): Promise<void> {
 
   console.log(`   ✅ Found ${completedSwatchOrders.length} completed swatch orders`);
 
-  if (completedSwatchOrders.length === 0) {
-    console.warn('⚠️ No completed swatch orders found. Please ensure some swatch orders are completed.');
+  // 2. Fetch all completed style orders
+  const completedStyleOrders = await db
+    .select({
+      id: styleOrdersTable.id,
+      orderCode: styleOrdersTable.orderCode,
+      name: styleOrdersTable.styleName,
+    })
+    .from(styleOrdersTable)
+    .where(
+      and(
+        eq(styleOrdersTable.orderStatus, 'Completed'),
+        eq(styleOrdersTable.isDeleted, false)
+      )
+    );
+
+  console.log(`   ✅ Found ${completedStyleOrders.length} completed style orders`);
+
+  const allCompletedOrders: OrderInfo[] = [
+    ...completedSwatchOrders.map(o => ({ ...o, type: 'swatch' as const })),
+    ...completedStyleOrders.map(o => ({ ...o, type: 'style' as const }))
+  ];
+
+  if (allCompletedOrders.length === 0) {
+    console.warn('⚠️ No completed orders found (swatch or style).');
     return;
   }
 
+  // Extract IDs for querying
   const swatchOrderIds = completedSwatchOrders.map(o => o.id);
+  const styleOrderIds = completedStyleOrders.map(o => o.id);
 
-  // 2. Fetch all outsource jobs for these swatch orders
+  // 3. Fetch outsource jobs for these orders (both swatch and style)
   const outsourceJobs = await db
     .select({
       id: outsourceJobsTable.id,
       swatchOrderId: outsourceJobsTable.swatchOrderId,
+      styleOrderId: outsourceJobsTable.styleOrderId,
       vendorId: outsourceJobsTable.vendorId,
       vendorName: outsourceJobsTable.vendorName,
       totalCost: outsourceJobsTable.totalCost,
@@ -271,18 +314,22 @@ export async function seedCostingPayments(count: number = 20): Promise<void> {
     .from(outsourceJobsTable)
     .where(
       and(
-        sql`${outsourceJobsTable.swatchOrderId} IN (${sql.join(swatchOrderIds, sql`, `)})`,
-        eq(outsourceJobsTable.isDeleted, false)
+        eq(outsourceJobsTable.isDeleted, false),
+        or(
+          sql`${outsourceJobsTable.swatchOrderId} IN (${sql.join(swatchOrderIds, sql`, `)})`,
+          sql`${outsourceJobsTable.styleOrderId} IN (${sql.join(styleOrderIds, sql`, `)})`
+        )
       )
     );
 
-  console.log(`   ✅ Found ${outsourceJobs.length} outsource jobs for these swatch orders`);
+  console.log(`   ✅ Found ${outsourceJobs.length} outsource jobs for these orders`);
 
-  // 3. Fetch all custom charges for these swatch orders
+  // 4. Fetch custom charges for these orders (both swatch and style)
   const customCharges = await db
     .select({
       id: customChargesTable.id,
       swatchOrderId: customChargesTable.swatchOrderId,
+      styleOrderId: customChargesTable.styleOrderId,
       vendorId: customChargesTable.vendorId,
       vendorName: customChargesTable.vendorName,
       totalAmount: customChargesTable.totalAmount,
@@ -292,48 +339,40 @@ export async function seedCostingPayments(count: number = 20): Promise<void> {
     .from(customChargesTable)
     .where(
       and(
-        sql`${customChargesTable.swatchOrderId} IN (${sql.join(swatchOrderIds, sql`, `)})`,
-        eq(customChargesTable.isDeleted, false)
+        eq(customChargesTable.isDeleted, false),
+        or(
+          sql`${customChargesTable.swatchOrderId} IN (${sql.join(swatchOrderIds, sql`, `)})`,
+          sql`${customChargesTable.styleOrderId} IN (${sql.join(styleOrderIds, sql`, `)})`
+        )
       )
     );
 
-  console.log(`   ✅ Found ${customCharges.length} custom charges for these swatch orders`);
+  console.log(`   ✅ Found ${customCharges.length} custom charges for these orders`);
 
   if (outsourceJobs.length === 0 && customCharges.length === 0) {
-    console.warn('⚠️ No outsource jobs or custom charges found for completed swatch orders.');
+    console.warn('⚠️ No outsource jobs or custom charges found for completed orders.');
     return;
   }
 
-  // 4. Group by swatchOrderId
-  const jobsBySwatchOrder: Record<number, typeof outsourceJobs> = {};
-  for (const job of outsourceJobs) {
-    if (!jobsBySwatchOrder[job.swatchOrderId!]) {
-      jobsBySwatchOrder[job.swatchOrderId!] = [];
-    }
-    jobsBySwatchOrder[job.swatchOrderId!].push(job);
-  }
-
-  const chargesBySwatchOrder: Record<number, typeof customCharges> = {};
-  for (const charge of customCharges) {
-    if (!chargesBySwatchOrder[charge.swatchOrderId!]) {
-      chargesBySwatchOrder[charge.swatchOrderId!] = [];
-    }
-    chargesBySwatchOrder[charge.swatchOrderId!].push(charge);
-  }
-
   // 5. Fetch existing costing payments to check what's already been paid
+  const allOrderIds = allCompletedOrders.map(o => o.id);
+  
   const existingPayments = await db
     .select({
       referenceId: costingPaymentsTable.referenceId,
       referenceType: costingPaymentsTable.referenceType,
       swatchOrderId: costingPaymentsTable.swatchOrderId,
+      styleOrderId: costingPaymentsTable.styleOrderId,
     })
     .from(costingPaymentsTable)
     .where(
       and(
         sql`${costingPaymentsTable.referenceType} IN ('outsource_job', 'custom_charge')`,
         eq(costingPaymentsTable.isDeleted, false),
-        sql`${costingPaymentsTable.swatchOrderId} IN (${sql.join(swatchOrderIds, sql`, `)})`
+        or(
+          sql`${costingPaymentsTable.swatchOrderId} IN (${sql.join(swatchOrderIds, sql`, `)})`,
+          sql`${costingPaymentsTable.styleOrderId} IN (${sql.join(styleOrderIds, sql`, `)})`
+        )
       )
     );
 
@@ -342,22 +381,14 @@ export async function seedCostingPayments(count: number = 20): Promise<void> {
     existingPayments.map(p => `${p.referenceType}_${p.referenceId}`)
   );
 
-  // Group existing payments by swatch order to check completeness
-  const paymentsBySwatchOrder: Record<number, typeof existingPayments> = {};
-  for (const payment of existingPayments) {
-    if (!paymentsBySwatchOrder[payment.swatchOrderId!]) {
-      paymentsBySwatchOrder[payment.swatchOrderId!] = [];
-    }
-    paymentsBySwatchOrder[payment.swatchOrderId!].push(payment);
-  }
-
   console.log(`   📊 Found ${existingPaymentRefs.size} existing payments`);
 
   // 6. Identify what needs to be created
   const itemsToCreate: Array<{
     type: 'outsource_job' | 'custom_charge';
     id: number;
-    swatchOrderId: number;
+    swatchOrderId: number | null;
+    styleOrderId: number | null;
     vendorId: number;
     vendorName: string;
     amount: string;
@@ -366,20 +397,19 @@ export async function seedCostingPayments(count: number = 20): Promise<void> {
     description?: string | null;
   }> = [];
 
-  // Check each swatch order
-  for (const order of completedSwatchOrders) {
-    const orderJobs = jobsBySwatchOrder[order.id] || [];
-    const orderCharges = chargesBySwatchOrder[order.id] || [];
-    const orderPayments = paymentsBySwatchOrder[order.id] || [];
-
-    // Check if all jobs have payments
-    for (const job of orderJobs) {
-      const paymentKey = `outsource_job_${job.id}`;
-      if (!existingPaymentRefs.has(paymentKey)) {
+  // Process outsource jobs
+  for (const job of outsourceJobs) {
+    const paymentKey = `outsource_job_${job.id}`;
+    if (!existingPaymentRefs.has(paymentKey)) {
+      // Determine which order this job belongs to
+      const orderId = job.swatchOrderId || job.styleOrderId;
+      const order = allCompletedOrders.find(o => o.id === orderId);
+      if (order) {
         itemsToCreate.push({
           type: 'outsource_job',
           id: job.id,
-          swatchOrderId: order.id,
+          swatchOrderId: job.swatchOrderId,
+          styleOrderId: job.styleOrderId,
           vendorId: job.vendorId,
           vendorName: job.vendorName,
           amount: job.totalCost,
@@ -387,15 +417,20 @@ export async function seedCostingPayments(count: number = 20): Promise<void> {
         });
       }
     }
+  }
 
-    // Check if all custom charges have payments
-    for (const charge of orderCharges) {
-      const paymentKey = `custom_charge_${charge.id}`;
-      if (!existingPaymentRefs.has(paymentKey)) {
+  // Process custom charges
+  for (const charge of customCharges) {
+    const paymentKey = `custom_charge_${charge.id}`;
+    if (!existingPaymentRefs.has(paymentKey)) {
+      const orderId = charge.swatchOrderId || charge.styleOrderId;
+      const order = allCompletedOrders.find(o => o.id === orderId);
+      if (order) {
         itemsToCreate.push({
           type: 'custom_charge',
           id: charge.id,
-          swatchOrderId: order.id,
+          swatchOrderId: charge.swatchOrderId,
+          styleOrderId: charge.styleOrderId,
           vendorId: charge.vendorId,
           vendorName: charge.vendorName,
           amount: charge.totalAmount,
@@ -409,19 +444,19 @@ export async function seedCostingPayments(count: number = 20): Promise<void> {
   console.log(`   📊 Need to create ${itemsToCreate.length} payments to cover all missing records`);
 
   if (itemsToCreate.length === 0) {
-    console.log('✅ All completed swatch orders already have costing payments for their outsource jobs and custom charges.');
+    console.log('✅ All completed orders already have costing payments for their outsource jobs and custom charges.');
     return;
   }
 
   // 7. Generate payments for all missing items
   const paymentsToCreate: CostingPaymentSeedData[] = [];
   
-  for (let i = 0; i < itemsToCreate.length; i++) {
-    const item = itemsToCreate[i];
-    const swatchOrder = completedSwatchOrders.find(o => o.id === item.swatchOrderId);
-    if (!swatchOrder) continue;
+  for (const item of itemsToCreate) {
+    const orderId = item.swatchOrderId || item.styleOrderId;
+    const order = allCompletedOrders.find(o => o.id === orderId);
+    if (!order) continue;
 
-    const paymentData = createPaymentForItem(item, swatchOrder, i);
+    const paymentData = createPaymentForItem(item, order);
     paymentsToCreate.push(paymentData);
 
     const itemLabel = item.type === 'outsource_job' ? 'job' : 'charge';
@@ -459,8 +494,10 @@ export async function seedCostingPayments(count: number = 20): Promise<void> {
 
       insertedCount++;
       const itemLabel = data.referenceType === 'outsource_job' ? 'Job' : 'Custom Charge';
+      const orderType = data.swatchOrderId ? 'Swatch' : 'Style';
+      const orderId = data.swatchOrderId || data.styleOrderId;
       console.log(
-        `✅ Created costing payment: #${payment.id} - ${data.vendorName} (${itemLabel} #${data.referenceId}, Swatch Order #${data.swatchOrderId}, ₹${data.paymentAmount})`
+        `✅ Created costing payment: #${payment.id} - ${data.vendorName} (${itemLabel} #${data.referenceId}, ${orderType} Order #${orderId}, ₹${data.paymentAmount})`
       );
     } catch (error) {
       console.error(`❌ Failed to create costing payment for ${data.referenceType} #${data.referenceId}`, error);
@@ -472,17 +509,17 @@ export async function seedCostingPayments(count: number = 20): Promise<void> {
   const chargePayments = paymentsToCreate.filter(p => p.referenceType === 'custom_charge').length;
   
   console.log('\n✅ CostingPaymentSeeder completed!');
-  console.log(`   Total completed swatch orders: ${completedSwatchOrders.length}`);
+  console.log(`   Total completed orders: ${allCompletedOrders.length} (${completedSwatchOrders.length} swatch, ${completedStyleOrders.length} style)`);
   console.log(`   Created ${insertedCount} costing payments:`);
   console.log(`   - ${jobPayments} for outsource jobs`);
   console.log(`   - ${chargePayments} for custom charges`);
   
-  // Check if any records are still missing
+  // Check if any records are still missing (optional)
   const remainingJobs = outsourceJobs.filter(job => !existingPaymentRefs.has(`outsource_job_${job.id}`));
   const remainingCharges = customCharges.filter(charge => !existingPaymentRefs.has(`custom_charge_${charge.id}`));
   
   if (remainingJobs.length === 0 && remainingCharges.length === 0) {
-    console.log('   ✅ All completed swatch orders now have complete costing payments!');
+    console.log('   ✅ All completed orders now have complete costing payments!');
   } else {
     console.log(`   ⚠️ Still missing payments for ${remainingJobs.length} jobs and ${remainingCharges.length} custom charges`);
   }
