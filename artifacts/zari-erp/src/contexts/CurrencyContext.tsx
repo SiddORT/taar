@@ -83,9 +83,33 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
       const inr = toNum(inrAmount);
       const display = inr * currency.rate;
       const sym = currency.symbol;
-      if (display >= 1_000_000_000) return `${sym}${(display / 1_000_000_000).toFixed(2)}B`;
-      if (display >= 1_000_000)     return `${sym}${(display / 1_000_000).toFixed(2)}M`;
-      if (display >= 1_000)         return `${sym}${(display / 1_000).toFixed(1)}K`;
+      const code = currency.code;
+      
+      // Special handling for INR
+      if (code === "INR") {
+        if (display >= 10_000_000) {
+          return `${sym}${(display / 10_000_000).toFixed(2)} Cr`;
+        }
+        if (display >= 100_000) {
+          return `${sym}${(display / 100_000).toFixed(2)} L`;
+        }
+        if (display >= 1_000) {
+          return `${sym}${(display / 1_000).toFixed(1)}K`;
+        }
+        return `${sym}${display.toFixed(currency.decimal_places)}`;
+      }
+      
+      // For all other currencies, use standard western abbreviations
+      const absValue = Math.abs(display);
+      if (absValue >= 1_000_000_000) {
+        return `${sym}${(display / 1_000_000_000).toFixed(2)}B`;
+      }
+      if (absValue >= 1_000_000) {
+        return `${sym}${(display / 1_000_000).toFixed(2)}M`;
+      }
+      if (absValue >= 1_000) {
+        return `${sym}${(display / 1_000).toFixed(1)}K`;
+      }
       return `${sym}${display.toFixed(currency.decimal_places)}`;
     },
     [currency],

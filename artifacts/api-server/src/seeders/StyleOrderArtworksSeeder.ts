@@ -8,15 +8,15 @@ import {
   eq,
   and,
   sql,
-  inArray ,
+  inArray,
 } from "@workspace/db";
 import { faker } from "@faker-js/faker";
 import fs from "fs-extra";
 import path from "path";
 
-// ============================================
+
 // Types
-// ============================================
+
 
 interface ImageItem {
   data: string;
@@ -76,19 +76,19 @@ interface StyleOrderArtworkSeedData {
   finalImages?: ImageItem[];
   videos?: object[];
   createdBy: string;
+  createdAt?: Date; 
 }
 
-// ============================================
-// Image directory config
-// ============================================
 
-// You may set a different env variable for style order uploads
+// Image directory config
+
+
 const STYLE_UPLOADS_DIR =
   process.env.STYLE_UPLOADS_DIR || path.join(process.cwd(), "uploads", "styles");
 
-// ============================================
+
 // Base64 Image Helper Functions (reused)
-// ============================================
+
 
 function getMimeType(filePath: string): string {
   const ext = path.extname(filePath).toLowerCase();
@@ -277,9 +277,9 @@ async function loadStyleArtworkImages(orderCode: string): Promise<{
   return result;
 }
 
-// ============================================
+
 // Helper Functions
-// ============================================
+
 
 // Will be fetched from DB, but we keep a fallback
 const DEFAULT_UNIT_TYPES = ["Inch", "Centimeter", "Millimeter", "Meter", "Feet"];
@@ -349,19 +349,59 @@ function generateArtworkCode(artworkId: number): string {
   return "SOA-" + year + "-" + String(artworkId).padStart(3, "0");
 }
 
-// ============================================
+// Date Helper: Random date between two dates
+
+/**
+ * Parses a date string (assumes YYYY-MM-DD or ISO) and returns a Date object.
+ * If invalid, returns null.
+ */
+function parseDateString(dateStr: string | null): Date | null {
+  if (!dateStr) return null;
+  const d = new Date(dateStr);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+/**
+ * Returns a random Date between startDate and endDate (inclusive).
+ * If either date is null/invalid, returns the current date.
+ * If startDate > endDate, swaps them.
+ */
+function getRandomDateBetween(startStr: string | null, endStr: string | null): Date {
+  const start = parseDateString(startStr);
+  const end = parseDateString(endStr);
+
+  // Fallback to current date if either is invalid
+  if (!start || !end) {
+    return new Date();
+  }
+
+  // Ensure start <= end
+  const from = start.getTime() <= end.getTime() ? start : end;
+  const to = start.getTime() <= end.getTime() ? end : start;
+
+  // If same date, return that date
+  if (from.getTime() === to.getTime()) {
+    return from;
+  }
+
+  // Generate random timestamp between from and to
+  const randomTime = from.getTime() + Math.random() * (to.getTime() - from.getTime());
+  return new Date(randomTime);
+}
+
 // Main Seed Function
-// ============================================
 
 export async function seedStyleOrderArtworks(count: number = 30): Promise<void> {
   console.log("\n🎨 Starting StyleOrderArtworkSeeder with " + count + " artworks...\n");
 
-  // 1. Fetch style orders (non-deleted)
+  // 1. Fetch style orders (non-deleted) including date fields
   const styleOrders = await db
     .select({
       id: styleOrdersTable.id,
       orderCode: styleOrdersTable.orderCode,
-      styleName: styleOrdersTable.styleName, // adjust field name as per your table
+      styleName: styleOrdersTable.styleName,
+      orderIssueDate: styleOrdersTable.orderIssueDate,   
+      deliveryDate: styleOrdersTable.deliveryDate,       
     })
     .from(styleOrdersTable)
     .where(eq(styleOrdersTable.isDeleted, false));
@@ -400,7 +440,7 @@ export async function seedStyleOrderArtworks(count: number = 30): Promise<void> 
   const users = await db
     .select({ email: usersTable.email })
     .from(usersTable)
-    .where(eq(usersTable.isActive, true)); // adjust condition as needed
+    .where(eq(usersTable.isActive, true));
 
   if (users.length === 0) {
     console.warn("⚠️ No active users found. Using fallback system user.");
@@ -410,7 +450,7 @@ export async function seedStyleOrderArtworks(count: number = 30): Promise<void> 
   let unitTypes = await db
     .select({ name: unitTypesTable.name })
     .from(unitTypesTable)
-    .where(eq(unitTypesTable.isActive, true)); // adjust if needed
+    .where(eq(unitTypesTable.isActive, true));
 
   let unitTypeNames = unitTypes.map((u) => u.name);
   if (unitTypeNames.length === 0) {
@@ -425,151 +465,179 @@ export async function seedStyleOrderArtworks(count: number = 30): Promise<void> 
   let created = 0;
   const artworksToCreate: StyleOrderArtworkSeedData[] = [];
 
-  // Determine total artworks (at least 1 per style order)
-  const totalArtworks = Math.max(count, styleOrders.length);
+  // Calculate base artworks and extra artworks
+  const totalOrders = styleOrders.length;
+  const baseArtworksPerOrder = 1;
+  const extraArtworks = Math.max(0, count - totalOrders);
 
-  for (const order of styleOrders) {
-    if (created >= totalArtworks) break;
+  console.log(`   📊 Will create at least 1 artwork per order (${totalOrders} orders)`);
+  if (extraArtworks > 0) {
+    console.log(`   📊 Plus ${extraArtworks} additional artworks distributed randomly`);
+  }
 
-    const remaining = totalArtworks - created;
-    const maxArtworks = Math.min(3, remaining);
-    const numArtworks = faker.number.int({ min: 1, max: maxArtworks });
-
+  // Helper to build artwork data for a given order and variation index
+  const buildArtworkData = async (
+    order: typeof styleOrders[0],
+    variationIndex: number
+  ): Promise<StyleOrderArtworkSeedData> => {
     // Get products for this order (if any)
     const orderProducts = productsByOrder[order.id] || [];
 
-    for (let i = 0; i < numArtworks && created < totalArtworks; i++) {
-      // Decide whether to link to a product (60% chance if products exist)
-      let linkedProduct = null;
-      if (orderProducts.length > 0 && faker.datatype.boolean({ probability: 0.6 })) {
-        linkedProduct = faker.helpers.arrayElement(orderProducts);
-      }
+    // Decide whether to link to a product (60% chance if products exist)
+    let linkedProduct = null;
+    if (orderProducts.length > 0 && faker.datatype.boolean({ probability: 0.6 })) {
+      linkedProduct = faker.helpers.arrayElement(orderProducts);
+    }
 
-      const isInhouse = faker.datatype.boolean({ probability: 0.7 });
-      const workHours = faker.number.int({ min: 2, max: 40 }).toString();
-      const hourlyRate = faker.number.int({ min: 50, max: 500 }).toString();
-      const totalCost = (parseInt(workHours) * parseInt(hourlyRate)).toString();
+    const isInhouse = faker.datatype.boolean({ probability: 0.7 });
+    const workHours = faker.number.int({ min: 2, max: 40 }).toString();
+    const hourlyRate = faker.number.int({ min: 50, max: 500 }).toString();
+    const totalCost = (parseInt(workHours) * parseInt(hourlyRate)).toString();
 
-      // Generate artwork name
-      const baseName = linkedProduct ? linkedProduct.productName : order.styleName;
-      const artworkName = generateArtworkNameFromStyle(
-        order.styleName,
-        linkedProduct?.productName,
-        i
-      );
+    // Generate artwork name
+    const artworkName = generateArtworkNameFromStyle(
+      order.styleName,
+      linkedProduct?.productName,
+      variationIndex
+    );
 
-      // Load images if we have a code for this order
-      let refImages: ImageItem[] = [];
-      let wipImages: ImageItem[] = [];
-      let finalImages: ImageItem[] = [];
+    // Load images if we have a code for this order
+    let refImages: ImageItem[] = [];
+    let wipImages: ImageItem[] = [];
+    let finalImages: ImageItem[] = [];
 
-      let orderCode: string | null = null;
+    let orderCode: string | null = null;
 
-      if (order.orderCode && availableImageCodes.has(order.orderCode)) {
-        orderCode = order.orderCode;
-      } else if (availableImageCodes.size > 0) {
-        // Fallback: pick a random available code
-        orderCode = faker.helpers.arrayElement(Array.from(availableImageCodes));
-      }
+    if (order.orderCode && availableImageCodes.has(order.orderCode)) {
+      orderCode = order.orderCode;
+    } else if (availableImageCodes.size > 0) {
+      // Fallback: pick a random available code
+      orderCode = faker.helpers.arrayElement(Array.from(availableImageCodes));
+    }
 
-      if (orderCode) {
-        const images = await loadStyleArtworkImages(orderCode);
-        refImages = images.refImages;
-        wipImages = images.wipImages;
-        finalImages = images.finalImages;
-        console.log("  📸 Loaded images from: " + orderCode);
-      } else {
-        console.log("  ⚠️ No images available, using placeholders");
-      }
+    if (orderCode) {
+      const images = await loadStyleArtworkImages(orderCode);
+      refImages = images.refImages;
+      wipImages = images.wipImages;
+      finalImages = images.finalImages;
+    }
 
-      // Build base data
-      const artworkData: StyleOrderArtworkSeedData = {
-        styleOrderId: order.id,
-        styleOrderProductId: linkedProduct?.id || null,
-        styleOrderProductName: linkedProduct?.productName || null,
-        artworkName: artworkName,
-        unitLength: faker.number.int({ min: 10, max: 200 }).toString(),
-        unitWidth: faker.number.int({ min: 10, max: 200 }).toString(),
-        unitType: faker.helpers.arrayElement(unitTypeNames),
-        artworkCreated: isInhouse ? "Inhouse" : "Outsourced",
-        workHours: workHours,
-        hourlyRate: hourlyRate,
-        totalCost: totalCost,
-        feedbackStatus: getRandomFeedbackStatus(),
-        files: [],
-        refImages: refImages,
-        wipImages: wipImages,
-        finalImages: finalImages,
-        videos: [],
-        createdBy: users.length > 0 ? faker.helpers.arrayElement(users).email : "system",
-      };
+    // Compute random date between orderIssueDate and deliveryDate
+    const randomCreatedAt = getRandomDateBetween(order.orderIssueDate, order.deliveryDate);
 
-      // If outsourced, add outsource details
-      if (!isInhouse) {
-        artworkData.outsourceVendorId = faker.string.numeric(5);
-        artworkData.outsourceVendorName =
-          faker.company.name() + " " + faker.helpers.arrayElement(["Studio", "Designs", "Creations"]);
-        artworkData.outsourcePaymentDate = faker.date.recent().toISOString().slice(0, 10);
-        artworkData.outsourcePaymentAmount = faker.number.int({ min: 1000, max: 50000 }).toString();
-        artworkData.outsourcePaymentMode = getRandomPaymentMode();
-        artworkData.outsourceTransactionId = "TXN-" + faker.string.alphanumeric(8).toUpperCase();
-        artworkData.outsourcePaymentStatus = getRandomPaymentStatus();
-      }
+    // Build base data
+    const artworkData: StyleOrderArtworkSeedData = {
+      styleOrderId: order.id,
+      styleOrderProductId: linkedProduct?.id || null,
+      styleOrderProductName: linkedProduct?.productName || null,
+      artworkName: artworkName,
+      unitLength: faker.number.int({ min: 10, max: 200 }).toString(),
+      unitWidth: faker.number.int({ min: 10, max: 200 }).toString(),
+      unitType: faker.helpers.arrayElement(unitTypeNames),
+      artworkCreated: isInhouse ? "Inhouse" : "Outsourced",
+      workHours: workHours,
+      hourlyRate: hourlyRate,
+      totalCost: totalCost,
+      feedbackStatus: getRandomFeedbackStatus(),
+      files: [],
+      refImages: refImages,
+      wipImages: wipImages,
+      finalImages: finalImages,
+      videos: [],
+      createdBy: users.length > 0 ? faker.helpers.arrayElement(users).email : "system",
+      createdAt: randomCreatedAt, 
+    };
 
-      // Add toile details (with 70% probability)
-      if (faker.datatype.boolean({ probability: 0.7 })) {
-        artworkData.toileMakingCost = faker.number.int({ min: 500, max: 10000 }).toString();
-        artworkData.toileVendorId = faker.string.numeric(5);
-        artworkData.toileVendorName = faker.company.name() + " " + faker.helpers.arrayElement(["Toile", "Sample"]);
-        artworkData.toileCost = faker.number.int({ min: 300, max: 8000 }).toString();
-        artworkData.toilePaymentType = getRandomPaymentType();
-        artworkData.toilePaymentDate = faker.date.recent().toISOString().slice(0, 10);
-        artworkData.toilePaymentMode = getRandomPaymentMode();
-        artworkData.toilePaymentStatus = getRandomPaymentStatus();
-        artworkData.toilePaymentAmount = faker.number.int({ min: 500, max: 9000 }).toString();
-        artworkData.toileTransactionId = "TXN-" + faker.string.alphanumeric(8).toUpperCase();
-        artworkData.toileRemarks = faker.lorem.sentence();
-        artworkData.toileImages = [
-          {
-            data: generatePlaceholderBase64(),
-            name: "toile-sample.jpg",
-            size: 0,
-            type: "image/jpeg",
-          },
-        ];
-      }
+    // If outsourced, add outsource details
+    if (!isInhouse) {
+      artworkData.outsourceVendorId = faker.string.numeric(5);
+      artworkData.outsourceVendorName =
+        faker.company.name() + " " + faker.helpers.arrayElement(["Studio", "Designs", "Creations"]);
+      artworkData.outsourcePaymentDate = faker.date.recent().toISOString().slice(0, 10);
+      artworkData.outsourcePaymentAmount = faker.number.int({ min: 1000, max: 50000 }).toString();
+      artworkData.outsourcePaymentMode = getRandomPaymentMode();
+      artworkData.outsourceTransactionId = "TXN-" + faker.string.alphanumeric(8).toUpperCase();
+      artworkData.outsourcePaymentStatus = getRandomPaymentStatus();
+    }
 
-      // Add pattern details (with 70% probability)
-      if (faker.datatype.boolean({ probability: 0.7 })) {
-        artworkData.patternType = faker.helpers.arrayElement(["CAD", "Manual", "Digital", "Paper"]);
-        artworkData.patternMakingCost = faker.number.int({ min: 1000, max: 15000 }).toString();
-        artworkData.patternDoc = [
-          {
-            data: generatePlaceholderBase64(),
-            name: "pattern-doc.pdf",
-            size: 0,
-            type: "application/pdf",
-          },
-        ];
-        artworkData.patternOuthouseDoc = [
-          {
-            data: generatePlaceholderBase64(),
-            name: "outhouse-pattern.pdf",
-            size: 0,
-            type: "application/pdf",
-          },
-        ];
-        artworkData.patternVendorId = faker.string.numeric(5);
-        artworkData.patternVendorName = faker.company.name() + " " + faker.helpers.arrayElement(["Pattern", "Tech"]);
-        artworkData.patternPaymentType = getRandomPaymentType();
-        artworkData.patternPaymentMode = getRandomPaymentMode();
-        artworkData.patternPaymentStatus = getRandomPaymentStatus();
-        artworkData.patternPaymentAmount = faker.number.int({ min: 1000, max: 12000 }).toString();
-        artworkData.patternTransactionId = "TXN-" + faker.string.alphanumeric(8).toUpperCase();
-        artworkData.patternPaymentDate = faker.date.recent().toISOString().slice(0, 10);
-        artworkData.patternRemarks = faker.lorem.sentence();
-      }
+    // Add toile details (with 70% probability)
+    if (faker.datatype.boolean({ probability: 0.7 })) {
+      artworkData.toileMakingCost = faker.number.int({ min: 500, max: 10000 }).toString();
+      artworkData.toileVendorId = faker.string.numeric(5);
+      artworkData.toileVendorName = faker.company.name() + " " + faker.helpers.arrayElement(["Toile", "Sample"]);
+      artworkData.toileCost = faker.number.int({ min: 300, max: 8000 }).toString();
+      artworkData.toilePaymentType = getRandomPaymentType();
+      artworkData.toilePaymentDate = faker.date.recent().toISOString().slice(0, 10);
+      artworkData.toilePaymentMode = getRandomPaymentMode();
+      artworkData.toilePaymentStatus = getRandomPaymentStatus();
+      artworkData.toilePaymentAmount = faker.number.int({ min: 500, max: 9000 }).toString();
+      artworkData.toileTransactionId = "TXN-" + faker.string.alphanumeric(8).toUpperCase();
+      artworkData.toileRemarks = faker.lorem.sentence();
+      artworkData.toileImages = [
+        {
+          data: generatePlaceholderBase64(),
+          name: "toile-sample.jpg",
+          size: 0,
+          type: "image/jpeg",
+        },
+      ];
+    }
 
+    // Add pattern details (with 70% probability)
+    if (faker.datatype.boolean({ probability: 0.7 })) {
+      artworkData.patternType = faker.helpers.arrayElement(["CAD", "Manual", "Digital", "Paper"]);
+      artworkData.patternMakingCost = faker.number.int({ min: 1000, max: 15000 }).toString();
+      artworkData.patternDoc = [
+        {
+          data: generatePlaceholderBase64(),
+          name: "pattern-doc.pdf",
+          size: 0,
+          type: "application/pdf",
+        },
+      ];
+      artworkData.patternOuthouseDoc = [
+        {
+          data: generatePlaceholderBase64(),
+          name: "outhouse-pattern.pdf",
+          size: 0,
+          type: "application/pdf",
+        },
+      ];
+      artworkData.patternVendorId = faker.string.numeric(5);
+      artworkData.patternVendorName = faker.company.name() + " " + faker.helpers.arrayElement(["Pattern", "Tech"]);
+      artworkData.patternPaymentType = getRandomPaymentType();
+      artworkData.patternPaymentMode = getRandomPaymentMode();
+      artworkData.patternPaymentStatus = getRandomPaymentStatus();
+      artworkData.patternPaymentAmount = faker.number.int({ min: 1000, max: 12000 }).toString();
+      artworkData.patternTransactionId = "TXN-" + faker.string.alphanumeric(8).toUpperCase();
+      artworkData.patternPaymentDate = faker.date.recent().toISOString().slice(0, 10);
+      artworkData.patternRemarks = faker.lorem.sentence();
+    }
+
+    return artworkData;
+  };
+
+  // FIRST PASS: Create exactly 1 artwork for every style order
+  for (const order of styleOrders) {
+    const artworkData = await buildArtworkData(order, 0);
+    artworksToCreate.push(artworkData);
+    created++;
+  }
+
+  // SECOND PASS: Distribute extra artworks randomly among orders
+  if (extraArtworks > 0) {
+    console.log(`   🎲 Distributing ${extraArtworks} extra artworks...`);
+
+    // Create a pool of order IDs to distribute extra artworks
+    const orderPool = styleOrders.map((order) => order.id);
+
+    for (let i = 0; i < extraArtworks; i++) {
+      // Pick a random order for this extra artwork
+      const targetOrderId = faker.helpers.arrayElement(orderPool);
+      const targetOrder = styleOrders.find((o) => o.id === targetOrderId);
+      if (!targetOrder) continue;
+
+      const artworkData = await buildArtworkData(targetOrder, i + 1);
       artworksToCreate.push(artworkData);
       created++;
     }
@@ -643,7 +711,7 @@ export async function seedStyleOrderArtworks(count: number = 30): Promise<void> 
           finalImages: data.finalImages ?? [],
           videos: data.videos ?? [],
           createdBy: data.createdBy || "system",
-          createdAt: new Date(),
+          createdAt: data.createdAt || new Date(), // <-- use computed or fallback
         })
         .returning();
 
@@ -670,13 +738,13 @@ export async function seedStyleOrderArtworks(count: number = 30): Promise<void> 
   );
 }
 
-// ============================================
+
 // Self-execution for ESM
-// ============================================
+
 
 const isMainModule = import.meta.url === "file://" + process.argv[1];
 
 if (isMainModule) {
-  const count = parseInt(process.argv[2]) || 30;
+  const count = parseInt(process.argv[2]) || 100;
   seedStyleOrderArtworks(count).catch(console.error);
 }
