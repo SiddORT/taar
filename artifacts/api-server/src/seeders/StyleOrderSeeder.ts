@@ -279,9 +279,9 @@ function getRandomFabricType(): string | null {
 function generateDate(): string {
   const now = new Date();
   const past3Months = new Date(now);
-  past3Months.setMonth(now.getMonth() - 3);
+  past3Months.setMonth(now.getMonth() - 6);
   const future3Months = new Date(now);
-  future3Months.setMonth(now.getMonth() + 3);
+  future3Months.setMonth(now.getMonth() + 6);
   return faker.date.between({ from: past3Months, to: future3Months }).toISOString().slice(0, 10);
 }
 

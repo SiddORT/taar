@@ -720,7 +720,7 @@ function generateClientInstruction(): string {
 // ------------------------------
 // NEW DATE GENERATION (FIXED RANGE)
 // ------------------------------
-function generateDateInRange(monthsPast: number = 3, monthsFuture: number = 3): string {
+function generateDateInRange(monthsPast: number = 6, monthsFuture: number = 6): string {
   const now = new Date();
   const start = new Date(now);
   start.setMonth(start.getMonth() - monthsPast);
