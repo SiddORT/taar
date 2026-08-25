@@ -12,34 +12,454 @@ import {
 } from "@workspace/db";
 import { eq, and, like } from "drizzle-orm";
 
-// ---------- Configuration ----------
-const LOW_STOCK_COUNT = 15;
-const OUT_OF_STOCK_COUNT = 10;
+// ---------- Hardcoded Material Master ----------
+interface HardcodedMaterial {
+  materialName: string;
+  type: string;
+  quality: string;
+  color: string;
+  hexCode: string;
+  size: string;
+  unitType: string;
+  currentStock: number;
+  reorderLevel: number;
+  unitPrice: string;
+  hsnCode: string;
+  gstPercent: string;
+  vendor: string;
+  imageFileName: string; // <-- unique per item
+}
 
-const MATERIAL_TYPES = ["Fabric", "Trim", "Embellishment", "Accessory", "Lining", "Interlining", "Label", "Packaging"];
-const COLORS = [
-  { name: "White", hex: "#FFFFFF" },
-  { name: "Black", hex: "#000000" },
-  { name: "Red", hex: "#FF0000" },
-  { name: "Blue", hex: "#1E3A8A" },
-  { name: "Green", hex: "#22C55E" },
-  { name: "Gold", hex: "#D4AF37" },
-  { name: "Silver", hex: "#C0C0C0" },
-  { name: "Beige", hex: "#F5F5DC" },
-  { name: "Grey", hex: "#808080" },
-  { name: "Burgundy", hex: "#800020" },
+const MATERIAL_MASTER: HardcodedMaterial[] = [
+  {
+    materialName: "Polyester Sewing Thread 40/2",
+    type: "Trim",
+    quality: "Standard",
+    color: "White",
+    hexCode: "#FFFFFF",
+    size: "40/2",
+    unitType: "Piece",
+    currentStock: 8,
+    reorderLevel: 15,
+    unitPrice: "25.50",
+    hsnCode: "520411",
+    gstPercent: "5",
+    vendor: "Arvind Mills",
+    imageFileName: "polyester-sewing-thread-40-2.jpg",
+  },
+  {
+    materialName: "Metal Zipper #5 Closed End",
+    type: "Trim",
+    quality: "Premium",
+    color: "Black",
+    hexCode: "#000000",
+    size: "#5",
+    unitType: "Piece",
+    currentStock: 5,
+    reorderLevel: 12,
+    unitPrice: "45.00",
+    hsnCode: "960711",
+    gstPercent: "18",
+    vendor: "Raymond",
+    imageFileName: "metal-zipper-5-closed-end.jpg",
+  },
+  {
+    materialName: "Coats Astra Button 18L",
+    type: "Trim",
+    quality: "Premium",
+    color: "White",
+    hexCode: "#FFFFFF",
+    size: "18L",
+    unitType: "Piece",
+    currentStock: 10,
+    reorderLevel: 20,
+    unitPrice: "12.00",
+    hsnCode: "960621",
+    gstPercent: "18",
+    vendor: "Sutlej Textiles",
+    imageFileName: "coats-astra-button-18l.jpg",
+  },
+  {
+    materialName: "Woven Elastic Band 25mm",
+    type: "Trim",
+    quality: "Standard",
+    color: "Black",
+    hexCode: "#000000",
+    size: "25mm",
+    unitType: "Meter",
+    currentStock: 3,
+    reorderLevel: 10,
+    unitPrice: "18.75",
+    hsnCode: "580610",
+    gstPercent: "12",
+    vendor: "Reliance Textiles",
+    imageFileName: "woven-elastic-band-25mm.jpg",
+  },
+  {
+    materialName: "Snap Button Set 15mm",
+    type: "Trim",
+    quality: "Standard",
+    color: "Silver",
+    hexCode: "#C0C0C0",
+    size: "15mm",
+    unitType: "Piece",
+    currentStock: 6,
+    reorderLevel: 15,
+    unitPrice: "8.50",
+    hsnCode: "960621",
+    gstPercent: "18",
+    vendor: "Vardhman Textiles",
+    imageFileName: "snap-button-set-15mm.jpg",
+  },
+  {
+    materialName: "Round Sequin 8mm Paillette",
+    type: "Embellishment",
+    quality: "Luxury",
+    color: "Gold",
+    hexCode: "#D4AF37",
+    size: "8mm",
+    unitType: "Gram",
+    currentStock: 4,
+    reorderLevel: 12,
+    unitPrice: "85.00",
+    hsnCode: "701810",
+    gstPercent: "18",
+    vendor: "Jaya Textiles",
+    imageFileName: "round-sequin-8mm-paillette.jpg",
+  },
+  {
+    materialName: "Glass Seed Bead 2mm",
+    type: "Embellishment",
+    quality: "Fine",
+    color: "Silver",
+    hexCode: "#C0C0C0",
+    size: "2mm",
+    unitType: "Gram",
+    currentStock: 7,
+    reorderLevel: 18,
+    unitPrice: "120.00",
+    hsnCode: "701810",
+    gstPercent: "18",
+    vendor: "Bombay Dyeing",
+    imageFileName: "glass-seed-bead-2mm.jpg",
+  },
+  {
+    materialName: "Embroidery Floss Anchor",
+    type: "Embellishment",
+    quality: "Standard",
+    color: "Red",
+    hexCode: "#FF0000",
+    size: "Skein",
+    unitType: "Piece",
+    currentStock: 9,
+    reorderLevel: 20,
+    unitPrice: "15.00",
+    hsnCode: "520411",
+    gstPercent: "5",
+    vendor: "Garden Silk Mills",
+    imageFileName: "embroidery-floss-anchor.jpg",
+  },
+  {
+    materialName: "Polyester Taffeta Lining 170T",
+    type: "Lining",
+    quality: "Standard",
+    color: "Black",
+    hexCode: "#000000",
+    size: "170T",
+    unitType: "Meter",
+    currentStock: 8,
+    reorderLevel: 16,
+    unitPrice: "35.00",
+    hsnCode: "540710",
+    gstPercent: "18",
+    vendor: "Trident Group",
+    imageFileName: "polyester-taffeta-lining-170t.jpg",
+  },
+  {
+    materialName: "Cotton Voile Lining 60s",
+    type: "Lining",
+    quality: "Premium",
+    color: "White",
+    hexCode: "#FFFFFF",
+    size: "60s",
+    unitType: "Meter",
+    currentStock: 6,
+    reorderLevel: 14,
+    unitPrice: "55.00",
+    hsnCode: "520811",
+    gstPercent: "5",
+    vendor: "Welspun India",
+    imageFileName: "cotton-voile-lining-60s.jpg",
+  },
+  {
+    materialName: "Fusible Interlining Medium Weight",
+    type: "Interlining",
+    quality: "Standard",
+    color: "White",
+    hexCode: "#FFFFFF",
+    size: "Medium",
+    unitType: "Meter",
+    currentStock: 4,
+    reorderLevel: 12,
+    unitPrice: "42.00",
+    hsnCode: "560314",
+    gstPercent: "12",
+    vendor: "Indo Count Industries",
+    imageFileName: "fusible-interlining-medium-weight.jpg",
+  },
+  {
+    materialName: "Non-Woven Interlining Light",
+    type: "Interlining",
+    quality: "Economy",
+    color: "White",
+    hexCode: "#FFFFFF",
+    size: "Light",
+    unitType: "Meter",
+    currentStock: 10,
+    reorderLevel: 20,
+    unitPrice: "28.00",
+    hsnCode: "560314",
+    gstPercent: "12",
+    vendor: "Arvind Mills",
+    imageFileName: "non-woven-interlining-light.jpg",
+  },
+  {
+    materialName: "Woven Main Label Satin",
+    type: "Label",
+    quality: "Premium",
+    color: "Black",
+    hexCode: "#000000",
+    size: "50x20mm",
+    unitType: "Piece",
+    currentStock: 5,
+    reorderLevel: 15,
+    unitPrice: "3.50",
+    hsnCode: "580710",
+    gstPercent: "12",
+    vendor: "Raymond",
+    imageFileName: "woven-main-label-satin.jpg",
+  },
+  {
+    materialName: "Printed Care Label Wash Instructions",
+    type: "Label",
+    quality: "Standard",
+    color: "White",
+    hexCode: "#FFFFFF",
+    size: "60x30mm",
+    unitType: "Piece",
+    currentStock: 3,
+    reorderLevel: 10,
+    unitPrice: "2.00",
+    hsnCode: "481910",
+    gstPercent: "18",
+    vendor: "Sutlej Textiles",
+    imageFileName: "printed-care-label-wash-instructions.jpg",
+  },
+  {
+    materialName: "Plastic Hanger 17 inch",
+    type: "Accessory",
+    quality: "Standard",
+    color: "White",
+    hexCode: "#FFFFFF",
+    size: "17 inch",
+    unitType: "Piece",
+    currentStock: 2,
+    reorderLevel: 10,
+    unitPrice: "22.00",
+    hsnCode: "392690",
+    gstPercent: "18",
+    vendor: "Reliance Textiles",
+    imageFileName: "plastic-hanger-17-inch.jpg",
+  },
+  {
+    materialName: "LDPE Polybag 12x16 inch",
+    type: "Packaging",
+    quality: "Standard",
+    color: "White",
+    hexCode: "#FFFFFF",
+    size: "12x16",
+    unitType: "Piece",
+    currentStock: 6,
+    reorderLevel: 15,
+    unitPrice: "5.50",
+    hsnCode: "392321",
+    gstPercent: "18",
+    vendor: "Vardhman Textiles",
+    imageFileName: "ldpe-polybag-12x16-inch.jpg",
+  },
 ];
-const QUALITIES = ["Premium", "Standard", "Fine", "Economy", "Luxury"];
 
-function randomItem<T>(arr: T[]): T {
-  return arr[Math.floor(Math.random() * arr.length)];
+// ---------- Hardcoded Fabric Master ----------
+interface HardcodedFabric {
+  fabricType: string;
+  quality: string;
+  color: string;
+  hexCode: string;
+  width: string;
+  height: string;
+  pricePerMeter: string;
+  unitType: string;
+  reorderLevel: number;
+  hsnCode: string;
+  gstPercent: string;
+  vendor: string;
+  imageFileName: string; // <-- unique per item
 }
 
-function randomInt(min: number, max: number): number {
-  return Math.floor(Math.random() * (max - min + 1)) + min;
-}
+const FABRIC_MASTER: HardcodedFabric[] = [
+  {
+    fabricType: "Cotton Poplin",
+    quality: "Premium",
+    color: "White",
+    hexCode: "#FFFFFF",
+    width: "58",
+    height: "60",
+    pricePerMeter: "125.00",
+    unitType: "Meter",
+    reorderLevel: 15,
+    hsnCode: "520811",
+    gstPercent: "5",
+    vendor: "Arvind Mills",
+    imageFileName: "cotton-poplin-white.jpg",
+  },
+  {
+    fabricType: "Denim 12oz",
+    quality: "Standard",
+    color: "Blue",
+    hexCode: "#1E3A8A",
+    width: "60",
+    height: "50",
+    pricePerMeter: "180.00",
+    unitType: "Meter",
+    reorderLevel: 12,
+    hsnCode: "520912",
+    gstPercent: "12",
+    vendor: "Raymond",
+    imageFileName: "denim-12oz-blue.jpg",
+  },
+  {
+    fabricType: "Silk Charmeuse",
+    quality: "Luxury",
+    color: "Red",
+    hexCode: "#FF0000",
+    width: "44",
+    height: "100",
+    pricePerMeter: "850.00",
+    unitType: "Meter",
+    reorderLevel: 8,
+    hsnCode: "500720",
+    gstPercent: "5",
+    vendor: "Sutlej Textiles",
+    imageFileName: "silk-charmeuse-red.jpg",
+  },
+  {
+    fabricType: "Linen 60 Lea",
+    quality: "Premium",
+    color: "Beige",
+    hexCode: "#F5F5DC",
+    width: "56",
+    height: "55",
+    pricePerMeter: "220.00",
+    unitType: "Meter",
+    reorderLevel: 10,
+    hsnCode: "530919",
+    gstPercent: "5",
+    vendor: "Reliance Textiles",
+    imageFileName: "linen-60-lea-beige.jpg",
+  },
+  {
+    fabricType: "Polyester Georgette",
+    quality: "Standard",
+    color: "Black",
+    hexCode: "#000000",
+    width: "44",
+    height: "80",
+    pricePerMeter: "95.00",
+    unitType: "Meter",
+    reorderLevel: 18,
+    hsnCode: "540710",
+    gstPercent: "18",
+    vendor: "Vardhman Textiles",
+    imageFileName: "polyester-georgette-black.jpg",
+  },
+  {
+    fabricType: "Wool Tweed",
+    quality: "Premium",
+    color: "Grey",
+    hexCode: "#808080",
+    width: "60",
+    height: "45",
+    pricePerMeter: "450.00",
+    unitType: "Meter",
+    reorderLevel: 10,
+    hsnCode: "511211",
+    gstPercent: "12",
+    vendor: "Jaya Textiles",
+    imageFileName: "wool-tweed-grey.jpg",
+  },
+  {
+    fabricType: "Satin Duchess",
+    quality: "Luxury",
+    color: "Gold",
+    hexCode: "#D4AF37",
+    width: "58",
+    height: "70",
+    pricePerMeter: "380.00",
+    unitType: "Meter",
+    reorderLevel: 8,
+    hsnCode: "540710",
+    gstPercent: "18",
+    vendor: "Bombay Dyeing",
+    imageFileName: "satin-duchess-gold.jpg",
+  },
+  {
+    fabricType: "Cotton Canvas 10oz",
+    quality: "Standard",
+    color: "White",
+    hexCode: "#FFFFFF",
+    width: "60",
+    height: "50",
+    pricePerMeter: "140.00",
+    unitType: "Meter",
+    reorderLevel: 14,
+    hsnCode: "520811",
+    gstPercent: "5",
+    vendor: "Garden Silk Mills",
+    imageFileName: "cotton-canvas-10oz-white.jpg",
+  },
+  {
+    fabricType: "Viscose Rayon Challis",
+    quality: "Fine",
+    color: "Burgundy",
+    hexCode: "#800020",
+    width: "56",
+    height: "75",
+    pricePerMeter: "160.00",
+    unitType: "Meter",
+    reorderLevel: 12,
+    hsnCode: "540710",
+    gstPercent: "18",
+    vendor: "Trident Group",
+    imageFileName: "viscose-rayon-challis-burgundy.jpg",
+  },
+  {
+    fabricType: "Nylon Spandex 4-Way",
+    quality: "Standard",
+    color: "Black",
+    hexCode: "#000000",
+    width: "60",
+    height: "120",
+    pricePerMeter: "210.00",
+    unitType: "Meter",
+    reorderLevel: 15,
+    hsnCode: "540710",
+    gstPercent: "18",
+    vendor: "Welspun India",
+    imageFileName: "nylon-spandex-4way-black.jpg",
+  },
+];
 
-// ---------- Code generators using `like` to avoid parameter-type errors ----------
+// ---------- Code generators ----------
 async function generateMaterialCode(tx: any): Promise<string> {
   const prefix = "MAT";
   const result = await tx
@@ -75,16 +495,15 @@ async function generateFabricCode(tx: any): Promise<string> {
 }
 
 export async function seedStockAlertsWithNewRecords(): Promise<void> {
-  // Idempotency: skip if any material/fabric with createdBy = 'seeder_alert' exists
   const existingMaterial = await db
     .select({ id: materialsTable.id })
     .from(materialsTable)
-    .where(eq(materialsTable.createdBy, "seeder_alert"))
+    .where(eq(materialsTable.createdBy, "system"))
     .limit(1);
   const existingFabric = await db
     .select({ id: fabricsTable.id })
     .from(fabricsTable)
-    .where(eq(fabricsTable.createdBy, "seeder_alert"))
+    .where(eq(fabricsTable.createdBy, "system"))
     .limit(1);
 
   if (existingMaterial.length > 0 || existingFabric.length > 0) {
@@ -94,17 +513,23 @@ export async function seedStockAlertsWithNewRecords(): Promise<void> {
 
   // Fetch active warehouses
   const warehouses = await db
-    .select({ name: warehouseLocations.name })
+    .select({ name: warehouseLocations.name, code: warehouseLocations.code })
     .from(warehouseLocations)
-    .where(eq(warehouseLocations.isActive, true));
+    .where(and(eq(warehouseLocations.isActive, true), eq(warehouseLocations.isDeleted, false)))
+    .orderBy(warehouseLocations.id);
+
   if (warehouses.length === 0) {
     throw new Error("No active warehouses found. Please seed warehouse locations first.");
   }
-  const warehouseNames = warehouses.map(w => w.name);
-  const defaultMatWarehouse = warehouseNames[0] || "Warehouse A";
-  const defaultFabWarehouse = warehouseNames[1] || warehouseNames[0] || "Warehouse B";
 
-  // Fetch dependent data
+  const defaultMatWarehouse = warehouses[0]?.name;
+  const defaultFabWarehouse = warehouses[1]?.name ?? warehouses[0]?.name;
+
+  console.log(
+    `[seedStockAlertsWithNewRecords] Material warehouse: ${defaultMatWarehouse}, Fabric warehouse: ${defaultFabWarehouse}`
+  );
+
+  // Fetch dependent data for validation
   const unitTypes = await db
     .select({ name: unitTypesTable.name })
     .from(unitTypesTable)
@@ -128,74 +553,50 @@ export async function seedStockAlertsWithNewRecords(): Promise<void> {
     .where(and(eq(vendorsTable.isActive, true), eq(vendorsTable.isDeleted, false)));
   const vendorNames = vendors.map(v => v.brandName);
 
-  // Fallbacks
-  const fallbackUnitTypes = ["Meter", "Piece", "Kilogram", "Gram", "Liter"];
-  const fallbackFabricTypes = ["Cotton", "Denim", "Silk", "Linen", "Polyester", "Wool", "Satin", "Canvas", "Viscose", "Tweed", "Chiffon", "Jacquard", "Nylon", "Lace", "Fleece"];
-  const fallbackHsn = [
-    { hsnCode: "520811", gstPercent: "5" },
-    { hsnCode: "520912", gstPercent: "12" },
-    { hsnCode: "540710", gstPercent: "18" },
-    { hsnCode: "551311", gstPercent: "5" },
-    { hsnCode: "620342", gstPercent: "12" },
-    { hsnCode: "580421", gstPercent: "5" },
-    { hsnCode: "960621", gstPercent: "18" },
-    { hsnCode: "481910", gstPercent: "18" },
-  ];
-  const fallbackVendors = ["Arvind Mills", "Raymond", "Sutlej Textiles", "Reliance Textiles", "Vardhman Textiles", "Jaya Textiles", "Bombay Dyeing", "Garden Silk Mills", "Trident Group", "Welspun India", "Indo Count Industries"];
-
-  const finalUnitTypes = unitTypeNames.length > 0 ? unitTypeNames : fallbackUnitTypes;
-  const finalFabricTypes = fabricTypeNames.length > 0 ? fabricTypeNames : fallbackFabricTypes;
-  const finalHsn = hsnData.length > 0 ? hsnData : fallbackHsn;
-  const finalVendors = vendorNames.length > 0 ? vendorNames : fallbackVendors;
-
-  console.log(`[seedStockAlertsWithNewRecords] Using ${finalUnitTypes.length} unit types, ${finalFabricTypes.length} fabric types, ${finalHsn.length} HSN codes, ${finalVendors.length} vendors.`);
+  console.log(
+    `[seedStockAlertsWithNewRecords] Using ${unitTypeNames.length} unit types, ${fabricTypeNames.length} fabric types, ${hsnData.length} HSN codes, ${vendorNames.length} vendors.`
+  );
 
   await db.transaction(async (tx) => {
-    // ----- Create LOW-STOCK Materials -----
-    for (let i = 0; i < LOW_STOCK_COUNT; i++) {
+    // ─── Insert LOW-STOCK Materials ───
+    for (const mat of MATERIAL_MASTER) {
       const materialCode = await generateMaterialCode(tx);
-      const color = randomItem(COLORS);
-      const quality = randomItem(QUALITIES);
-      const type = randomItem(MATERIAL_TYPES);
-      const unitType = randomItem(finalUnitTypes);
-      const hsn = randomItem(finalHsn);
-      const vendor = randomItem(finalVendors);
-      const reorderLevel = randomInt(5, 20);
-      const currentStock = randomInt(1, Math.max(1, reorderLevel - 1));
-      const unitPrice = (randomInt(50, 500) / 10).toFixed(2);
+      const currentStock = String(mat.currentStock);
+      const reorderLevel = String(mat.reorderLevel);
+      const minimumLevel = String(Math.floor(mat.reorderLevel * 0.5));
+      const maximumLevel = String(mat.reorderLevel * 3);
 
-      // Insert material – skip on conflict
       const [inserted] = await tx
         .insert(materialsTable)
         .values({
           materialCode,
-          materialName: `${type} - ${quality} - ${color.name} (Alert)`,
-          quality,
-          type,
-          color: color.name,
-          hexCode: color.hex,
-          colorName: color.name,
-          size: String(randomInt(40, 60)),
-          unitPrice,
-          unitType,
-          currentStock: String(currentStock),
-          locationStocks: [{ location: defaultMatWarehouse, stock: String(currentStock) }],
-          hsnCode: hsn.hsnCode,
-          gstPercent: hsn.gstPercent,
-          vendor,
+          materialName: mat.materialName,
+          quality: mat.quality,
+          type: mat.type,
+          color: mat.color,
+          hexCode: mat.hexCode,
+          colorName: mat.color,
+          size: mat.size,
+          unitPrice: mat.unitPrice,
+          unitType: mat.unitType,
+          currentStock,
+          locationStocks: [{ location: defaultMatWarehouse, stock: currentStock }],
+          hsnCode: mat.hsnCode,
+          gstPercent: mat.gstPercent,
+          vendor: mat.vendor,
           location: defaultMatWarehouse,
-          reorderLevel: String(reorderLevel),
-          minimumLevel: String(Math.floor(reorderLevel * 0.5)),
-          maximumLevel: String(reorderLevel * 3),
+          reorderLevel,
+          minimumLevel,
+          maximumLevel,
           images: [
             {
               id: `img-${materialCode.toLowerCase()}`,
-              name: `${color.name.toLowerCase()}.jpg`,
-              url: `/uploads/materials/images/${color.name.toLowerCase()}.jpg`,
+              name: mat.imageFileName,
+              url: `/uploads/materials/images/${mat.imageFileName}`,
               size: 1024,
             },
           ],
-          createdBy: "seeder_alert",
+          createdBy: "system",
         })
         .onConflictDoNothing()
         .returning({ id: materialsTable.id });
@@ -205,86 +606,80 @@ export async function seedStockAlertsWithNewRecords(): Promise<void> {
         continue;
       }
 
-      // Insert inventory item – skip on conflict
       await tx
         .insert(inventoryItemsTable)
         .values({
           sourceType: "material",
           sourceId: inserted.id,
-          itemName: `${type} - ${quality} - ${color.name} (Alert)`,
+          itemName: mat.materialName,
           itemCode: materialCode,
-          category: type,
+          category: mat.type,
           department: null,
           warehouseLocation: defaultMatWarehouse,
-          unitType,
-          currentStock: String(currentStock),
+          unitType: mat.unitType,
+          currentStock,
           styleReservedQty: "0",
           swatchReservedQty: "0",
-          availableStock: String(currentStock),
-          averagePrice: unitPrice,
-          lastPurchasePrice: unitPrice,
-          minimumLevel: String(Math.floor(reorderLevel * 0.5)),
-          reorderLevel: String(reorderLevel),
-          maximumLevel: String(reorderLevel * 3),
-          preferredVendor: vendor,
+          availableStock: currentStock,
+          averagePrice: mat.unitPrice,
+          lastPurchasePrice: mat.unitPrice,
+          minimumLevel,
+          reorderLevel,
+          maximumLevel,
+          preferredVendor: mat.vendor,
           lastVendor: null,
           images: [
             {
               id: `img-${materialCode.toLowerCase()}`,
-              name: `${color.name.toLowerCase()}.jpg`,
-              url: `/uploads/materials/images/${color.name.toLowerCase()}.jpg`,
+              name: mat.imageFileName,
+              url: `/uploads/materials/images/${mat.imageFileName}`,
               size: 1024,
             },
           ],
         })
         .onConflictDoNothing();
 
-      console.log(`[seedStockAlerts] Low‑stock material ${materialCode} created with stock ${currentStock}`);
+      console.log(`[seedStockAlerts] Low-stock material ${materialCode} created with stock ${currentStock} at ${defaultMatWarehouse}`);
     }
 
-    // ----- Create OUT-OF-STOCK Fabrics -----
-    for (let i = 0; i < OUT_OF_STOCK_COUNT; i++) {
+    // ─── Insert OUT-OF-STOCK Fabrics ───
+    for (const fab of FABRIC_MASTER) {
       const fabricCode = await generateFabricCode(tx);
-      const color = randomItem(COLORS);
-      const quality = randomItem(QUALITIES);
-      const fabricType = randomItem(finalFabricTypes);
-      const unitType = "Meter";
-      const hsn = randomItem(finalHsn);
-      const vendor = randomItem(finalVendors);
-      const reorderLevel = randomInt(5, 20);
-      const unitPrice = (randomInt(100, 800) / 10).toFixed(2);
+      const reorderLevel = String(fab.reorderLevel);
+      const minimumLevel = String(Math.floor(fab.reorderLevel * 0.5));
+      const maximumLevel = String(fab.reorderLevel * 3);
 
       const [inserted] = await tx
         .insert(fabricsTable)
         .values({
           fabricCode,
-          fabricType,
-          quality,
-          color: color.name,
-          hexCode: color.hex,
-          colorName: color.name,
-          width: String(randomInt(44, 62)),
-          height: String(randomInt(50, 120)),
-          pricePerMeter: unitPrice,
-          unitType,
+          fabricType: fab.fabricType,
+          quality: fab.quality,
+          color: fab.color,
+          hexCode: fab.hexCode,
+          colorName: fab.color,
+          width: fab.width,
+          height: fab.height,
+          pricePerMeter: fab.pricePerMeter,
+          unitType: fab.unitType,
           currentStock: "0",
-          hsnCode: hsn.hsnCode,
-          gstPercent: hsn.gstPercent,
-          vendor,
+          hsnCode: fab.hsnCode,
+          gstPercent: fab.gstPercent,
+          vendor: fab.vendor,
           location: defaultFabWarehouse,
           locationStocks: [{ location: defaultFabWarehouse, stock: "0" }],
-          reorderLevel: String(reorderLevel),
-          minimumLevel: String(Math.floor(reorderLevel * 0.5)),
-          maximumLevel: String(reorderLevel * 3),
+          reorderLevel,
+          minimumLevel,
+          maximumLevel,
           images: [
             {
               id: `img-${fabricCode.toLowerCase()}`,
-              name: `${color.name.toLowerCase()}.jpg`,
-              url: `/uploads/fabrics/images/${color.name.toLowerCase()}.jpg`,
+              name: fab.imageFileName,
+              url: `/uploads/fabrics/images/${fab.imageFileName}`,
               size: 2048,
             },
           ],
-          createdBy: "seeder_alert",
+          createdBy: "system",
         })
         .onConflictDoNothing()
         .returning({ id: fabricsTable.id });
@@ -294,45 +689,44 @@ export async function seedStockAlertsWithNewRecords(): Promise<void> {
         continue;
       }
 
-      // Insert inventory item – skip on conflict
       await tx
         .insert(inventoryItemsTable)
         .values({
           sourceType: "fabric",
           sourceId: inserted.id,
-          itemName: `${fabricType} - ${quality} - ${color.name} (Alert)`,
+          itemName: `${fab.fabricType} - ${fab.quality} - ${fab.color}`,
           itemCode: fabricCode,
-          category: fabricType,
+          category: fab.fabricType,
           department: null,
           warehouseLocation: defaultFabWarehouse,
-          unitType,
+          unitType: fab.unitType,
           currentStock: "0",
           styleReservedQty: "0",
           swatchReservedQty: "0",
           availableStock: "0",
-          averagePrice: unitPrice,
-          lastPurchasePrice: unitPrice,
-          minimumLevel: String(Math.floor(reorderLevel * 0.5)),
-          reorderLevel: String(reorderLevel),
-          maximumLevel: String(reorderLevel * 3),
-          preferredVendor: vendor,
+          averagePrice: fab.pricePerMeter,
+          lastPurchasePrice: fab.pricePerMeter,
+          minimumLevel,
+          reorderLevel,
+          maximumLevel,
+          preferredVendor: fab.vendor,
           lastVendor: null,
           images: [
             {
               id: `img-${fabricCode.toLowerCase()}`,
-              name: `${color.name.toLowerCase()}.jpg`,
-              url: `/uploads/fabrics/images/${color.name.toLowerCase()}.jpg`,
+              name: fab.imageFileName,
+              url: `/uploads/fabrics/images/${fab.imageFileName}`,
               size: 2048,
             },
           ],
         })
         .onConflictDoNothing();
 
-      console.log(`[seedStockAlerts] Out‑of‑stock fabric ${fabricCode} created.`);
+      console.log(`[seedStockAlerts] Out-of-stock fabric ${fabricCode} created at ${defaultFabWarehouse}.`);
     }
   });
 
   console.log(
-    `[seedStockAlertsWithNewRecords] Completed. Created ${LOW_STOCK_COUNT} low‑stock materials and ${OUT_OF_STOCK_COUNT} out‑of‑stock fabrics.`
+    `[seedStockAlertsWithNewRecords] Completed. Created ${MATERIAL_MASTER.length} low-stock materials and ${FABRIC_MASTER.length} out-of-stock fabrics.`
   );
 }
