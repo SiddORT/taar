@@ -9,8 +9,9 @@ import {
   hsnTable,
   vendorsTable,
   sql,
+  inArray,
 } from "@workspace/db";
-import { eq, and, like } from "drizzle-orm";
+import { eq, and, like, ilike } from "drizzle-orm";
 
 // ---------- Hardcoded Material Master ----------
 interface HardcodedMaterial {
@@ -27,7 +28,7 @@ interface HardcodedMaterial {
   hsnCode: string;
   gstPercent: string;
   vendor: string;
-  imageFileName: string; // <-- unique per item
+  imageFileName: string;
 }
 
 const MATERIAL_MASTER: HardcodedMaterial[] = [
@@ -303,7 +304,7 @@ interface HardcodedFabric {
   hsnCode: string;
   gstPercent: string;
   vendor: string;
-  imageFileName: string; // <-- unique per item
+  imageFileName: string;
 }
 
 const FABRIC_MASTER: HardcodedFabric[] = [
@@ -459,57 +460,9 @@ const FABRIC_MASTER: HardcodedFabric[] = [
   },
 ];
 
-// ---------- Code generators ----------
-async function generateMaterialCode(tx: any): Promise<string> {
-  const prefix = "MAT";
-  const result = await tx
-    .select({ code: materialsTable.materialCode })
-    .from(materialsTable)
-    .where(like(materialsTable.materialCode, `${prefix}%`))
-    .orderBy(sql`${materialsTable.materialCode} DESC`)
-    .limit(1);
-  let seq = 1;
-  if (result.length > 0) {
-    const last = result[0].code;
-    const num = parseInt(last.replace(prefix, ""), 10);
-    if (!isNaN(num)) seq = num + 1;
-  }
-  return `${prefix}${String(seq).padStart(4, "0")}`;
-}
-
-async function generateFabricCode(tx: any): Promise<string> {
-  const prefix = "FAB";
-  const result = await tx
-    .select({ code: fabricsTable.fabricCode })
-    .from(fabricsTable)
-    .where(like(fabricsTable.fabricCode, `${prefix}%`))
-    .orderBy(sql`${fabricsTable.fabricCode} DESC`)
-    .limit(1);
-  let seq = 1;
-  if (result.length > 0) {
-    const last = result[0].code;
-    const num = parseInt(last.replace(prefix, ""), 10);
-    if (!isNaN(num)) seq = num + 1;
-  }
-  return `${prefix}${String(seq).padStart(4, "0")}`;
-}
-
 export async function seedStockAlertsWithNewRecords(): Promise<void> {
-  const existingMaterial = await db
-    .select({ id: materialsTable.id })
-    .from(materialsTable)
-    .where(eq(materialsTable.createdBy, "system"))
-    .limit(1);
-  const existingFabric = await db
-    .select({ id: fabricsTable.id })
-    .from(fabricsTable)
-    .where(eq(fabricsTable.createdBy, "system"))
-    .limit(1);
-
-  if (existingMaterial.length > 0 || existingFabric.length > 0) {
-    console.log("[seedStockAlertsWithNewRecords] Records already seeded. Skipping.");
-    return;
-  }
+  const materialNames = MATERIAL_MASTER.map(m => m.materialName);
+  const fabricTypes = FABRIC_MASTER.map(f => f.fabricType);
 
   // Fetch active warehouses
   const warehouses = await db
@@ -529,38 +482,43 @@ export async function seedStockAlertsWithNewRecords(): Promise<void> {
     `[seedStockAlertsWithNewRecords] Material warehouse: ${defaultMatWarehouse}, Fabric warehouse: ${defaultFabWarehouse}`
   );
 
-  // Fetch dependent data for validation
-  const unitTypes = await db
-    .select({ name: unitTypesTable.name })
-    .from(unitTypesTable)
-    .where(and(eq(unitTypesTable.isActive, true), eq(unitTypesTable.isDeleted, false)));
-  const unitTypeNames = unitTypes.map(u => u.name);
-
-  const fabricTypes = await db
-    .select({ name: fabricTypesTable.name })
-    .from(fabricTypesTable)
-    .where(and(eq(fabricTypesTable.isActive, true), eq(fabricTypesTable.isDeleted, false)));
-  const fabricTypeNames = fabricTypes.map(f => f.name);
-
-  const hsnData = await db
-    .select({ hsnCode: hsnTable.hsnCode, gstPercent: hsnTable.gstPercentage })
-    .from(hsnTable)
-    .where(and(eq(hsnTable.isActive, true), eq(hsnTable.isDeleted, false)));
-
-  const vendors = await db
-    .select({ brandName: vendorsTable.brandName })
-    .from(vendorsTable)
-    .where(and(eq(vendorsTable.isActive, true), eq(vendorsTable.isDeleted, false)));
-  const vendorNames = vendors.map(v => v.brandName);
+  // Get current counts for code generation (matches actual app logic)
+  const matCountRes = await db.select({ count: sql`count(*)` }).from(materialsTable);
+  const fabCountRes = await db.select({ count: sql`count(*)` }).from(fabricsTable);
+  let initialMatCount = Number(matCountRes[0].count);
+  let initialFabCount = Number(fabCountRes[0].count);
 
   console.log(
-    `[seedStockAlertsWithNewRecords] Using ${unitTypeNames.length} unit types, ${fabricTypeNames.length} fabric types, ${hsnData.length} HSN codes, ${vendorNames.length} vendors.`
+    `[seedStockAlertsWithNewRecords] Existing materials: ${initialMatCount}, Existing fabrics: ${initialFabCount}`
   );
 
   await db.transaction(async (tx) => {
+    let matCreated = 0;
+
     // ─── Insert LOW-STOCK Materials ───
     for (const mat of MATERIAL_MASTER) {
-      const materialCode = await generateMaterialCode(tx);
+      // Duplicate check: matches actual app logic
+      const dupMat = await tx
+        .select({ id: materialsTable.id })
+        .from(materialsTable)
+        .where(
+          and(
+            ilike(materialsTable.type, mat.type),
+            ilike(materialsTable.colorName, mat.color),
+            eq(materialsTable.size, mat.size),
+            eq(materialsTable.isDeleted, false)
+          )
+        );
+
+      if (dupMat.length > 0) {
+        console.warn(`[seedStockAlerts] Material "${mat.materialName}" already exists. Skipping.`);
+        continue;
+      }
+
+      // Code generation: matches actual app logic
+      const materialCode = `MAT${String(initialMatCount + matCreated + 1).padStart(4, "0")}`;
+      matCreated++;
+
       const currentStock = String(mat.currentStock);
       const reorderLevel = String(mat.reorderLevel);
       const minimumLevel = String(Math.floor(mat.reorderLevel * 0.5));
@@ -598,13 +556,7 @@ export async function seedStockAlertsWithNewRecords(): Promise<void> {
           ],
           createdBy: "system",
         })
-        .onConflictDoNothing()
         .returning({ id: materialsTable.id });
-
-      if (!inserted) {
-        console.warn(`[seedStockAlerts] Material ${materialCode} already exists. Skipping.`);
-        continue;
-      }
 
       await tx
         .insert(inventoryItemsTable)
@@ -636,15 +588,37 @@ export async function seedStockAlertsWithNewRecords(): Promise<void> {
               size: 1024,
             },
           ],
-        })
-        .onConflictDoNothing();
+        });
 
       console.log(`[seedStockAlerts] Low-stock material ${materialCode} created with stock ${currentStock} at ${defaultMatWarehouse}`);
     }
 
+    let fabCreated = 0;
+
     // ─── Insert OUT-OF-STOCK Fabrics ───
     for (const fab of FABRIC_MASTER) {
-      const fabricCode = await generateFabricCode(tx);
+      // Duplicate check: matches actual app logic
+      const dupFabric = await tx
+        .select({ id: fabricsTable.id })
+        .from(fabricsTable)
+        .where(
+          and(
+            ilike(fabricsTable.fabricType, fab.fabricType),
+            ilike(fabricsTable.quality, fab.quality),
+            ilike(fabricsTable.colorName, fab.color),
+            eq(fabricsTable.isDeleted, false)
+          )
+        );
+
+      if (dupFabric.length > 0) {
+        console.warn(`[seedStockAlerts] Fabric "${fab.fabricType}" already exists. Skipping.`);
+        continue;
+      }
+
+      // Code generation: matches actual app logic
+      const fabricCode = `FAB${String(initialFabCount + fabCreated + 1).padStart(4, "0")}`;
+      fabCreated++;
+
       const reorderLevel = String(fab.reorderLevel);
       const minimumLevel = String(Math.floor(fab.reorderLevel * 0.5));
       const maximumLevel = String(fab.reorderLevel * 3);
@@ -681,13 +655,7 @@ export async function seedStockAlertsWithNewRecords(): Promise<void> {
           ],
           createdBy: "system",
         })
-        .onConflictDoNothing()
         .returning({ id: fabricsTable.id });
-
-      if (!inserted) {
-        console.warn(`[seedStockAlerts] Fabric ${fabricCode} already exists. Skipping.`);
-        continue;
-      }
 
       await tx
         .insert(inventoryItemsTable)
@@ -719,14 +687,10 @@ export async function seedStockAlertsWithNewRecords(): Promise<void> {
               size: 2048,
             },
           ],
-        })
-        .onConflictDoNothing();
+        });
 
       console.log(`[seedStockAlerts] Out-of-stock fabric ${fabricCode} created at ${defaultFabWarehouse}.`);
     }
   });
 
-  console.log(
-    `[seedStockAlertsWithNewRecords] Completed. Created ${MATERIAL_MASTER.length} low-stock materials and ${FABRIC_MASTER.length} out-of-stock fabrics.`
-  );
 }
