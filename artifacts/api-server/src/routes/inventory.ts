@@ -718,6 +718,7 @@ router.post("/inventory/reservations", requireAuth, async (req, res) => {
   const auth = req as AuthRequest;
   try {
     const { inventoryId, reservationType, referenceId, reservedQuantity, remarks, reservationDate } = req.body;
+
     if (!inventoryId || !reservationType || !referenceId || !reservedQuantity || !reservationDate) {
       return res.status(400).json({ error: "Missing required fields" });
     }
@@ -725,8 +726,10 @@ router.post("/inventory/reservations", requireAuth, async (req, res) => {
       return res.status(400).json({ error: "Invalid reservation type" });
     }
 
+    // Fetch inventory item with all needed fields
     const itemRow = await pool.query(
-      `SELECT id, available_stock, style_reserved_qty, swatch_reserved_qty, current_stock
+      `SELECT id, available_stock, style_reserved_qty, swatch_reserved_qty, current_stock,
+              source_type, source_id, item_code, item_name, unit_type, warehouse_location, average_price
        FROM inventory_items WHERE id = $1 AND is_deleted = false`,
       [inventoryId]
     );
@@ -735,12 +738,16 @@ router.post("/inventory/reservations", requireAuth, async (req, res) => {
     const qty = parseFloat(reservedQuantity);
     if (qty <= 0) return res.status(400).json({ error: "Quantity must be greater than 0" });
     if (qty > parseFloat(item.available_stock)) {
-      return res.status(400).json({ error: `Cannot reserve ${qty} — only ${parseFloat(item.available_stock).toFixed(3)} available` });
+      return res.status(400).json({
+        error: `Cannot reserve ${qty} — only ${parseFloat(item.available_stock).toFixed(3)} available`
+      });
     }
 
     const client = await (pool as any).connect();
     try {
       await client.query("BEGIN");
+
+      // 1. Insert reservation
       const ins = await client.query(
         `INSERT INTO material_reservations
            (item_id, inventory_id, reservation_type, reference_id, reserved_quantity, status, remarks, reserved_by, reservation_date)
@@ -750,6 +757,7 @@ router.post("/inventory/reservations", requireAuth, async (req, res) => {
       );
       const resv = ins.rows[0];
 
+      // 2. Update reserved quantity on inventory item
       const col = reservationType === "Style" ? "style_reserved_qty" : "swatch_reserved_qty";
       await client.query(
         `UPDATE inventory_items SET ${col} = ${col}::numeric + $1 WHERE id = $2`,
@@ -757,14 +765,67 @@ router.post("/inventory/reservations", requireAuth, async (req, res) => {
       );
       await recalcAvailable(client, inventoryId);
 
+      // 3. Stock ledger entry
       const balR = await client.query(`SELECT current_stock FROM inventory_items WHERE id = $1`, [inventoryId]);
       await client.query(
         `INSERT INTO stock_ledger (item_id, transaction_type, reference_number, reference_type, in_quantity, out_quantity, balance_quantity, remarks, created_by)
          VALUES ($1,$2,$3,$4,0,$5,$6,$7,$8)`,
         [inventoryId, `${reservationType.toLowerCase()}_reservation`, String(referenceId), reservationType,
-         qty, balR.rows[0].current_stock, `Reserved ${qty} for ${reservationType} #${referenceId}${remarks ? ` — ${remarks}` : ""}`,
+         qty, balR.rows[0].current_stock,
+         `Reserved ${qty} for ${reservationType} #${referenceId}${remarks ? ` — ${remarks}` : ""}`,
          auth.user?.name || auth.user?.email || "System"]
       );
+
+      // 4. Auto‑insert BOM if missing (using data from inventory item)
+      const { source_type, source_id, item_code, item_name, unit_type, warehouse_location, average_price, current_stock } = item;
+      const orderIdColumn = reservationType === "Style" ? "style_order_id" : "swatch_order_id";
+
+      // Check if a BOM row already exists
+      const existingBom = await client.query(
+        `SELECT id FROM swatch_bom
+         WHERE ${orderIdColumn} = $1
+           AND material_id = $2
+           AND material_type = $3
+           AND is_deleted = false
+         LIMIT 1`,
+        [referenceId, source_id, source_type]
+      );
+
+      if (existingBom.rows.length === 0) {
+        const avgPrice = parseFloat(average_price) || 0;
+        const estimatedAmount = (qty * avgPrice).toFixed(2);
+
+        await client.query(
+          `INSERT INTO swatch_bom (
+             ${orderIdColumn},
+             material_type,
+             material_id,
+             material_code,
+             material_name,
+             current_stock,
+             avg_unit_price,
+             unit_type,
+             warehouse_location,
+             required_qty,
+             estimated_amount,
+             created_by
+           ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
+          [
+            referenceId,               // style_order_id or swatch_order_id
+            source_type,               // 'material' or 'fabric'
+            source_id,                 // original material/fabric id
+            item_code,
+            item_name,
+            current_stock,
+            avgPrice,
+            unit_type || "",           // fallback to empty string
+            warehouse_location || "",
+            qty,
+            estimatedAmount,
+            auth.user?.name || auth.user?.email || "System"
+          ]
+        );
+      }
       await client.query("COMMIT");
       return res.status(201).json(resv);
     } catch (e) {
