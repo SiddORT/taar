@@ -4,7 +4,6 @@ import {
   swatchOrdersTable,
   entityTagsTable,
   fabricsTable,
-  stylesTable,
   swatchesTable,
   clientsTable,
   styleOrdersTable,

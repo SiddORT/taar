@@ -37,6 +37,7 @@ interface ArtworkSeedData {
   wipImages?: ImageItem[];
   finalImages?: ImageItem[];
   createdBy: string;
+  createdAt?: Date;  // <-- added optional createdAt
 }
 
 // ============================================
@@ -382,13 +383,55 @@ function generateArtworkCode(artworkId: number): string {
 }
 
 // ============================================
+// Date Helper: Random date between two dates
+// ============================================
+
+/**
+ * Parses a date string (assumes YYYY-MM-DD or ISO) and returns a Date object.
+ * If invalid, returns null.
+ */
+function parseDateString(dateStr: string | null): Date | null {
+  if (!dateStr) return null;
+  const d = new Date(dateStr);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+/**
+ * Returns a random Date between startDate and endDate (inclusive).
+ * If either date is null/invalid, returns the current date.
+ * If startDate > endDate, swaps them.
+ */
+function getRandomDateBetween(startStr: string | null, endStr: string | null): Date {
+  const start = parseDateString(startStr);
+  const end = parseDateString(endStr);
+
+  // Fallback to current date if either is invalid
+  if (!start || !end) {
+    return new Date();
+  }
+
+  // Ensure start <= end
+  const from = start.getTime() <= end.getTime() ? start : end;
+  const to = start.getTime() <= end.getTime() ? end : start;
+
+  // If same date, return that date
+  if (from.getTime() === to.getTime()) {
+    return from;
+  }
+
+  // Generate random timestamp between from and to
+  const randomTime = from.getTime() + Math.random() * (to.getTime() - from.getTime());
+  return new Date(randomTime);
+}
+
+// ============================================
 // Main Seed Function
 // ============================================
 
 export async function seedArtworks(count: number = 30): Promise<void> {
   console.log('\n🎨 Starting ArtworkSeeder with ' + count + ' artworks...\n');
 
-  // Fetch swatch orders that can have artworks
+  // Fetch swatch orders with their date fields
   const swatchOrders = await db
     .select({
       id: swatchOrdersTable.id,
@@ -396,6 +439,8 @@ export async function seedArtworks(count: number = 30): Promise<void> {
       orderCode: swatchOrdersTable.orderCode,
       orderStatus: swatchOrdersTable.orderStatus,
       clientName: swatchOrdersTable.clientName,
+      orderIssueDate: swatchOrdersTable.orderIssueDate,   // <-- added
+      deliveryDate: swatchOrdersTable.deliveryDate,       // <-- added
     })
     .from(swatchOrdersTable)
     .where(
@@ -434,8 +479,11 @@ export async function seedArtworks(count: number = 30): Promise<void> {
     console.log(`   📊 Plus ${extraArtworks} additional artworks distributed randomly`);
   }
 
-  // First pass: Create exactly 1 artwork for every swatch order
-  for (const order of swatchOrders) {
+  // Helper to build artwork data for a given order and variation index
+  const buildArtworkData = async (
+    order: typeof swatchOrders[0],
+    variationIndex: number
+  ): Promise<ArtworkSeedData> => {
     const isInhouse = faker.datatype.boolean({ probability: 0.7 });
     const workHours = faker.number.int({ min: 2, max: 40 }).toString();
     const hourlyRate = faker.number.int({ min: 50, max: 500 }).toString();
@@ -462,7 +510,10 @@ export async function seedArtworks(count: number = 30): Promise<void> {
     }
 
     // Generate artwork name based on the swatch name
-    const artworkName = generateArtworkVariations(order.swatchName, 0);
+    const artworkName = generateArtworkVariations(order.swatchName, variationIndex);
+
+    // Compute random date between orderIssueDate and deliveryDate
+    const randomCreatedAt = getRandomDateBetween(order.orderIssueDate, order.deliveryDate);
 
     const artworkData: ArtworkSeedData = {
       swatchOrderId: order.id,
@@ -480,6 +531,7 @@ export async function seedArtworks(count: number = 30): Promise<void> {
       wipImages: wipImages,
       finalImages: finalImages,
       createdBy: faker.helpers.arrayElement(['admin@taar.com', 'system']),
+      createdAt: randomCreatedAt, // <-- set the random date
     };
 
     // If outsourced, add vendor details
@@ -493,6 +545,12 @@ export async function seedArtworks(count: number = 30): Promise<void> {
       artworkData.outsourcePaymentStatus = getRandomPaymentStatus();
     }
 
+    return artworkData;
+  };
+
+  // First pass: Create exactly 1 artwork for every swatch order
+  for (const order of swatchOrders) {
+    const artworkData = await buildArtworkData(order, 0);
     artworksToCreate.push(artworkData);
     created++;
   }
@@ -511,63 +569,7 @@ export async function seedArtworks(count: number = 30): Promise<void> {
       
       if (!targetOrder) continue;
 
-      const isInhouse = faker.datatype.boolean({ probability: 0.7 });
-      const workHours = faker.number.int({ min: 2, max: 40 }).toString();
-      const hourlyRate = faker.number.int({ min: 50, max: 500 }).toString();
-      const totalCost = (parseInt(workHours) * parseInt(hourlyRate)).toString();
-
-      // Try to load images for this swatch
-      let refImages: ImageItem[] = [];
-      let wipImages: ImageItem[] = [];
-      let finalImages: ImageItem[] = [];
-
-      let orderCode: string | null = null;
-
-      if (targetOrder.orderCode && availableImageCodes.has(targetOrder.orderCode)) {
-        orderCode = targetOrder.orderCode;
-      } else if (availableImageCodes.size > 0) {
-        orderCode = faker.helpers.arrayElement(Array.from(availableImageCodes));
-      }
-
-      if (orderCode) {
-        const images = await loadArtworkImages(orderCode);
-        refImages = images.refImages;
-        wipImages = images.wipImages;
-        finalImages = images.finalImages;
-      }
-
-      // Generate artwork name based on the swatch name (with variation index)
-      const artworkName = generateArtworkVariations(targetOrder.swatchName, i + 1);
-
-      const artworkData: ArtworkSeedData = {
-        swatchOrderId: targetOrder.id,
-        artworkName: artworkName,
-        unitLength: faker.number.int({ min: 10, max: 200 }).toString(),
-        unitWidth: faker.number.int({ min: 10, max: 200 }).toString(),
-        unitType: getRandomUnitType(),
-        artworkCreated: isInhouse ? 'Inhouse' : 'Outsourced',
-        workHours: workHours,
-        hourlyRate: hourlyRate,
-        totalCost: totalCost,
-        feedbackStatus: getRandomFeedbackStatus(),
-        files: [],
-        refImages: refImages,
-        wipImages: wipImages,
-        finalImages: finalImages,
-        createdBy: faker.helpers.arrayElement(['admin@taar.com', 'system']),
-      };
-
-      // If outsourced, add vendor details
-      if (!isInhouse) {
-        artworkData.outsourceVendorId = faker.string.numeric(5);
-        artworkData.outsourceVendorName = faker.company.name() + ' ' + faker.helpers.arrayElement(['Studio', 'Designs', 'Creations', 'Arts']);
-        artworkData.outsourcePaymentDate = faker.date.recent().toISOString().slice(0, 10);
-        artworkData.outsourcePaymentAmount = faker.number.int({ min: 1000, max: 50000 }).toString();
-        artworkData.outsourcePaymentMode = getRandomPaymentMode();
-        artworkData.outsourceTransactionId = 'TXN-' + faker.string.alphanumeric(8).toUpperCase();
-        artworkData.outsourcePaymentStatus = getRandomPaymentStatus();
-      }
-
+      const artworkData = await buildArtworkData(targetOrder, i + 1);
       artworksToCreate.push(artworkData);
       created++;
     }
@@ -605,7 +607,7 @@ export async function seedArtworks(count: number = 30): Promise<void> {
         wipImages: data.wipImages || [],
         finalImages: data.finalImages || [],
         createdBy: data.createdBy || 'system',
-        createdAt: new Date(),
+        createdAt: data.createdAt || new Date(), // <-- use computed or fallback
       }).returning();
 
       console.log('✅ Created artwork: ' + artworkCode + ' - ' + data.artworkName + ' (Swatch Order: ' + data.swatchOrderId + ')');

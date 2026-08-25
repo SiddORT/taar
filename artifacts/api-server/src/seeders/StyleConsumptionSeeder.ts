@@ -379,7 +379,7 @@ export async function seedStyleConsumptionLog() {
                   unitType: bomItem.unitType || "Piece",
                   consumedQty: qtyForThisEntry.toFixed(3),
                   consumedBy: consumedBy,
-                  notes: `Auto-consumption from seeder - ${consumptionDate.toISOString().split('T')[0]}`,
+                  notes: "Style order Consmption",
                   warehouseLocation: bomItem.warehouseLocation || null,
                   consumedAt: consumptionDate, // Set the consumption date
                   createdAt: consumptionDate, // Set the creation date to match consumption date

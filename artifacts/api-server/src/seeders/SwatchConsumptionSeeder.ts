@@ -365,7 +365,7 @@ export async function seedSwatchConsumptionLog() {
                 unitType: bomItem.unitType || "Piece",
                 consumedQty: qtyForThisEntry.toFixed(3),
                 consumedBy: consumedBy,
-                notes: `Auto-consumption from seeder - ${consumptionDate.toISOString().split('T')[0]}`,
+                notes: "Swatchorder Consumption",
                 warehouseLocation: bomItem.warehouseLocation || null,
                 consumedAt: consumptionDate,
                 createdAt: consumptionDate,
