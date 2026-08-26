@@ -295,6 +295,193 @@ router.get("/unified-summary", requireAuth, async (req, res) => {
 /* ══════════════════════════════════════════════════════════
    UNIFIED PAYABLES — LIABILITY TABLE
 ══════════════════════════════════════════════════════════ */
+// router.get("/unified-liabilities", requireAuth, async (req, res) => {
+//   try {
+//     const { from_date, to_date, vendor_id, ref_type, status, department,
+//             search, ref_no, page = "1", limit = "50" } = req.query as Record<string, string>;
+//     const vid     = vendor_id ? parseInt(vendor_id) : null;
+//     const offset  = (parseInt(page) - 1) * parseInt(limit);
+//     const pLimit  = parseInt(limit);
+
+//     /* Build per-source vendor filter */
+//     const vf = (col: string) => vid ? `AND ${col} = ${vid}` : "";
+
+//     /* Build status filter (applied after UNION) */
+//     const statusClause = status && status !== "All"
+//       ? `AND status = '${status.replace(/'/g, "''")}'`
+//       : "";
+
+//     const refTypeClause = ref_type
+//       ? `AND ref_type = '${ref_type.replace(/'/g, "''")}'`
+//       : "";
+
+//     const deptClause = department
+//       ? `AND department = '${department.replace(/'/g, "''")}'`
+//       : "";
+
+//     const searchClause = search
+//       ? `AND (LOWER(vendor_name) LIKE LOWER('%${search.replace(/'/g, "''")}%') OR LOWER(ref_number) LIKE LOWER('%${search.replace(/'/g, "''")}%'))`
+//       : "";
+
+//     const refNoClause = ref_no
+//       ? `AND LOWER(ref_number) LIKE LOWER('%${ref_no.replace(/'/g, "''")}%')`
+//       : "";
+
+//     const { rows } = await pool.query(`
+//       WITH all_liabilities AS (
+//         /* 1. PR Vendor Invoice Bills */
+//         SELECT
+//           'Purchase Receipt'::text            AS ref_type,
+//           vil.id::text                        AS source_id,
+//           COALESCE(vil.vendor_invoice_date, vil.created_at::date)::text AS date,
+//           COALESCE(vil.linked_po_number, vil.pr_number, '')  AS ref_number,
+//           COALESCE(vil.vendor_name, '—')      AS vendor_name,
+//           vil.vendor_id::text                 AS vendor_id_text,
+//           'Purchase Receipt Vendor Bills'     AS department,
+//           vil.vendor_invoice_amount::numeric  AS amount,
+//           vil.paid_amount::numeric            AS paid_amount,
+//           vil.pending_amount::numeric         AS pending_amount,
+//           vil.status                          AS status,
+//           COALESCE(vil.currency_code, 'INR')::text AS currency_code,
+//           COALESCE(vil.exchange_rate_snapshot, 1)::numeric AS exchange_rate_snapshot
+//         FROM vendor_invoice_ledger vil
+//         WHERE 1=1
+//           ${df("COALESCE(vil.vendor_invoice_date, vil.created_at::date)", from_date, to_date)}
+//           ${vf("vil.vendor_id")}
+
+//         UNION ALL
+
+//         /* 2. Outsource Jobs */
+//         SELECT
+//           'Costing Outsource'::text           AS ref_type,
+//           oj.id::text                         AS source_id,
+//           oj.issue_date::text                 AS date,
+//           COALESCE(sw.order_code, st.order_code, 'OJ-' || oj.id::text) AS ref_number,
+//           COALESCE(oj.vendor_name, '—')       AS vendor_name,
+//           oj.vendor_id::text                  AS vendor_id_text,
+//           'Costing Outsource'                 AS department,
+//           oj.total_cost::numeric              AS amount,
+//           COALESCE(cp.paid, 0)                AS paid_amount,
+//           GREATEST(0, oj.total_cost::numeric - COALESCE(cp.paid, 0)) AS pending_amount,
+//           CASE
+//             WHEN COALESCE(cp.paid, 0) >= oj.total_cost::numeric THEN 'Paid'
+//             WHEN COALESCE(cp.paid, 0) > 0                       THEN 'Partially Paid'
+//             ELSE 'Unpaid'
+//           END AS status,
+//           'INR'::text AS currency_code,
+//           1::numeric  AS exchange_rate_snapshot
+//         FROM outsource_jobs oj
+//         LEFT JOIN swatch_orders sw ON sw.id = oj.swatch_order_id
+//         LEFT JOIN style_orders  st ON st.id = oj.style_order_id
+//         LEFT JOIN (
+//           SELECT reference_id, SUM(base_currency_amount) AS paid
+//           FROM costing_payments WHERE reference_type = 'outsource_job'
+//           GROUP BY reference_id
+//         ) cp ON cp.reference_id = oj.id
+//         WHERE 1=1
+//           ${df("oj.issue_date", from_date, to_date)}
+//           ${vf("oj.vendor_id")}
+
+//         UNION ALL
+
+//         /* 3. Other Expenses */
+//         SELECT
+//           'Other Expense'::text               AS ref_type,
+//           oe.expense_id::text                 AS source_id,
+//           oe.expense_date::text               AS date,
+//           oe.expense_number                   AS ref_number,
+//           COALESCE(oe.vendor_name, 'N/A')     AS vendor_name,
+//           oe.vendor_id::text                  AS vendor_id_text,
+//           oe.expense_category                 AS department,
+//           oe.amount::numeric                  AS amount,
+//           COALESCE(oe.paid_amount, 0)::numeric AS paid_amount,
+//           GREATEST(0, oe.amount::numeric - COALESCE(oe.paid_amount, 0)::numeric) AS pending_amount,
+//           CASE
+//             WHEN oe.payment_status = 'Paid' THEN 'Paid'
+//             WHEN COALESCE(oe.paid_amount, 0) > 0 THEN 'Partially Paid'
+//             ELSE 'Unpaid'
+//           END AS status,
+//           'INR'::text AS currency_code,
+//           1::numeric  AS exchange_rate_snapshot
+//         FROM other_expenses oe
+//         WHERE 1=1
+//           ${df("oe.expense_date", from_date, to_date)}
+//           ${vid ? `AND oe.vendor_id = ${vid}` : ""}
+
+//         UNION ALL
+
+//         /* 4. Artisan Timesheets (internal cost) */
+//         SELECT
+//           'Artisan'::text                     AS ref_type,
+//           at.id::text                         AS source_id,
+//           at.start_date::text                 AS date,
+//           COALESCE(sw2.order_code, st2.order_code, 'AT-' || at.id::text) AS ref_number,
+//           'Internal Artisans'                 AS vendor_name,
+//           NULL                                AS vendor_id_text,
+//           'Artisan Labor'                     AS department,
+//           at.total_rate::numeric              AS amount,
+//           0::numeric                          AS paid_amount,
+//           at.total_rate::numeric              AS pending_amount,
+//           'Pending'                           AS status,
+//           'INR'::text AS currency_code,
+//           1::numeric  AS exchange_rate_snapshot
+//         FROM artisan_timesheets at
+//         LEFT JOIN swatch_orders sw2 ON sw2.id = at.swatch_order_id
+//         LEFT JOIN style_orders  st2 ON st2.id = at.style_order_id
+//         WHERE 1=1
+//           ${df("at.start_date", from_date, to_date)}
+//           ${vid ? "AND 1=0" : ""}
+
+//         UNION ALL
+
+//         /* 5. Shipping */
+//         SELECT
+//           'Shipping'::text                    AS ref_type,
+//           osd.id::text                        AS source_id,
+//           osd.shipment_date::text             AS date,
+//           COALESCE(osd.tracking_number, 'SHP-' || osd.id::text) AS ref_number,
+//           COALESCE(sv.vendor_name, 'Unknown Shipper') AS vendor_name,
+//           osd.shipping_vendor_id::text        AS vendor_id_text,
+//           'Shipping Vendor'                   AS department,
+//           COALESCE(osd.final_shipping_amount, 0)::numeric AS amount,
+//           0::numeric                          AS paid_amount,
+//           COALESCE(osd.final_shipping_amount, 0)::numeric AS pending_amount,
+//           'Pending'                           AS status,
+//           'INR'::text AS currency_code,
+//           1::numeric  AS exchange_rate_snapshot
+//         FROM order_shipping_details osd
+//         LEFT JOIN shipping_vendors sv ON sv.id = osd.shipping_vendor_id
+//         WHERE osd.final_shipping_amount IS NOT NULL AND osd.final_shipping_amount > 0
+//           ${df("osd.shipment_date", from_date, to_date)}
+//           ${vid ? `AND osd.shipping_vendor_id = ${vid}` : ""}
+//       )
+//       SELECT *, COUNT(*) OVER () AS total_count
+//       FROM all_liabilities
+//       WHERE 1=1 ${statusClause} ${refTypeClause} ${deptClause} ${searchClause} ${refNoClause}
+//       ORDER BY
+//         CASE status
+//           WHEN 'Unpaid'          THEN 1
+//           WHEN 'Partially Paid'  THEN 2
+//           WHEN 'Pending'         THEN 3
+//           WHEN 'Paid'            THEN 4
+//           WHEN 'Completed'       THEN 5
+//           ELSE 6
+//         END,
+//         date DESC NULLS LAST,
+//         amount DESC
+//       LIMIT ${pLimit} OFFSET ${offset}
+//     `);
+
+//     const total = rows.length > 0 ? parseInt(rows[0].total_count) : 0;
+//     res.json({
+//       data: rows.map(r => ({ ...r, total_count: undefined })),
+//       total,
+//       page: parseInt(page),
+//       limit: pLimit,
+//     });
+//   } catch (err: any) { res.status(500).json({ error: err.message }); }
+// });
+
 router.get("/unified-liabilities", requireAuth, async (req, res) => {
   try {
     const { from_date, to_date, vendor_id, ref_type, status, department,
@@ -375,7 +562,7 @@ router.get("/unified-liabilities", requireAuth, async (req, res) => {
         LEFT JOIN style_orders  st ON st.id = oj.style_order_id
         LEFT JOIN (
           SELECT reference_id, SUM(base_currency_amount) AS paid
-          FROM costing_payments WHERE reference_type = 'outsource_job'
+          FROM costing_payments WHERE reference_type = 'outsource_job' AND is_deleted = false
           GROUP BY reference_id
         ) cp ON cp.reference_id = oj.id
         WHERE 1=1
@@ -410,7 +597,41 @@ router.get("/unified-liabilities", requireAuth, async (req, res) => {
 
         UNION ALL
 
-        /* 4. Artisan Timesheets (internal cost) */
+        /* 4. Custom Charges */
+        SELECT
+          'Custom Charge'::text               AS ref_type,
+          cc.id::text                         AS source_id,
+          cc.created_at::date::text           AS date,
+          COALESCE(sw3.order_code, st3.order_code, 'CC-' || cc.id::text) AS ref_number,
+          cc.vendor_name                      AS vendor_name,
+          cc.vendor_id::text                  AS vendor_id_text,
+          'Custom Charges'                    AS department,
+          cc.total_amount::numeric            AS amount,
+          COALESCE(cp2.paid, 0)::numeric      AS paid_amount,
+          GREATEST(0, cc.total_amount::numeric - COALESCE(cp2.paid, 0)) AS pending_amount,
+          CASE
+            WHEN COALESCE(cp2.paid, 0) >= cc.total_amount::numeric THEN 'Paid'
+            WHEN COALESCE(cp2.paid, 0) > 0 THEN 'Partially Paid'
+            ELSE 'Unpaid'
+          END AS status,
+          'INR'::text                         AS currency_code,
+          1::numeric                          AS exchange_rate_snapshot
+        FROM custom_charges cc
+        LEFT JOIN swatch_orders sw3 ON sw3.id = cc.swatch_order_id
+        LEFT JOIN style_orders  st3 ON st3.id = cc.style_order_id
+        LEFT JOIN (
+          SELECT reference_id, SUM(base_currency_amount) AS paid
+          FROM costing_payments
+          WHERE reference_type = 'custom_charge' AND is_deleted = false
+          GROUP BY reference_id
+        ) cp2 ON cp2.reference_id = cc.id
+        WHERE cc.is_deleted = false
+          ${df("cc.created_at::date", from_date, to_date)}
+          ${vf("cc.vendor_id")}
+
+        UNION ALL
+
+        /* 5. Artisan Timesheets (internal cost) */
         SELECT
           'Artisan'::text                     AS ref_type,
           at.id::text                         AS source_id,
@@ -434,7 +655,7 @@ router.get("/unified-liabilities", requireAuth, async (req, res) => {
 
         UNION ALL
 
-        /* 5. Shipping */
+        /* 6. Shipping */
         SELECT
           'Shipping'::text                    AS ref_type,
           osd.id::text                        AS source_id,
