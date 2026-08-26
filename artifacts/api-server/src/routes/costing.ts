@@ -2826,8 +2826,8 @@ router.get("/style-artisan-timesheets/:styleOrderId", requireAuth, async (req, r
 router.post("/style-artisan-timesheets", requireAuth, async (req, res) => {
   const user = (req as any).user;
   const { styleOrderId, styleOrderProductId, styleOrderProductName, noOfArtisans, startDate, endDate, shiftType, totalHours, hourlyRate, notes } = req.body;
-  if (!styleOrderId || !startDate || !endDate || !shiftType) {
-    return res.status(400).json({ error: "styleOrderId, startDate, endDate and shiftType are required" }); return;
+  if (!styleOrderId || !startDate || !endDate || !shiftType || !styleOrderProductName || !styleOrderProductId) {
+    return res.status(400).json({ error: "styleOrderId, startDate, endDate, Product and shiftType are required" }); return;
   }
   const totalHoursNum = parseFloat(totalHours) || 0;
   const hourlyRateNum = parseFloat(hourlyRate) || 0;
@@ -2850,6 +2850,118 @@ router.post("/style-artisan-timesheets", requireAuth, async (req, res) => {
   return res.status(201).json({ data: row });
 });
 
+router.put("/style-artisan-timesheets/:id", requireAuth, async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+
+    if (!id || Number.isNaN(id)) {
+      return res.status(400).json({
+        error: "Valid artisan timesheet id is required",
+      });
+    }
+
+    const {
+      styleOrderId,
+      styleOrderProductId,
+      styleOrderProductName,
+      noOfArtisans,
+      startDate,
+      endDate,
+      shiftType,
+      totalHours,
+      hourlyRate,
+      notes,
+    } = req.body;
+
+    if (!styleOrderId || !startDate || !endDate || !shiftType || !styleOrderProductName || !styleOrderProductId) {
+      return res.status(400).json({
+        error:
+          "styleOrderId, startDate, endDate, Product and shiftType are required",
+      });
+    }
+
+    const [existingTimesheet] = await db
+      .select()
+      .from(artisanTimesheetsTable)
+      .where(
+        and(
+          eq(artisanTimesheetsTable.id, id),
+          eq(artisanTimesheetsTable.isDeleted, false)
+        )
+      )
+      .limit(1);
+
+    if (!existingTimesheet) {
+      return res.status(404).json({
+        error: "Style artisan timesheet not found",
+      });
+    }
+
+    const totalHoursNum = parseFloat(totalHours) || 0;
+    const hourlyRateNum = parseFloat(hourlyRate) || 0;
+    const noOfArtisansNum = parseInt(noOfArtisans) || 1;
+
+    const totalRate = (
+      totalHoursNum *
+      hourlyRateNum *
+      noOfArtisansNum
+    ).toFixed(2);
+
+    const [row] = await db
+      .update(artisanTimesheetsTable)
+      .set({
+        styleOrderId: Number(styleOrderId),
+
+        styleOrderProductId:
+          styleOrderProductId !== null &&
+          styleOrderProductId !== undefined &&
+          styleOrderProductId !== ""
+            ? Number(styleOrderProductId)
+            : null,
+
+        styleOrderProductName:
+          styleOrderProductName !== null &&
+          styleOrderProductName !== undefined &&
+          styleOrderProductName !== ""
+            ? String(styleOrderProductName)
+            : null,
+
+        noOfArtisans: noOfArtisansNum,
+
+        startDate: String(startDate),
+        endDate: String(endDate),
+        shiftType: String(shiftType),
+
+        totalHours: String(totalHoursNum),
+        hourlyRate: String(hourlyRateNum),
+        totalRate,
+
+        notes:
+          notes !== null &&
+          notes !== undefined &&
+          notes !== ""
+            ? String(notes)
+            : null,
+      })
+      .where(eq(artisanTimesheetsTable.id, id))
+      .returning();
+
+    return res.status(200).json({
+      message: "Style artisan timesheet updated successfully",
+      data: row,
+    });
+  } catch (error) {
+    console.error(
+      "[style-artisan-timesheets] Update failed:",
+      error
+    );
+
+    return res.status(500).json({
+      error: "Failed to update style artisan timesheet",
+    });
+  }
+});
+
 // ─── Style Outsource Jobs ─────────────────────────────────────────────────────
 router.get("/style-outsource-jobs/:styleOrderId", requireAuth, async (req, res) => {
   const rows = await db.select().from(outsourceJobsTable)
@@ -2861,8 +2973,8 @@ router.get("/style-outsource-jobs/:styleOrderId", requireAuth, async (req, res) 
 router.post("/style-outsource-jobs", requireAuth, async (req, res) => {
   const user = (req as any).user;
   const { styleOrderId, styleOrderProductId, styleOrderProductName, vendorId, vendorName, hsnId, hsnCode, gstPercentage, issueDate, targetDate, deliveryDate, totalCost, notes } = req.body;
-  if (!styleOrderId || !vendorId || !hsnId || !issueDate) {
-    return res.status(400).json({ error: "styleOrderId, vendorId, hsnId and issueDate are required" }); return;
+  if (!styleOrderId || !vendorId || !hsnId || !issueDate || !styleOrderProductName || !styleOrderProductId) {
+    return res.status(400).json({ error: "styleOrderId, vendorId, hsnId, Product and issueDate are required" }); return;
   }
   const [row] = await db.insert(outsourceJobsTable).values({
     styleOrderId: Number(styleOrderId),
@@ -2883,6 +2995,137 @@ router.post("/style-outsource-jobs", requireAuth, async (req, res) => {
   return res.status(201).json({ data: row });
 });
 
+router.put("/style-outsource-jobs/:id", requireAuth, async (req, res) => {
+  try {
+    const user = (req as any).user;
+
+    const id = Number(req.params.id);
+
+    if (!id || Number.isNaN(id)) {
+      return res.status(400).json({
+        error: "Valid outsource job id is required",
+      });
+    }
+
+    const {
+      styleOrderId,
+      styleOrderProductId,
+      styleOrderProductName,
+      vendorId,
+      vendorName,
+      hsnId,
+      hsnCode,
+      gstPercentage,
+      issueDate,
+      targetDate,
+      deliveryDate,
+      totalCost,
+      notes,
+    } = req.body;
+
+    // Required fields
+    if (!styleOrderId || !vendorId || !hsnId || !issueDate || !styleOrderProductName || !styleOrderProductId) {
+      return res.status(400).json({
+        error: "styleOrderId, vendorId, hsnId, Product and issueDate are required",
+      });
+    }
+
+    // Check if outsource job exists
+    const [existingJob] = await db
+      .select()
+      .from(outsourceJobsTable)
+      .where(
+        and(
+          eq(outsourceJobsTable.id, id),
+          eq(outsourceJobsTable.isDeleted, false)
+        )
+      )
+      .limit(1);
+
+    if (!existingJob) {
+      return res.status(404).json({
+        error: "Style outsource job not found",
+      });
+    }
+
+    const [updatedJob] = await db
+      .update(outsourceJobsTable)
+      .set({
+        styleOrderId: Number(styleOrderId),
+
+        styleOrderProductId:
+          styleOrderProductId !== null &&
+          styleOrderProductId !== undefined &&
+          styleOrderProductId !== ""
+            ? Number(styleOrderProductId)
+            : null,
+
+        styleOrderProductName:
+          styleOrderProductName !== null &&
+          styleOrderProductName !== undefined &&
+          styleOrderProductName !== ""
+            ? String(styleOrderProductName)
+            : null,
+
+        vendorId: Number(vendorId),
+        vendorName: String(vendorName),
+
+        hsnId: Number(hsnId),
+        hsnCode: String(hsnCode),
+
+        gstPercentage:
+          gstPercentage !== null &&
+          gstPercentage !== undefined &&
+          gstPercentage !== ""
+            ? String(gstPercentage)
+            : "5",
+
+        issueDate: String(issueDate),
+
+        targetDate:
+          targetDate !== null &&
+          targetDate !== undefined &&
+          targetDate !== ""
+            ? String(targetDate)
+            : null,
+
+        deliveryDate:
+          deliveryDate !== null &&
+          deliveryDate !== undefined &&
+          deliveryDate !== ""
+            ? String(deliveryDate)
+            : null,
+
+        totalCost:
+          totalCost !== null &&
+          totalCost !== undefined &&
+          totalCost !== ""
+            ? String(parseFloat(totalCost) || 0)
+            : "0",
+
+        notes:
+          notes !== null &&
+          notes !== undefined &&
+          notes !== ""
+            ? String(notes)
+            : null,
+      })
+      .where(eq(outsourceJobsTable.id, id))
+      .returning();
+
+    return res.status(200).json({
+      message: "Style outsource job updated successfully",
+      data: updatedJob,
+    });
+  } catch (error) {
+    console.error("[style-outsource-jobs] Update failed:", error);
+
+    return res.status(500).json({
+      error: "Failed to update style outsource job",
+    });
+  }
+});
+
 // ─── Style Custom Charges ─────────────────────────────────────────────────────
 router.get("/style-custom-charges/:styleOrderId", requireAuth, async (req, res) => {
   const rows = await db.select().from(customChargesTable)
@@ -2894,8 +3137,8 @@ router.get("/style-custom-charges/:styleOrderId", requireAuth, async (req, res) 
 router.post("/style-custom-charges", requireAuth, async (req, res) => {
   const user = (req as any).user;
   const { styleOrderId, styleOrderProductId, styleOrderProductName, vendorId, vendorName, hsnId, hsnCode, gstPercentage, description, unitPrice, quantity } = req.body;
-  if (!styleOrderId || !vendorId || !hsnId || !description) {
-    return res.status(400).json({ error: "styleOrderId, vendorId, hsnId and description are required" }); return;
+  if (!styleOrderId || !vendorId || !hsnId || !description || !styleOrderProductName || !styleOrderProductId) {
+    return res.status(400).json({ error: "styleOrderId, vendorId, hsnId, Produc and description are required" }); return;
   }
   const unitPriceNum = parseFloat(unitPrice) || 0;
   const quantityNum = parseFloat(quantity) || 1;
@@ -2916,6 +3159,118 @@ router.post("/style-custom-charges", requireAuth, async (req, res) => {
     createdBy: user.email,
   }).returning();
   return res.status(201).json({ data: row });
+});
+
+router.put("/style-custom-charges/:id", requireAuth, async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+
+    if (!id || Number.isNaN(id)) {
+      return res.status(400).json({
+        error: "Valid custom charge id is required",
+      });
+    }
+
+    const {
+      styleOrderId,
+      styleOrderProductId,
+      styleOrderProductName,
+      vendorId,
+      vendorName,
+      hsnId,
+      hsnCode,
+      gstPercentage,
+      description,
+      unitPrice,
+      quantity,
+    } = req.body;
+
+    if (!styleOrderId || !vendorId || !hsnId || !description || !styleOrderProductName || !styleOrderProductId) {
+      return res.status(400).json({
+        error:
+          "styleOrderId, vendorId, hsnId, Product and description are required",
+      });
+    }
+
+    const [existingCharge] = await db
+      .select()
+      .from(customChargesTable)
+      .where(
+        and(
+          eq(customChargesTable.id, id),
+          eq(customChargesTable.isDeleted, false)
+        )
+      )
+      .limit(1);
+
+    if (!existingCharge) {
+      return res.status(404).json({
+        error: "Style custom charge not found",
+      });
+    }
+
+    const unitPriceNum = parseFloat(unitPrice) || 0;
+    const quantityNum = parseFloat(quantity) || 1;
+
+    const totalAmount = (
+      unitPriceNum * quantityNum
+    ).toFixed(2);
+
+    const [row] = await db
+      .update(customChargesTable)
+      .set({
+        styleOrderId: Number(styleOrderId),
+
+        styleOrderProductId:
+          styleOrderProductId !== null &&
+          styleOrderProductId !== undefined &&
+          styleOrderProductId !== ""
+            ? Number(styleOrderProductId)
+            : null,
+
+        styleOrderProductName:
+          styleOrderProductName !== null &&
+          styleOrderProductName !== undefined &&
+          styleOrderProductName !== ""
+            ? String(styleOrderProductName)
+            : null,
+
+        vendorId: Number(vendorId),
+        vendorName: String(vendorName),
+
+        hsnId: Number(hsnId),
+        hsnCode: String(hsnCode),
+
+        gstPercentage:
+          gstPercentage !== null &&
+          gstPercentage !== undefined &&
+          gstPercentage !== ""
+            ? String(gstPercentage)
+            : "5",
+
+        description: String(description),
+
+        unitPrice: String(unitPriceNum),
+        quantity: String(quantityNum),
+        totalAmount,
+      })
+      .where(eq(customChargesTable.id, id))
+      .returning();
+
+    return res.status(200).json({
+      message: "Style custom charge updated successfully",
+      data: row,
+    });
+  } catch (error) {
+    console.error(
+      "[style-custom-charges] Update failed:",
+      error
+    );
+
+    return res.status(500).json({
+      error: "Failed to update style custom charge",
+    });
+  }
 });
 
 // ─── Invoice Items Aggregate ─────────────────────────────────────────────────

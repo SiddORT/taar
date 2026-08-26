@@ -701,6 +701,42 @@ export function useCreateStyleArtisanTimesheet() {
   });
 }
 
+export function useUpdateStyleArtisanTimesheet() {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      id,
+      ...body
+    }: {
+      id: number;
+      styleOrderId?: number;
+      styleOrderProductId?: number | null;
+      styleOrderProductName?: string | null;
+      noOfArtisans?: number;
+      startDate?: string;
+      endDate?: string;
+      shiftType?: string;
+      totalHours?: string;
+      hourlyRate?: string;
+      notes?: string | null;
+    }) =>
+      customFetch<{ data: StyleArtisanTimesheetRecord }>(
+        `/api/costing/style-artisan-timesheets/${id}`,
+        {
+          method: "PUT",
+          body: JSON.stringify(body),
+        }
+      ),
+
+    onSuccess: () => {
+      void qc.invalidateQueries({
+        queryKey: ["style-artisan-timesheets"],
+      });
+    },
+  });
+}
+
 export function useDeleteStyleArtisanTimesheet() {
   const qc = useQueryClient();
   return useMutation({
@@ -731,6 +767,49 @@ export function useCreateStyleOutsourceJob() {
   });
 }
 
+export function useUpdateStyleOutsourceJob() {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      id,
+      ...body
+    }: {
+      id: number;
+      styleOrderId?: number;
+      styleOrderProductId?: number | null;
+      styleOrderProductName?: string | null;
+      vendorId?: number;
+      vendorName?: string;
+      hsnId?: number;
+      hsnCode?: string;
+      gstPercentage?: string;
+      issueDate?: string;
+      targetDate?: string | null;
+      deliveryDate?: string | null;
+      totalCost?: string;
+      notes?: string | null;
+    }) =>
+      customFetch<{ data: StyleOutsourceJobRecord }>(
+        `/api/costing/style-outsource-jobs/${id}`,
+        {
+          method: "PUT",
+          body: JSON.stringify(body),
+        }
+      ),
+
+    onSuccess: () => {
+      void qc.invalidateQueries({
+        queryKey: ["style-outsource-jobs"],
+      });
+
+      void qc.invalidateQueries({
+        queryKey: ["outsource-jobs"],
+      });
+    },
+  });
+}
+
 export function useDeleteStyleOutsourceJob() {
   const qc = useQueryClient();
   return useMutation({
@@ -758,6 +837,43 @@ export function useCreateStyleCustomCharge() {
   return useMutation({
     mutationFn: (body: Record<string, unknown>) => customFetch<{ data: StyleCustomChargeRecord }>("/api/costing/style-custom-charges", { method: "POST", body: JSON.stringify(body) }),
     onSuccess: () => { void qc.invalidateQueries({ queryKey: ["style-custom-charges"] }); },
+  });
+}
+
+export function useUpdateStyleCustomCharge() {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      id,
+      ...body
+    }: {
+      id: number;
+      styleOrderId?: number;
+      styleOrderProductId?: number | null;
+      styleOrderProductName?: string | null;
+      vendorId?: number;
+      vendorName?: string;
+      hsnId?: number;
+      hsnCode?: string;
+      gstPercentage?: string;
+      description?: string;
+      unitPrice?: string;
+      quantity?: string;
+    }) =>
+      customFetch<{ data: StyleCustomChargeRecord }>(
+        `/api/costing/style-custom-charges/${id}`,
+        {
+          method: "PUT",
+          body: JSON.stringify(body),
+        }
+      ),
+
+    onSuccess: () => {
+      void qc.invalidateQueries({
+        queryKey: ["style-custom-charges"],
+      });
+    },
   });
 }
 
