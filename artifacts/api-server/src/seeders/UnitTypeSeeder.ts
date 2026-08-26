@@ -7,6 +7,7 @@ export async function seedUnitTypes(): Promise<void> {
       { name: "Piece" },
       { name: "Meter" },
       { name: "Centimeter" },
+      { name: "Inches" },
       { name: "Millimeter" },
       { name: "Kilogram" },
       { name: "Gram" },

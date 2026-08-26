@@ -50,7 +50,7 @@ import {seedOtherExpenses} from "./OtherExpensesSeeder";
 import {seedStockAlertsWithNewRecords} from "./StockAlertsWithNewRecordsSeeder";
 import {seedSwatchConsumptionLog} from "./SwatchConsumptionSeeder";
 import { seedStyleConsumptionLog } from "./StyleConsumptionSeeder";
-import {seedCostingPayments} from "./SwatchCostingPaymentSeeder";
+// import {seedCostingPayments} from "./SwatchCostingPaymentSeeder";
 
 type SeederFunction = () => Promise<void>;
 
@@ -100,7 +100,7 @@ const seeders: Record<string, SeederFunction> = {
   StockAlertsWithNewRecordsSeeder:seedStockAlertsWithNewRecords,
   SwatchConsumptionSeeder:seedSwatchConsumptionLog,
   StyleConsumptionSeeder: seedStyleConsumptionLog,
-  SwatchCostingPaymentSeeder:seedCostingPayments,
+  // SwatchCostingPaymentSeeder:seedCostingPayments,
 };
 
 // Order in which seeders must run (respects foreign key dependencies)
@@ -150,7 +150,7 @@ const seederOrder: string[] = [
   "StockAlertsWithNewRecordsSeeder",
   "SwatchConsumptionSeeder",
   "StyleConsumptionSeeder",
-  "SwatchCostingPaymentSeeder",
+  // "SwatchCostingPaymentSeeder",
 ];
 
 // If seeding all truncate these manually : material_reservations, inventory_items, swatch_bom
@@ -192,7 +192,7 @@ const seederTables: Record<string, string[]> = {
   CreditDebitNotesSeeders:["credit_debit_notes"],
   OtherExpensesSeeder:["other_expenses"],
   SwatchConsumptionSeeder:["consumption_log"],
-  SwatchCostingPaymentSeeder:["costing_payments"],
+  // SwatchCostingPaymentSeeder:["costing_payments"],
 };
 
 // All tables for full truncation
