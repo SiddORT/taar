@@ -37,7 +37,8 @@ interface LedgerEntry {
   description: string;
   order_type: string;
   order_code: string | null;
-  debit: string;
+  total_amount: string;        
+  debit: string;               
   credit: string;
   running_balance: number;
 }
@@ -220,16 +221,22 @@ export default function VendorLedgerDetail() {
     setPayForm({ amount: "", paymentMode: "Bank Transfer", referenceNo: "", notes: "", paymentDate: "", orderType: "general" });
     setPayModal(true);
   }
-
+  
   const handlePay = async () => {
     const amt = parseFloat(payForm.amount);
     if (!Number.isFinite(amt) || amt <= 0) {
-      toast({ title: "Enter a payment amount greater than 0", variant: "destructive" }); return;
+      toast({ title: "Enter a payment amount greater than 0", variant: "destructive" });
+      return;
     }
     if (!payForm.paymentMode) {
-      toast({ title: "Payment mode is required", variant: "destructive" }); return;
+      toast({ title: "Payment mode is required", variant: "destructive" });
+      return;
     }
-    const maxAllowed = payFromSelection ? selectedTotal : Math.max(0, balance);
+
+    // Compute maxAllowed and round to 2 decimals to avoid floating‑point issues
+    const maxAllowedRaw = payFromSelection ? selectedTotal : Math.max(0, balance);
+    const maxAllowed = parseFloat(maxAllowedRaw.toFixed(2));
+
     if (maxAllowed > 0 && amt > maxAllowed + 0.001) {
       toast({
         title: `Amount cannot exceed ${fmt(maxAllowed)}`,
@@ -238,11 +245,47 @@ export default function VendorLedgerDetail() {
       });
       return;
     }
+
+    let allocations: { entryType: string; entryId: string; amount: number; debit: number }[] = [];
+
+    if (payFromSelection && selectedEntries.length > 0) {
+      const sorted = [...selectedEntries].sort(
+        (a, b) => new Date(a.entry_date).getTime() - new Date(b.entry_date).getTime()
+      );
+
+      let remaining = amt;
+      for (const entry of sorted) {
+        const debit = parseFloat(entry.debit);
+        if (debit <= 0) continue;
+        const alloc = Math.min(remaining, debit);
+        if (alloc > 0.005) {
+          allocations.push({
+            entryType: entry.entry_type,
+            entryId: entry.entry_id,
+            amount: parseFloat(alloc.toFixed(2)),
+            debit: parseFloat(entry.debit),
+          });
+          remaining -= alloc;
+        }
+        if (remaining < 0.005) break;
+      }
+
+      if (remaining > 0.005) {
+        toast({ title: "Allocation error: remaining amount left", variant: "destructive" });
+        setSubmitting(false);
+        return;
+      }
+    }
     setSubmitting(true);
     try {
       await customFetch(`/api/vendor-ledger/${vendorId}/pay`, {
         method: "POST",
-        body: JSON.stringify({ ...payForm, vendorId, vendorName: vendor?.brandName }),
+        body: JSON.stringify({
+          ...payForm,
+          vendorId,
+          vendorName: vendor?.brandName,
+          allocations,
+        }),
       });
       toast({ title: "Payment recorded successfully" });
       setPayModal(false);
@@ -252,7 +295,9 @@ export default function VendorLedgerDetail() {
       loadData();
     } catch {
       toast({ title: "Failed to record payment", variant: "destructive" });
-    } finally { setSubmitting(false); }
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleCharge = async () => {
@@ -590,6 +635,9 @@ export default function VendorLedgerDetail() {
                       <span className="text-[9px] font-black uppercase tracking-widest text-gray-400">Order Ref</span>
                     </th>
                     <th className="text-right px-3 py-3.5">
+                      <span className="text-[9px] font-black uppercase tracking-widest text-gray-400">Total</span>
+                    </th>
+                    <th className="text-right px-3 py-3.5">
                       <span className="text-[9px] font-black uppercase tracking-widest text-gray-400">Debit</span>
                     </th>
                     <th className="text-right px-3 py-3.5">
@@ -650,6 +698,9 @@ export default function VendorLedgerDetail() {
                             ? <span className="font-mono text-[10px] font-bold px-1.5 py-0.5 rounded" style={{ background: `${G}10`, color: G_DIM }}>{entry.order_code}</span>
                             : <span className="text-gray-300">—</span>}
                         </td>
+                        <td className="px-3 py-3 text-right font-bold text-cyan-800">
+                          {parseFloat(entry.total_amount || "0") > 0 ? fmt(entry.total_amount) : <span className="text-gray-200">—</span>}
+                        </td>
                         <td className="px-3 py-3 text-right font-bold" style={{ color: isDebit ? G_DIM : undefined }}>
                           {isDebit ? fmt(entry.debit) : <span className="text-gray-200">—</span>}
                         </td>
@@ -678,7 +729,7 @@ export default function VendorLedgerDetail() {
                 <tfoot>
                   <tr className="border-t-2 border-gray-100 bg-gray-50/50">
                     <td />
-                    <td colSpan={4} className="px-3 py-3">
+                    <td colSpan={5} className="px-3 py-3">
                       <span className="text-[9px] font-black uppercase tracking-widest text-gray-400">
                         {filteredEntries.length} entries
                         {selectedKeys.size > 0 && (
@@ -756,14 +807,19 @@ export default function VendorLedgerDetail() {
                     <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1.5">
                       Amount <span className="text-red-500 ml-0.5">*</span>
                       <span className="ml-2 normal-case tracking-normal text-gray-400">
-                        max {fmt(payFromSelection ? selectedTotal : Math.max(0, balance))}
+                        max {fmt(payFromSelection ? parseFloat(selectedTotal.toFixed(2)) : parseFloat(Math.max(0, balance).toFixed(2)))}
                       </span>
                     </label>
                     <div className="relative">
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">{dc.symbol}</span>
                       <input
                         type="number" min="0.01" step="0.01"
-                        max={(payFromSelection ? selectedTotal : Math.max(0, balance)) || undefined}
+                        max={
+                          (payFromSelection
+                            ? parseFloat(selectedTotal.toFixed(2))
+                            : Math.max(0, parseFloat(balance.toFixed(2)))
+                          ) || undefined
+                        }
                         value={payForm.amount}
                         onKeyDown={e => { if (["-", "+", "e", "E"].includes(e.key)) e.preventDefault(); }}
                         onChange={e => {
@@ -775,7 +831,7 @@ export default function VendorLedgerDetail() {
                         }}
                         placeholder="0.00" className="w-full pl-7 pr-3 py-2.5 rounded-xl border border-gray-200 text-sm text-cyan-900 focus:outline-none focus:ring-2 focus:ring-[#C6AF4B]/30" />
                     </div>
-                    {payForm.amount && parseFloat(payForm.amount) > (payFromSelection ? selectedTotal : Math.max(0, balance)) && (
+                    {payForm.amount && parseFloat(payForm.amount) > (payFromSelection ? parseFloat(selectedTotal.toFixed(2)) : parseFloat(Math.max(0, balance).toFixed(2))) && (
                       <p className="text-[10px] text-red-600 mt-1">Exceeds {payFromSelection ? "selected total" : "outstanding balance"}</p>
                     )}
                   </div>

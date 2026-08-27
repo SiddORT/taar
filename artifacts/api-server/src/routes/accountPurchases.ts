@@ -538,7 +538,7 @@ router.get("/unified-liabilities", requireAuth, async (req, res) => {
 
         UNION ALL
 
-        /* 2. Outsource Jobs */
+        /* 2. Outsource Jobs – INCLUDING GST */
         SELECT
           'Costing Outsource'::text           AS ref_type,
           oj.id::text                         AS source_id,
@@ -547,11 +547,12 @@ router.get("/unified-liabilities", requireAuth, async (req, res) => {
           COALESCE(oj.vendor_name, '—')       AS vendor_name,
           oj.vendor_id::text                  AS vendor_id_text,
           'Costing Outsource'                 AS department,
-          oj.total_cost::numeric              AS amount,
+          -- amount including GST
+          oj.total_cost::numeric * (1 + COALESCE(oj.gst_percentage::numeric, 0) / 100) AS amount,
           COALESCE(cp.paid, 0)                AS paid_amount,
-          GREATEST(0, oj.total_cost::numeric - COALESCE(cp.paid, 0)) AS pending_amount,
+          GREATEST(0, (oj.total_cost::numeric * (1 + COALESCE(oj.gst_percentage::numeric, 0) / 100)) - COALESCE(cp.paid, 0)) AS pending_amount,
           CASE
-            WHEN COALESCE(cp.paid, 0) >= oj.total_cost::numeric THEN 'Paid'
+            WHEN COALESCE(cp.paid, 0) >= (oj.total_cost::numeric * (1 + COALESCE(oj.gst_percentage::numeric, 0) / 100)) THEN 'Paid'
             WHEN COALESCE(cp.paid, 0) > 0                       THEN 'Partially Paid'
             ELSE 'Unpaid'
           END AS status,
@@ -597,7 +598,7 @@ router.get("/unified-liabilities", requireAuth, async (req, res) => {
 
         UNION ALL
 
-        /* 4. Custom Charges */
+        /* 4. Custom Charges – INCLUDING GST */
         SELECT
           'Custom Charge'::text               AS ref_type,
           cc.id::text                         AS source_id,
@@ -606,11 +607,12 @@ router.get("/unified-liabilities", requireAuth, async (req, res) => {
           cc.vendor_name                      AS vendor_name,
           cc.vendor_id::text                  AS vendor_id_text,
           'Custom Charges'                    AS department,
-          cc.total_amount::numeric            AS amount,
+          -- amount including GST
+          cc.total_amount::numeric * (1 + COALESCE(cc.gst_percentage::numeric, 0) / 100) AS amount,
           COALESCE(cp2.paid, 0)::numeric      AS paid_amount,
-          GREATEST(0, cc.total_amount::numeric - COALESCE(cp2.paid, 0)) AS pending_amount,
+          GREATEST(0, (cc.total_amount::numeric * (1 + COALESCE(cc.gst_percentage::numeric, 0) / 100)) - COALESCE(cp2.paid, 0)) AS pending_amount,
           CASE
-            WHEN COALESCE(cp2.paid, 0) >= cc.total_amount::numeric THEN 'Paid'
+            WHEN COALESCE(cp2.paid, 0) >= (cc.total_amount::numeric * (1 + COALESCE(cc.gst_percentage::numeric, 0) / 100)) THEN 'Paid'
             WHEN COALESCE(cp2.paid, 0) > 0 THEN 'Partially Paid'
             ELSE 'Unpaid'
           END AS status,
@@ -773,17 +775,99 @@ router.post("/record-payment", requireAuth, async (req: AuthRequest, res) => {
       await recomputeVendorBillBalances(client, id);
 
     } else if (ref_type === "Costing Outsource") {
-      /* Insert into costing_payments — lock the job row first to serialize concurrent payments */
       const id = parseInt(source_id);
       const { rows: jobRows } = await client.query(
         `SELECT * FROM outsource_jobs WHERE id = $1 AND is_deleted = false FOR UPDATE`,
         [id]
       );
       if (!jobRows.length) throw new Error("Outsource job not found");
+      const job = jobRows[0];
+
+      const styleOrderId = job.style_order_id;
+      const swatchOrderId = job.swatch_order_id;
+
       await client.query(
-        `INSERT INTO costing_payments (vendor_id,vendor_name,reference_type,reference_id,payment_type,payment_mode,payment_amount,currency_code,exchange_rate_snapshot,base_currency_amount,payment_status,transaction_id,payment_date,remarks,created_by)
-         VALUES ($1,$2,'outsource_job',$3,'outsource',$4,$5,$6,$7,$8,'Completed',$9,$10,$11,$12)`,
-        [vendor_id || null, vendor_name || "", id, pMode, amt, payCcy, payRate, baseAmt, transaction_reference || "", pDate, remarks || "", req.user?.email ?? ""]
+        `INSERT INTO costing_payments (
+          vendor_id, vendor_name,
+          reference_type, reference_id,
+          payment_type, payment_mode,
+          payment_amount, currency_code, exchange_rate_snapshot, base_currency_amount,
+          payment_status, transaction_id, payment_date, remarks,
+          created_by,
+          style_order_id, swatch_order_id
+        ) VALUES (
+          $1, $2,
+          'outsource_job', $3,
+          'outsource', $4,
+          $5, $6, $7, $8,
+          'Completed', $9, $10, $11,
+          $12,
+          $13, $14
+        )`,
+        [
+          job.vendor_id,
+          job.vendor_name,
+          id,
+          pMode,
+          amt,
+          payCcy,
+          payRate,
+          baseAmt,
+          transaction_reference || "",
+          pDate,
+          remarks || "",
+          req.user?.email ?? "",
+          styleOrderId,
+          swatchOrderId
+        ]
+      );
+
+    } else if (ref_type === "Custom Charge") {
+      const id = parseInt(source_id);
+      const { rows: chargeRows } = await client.query(
+        `SELECT * FROM custom_charges WHERE id = $1 AND is_deleted = false FOR UPDATE`,
+        [id]
+      );
+      if (!chargeRows.length) throw new Error("Custom charge not found");
+      const charge = chargeRows[0];
+
+      const styleOrderId = charge.style_order_id;
+      const swatchOrderId = charge.swatch_order_id;
+
+      await client.query(
+        `INSERT INTO costing_payments (
+          vendor_id, vendor_name,
+          reference_type, reference_id,
+          payment_type, payment_mode,
+          payment_amount, currency_code, exchange_rate_snapshot, base_currency_amount,
+          payment_status, transaction_id, payment_date, remarks,
+          created_by,
+          style_order_id, swatch_order_id
+        ) VALUES (
+          $1, $2,
+          'custom_charge', $3,
+          'custom_charge', $4,
+          $5, $6, $7, $8,
+          'Completed', $9, $10, $11,
+          $12,
+          $13, $14
+        )`,
+        [
+          charge.vendor_id,
+          charge.vendor_name,
+          id,
+          pMode,
+          amt,
+          payCcy,
+          payRate,
+          baseAmt,
+          transaction_reference || "",
+          pDate,
+          remarks || "",
+          req.user?.email ?? "",
+          styleOrderId,
+          swatchOrderId
+        ]
       );
 
     } else if (ref_type === "Other Expense") {

@@ -156,7 +156,7 @@ const seederOrder: string[] = [
 // If seeding all truncate these manually : material_reservations, inventory_items, swatch_bom
 // Mapping: seeder name -> table name(s) it inserts into (for truncation)
 const seederTables: Record<string, string[]> = {
-  WhenTruncateAll:["material_reservations","inventory_items","swatch_bom", "bom_change_log", "client_feedback","client_invoice_ledger","client_links", "client_messages","costing_payments","entity_tags", "invoice_payments", "packing_package_items", "pr_payments","vendor_ledger_charges" ],
+  WhenTruncateAll:["material_reservations","inventory_items","swatch_bom", "bom_change_log", "client_feedback","client_invoice_ledger","client_links", "client_messages","costing_payments","entity_tags", "invoice_payments", "packing_package_items", "pr_payments","vendor_ledger_charges", "vendor_payments" ],
   BankAccountSeeder:["bank_accounts"],
   ItemTypeSeeder: ["item_types"],
   UnitTypeSeeder: ["unit_types"],

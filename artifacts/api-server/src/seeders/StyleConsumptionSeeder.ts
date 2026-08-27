@@ -227,7 +227,6 @@ export async function seedStyleConsumptionLog() {
     const systemUser = await db
       .select()
       .from(usersTable)
-      .where(eq(usersTable.email, "admin@zarierp.com"))
       .limit(1);
 
     const consumedBy = systemUser.length > 0 ? systemUser[0].email : "system@zarierp.com";

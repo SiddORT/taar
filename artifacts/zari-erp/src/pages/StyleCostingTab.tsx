@@ -2706,6 +2706,7 @@ function StyleOutsourceSection({ styleOrderId }: { styleOrderId: number }) {
                           vendorId={r.vendorId}
                           vendorName={r.vendorName}
                           styleOrderId={styleOrderId}
+                          totalAmount={Number(total.toFixed(2))}
                         />
                       </td>
                     </tr>
@@ -3052,6 +3053,7 @@ function StyleCustomChargesSection({ styleOrderId }: { styleOrderId: number }) {
                           vendorId={r.vendorId}
                           vendorName={r.vendorName}
                           styleOrderId={styleOrderId}
+                          totalAmount={Number(total.toFixed(2))}
                         />
                       </td>
                     </tr>
