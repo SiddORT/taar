@@ -2910,6 +2910,7 @@ function OutsourceJobSection({ swatchOrderId }: { swatchOrderId: number }) {
                           vendorId={r.vendorId}
                           vendorName={r.vendorName}
                           swatchOrderId={swatchOrderId}
+                          totalAmount={Number(total.toFixed(2))}
                         />
                       </td>
                     </tr>
@@ -3240,6 +3241,7 @@ function CustomChargesSection({ swatchOrderId }: { swatchOrderId: number }) {
                           vendorId={r.vendorId}
                           vendorName={r.vendorName}
                           swatchOrderId={swatchOrderId}
+                          totalAmount={Number(total.toFixed(2))}
                         />
                       </td>
                     </tr>

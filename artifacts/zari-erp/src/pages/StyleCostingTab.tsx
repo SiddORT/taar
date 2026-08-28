@@ -30,9 +30,9 @@ import {
   useStylePRs, useCreateStylePR, useDeleteStylePR, useUpdateStylePR,
   usePrPayments, useAddPayment, useDeletePayment,
   useStyleConsumptionLog, useAddStyleConsumptionEntry, useDeleteStyleConsumptionEntry, useUpdateConsumptionEntry,
-  useStyleArtisanTimesheets, useCreateStyleArtisanTimesheet, useDeleteStyleArtisanTimesheet, useUpdateArtisanTimesheet,
-  useStyleOutsourceJobs, useCreateStyleOutsourceJob, useDeleteStyleOutsourceJob, useUpdateOutsourceJob,
-  useStyleCustomCharges, useCreateStyleCustomCharge, useDeleteStyleCustomCharge, useUpdateCustomCharge,
+  useStyleArtisanTimesheets, useCreateStyleArtisanTimesheet, useDeleteStyleArtisanTimesheet, useUpdateStyleArtisanTimesheet,
+  useStyleOutsourceJobs, useCreateStyleOutsourceJob, useDeleteStyleOutsourceJob, useUpdateStyleOutsourceJob,
+  useStyleCustomCharges, useCreateStyleCustomCharge, useDeleteStyleCustomCharge, useUpdateStyleCustomCharge,
   useVendorSearch, useHsnSearch,
   type BomRecord, type PurchaseOrderRecord, type PurchaseReceiptRecord,
   type PrPaymentRecord, type PoLineItem, type BomChangeLogEntry,
@@ -2272,7 +2272,7 @@ function StyleArtisanSection({ styleOrderId }: { styleOrderId: number }) {
   const products = (productsRes?.data ?? []).filter(p => !p.isDeleted);
   const createMutation = useCreateStyleArtisanTimesheet();
   const deleteMutation = useDeleteStyleArtisanTimesheet();
-  const updateMutation = useUpdateArtisanTimesheet();
+  const updateMutation = useUpdateStyleArtisanTimesheet();
 
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -2300,14 +2300,16 @@ function StyleArtisanSection({ styleOrderId }: { styleOrderId: number }) {
   })();
 
   function handleSave() {
-    if (!form.startDate || !form.endDate || !form.totalHours || !form.hourlyRate) {
+    if (!form.startDate || !form.endDate || !form.totalHours || !form.hourlyRate || !(form.productId && form.productName)) {
       toast({ title: "Fill all required fields", variant: "destructive" }); return;
     }
     if (editingId !== null) {
       updateMutation.mutate({
-        id: editingId, noOfArtisans: parseInt(form.noOfArtisans) || 1,
+        id: editingId,styleOrderId,noOfArtisans: parseInt(form.noOfArtisans) || 1,
         startDate: form.startDate, endDate: form.endDate, shiftType: form.shiftType,
         totalHours: form.totalHours, hourlyRate: form.hourlyRate, notes: form.notes || null,
+        styleOrderProductId: form.productId ? Number(form.productId) : null,
+        styleOrderProductName: form.productName || null,
       }, {
         onSuccess: () => { setShowModal(false); setEditingId(null); setForm(defaultArtisanForm); toast({ title: "Timesheet entry updated" }); },
         onError: (e: any) => toast({ title: e?.message ?? "Error", variant: "destructive" }),
@@ -2432,7 +2434,7 @@ function StyleArtisanSection({ styleOrderId }: { styleOrderId: number }) {
             <div className="px-6 py-4 space-y-3 max-h-[70vh] overflow-y-auto">
               {products.length > 0 && (
                 <div>
-                  <label className="text-[10px] text-gray-500 font-medium">Product</label>
+                  <label className="text-[10px] text-gray-500 font-medium">Product<span className="text-red-500 ml-0.5">*</span></label>
                   <select value={form.productId}
                     onChange={e => {
                       const p = products.find(x => String(x.id) === e.target.value);
@@ -2521,7 +2523,7 @@ function StyleOutsourceSection({ styleOrderId }: { styleOrderId: number }) {
   const products = (productsRes?.data ?? []).filter(p => !p.isDeleted);
   const createMutation = useCreateStyleOutsourceJob();
   const deleteMutation = useDeleteStyleOutsourceJob();
-  const updateMutation = useUpdateOutsourceJob();
+  const updateMutation = useUpdateStyleOutsourceJob();
 
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -2552,16 +2554,19 @@ function StyleOutsourceSection({ styleOrderId }: { styleOrderId: number }) {
   }
 
   function handleSave() {
-    if (!form.vendorId || !form.hsnId || !form.issueDate) {
-      toast({ title: "Vendor, HSN Code and Issue Date are required", variant: "destructive" }); return;
+    if (!form.vendorId || !form.hsnId || !form.issueDate || !(form.productId && form.productName)) {
+      toast({ title: "Product, Vendor, HSN Code and Issue Date are required", variant: "destructive" }); return;
     }
     if (editingId !== null) {
       updateMutation.mutate({
         id: editingId,
+        styleOrderId,
         vendorId: parseInt(form.vendorId), vendorName: form.vendorName,
         hsnId: parseInt(form.hsnId), hsnCode: form.hsnCode, gstPercentage: form.gstPercentage || "5",
         issueDate: form.issueDate, targetDate: form.targetDate || null, deliveryDate: form.deliveryDate || null,
         totalCost: form.totalCost || "0", notes: form.notes || null,
+        styleOrderProductId: form.productId ? Number(form.productId) : null,
+        styleOrderProductName: form.productName || null,
       }, {
         onSuccess: () => { setShowModal(false); setEditingId(null); setForm(defaultOutsourceForm); toast({ title: "Outsource job updated" }); },
         onError: (e: any) => toast({ title: e?.message ?? "Error", variant: "destructive" }),
@@ -2701,6 +2706,7 @@ function StyleOutsourceSection({ styleOrderId }: { styleOrderId: number }) {
                           vendorId={r.vendorId}
                           vendorName={r.vendorName}
                           styleOrderId={styleOrderId}
+                          totalAmount={Number(total.toFixed(2))}
                         />
                       </td>
                     </tr>
@@ -2735,7 +2741,7 @@ function StyleOutsourceSection({ styleOrderId }: { styleOrderId: number }) {
             <div className="px-6 py-4 space-y-3 max-h-[70vh] overflow-y-auto">
               {products.length > 0 && (
                 <div>
-                  <label className="text-[10px] text-gray-500 font-medium">Product</label>
+                  <label className="text-[10px] text-gray-500 font-medium">Product <span className="text-red-500 ml-0.5">*</span></label>
                   <select value={form.productId}
                     onChange={e => {
                       const p = products.find(x => String(x.id) === e.target.value);
@@ -2871,7 +2877,7 @@ function StyleCustomChargesSection({ styleOrderId }: { styleOrderId: number }) {
   const products = (productsRes?.data ?? []).filter(p => !p.isDeleted);
   const createMutation = useCreateStyleCustomCharge();
   const deleteMutation = useDeleteStyleCustomCharge();
-  const updateMutation = useUpdateCustomCharge();
+  const updateMutation = useUpdateStyleCustomCharge();
 
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -2900,15 +2906,17 @@ function StyleCustomChargesSection({ styleOrderId }: { styleOrderId: number }) {
   }
 
   function handleSave() {
-    if (!form.vendorId || !form.hsnId || !form.description) {
-      toast({ title: "Vendor, HSN Code and Description are required", variant: "destructive" }); return;
+    if (!form.vendorId || !form.hsnId || !form.description || !(form.productId && form.productName)) {
+      toast({ title: "Product, Vendor, HSN Code and Description are required", variant: "destructive" }); return;
     }
     if (editingId !== null) {
       updateMutation.mutate({
-        id: editingId,
+        id: editingId, styleOrderId,
         vendorId: parseInt(form.vendorId), vendorName: form.vendorName,
         hsnId: parseInt(form.hsnId), hsnCode: form.hsnCode, gstPercentage: form.gstPercentage || "5",
         description: form.description, unitPrice: form.unitPrice || "0", quantity: form.quantity || "1",
+        styleOrderProductId: form.productId ? Number(form.productId) : null,
+        styleOrderProductName: form.productName || null,
       }, {
         onSuccess: () => { setShowModal(false); setEditingId(null); setForm(defaultCustomChargeForm); toast({ title: "Custom charge updated" }); },
         onError: (e: any) => toast({ title: e?.message ?? "Error", variant: "destructive" }),
@@ -3045,6 +3053,7 @@ function StyleCustomChargesSection({ styleOrderId }: { styleOrderId: number }) {
                           vendorId={r.vendorId}
                           vendorName={r.vendorName}
                           styleOrderId={styleOrderId}
+                          totalAmount={Number(total.toFixed(2))}
                         />
                       </td>
                     </tr>
@@ -3079,7 +3088,7 @@ function StyleCustomChargesSection({ styleOrderId }: { styleOrderId: number }) {
             <div className="px-6 py-4 space-y-3 max-h-[70vh] overflow-y-auto">
               {products.length > 0 && (
                 <div>
-                  <label className="text-[10px] text-gray-500 font-medium">Product</label>
+                  <label className="text-[10px] text-gray-500 font-medium">Product <span className="text-red-500 ml-0.5">*</span></label>
                   <select value={form.productId}
                     onChange={e => {
                       const p = products.find(x => String(x.id) === e.target.value);

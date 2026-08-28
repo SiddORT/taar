@@ -50,10 +50,11 @@ interface Props {
   vendorName: string;
   swatchOrderId?: number;
   styleOrderId?: number;
+  totalAmount?: number;
 }
 
 export default function CostingPaymentsPanel({
-  referenceType, referenceId, vendorId, vendorName, swatchOrderId, styleOrderId,
+  referenceType, referenceId, vendorId, vendorName, swatchOrderId, styleOrderId, totalAmount, 
 }: Props) {
   const { fmt, currency: dc } = useCurrency();
   const { toast } = useToast();
@@ -82,7 +83,8 @@ export default function CostingPaymentsPanel({
   });
 
   const totalPaid = payments.reduce((s, p) => s + parseFloat((p as any).base_currency_amount || p.payment_amount || "0"), 0);
-  const hasCompleted = payments.some(p => p.payment_status === "Completed");
+  const balance = (totalAmount ?? 0) - totalPaid;
+  const hasCompleted = balance <= 0.001; 
 
   async function handleSave() {
     if (!form.paymentAmount || parseFloat(form.paymentAmount) <= 0) {
