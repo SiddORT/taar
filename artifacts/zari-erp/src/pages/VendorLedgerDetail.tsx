@@ -145,9 +145,10 @@ export default function VendorLedgerDetail() {
     : entryTypeFilter === "credits" ? entries.filter(e => parseFloat(e.credit) > 0)
     : entries.filter(e => e.entry_type === entryTypeFilter);
 
-  const totalDebit  = entries.reduce((s, e) => s + parseFloat(e.debit  || "0"), 0);
+  const totalDebit  = entries.reduce((s, e) => s + parseFloat(e.total_amount || "0"), 0);
   const totalCredit = entries.reduce((s, e) => s + parseFloat(e.credit || "0"), 0);
-  const balance     = totalDebit - totalCredit;
+  const rawBalance = Math.round((totalDebit - totalCredit) * 100) / 100;
+  const balance = Math.max(0, rawBalance);
 
   // Only debit entries (non-payment) can be selected
   const selectableEntries = useMemo(

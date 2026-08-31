@@ -2852,12 +2852,13 @@ function OutsourceJobSection({ swatchOrderId }: { swatchOrderId: number }) {
               {filtered.length === 0 ? (
                 <EmptyRow text={rows.length === 0 ? "No outsource jobs yet." : "No jobs for selected vendor."} />
               ) : filtered.map(r => {
-                const base = parseFloat(r.totalCost) || 0;
-                const gstPct = parseFloat(r.gstPercentage) || 0;
-                const gstAmt = base * gstPct / 100;
-                const total = base + gstAmt;
-                const paid = outsourcePaidTotals.get(r.id) ?? 0;
-                const balance = Math.max(0, total - paid);
+                const base = Number(Number(r.totalCost || 0).toFixed(2));
+                const gstPct = Number(Number(r.gstPercentage || 0).toFixed(2));
+
+                const gstAmt = Number((base * gstPct / 100).toFixed(2));
+                const total = Number((base + gstAmt).toFixed(2));
+                const paid = Number((outsourcePaidTotals.get(r.id) ?? 0).toFixed(2));
+                const balance = Number(Math.max(0, total - paid).toFixed(2));
                 const fullyPaid = total > 0 && paid >= total;
                 return (
                 <React.Fragment key={r.id}>
