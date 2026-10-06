@@ -1,15 +1,6 @@
 import { db, eq, and, sql } from "@workspace/db";
 import { faker } from "@faker-js/faker";
-import {
-  swatchOrdersTable,
-  entityTagsTable,
-  fabricsTable,
-  swatchesTable,
-  clientsTable,
-  styleOrdersTable,
-  unitTypesTable,
-  departmentsTable,
-} from "@workspace/db";
+import { swatchOrdersTable, entityTagsTable, fabricsTable, swatchesTable, clientsTable, styleOrdersTable, unitTypesTable, departmentsTable, } from "@workspace/db";
 import fs from "fs-extra";
 import path from "path";
 
@@ -485,44 +476,48 @@ function pickRelated<T>(
   return relatedItems;
 }
 
-function generateStyleReferences(styles: Style[], attrs: SwatchAttributes): ReferenceItem[] {
+function generateStyleReferences(
+  styles: Style[],
+  attrs: SwatchAttributes
+): ReferenceItem[] {
   if (styles.length === 0) {
     return [];
   }
   const selected = pickRelated(
     styles,
-    (style) => (style.styleNo || '') + ' ' + style.name,
+    (style) => `${style.styleNo || ''} ${style.name}`,
     attrs,
     0,
     Math.min(3, styles.length)
   );
-  return selected.map(function(style) {
-    return {
-      id: 'sto:' + style.id,
-      label: (style.styleNo || style.name) + ' – ' + style.name,
-      remark: faker.helpers.maybe(function() { return faker.helpers.arrayElement(REFERENCE_REMARKS); }, { probability: 0.3 }) || ''
-    };
-  });
+
+  return selected.map((style) => ({
+    id: `sto:${style.id}`,
+    label: `${style.styleNo || style.name} – ${style.name}`,
+    remark: faker.helpers.maybe( () => faker.helpers.arrayElement(REFERENCE_REMARKS), { probability: 0.3 } ) || '',
+  }));
 }
 
-function generateSwatchReferences(swatches: Swatch[], attrs: SwatchAttributes): ReferenceItem[] {
+function generateSwatchReferences(
+  swatches: Swatch[],
+  attrs: SwatchAttributes
+): ReferenceItem[] {
   if (swatches.length === 0) {
     return [];
   }
   const selected = pickRelated(
     swatches,
-    (swatch) => swatch.swatchName,
+    (swatch) => `${swatch.swatchCode} ${swatch.swatchName}`,
     attrs,
     1,
     Math.min(2, swatches.length)
   );
-  return selected.map(function(swatch) {
-    return {
-      id: swatch.swatchCode || String(swatch.id),
-      label: (swatch.swatchCode || swatch.swatchName) + ' – ' + swatch.swatchName,
-      remark: faker.helpers.maybe(function() { return faker.helpers.arrayElement(REFERENCE_REMARKS); }, { probability: 0.2 }) || ''
-    };
-  });
+
+  return selected.map((swatch) => ({
+    id: `swo:${swatch.id}`,
+    label: `${swatch.swatchCode || swatch.swatchName} – ${swatch.swatchName}`,
+    remark: faker.helpers.maybe( () => faker.helpers.arrayElement(REFERENCE_REMARKS), { probability: 0.2 } ) || '',
+  }));
 }
 
 function generateEstimate(): EstimateItem[] {
