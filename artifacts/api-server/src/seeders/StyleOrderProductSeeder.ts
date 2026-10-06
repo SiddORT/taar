@@ -11,7 +11,8 @@ import {
   fabricsTable,
   unitTypesTable,
   departmentsTable,
-  usersTable, // ✅ Import users table
+  usersTable, 
+  vendorsTable,
 } from "@workspace/db";
 import fs from "fs-extra";
 import path from "path";
@@ -65,6 +66,11 @@ interface ImageItem {
   name: string;
   size: number;
   type: string;
+}
+
+interface Vendor {
+  id: number;
+  brandName: string;
 }
 
 // ============================================================
@@ -268,19 +274,30 @@ function generateTargetHours(): string | null {
   return faker.helpers.maybe(() => faker.number.int({ min: 4, max: 120 }).toString(), { probability: 0.6 }) || null;
 }
 
-function generatePatternType(): string | null {
-  return faker.helpers.arrayElement([
-    'Basic Block',
-    'Modified Block',
-    'Grading',
-    'Marker Making',
-    'Drape',
-    null,
-  ]);
+function generatePatternType(): 'Inhouse' | 'Outhouse' {
+  return faker.helpers.arrayElement(['Inhouse', 'Outhouse']);
 }
 
 function generatePaymentAmount(): string | null {
   return faker.helpers.maybe(() => faker.number.int({ min: 500, max: 50000 }).toString(), { probability: 0.5 }) || null;
+}
+
+const vendors = await db
+  .select({
+    id: vendorsTable.id,
+    brandName: vendorsTable.brandName,
+  })
+  .from(vendorsTable)
+  .where(
+    and(
+      eq(vendorsTable.isActive, true),
+      eq(vendorsTable.isDeleted, false)
+    )
+  );
+
+console.log(` Found ${vendors.length} active vendors`);
+if (vendors.length === 0) {
+  console.warn(' No active vendors found. Pattern vendor fields will be null.');
 }
 
 // ============================================================
@@ -429,6 +446,12 @@ export async function seedStyleOrderProducts(ordersToProcess: number = 0): Promi
       const createdBy = faker.helpers.arrayElement(usernames);
       const updatedBy = faker.helpers.arrayElement(usernames);
 
+      const patternType = generatePatternType();
+
+      const patternVendor = patternType === 'Outhouse' && vendors.length > 0 ? faker.helpers.arrayElement(vendors) : null;
+      const patternMakingCost = patternType === 'Inhouse' ? faker.number.int({ min: 100, max: 5000 }).toString() : null;
+      const patternPaymentAmount = patternType === 'Outhouse' ? faker.number.int({ min: 500, max: 50000 }).toString() : null;
+
       // Build the product object
       const productData = {
         styleOrderId: styleOrder.id,
@@ -450,18 +473,18 @@ export async function seedStyleOrderProducts(ordersToProcess: number = 0): Promi
         issuedTo: getRandomIssuedTo(),
         department: department ? String(department.id) : null,
         refDocs: refDocs,
-        refImages: selectedImages,  // ✅ Real images from style folder
+        refImages: selectedImages,  // Real images from style folder
         videos: videos,            // Placeholder video
         patternType: generatePatternType(),
-        patternMakingCost: faker.helpers.maybe(() => faker.number.int({ min: 100, max: 5000 }).toString(), { probability: 0.4 }) || null,
+        patternMakingCost: patternMakingCost,
         patternDoc: patternDoc,
         patternOuthouseDoc: patternOuthouseDoc,
-        patternVendorId: faker.helpers.maybe(() => faker.string.alphanumeric(6).toUpperCase(), { probability: 0.3 }) || null,
-        patternVendorName: faker.helpers.maybe(() => faker.company.name(), { probability: 0.3 }) || null,
+        patternVendorId: patternVendor ? String(patternVendor.id) : null,
+        patternVendorName: patternVendor ? patternVendor.brandName : null,
         patternPaymentType: faker.helpers.maybe(() => faker.helpers.arrayElement(['Cash', 'Bank Transfer', 'Cheque']), { probability: 0.3 }) || null,
         patternPaymentMode: faker.helpers.maybe(() => faker.helpers.arrayElement(['Online', 'Offline', 'UPI']), { probability: 0.3 }) || null,
         patternPaymentStatus: patternPaymentStatus,
-        patternPaymentAmount: generatePaymentAmount(),
+        patternPaymentAmount: patternPaymentAmount,
         patternTransactionId: faker.helpers.maybe(() => faker.string.alphanumeric(12).toUpperCase(), { probability: 0.3 }) || null,
         patternPaymentDate: faker.helpers.maybe(() => faker.date.past().toISOString().slice(0, 10), { probability: 0.3 }) || null,
         patternRemarks: faker.helpers.maybe(() => faker.lorem.sentence(), { probability: 0.2 }) || null,

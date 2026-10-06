@@ -72,6 +72,8 @@ import OtherExpenses from "@/pages/OtherExpenses";
 import AccountsDashboard from "@/pages/AccountsDashboard";
 import VendorChallans from "@/pages/VendorChallans";
 import VendorChallanDetail from "@/pages/VendorChallanDetail";
+import TDSMaster from "@/pages/TDSMaster";
+import VendorLedgerPayment from "@/pages/VendorLedgerPayment";
 
 import Reports from "@/pages/Reports";
 
@@ -106,6 +108,7 @@ function Router() {
       <Route path="/" component={RootRedirect} />
       <Route path="/login" component={Login} />
       <Route path="/forgot-password" component={ForgotPassword} />
+      <Route path="/masters/tds" component={TDSMaster} />
       <Route path="/dashboard" component={Dashboard} />
       <Route path="/masters" component={MastersRedirect} />
       <Route path="/masters/hsn" component={HSNMaster} />
@@ -143,6 +146,7 @@ function Router() {
       <Route path="/accounts" component={AccountsDashboard} />
       <Route path="/accounts/ledgers" component={VendorLedgers} />
       <Route path="/accounts/ledgers/:vendorId" component={VendorLedgerDetail} />
+      <Route path="/accounts/ledgers/:vendorId/payment" component={VendorLedgerPayment}/>
       <Route path="/accounts/invoices/new" component={InvoiceForm} />
       <Route path="/accounts/invoices/:id/edit" component={InvoiceForm} />
       <Route path="/accounts/invoices/:id" component={InvoiceForm} />

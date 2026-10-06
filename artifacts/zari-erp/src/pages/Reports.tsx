@@ -4,7 +4,7 @@ import {
   Package, BarChart2, ShoppingCart, FileText,
   Users, User, TrendingUp, Scale, Receipt,
   Download, RefreshCw, ChevronRight, CheckCircle2,
-  Search, ChevronLeft, AlertCircle, CheckCircle, X,
+  Search, ChevronLeft, AlertCircle, CheckCircle, X, Landmark,
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { useGetMe, useLogout, getGetMeQueryKey } from "@workspace/api-client-react";
@@ -48,7 +48,8 @@ type ReportId =
   | "client-ledger"
   | "order-profitability"
   | "purchase-vs-sales"
-  | "gst-summary";
+  | "gst-summary"
+  | "tds-summary";
 
 interface ReportCard {
   id: ReportId;
@@ -69,6 +70,7 @@ const REPORT_CARDS: ReportCard[] = [
   { id: "order-profitability", name: "Order Profitability", desc: "Invoice vs shipping cost per swatch & style order",           icon: TrendingUp,  color: "#DC2626", bg: "rgba(220,38,38,0.1)" },
   { id: "purchase-vs-sales",   name: "Purchase vs Sales",   desc: "Aggregate comparison — sales, purchases & other expenses",    icon: Scale,       color: G_DIM,     bg: `${G_DIM}18`          },
   { id: "gst-summary",         name: "GST Summary",         desc: "GST Collected vs GST Paid and Net GST Liability",             icon: Receipt,     color: "#0D9488", bg: "rgba(13,148,136,0.1)"},
+  { id: "tds-summary",         name: "TDS Summary",         desc: "TDS Paid (client side) vs TDS Collected (vendor side)",        icon: Landmark,    color: "#B91C1C", bg: "rgba(185,28,28,0.1)" },
 ];
 
 const REPORT_COLS: Record<ReportId, string[]> = {
@@ -81,11 +83,19 @@ const REPORT_COLS: Record<ReportId, string[]> = {
   "order-profitability": ["Order ID", "Client", "Type", "Invoice Amount", "Shipping Cost", "Net Profit"],
   "purchase-vs-sales":   ["Period", "Total Sales", "Total Purchases", "Other Expenses", "Net Revenue"],
   "gst-summary":         ["Ref No", "Party Name", "Transaction Type", "Taxable Amount", "CGST", "SGST", "IGST", "Total GST", "Date"],
+  "tds-summary":         ["Transaction Type", "Date", "Ref No", "Party Name", "Section", "Rate", "Gross Amount", "Base Amount", "GST Amount", "TDS Amount", "Net Paid"],
 };
 
 interface GstSummary {
   collected: { cgst: number; sgst: number; igst: number; total: number };
   paid:      { cgst: number; sgst: number; igst: number; total: number };
+}
+interface TdsSummary {
+  summary: {
+    collected: { total: number; base: number; gross: number; count: number };
+    paid:      { total: number; base: number; gross: number; count: number };
+  };
+  netPosition: number;
 }
 
 function rowVal(id: ReportId, row: Record<string, unknown>, col: string, fmtCurr: (v: string | number) => string): string {
@@ -93,6 +103,7 @@ function rowVal(id: ReportId, row: Record<string, unknown>, col: string, fmtCurr
     "PO Amount","PR Value","Vendor Bills","Pending Payables","Invoice Amount","Received Amount",
     "Pending Amount","Amount","Paid","Balance","Net Profit","Total Sales","Total Purchases",
     "Other Expenses","Net Revenue","Taxable Amount","CGST","SGST","IGST","Total GST",
+    "Gross Amount","Base Amount","GST Amount","TDS Amount","Net Paid",
   ]);
   const key = col.toLowerCase().replace(/ /g, "_").replace(/\./g, "");
   const aliases: Record<string, string> = {
@@ -138,6 +149,13 @@ function rowVal(id: ReportId, row: Record<string, unknown>, col: string, fmtCurr
     "sgst":            "sgst",
     "igst":            "igst",
     "total_gst":       "total_gst",
+    "section":         "tds_section",
+    "rate":            "tds_rate",
+    "gross_amount":    "gross_amount",
+    "base_amount":     "base_amount",
+    "gst_amount":      "gst_amount",
+    "tds_amount":      "tds_amount",
+    "net_paid":        "net_paid",
   };
   const fieldKey = aliases[key] ?? key;
   const val = row[fieldKey] ?? row[key] ?? "—";
@@ -163,6 +181,11 @@ function statusBadge(val: string) {
     "sales invoice": "bg-teal-50 text-teal-700 border-teal-200",
     "vendor bill":   "bg-violet-50 text-violet-700 border-violet-200",
     "expense gst":   "bg-orange-50 text-orange-700 border-orange-200",
+    "deducted":       "bg-amber-50 text-amber-700 border-amber-200",
+    "deposited":      "bg-blue-50 text-blue-700 border-blue-200",
+    "filed":          "bg-emerald-50 text-emerald-700 border-emerald-200",
+    "reversed":       "bg-red-50 text-red-700 border-red-200",
+    "not_applicable": "bg-gray-50 text-gray-600 border-gray-200",
   };
   return map[v] ?? "bg-gray-50 text-gray-600 border-gray-200";
 }
@@ -192,6 +215,7 @@ export default function Reports() {
   const [rows,       setRows]       = useState<Record<string, unknown>[]>([]);
   const [gstSummary, setGstSummary] = useState<GstSummary | null>(null);
   const [gstNet,     setGstNet]     = useState<number | null>(null);
+  const [tdsSummary, setTdsSummary] = useState<TdsSummary | null>(null);
   const [loading,    setLoading]    = useState(false);
   const [loaded,     setLoaded]     = useState(false);
   const [opts,       setOpts]       = useState<FilterOptions>({ clients: [], vendors: [], items: [] });
@@ -226,12 +250,13 @@ export default function Reports() {
 
   const fetchReport = useCallback((id: ReportId) => {
     if (!token || !id) return;
-    setLoading(true);
+        setLoading(true);
     setLoaded(false);
     setSearch("");
     setPage(1);
     setGstSummary(null);
     setGstNet(null);
+    setTdsSummary(null);
 
     let url: string;
     if (id === "gst-summary") {
@@ -240,6 +265,11 @@ export default function Reports() {
       if (filterClient !== "all") p.set("client", filterClient);
       if (filterVendor !== "all") p.set("vendor", filterVendor);
       url = `/api/reports/gst-summary?${p}`;
+    } else if (id === "tds-summary") {
+      const p = new URLSearchParams({ from_date: dateFrom, to_date: dateTo });
+      if (filterClient !== "all") p.set("client", filterClient);
+      if (filterVendor !== "all") p.set("vendor", filterVendor);
+      url = `/api/reports/tds-summary?${p}`;
     } else {
       const p = new URLSearchParams({ from: dateFrom, to: dateTo });
       if (filterClient !== "all") p.set("client", filterClient);
@@ -248,14 +278,30 @@ export default function Reports() {
       url = `/api/reports/${id}?${p}`;
     }
 
-    customFetch<{ data: Record<string, unknown>[]; summary?: GstSummary; netLiability?: number }>(url)
+    customFetch<any>(url)
       .then(d => {
-        setRows(d.data ?? []);
-        if (d.summary)     setGstSummary(d.summary);
-        if (d.netLiability !== undefined) setGstNet(d.netLiability);
+        let recordCount = 0;
+        if (id === "tds-summary") {
+          setRows(d.data ?? []);
+          if (d.summary) {
+            setTdsSummary({
+              summary: d.summary,
+              netPosition: d.netPosition ?? 0,
+            });
+          }
+          recordCount = d.data?.length ?? 0;
+        } else {
+          setRows(d.data ?? []);
+          if (d.summary)     setGstSummary(d.summary);
+          if (d.netLiability !== undefined) setGstNet(d.netLiability);
+          recordCount = d.data?.length ?? 0;
+        }
         setLoaded(true);
-        const title = id === "gst-summary" ? "GST summary report loaded successfully" : "Report loaded";
-        toast({ title, description: `${d.data?.length ?? 0} records`, duration: 2000 });
+        const title =
+          id === "tds-summary" ? "TDS summary loaded"
+          : id === "gst-summary" ? "GST summary report loaded successfully"
+          : "Report loaded";
+        toast({ title, description: `${recordCount} records`, duration: 2000 });
       })
       .catch(() => toast({ title: "Failed to load report", variant: "destructive" }))
       .finally(() => setLoading(false));
@@ -293,6 +339,7 @@ export default function Reports() {
       "Pending Amount","Amount","Paid","Balance","Net Profit","Shipping Cost","Total Sales","Total Purchases",
       "Other Expenses","Net Revenue","Taxable Amount","CGST","SGST","IGST","Total GST",
       "Current Stock","Reserved","Available","Reorder Level","Qty In","Qty Out",
+      "Gross Amount","Base Amount","GST Amount","TDS Amount","Net Paid",
     ]);
     /* Quantity-style cols use plain numeric format; in stock-movement the
        "Balance" column is also a quantity (running stock), not currency. */
@@ -329,11 +376,13 @@ export default function Reports() {
     });
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Report");
-    let filename = `${selected}_${today.replace(/-/g, "")}.xlsx`;
+        let filename = `${selected}_${today.replace(/-/g, "")}.xlsx`;
     if (selected === "gst-summary") {
       filename = gstMonth !== "all"
         ? `gst_summary_${gstYear}${gstMonth.padStart(2, "0")}.xlsx`
         : `gst_summary_${gstYear}.xlsx`;
+    } else if (selected === "tds-summary") {
+      filename = `tds_summary_${dateFrom.replace(/-/g, "")}_to_${dateTo.replace(/-/g, "")}.xlsx`;
     }
     XLSX.writeFile(wb, filename);
   }
@@ -361,9 +410,10 @@ export default function Reports() {
   }, [resetTick, fetchReport]);
 
   const isGst      = selected === "gst-summary";
+  const isTds      = selected === "tds-summary";
   const showDate   = !!selected && selected !== "stock-summary" && !isGst;
-  const showClient = !!selected && (["invoice-summary", "client-ledger"].includes(selected) || isGst);
-  const showVendor = !!selected && (["purchase-summary", "vendor-ledger"].includes(selected) || isGst);
+  const showClient = !!selected && (["invoice-summary", "client-ledger"].includes(selected) || isGst || isTds);
+  const showVendor = !!selected && (["purchase-summary", "vendor-ledger"].includes(selected) || isGst || isTds);
   const showItem   = !!selected && ["stock-summary", "stock-movement"].includes(selected);
 
   const selectedCard = REPORT_CARDS.find(r => r.id === selected);
@@ -634,6 +684,90 @@ export default function Reports() {
                         </span>
                         <p className="text-[11px] text-gray-500 mt-2">
                           Collected − Paid = {fmtCurr(gstNet ?? 0)}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* TDS Summary Panel */}
+                {isTds && loaded && tdsSummary && (
+                  <div className="px-5 py-4 border-b border-gray-200 bg-red-50/20">
+                    <p className="text-[10px] font-black uppercase tracking-[0.18em] mb-3" style={{ color: "#B91C1C" }}>
+                      TDS SUMMARY
+                    </p>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      {/* TDS Paid (client withheld from our invoices) */}
+                      <div className="rounded-xl border border-amber-200/60 bg-white p-4">
+                        <div className="flex items-center gap-2 mb-3">
+                          <div className="h-7 w-7 rounded-lg bg-amber-50 flex items-center justify-center">
+                            <Receipt className="h-3.5 w-3.5 text-amber-600" />
+                          </div>
+                          <p className="text-xs font-bold text-gray-700">TDS Paid</p>
+                        </div>
+                        <p className="text-xl font-black text-amber-700 mb-1">
+                          {fmtCurr(tdsSummary.summary.paid.total)}
+                        </p>
+                        <p className="text-[11px] text-gray-500">
+                          Withheld by clients on {tdsSummary.summary.paid.count} invoice payments
+                        </p>
+                        <div className="mt-2 pt-2 border-t border-amber-100 space-y-0.5 text-[11px] text-gray-500">
+                          <div className="flex justify-between"><span>On Base</span><span className="font-semibold text-gray-700">{fmtCurr(tdsSummary.summary.paid.base)}</span></div>
+                          <div className="flex justify-between"><span>On Gross</span><span className="font-semibold text-gray-700">{fmtCurr(tdsSummary.summary.paid.gross)}</span></div>
+                        </div>
+                      </div>
+
+                      {/* TDS Collected (we withheld from vendors) */}
+                      <div className="rounded-xl border border-emerald-200/60 bg-white p-4">
+                        <div className="flex items-center gap-2 mb-3">
+                          <div className="h-7 w-7 rounded-lg bg-emerald-50 flex items-center justify-center">
+                            <CheckCircle className="h-3.5 w-3.5 text-emerald-600" />
+                          </div>
+                          <p className="text-xs font-bold text-gray-700">TDS Collected</p>
+                        </div>
+                        <p className="text-xl font-black text-emerald-700 mb-1">
+                          {fmtCurr(tdsSummary.summary.collected.total)}
+                        </p>
+                        <p className="text-[11px] text-gray-500">
+                          Deducted from {tdsSummary.summary.collected.count} vendor payments
+                        </p>
+                        <div className="mt-2 pt-2 border-t border-emerald-100 space-y-0.5 text-[11px] text-gray-500">
+                          <div className="flex justify-between"><span>On Base</span><span className="font-semibold text-gray-700">{fmtCurr(tdsSummary.summary.collected.base)}</span></div>
+                          <div className="flex justify-between"><span>On Gross</span><span className="font-semibold text-gray-700">{fmtCurr(tdsSummary.summary.collected.gross)}</span></div>
+                        </div>
+                      </div>
+
+                      {/* Net position */}
+                      <div className={`rounded-xl border p-4 ${
+                        tdsSummary.netPosition >= 0
+                          ? "border-amber-300/60 bg-amber-50"
+                          : "border-emerald-200/60 bg-emerald-50"
+                      }`}>
+                        <div className="flex items-center gap-2 mb-3">
+                          <div className={`h-7 w-7 rounded-lg flex items-center justify-center ${
+                            tdsSummary.netPosition >= 0 ? "bg-amber-100" : "bg-emerald-100"
+                          }`}>
+                            <AlertCircle className={`h-3.5 w-3.5 ${
+                              tdsSummary.netPosition >= 0 ? "text-amber-700" : "text-emerald-700"
+                            }`} />
+                          </div>
+                          <p className="text-xs font-bold text-gray-700">Net TDS Position</p>
+                        </div>
+                        <p className={`text-xl font-black mb-1 ${
+                          tdsSummary.netPosition >= 0 ? "text-amber-700" : "text-emerald-700"
+                        }`}>
+                          {fmtCurr(Math.abs(tdsSummary.netPosition))}
+                        </p>
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black border ${
+                          tdsSummary.netPosition >= 0
+                            ? "bg-amber-100 text-amber-800 border-amber-300"
+                            : "bg-emerald-100 text-emerald-800 border-emerald-300"
+                        }`}>
+                          {tdsSummary.netPosition >= 0 ? "NET PAYABLE TO GOVT" : "NET REFUNDABLE"}
+                        </span>
+                        <p className="text-[11px] text-gray-500 mt-2">
+                          Collected − Paid = {fmtCurr(tdsSummary.netPosition)}
                         </p>
                       </div>
                     </div>

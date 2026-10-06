@@ -4,9 +4,15 @@ import {
   vendorLedgerChargesTable,
   vendorsTable,
   usersTable,
+  hsnTable,
   sql,
 } from "@workspace/db";
+
 import { eq, and, desc } from "drizzle-orm";
+
+// ============================================
+// Constants
+// ============================================
 
 const DEFAULT_CATEGORIES = [
   "Courier Charges",
@@ -18,50 +24,113 @@ const DEFAULT_CATEGORIES = [
   "Other",
 ];
 
-// Use exactly the provided constants
-const PAYMENT_TYPES = ["Cash", "Bank Transfer", "UPI", "Cheque", "Online", "Other"];
-const PAYMENT_STATUS = ["Unpaid", "Partially Paid", "Paid"];
-const REF_TYPES = ["Manual", "Purchase Order", "Purchase Receipt", "Vendor Bill", "Other"];
+const PAYMENT_TYPES = [
+  "Cash",
+  "Bank Transfer",
+  "UPI",
+  "Cheque",
+  "Online",
+  "Other",
+];
+
+const PAYMENT_STATUS = [
+  "Unpaid",
+  "Partially Paid",
+  "Paid",
+];
+
+const REF_TYPES = [
+  "Manual",
+  "Purchase Order",
+  "Purchase Receipt",
+  "Vendor Bill",
+  "Other",
+];
+
+// ============================================
+// Configuration
+// ============================================
+
+const SEED_COUNT = {
+  WITH_VENDOR: 14,
+  WITHOUT_VENDOR: 6,
+};
+
+// ============================================
+// Types
+// ============================================
+
+interface Hsn {
+  id: number;
+  hsnCode: string;
+  gstPercentage: string;
+}
+
+// ============================================
+// Helper Functions
+// ============================================
 
 function randomItem<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
-// Generate expense number exactly like the API (e.g., EXP-2026-00001)
+/**
+ * Generate expense number exactly like the API.
+ *
+ * Example:
+ * EXP-2026-00001
+ * EXP-2026-00002
+ */
 async function generateExpenseNumber(tx: any): Promise<string> {
   const year = new Date().getFullYear();
   const pattern = `EXP-${year}-%`;
 
   const result = await tx
-    .select({ expenseNumber: otherExpenses.expenseNumber })
+    .select({
+      expenseNumber: otherExpenses.expenseNumber,
+    })
     .from(otherExpenses)
     .where(
-      sql`${otherExpenses.expenseNumber} LIKE ${pattern} AND ${otherExpenses.isDeleted} = false`
+      sql`${otherExpenses.expenseNumber} LIKE ${pattern}
+        AND ${otherExpenses.isDeleted} = false`
     )
     .orderBy(desc(otherExpenses.expenseNumber))
     .limit(1);
 
   let seq = 1;
+
   if (result.length > 0) {
     const last = result[0].expenseNumber;
+
     const parts = last.split("-");
+
     if (parts.length === 3) {
-      seq = parseInt(parts[2], 10) + 1;
+      const lastSequence = parseInt(parts[2], 10);
+
+      if (!Number.isNaN(lastSequence)) {
+        seq = lastSequence + 1;
+      }
     }
   }
+
   return `EXP-${year}-${String(seq).padStart(5, "0")}`;
 }
 
-// Configuration: total 20 records
-const SEED_COUNT = {
-  WITH_VENDOR: 14,   // if vendors exist, create 14 vendor-linked
-  WITHOUT_VENDOR: 6, // and 6 standalone
-};
+// ============================================
+// Main Seeder
+// ============================================
 
 export async function seedOtherExpenses(): Promise<void> {
-  // Idempotency: skip if any expense with "Seeder" in remarks exists
+  console.log("\n💰 Starting OtherExpensesSeeder...");
+
+  // ============================================
+  // 1. Idempotency Check
+  // ============================================
+
   const existing = await db
-    .select({ id: otherExpenses.expenseId })
+    .select({
+      id: otherExpenses.expenseId,
+    })
     .from(otherExpenses)
     .where(
       and(
@@ -72,110 +141,393 @@ export async function seedOtherExpenses(): Promise<void> {
     .limit(1);
 
   if (existing.length > 0) {
-    console.log("[seedOtherExpenses] Other expenses already seeded. Skipping.");
+    console.log(
+      "[seedOtherExpenses] Other expenses already seeded. Skipping."
+    );
     return;
   }
 
-  // Fetch active user
+  // ============================================
+  // 2. Fetch Active User
+  // ============================================
+
   const users = await db
     .select()
     .from(usersTable)
-    .where(and(eq(usersTable.isActive, true), eq(usersTable.isDeleted, false)))
+    .where(
+      and(
+        eq(usersTable.isActive, true),
+        eq(usersTable.isDeleted, false)
+      )
+    )
     .limit(1);
-  const actor = users.length ? users[0].email || users[0].username : "System";
 
-  // Fetch active vendors
+  const actor =
+    users.length > 0
+      ? users[0].email || users[0].username || "System"
+      : "System";
+
+  console.log(
+    `[seedOtherExpenses] Using actor: ${actor}`
+  );
+
+  // ============================================
+  // 3. Fetch Active Vendors
+  // ============================================
+
   const vendors = await db
     .select()
     .from(vendorsTable)
-    .where(and(eq(vendorsTable.isActive, true), eq(vendorsTable.isDeleted, false)));
+    .where(
+      and(
+        eq(vendorsTable.isActive, true),
+        eq(vendorsTable.isDeleted, false)
+      )
+    );
 
-  if (!vendors.length) {
-    console.warn("[seedOtherExpenses] No active vendors found. Only standalone expenses will be created.");
+  console.log(
+    `[seedOtherExpenses] Found ${vendors.length} active vendors`
+  );
+
+  if (vendors.length === 0) {
+    console.warn(
+      "[seedOtherExpenses] No active vendors found. Only standalone expenses will be created."
+    );
   }
 
+  // ============================================
+  // 4. Fetch Active HSN Codes
+  // ============================================
+
+  const hsnCodes: Hsn[] = await db
+    .select({
+      id: hsnTable.id,
+      hsnCode: hsnTable.hsnCode,
+      gstPercentage: hsnTable.gstPercentage,
+    })
+    .from(hsnTable)
+    .where(
+      and(
+        eq(hsnTable.isActive, true),
+        eq(hsnTable.isDeleted, false)
+      )
+    );
+
+  console.log(
+    `[seedOtherExpenses] Found ${hsnCodes.length} active HSN codes`
+  );
+
+  // HSN is mandatory in other_expenses.
+  if (hsnCodes.length === 0) {
+    console.error(
+      "[seedOtherExpenses] No active HSN codes found."
+    );
+
+    console.error(
+      "[seedOtherExpenses] Please run the HSN seeder before running OtherExpensesSeeder."
+    );
+
+    return;
+  }
+
+  // ============================================
+  // 5. Transaction
+  // ============================================
+
   await db.transaction(async (tx) => {
-    // --- Vendor-linked expenses ---
+    // ============================================
+    // Vendor-linked Expenses
+    // ============================================
+
     const vendorCount = vendors.length;
-    const withVendorCount = vendorCount > 0 ? Math.min(SEED_COUNT.WITH_VENDOR, vendorCount * 3) : 0;
+
+    const withVendorCount =
+      vendorCount > 0
+        ? Math.min(
+            SEED_COUNT.WITH_VENDOR,
+            vendorCount * 3
+          )
+        : 0;
+
+    console.log(
+      `[seedOtherExpenses] Creating ${withVendorCount} vendor-linked expenses`
+    );
+
     for (let i = 0; i < withVendorCount; i++) {
       const vendor = vendors[i % vendorCount];
+
       const category = randomItem(DEFAULT_CATEGORIES);
-      const amount = Math.floor(Math.random() * 5000) + 500; // 500-5499
-      const paymentStatus = randomItem(PAYMENT_STATUS);
-      const paymentType = randomItem(PAYMENT_TYPES);
-      const referenceType = randomItem(REF_TYPES);
-      const expenseNumber = await generateExpenseNumber(tx);
-      const expenseDate = new Date().toISOString().split("T")[0];
 
-      // Insert expense
-      await tx.insert(otherExpenses).values({
-        expenseNumber,
-        expenseCategory: category,
-        vendorId: vendor.id,
-        vendorName: vendor.brandName || vendor.contactName || "",
-        referenceType,
-        referenceId: "", // no specific ID for seeder
-        amount: String(amount),
-        currencyCode: "INR",
-        paymentStatus,
-        paymentType,
-        paidAmount: paymentStatus === "Paid" ? String(amount) : "0",
-        expenseDate,
-        remarks: `Seeder - ${category} (vendor: ${vendor.brandName})`,
-        attachment: "",
-        createdBy: actor,
-      });
+      const amount =
+        Math.floor(Math.random() * 5000) + 500;
 
-      // Insert vendor ledger charge
-      await tx.insert(vendorLedgerChargesTable).values({
-        vendorId: vendor.id,
-        vendorName: vendor.brandName || vendor.contactName || "",
-        chargeDate: sql`${expenseDate}::timestamp`,
-        description: `Other Expense: ${category} [${expenseNumber}]`,
-        amount: String(amount),
-        notes: `Seeder - ${category}`,
-        orderType: "other_expense",
-        createdBy: actor,
-      });
+      const paymentStatus =
+        randomItem(PAYMENT_STATUS);
 
-      console.log(`[seedOtherExpenses] Created ${expenseNumber} for vendor ${vendor.brandName}`);
+      const paymentType =
+        randomItem(PAYMENT_TYPES);
+
+      const referenceType =
+        randomItem(REF_TYPES);
+
+      // ============================================
+      // Pick ONE HSN
+      // ============================================
+      // The exact same HSN is used for:
+      // 1. other_expenses
+      // 2. vendor_ledger_charges
+
+      const hsn = randomItem(hsnCodes);
+
+      const expenseNumber =
+        await generateExpenseNumber(tx);
+
+      const expenseDate =
+        new Date().toISOString().split("T")[0];
+
+      const vendorName =
+        vendor.brandName ||
+        vendor.contactName ||
+        "";
+
+      // ============================================
+      // Insert Other Expense
+      // ============================================
+
+      await tx
+        .insert(otherExpenses)
+        .values({
+          expenseNumber,
+          expenseCategory: category,
+
+          // Vendor
+          vendorId: vendor.id,
+          vendorName,
+
+          // Reference
+          referenceType,
+          referenceId: "",
+
+          // Amount
+          amount: String(amount),
+          currencyCode: "INR",
+
+          // Payment
+          paymentStatus,
+          paymentType,
+
+          paidAmount:
+            paymentStatus === "Paid"
+              ? String(amount)
+              : "0",
+
+          // Date
+          expenseDate,
+
+          // Additional information
+          remarks:
+            `Seeder - ${category} (vendor: ${vendorName})`,
+
+          attachment: "",
+
+          // Audit
+          createdBy: actor,
+
+          // ==========================================
+          // HSN Details
+          // ==========================================
+
+          hsnId: hsn.id,
+          hsnCode: hsn.hsnCode,
+          gstPercentage:
+            hsn.gstPercentage || "5",
+        });
+
+      // ============================================
+      // Insert Corresponding Vendor Ledger Charge
+      // ============================================
+      //
+      // IMPORTANT:
+      // The HSN values below are from the SAME `hsn`
+      // object used for the other_expenses record.
+      //
+      // This keeps:
+      //
+      // other_expenses.hsn_id
+      // vendor_ledger_charges.hsn_id
+      //
+      // identical.
+      //
+      // Same applies to:
+      // hsn_code
+      // gst_percentage
+      // ============================================
+
+      await tx
+        .insert(vendorLedgerChargesTable)
+        .values({
+          // Vendor
+          vendorId: vendor.id,
+          vendorName,
+
+          // Charge information
+          chargeDate:
+            sql`${expenseDate}::timestamp`,
+
+          description:
+            `Other Expense: ${category} [${expenseNumber}]`,
+
+          amount: String(amount),
+
+          notes:
+            `Seeder - ${category}`,
+
+          orderType: "other_expense",
+
+          // Audit
+          createdBy: actor,
+
+          // ==========================================
+          // SAME HSN DETAILS
+          // ==========================================
+
+          hsnId: hsn.id,
+          hsnCode: hsn.hsnCode,
+          gstPercentage:
+            hsn.gstPercentage || "5",
+        });
+
+      console.log(
+        `[seedOtherExpenses] Created ${expenseNumber} for vendor ${vendorName} | HSN: ${hsn.hsnCode} | GST: ${hsn.gstPercentage}%`
+      );
     }
 
-    // --- Standalone expenses (no vendor) ---
-    const withoutVendorCount = vendorCount > 0 ? SEED_COUNT.WITHOUT_VENDOR : 20;
+    // ============================================
+    // Standalone Expenses
+    // ============================================
+
+    const withoutVendorCount =
+      vendorCount > 0
+        ? SEED_COUNT.WITHOUT_VENDOR
+        : 20;
+
+    console.log(
+      `[seedOtherExpenses] Creating ${withoutVendorCount} standalone expenses`
+    );
+
     for (let i = 0; i < withoutVendorCount; i++) {
-      const category = randomItem(DEFAULT_CATEGORIES);
-      const amount = Math.floor(Math.random() * 3000) + 200; // 200-3199
-      const paymentStatus = randomItem(PAYMENT_STATUS);
-      const paymentType = randomItem(PAYMENT_TYPES);
-      const referenceType = randomItem(REF_TYPES);
-      const expenseNumber = await generateExpenseNumber(tx);
-      const expenseDate = new Date().toISOString().split("T")[0];
+      const category =
+        randomItem(DEFAULT_CATEGORIES);
 
-      await tx.insert(otherExpenses).values({
-        expenseNumber,
-        expenseCategory: category,
-        vendorId: null,
-        vendorName: "",
-        referenceType,
-        referenceId: "",
-        amount: String(amount),
-        currencyCode: "INR",
-        paymentStatus,
-        paymentType,
-        paidAmount: paymentStatus === "Paid" ? String(amount) : "0",
-        expenseDate,
-        remarks: `Seeder - ${category} (no vendor)`,
-        attachment: "",
-        createdBy: actor,
-      });
+      const amount =
+        Math.floor(Math.random() * 3000) + 200;
 
-      console.log(`[seedOtherExpenses] Created ${expenseNumber} (no vendor)`);
+      const paymentStatus =
+        randomItem(PAYMENT_STATUS);
+
+      const paymentType =
+        randomItem(PAYMENT_TYPES);
+
+      const referenceType =
+        randomItem(REF_TYPES);
+
+      // ============================================
+      // Pick HSN
+      // ============================================
+
+      const hsn = randomItem(hsnCodes);
+
+      const expenseNumber =
+        await generateExpenseNumber(tx);
+
+      const expenseDate =
+        new Date().toISOString().split("T")[0];
+
+      // ============================================
+      // Insert Standalone Other Expense
+      // ============================================
+
+      await tx
+        .insert(otherExpenses)
+        .values({
+          expenseNumber,
+          expenseCategory: category,
+
+          // No vendor
+          vendorId: null,
+          vendorName: "",
+
+          // Reference
+          referenceType,
+          referenceId: "",
+
+          // Amount
+          amount: String(amount),
+          currencyCode: "INR",
+
+          // Payment
+          paymentStatus,
+          paymentType,
+
+          paidAmount:
+            paymentStatus === "Paid"
+              ? String(amount)
+              : "0",
+
+          // Date
+          expenseDate,
+
+          // Additional information
+          remarks:
+            `Seeder - ${category} (no vendor)`,
+
+          attachment: "",
+
+          // Audit
+          createdBy: actor,
+
+          // ==========================================
+          // HSN Details
+          // ==========================================
+
+          hsnId: hsn.id,
+          hsnCode: hsn.hsnCode,
+          gstPercentage:
+            hsn.gstPercentage || "5",
+        });
+
+      // ============================================
+      // NOTE:
+      // No vendor ledger record is created here
+      // because this expense has no vendor.
+      // ============================================
+
+      console.log(
+        `[seedOtherExpenses] Created ${expenseNumber} (no vendor) | HSN: ${hsn.hsnCode} | GST: ${hsn.gstPercentage}%`
+      );
     }
   });
 
+  // ============================================
+  // Completed
+  // ============================================
+
   console.log(
-    `[seedOtherExpenses] Seeded a total of ${SEED_COUNT.WITH_VENDOR + SEED_COUNT.WITHOUT_VENDOR} expenses (${SEED_COUNT.WITH_VENDOR} vendor-linked, ${SEED_COUNT.WITHOUT_VENDOR} standalone).`
+    `\n✅ [seedOtherExpenses] Seed completed successfully!`
+  );
+
+  console.log(
+    `   Vendor-linked: ${SEED_COUNT.WITH_VENDOR}`
+  );
+
+  console.log(
+    `   Standalone: ${SEED_COUNT.WITHOUT_VENDOR}`
+  );
+
+  console.log(
+    `   Total: ${
+      SEED_COUNT.WITH_VENDOR +
+      SEED_COUNT.WITHOUT_VENDOR
+    }`
   );
 }

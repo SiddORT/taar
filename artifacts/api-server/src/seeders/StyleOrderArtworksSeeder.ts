@@ -5,6 +5,7 @@ import {
   styleOrderArtworksTable,
   usersTable,
   unitTypesTable,
+  vendorsTable,
   eq,
   and,
   sql,
@@ -14,15 +15,18 @@ import { faker } from "@faker-js/faker";
 import fs from "fs-extra";
 import path from "path";
 
-
 // Types
-
 
 interface ImageItem {
   data: string;
   name: string;
   size: number;
   type: string;
+}
+
+interface VendorOption {
+  id: number;   // vendorsTable.id — inserted into *VendorId fields
+  name: string; // vendorsTable.brandName — inserted into *VendorName fields
 }
 
 interface StyleOrderArtworkSeedData {
@@ -76,19 +80,15 @@ interface StyleOrderArtworkSeedData {
   finalImages?: ImageItem[];
   videos?: object[];
   createdBy: string;
-  createdAt?: Date; 
+  createdAt?: Date;
 }
 
-
 // Image directory config
-
 
 const STYLE_UPLOADS_DIR =
   process.env.STYLE_UPLOADS_DIR || path.join(process.cwd(), "uploads", "styles");
 
-
 // Base64 Image Helper Functions (reused)
-
 
 function getMimeType(filePath: string): string {
   const ext = path.extname(filePath).toLowerCase();
@@ -277,9 +277,7 @@ async function loadStyleArtworkImages(orderCode: string): Promise<{
   return result;
 }
 
-
 // Helper Functions
-
 
 // Will be fetched from DB, but we keep a fallback
 const DEFAULT_UNIT_TYPES = ["Inch", "Centimeter", "Millimeter", "Meter", "Feet"];
@@ -400,8 +398,8 @@ export async function seedStyleOrderArtworks(count: number = 30): Promise<void> 
       id: styleOrdersTable.id,
       orderCode: styleOrdersTable.orderCode,
       styleName: styleOrdersTable.styleName,
-      orderIssueDate: styleOrdersTable.orderIssueDate,   
-      deliveryDate: styleOrdersTable.deliveryDate,       
+      orderIssueDate: styleOrdersTable.orderIssueDate,
+      deliveryDate: styleOrdersTable.deliveryDate,
     })
     .from(styleOrdersTable)
     .where(eq(styleOrdersTable.isDeleted, false));
@@ -458,7 +456,40 @@ export async function seedStyleOrderArtworks(count: number = 30): Promise<void> 
     unitTypeNames = DEFAULT_UNIT_TYPES;
   }
 
-  // 5. Scan for available images in style uploads directory
+  // 5. Fetch vendors (active, non-deleted) — used for outsource / toile / pattern
+  const vendorRows = await db
+    .select({
+      id: vendorsTable.id,
+      name: vendorsTable.brandName,
+    })
+    .from(vendorsTable)
+    .where(
+      and(
+        eq(vendorsTable.isActive, true),
+        eq(vendorsTable.isDeleted, false)
+      )
+    );
+
+  const vendors: VendorOption[] = vendorRows.map((v) => ({
+    id: v.id,
+    name: v.name,
+  }));
+
+  if (vendors.length === 0) {
+    console.warn(
+      "⚠️ No active vendors found. Vendor-linked fields will be left null."
+    );
+  } else {
+    console.log("   ✅ Found " + vendors.length + " active vendors for linking");
+  }
+
+  /** Pick a random vendor from the real vendor pool, or null if none exist */
+  function pickVendor(): VendorOption | null {
+    if (vendors.length === 0) return null;
+    return faker.helpers.arrayElement(vendors);
+  }
+
+  // 6. Scan for available images in style uploads directory
   const availableImageCodes = await scanAvailableStyleImageCodes();
 
   let artworkCounter = 1;
@@ -545,14 +576,16 @@ export async function seedStyleOrderArtworks(count: number = 30): Promise<void> 
       finalImages: finalImages,
       videos: [],
       createdBy: users.length > 0 ? faker.helpers.arrayElement(users).email : "system",
-      createdAt: randomCreatedAt, 
+      createdAt: randomCreatedAt,
     };
 
-    // If outsourced, add outsource details
+    // If outsourced, add outsource details using REAL vendor (numeric id)
     if (!isInhouse) {
-      artworkData.outsourceVendorId = faker.string.numeric(5);
-      artworkData.outsourceVendorName =
-        faker.company.name() + " " + faker.helpers.arrayElement(["Studio", "Designs", "Creations"]);
+      const outsourceVendor = pickVendor();
+      if (outsourceVendor) {
+        artworkData.outsourceVendorId = String(outsourceVendor.id);
+        artworkData.outsourceVendorName = outsourceVendor.name;
+      }
       artworkData.outsourcePaymentDate = faker.date.recent().toISOString().slice(0, 10);
       artworkData.outsourcePaymentAmount = faker.number.int({ min: 1000, max: 50000 }).toString();
       artworkData.outsourcePaymentMode = getRandomPaymentMode();
@@ -560,11 +593,16 @@ export async function seedStyleOrderArtworks(count: number = 30): Promise<void> 
       artworkData.outsourcePaymentStatus = getRandomPaymentStatus();
     }
 
-    // Add toile details (with 70% probability)
+    // Add toile details (with 70% probability) using REAL vendor (numeric id)
     if (faker.datatype.boolean({ probability: 0.7 })) {
       artworkData.toileMakingCost = faker.number.int({ min: 500, max: 10000 }).toString();
-      artworkData.toileVendorId = faker.string.numeric(5);
-      artworkData.toileVendorName = faker.company.name() + " " + faker.helpers.arrayElement(["Toile", "Sample"]);
+
+      const toileVendor = pickVendor();
+      if (toileVendor) {
+        artworkData.toileVendorId = String(toileVendor.id);
+        artworkData.toileVendorName = toileVendor.name;
+      }
+
       artworkData.toileCost = faker.number.int({ min: 300, max: 8000 }).toString();
       artworkData.toilePaymentType = getRandomPaymentType();
       artworkData.toilePaymentDate = faker.date.recent().toISOString().slice(0, 10);
@@ -583,7 +621,7 @@ export async function seedStyleOrderArtworks(count: number = 30): Promise<void> 
       ];
     }
 
-    // Add pattern details (with 70% probability)
+    // Add pattern details (with 70% probability) using REAL vendor (numeric id)
     if (faker.datatype.boolean({ probability: 0.7 })) {
       artworkData.patternType = faker.helpers.arrayElement(["CAD", "Manual", "Digital", "Paper"]);
       artworkData.patternMakingCost = faker.number.int({ min: 1000, max: 15000 }).toString();
@@ -603,8 +641,13 @@ export async function seedStyleOrderArtworks(count: number = 30): Promise<void> 
           type: "application/pdf",
         },
       ];
-      artworkData.patternVendorId = faker.string.numeric(5);
-      artworkData.patternVendorName = faker.company.name() + " " + faker.helpers.arrayElement(["Pattern", "Tech"]);
+
+      const patternVendor = pickVendor();
+      if (patternVendor) {
+        artworkData.patternVendorId = String(patternVendor.id);
+        artworkData.patternVendorName = patternVendor.name;
+      }
+
       artworkData.patternPaymentType = getRandomPaymentType();
       artworkData.patternPaymentMode = getRandomPaymentMode();
       artworkData.patternPaymentStatus = getRandomPaymentStatus();
@@ -711,7 +754,7 @@ export async function seedStyleOrderArtworks(count: number = 30): Promise<void> 
           finalImages: data.finalImages ?? [],
           videos: data.videos ?? [],
           createdBy: data.createdBy || "system",
-          createdAt: data.createdAt || new Date(), // <-- use computed or fallback
+          createdAt: data.createdAt || new Date(),
         })
         .returning();
 
@@ -738,9 +781,7 @@ export async function seedStyleOrderArtworks(count: number = 30): Promise<void> 
   );
 }
 
-
 // Self-execution for ESM
-
 
 const isMainModule = import.meta.url === "file://" + process.argv[1];
 

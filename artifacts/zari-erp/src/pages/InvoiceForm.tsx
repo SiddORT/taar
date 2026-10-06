@@ -1,13 +1,15 @@
 import { useState, useEffect, useCallback, useRef, Fragment } from "react";
 import { useUnsavedChanges } from "@/hooks/useUnsavedChanges";
 import { useLocation, useParams } from "wouter";
-import { Save, ArrowLeft, Plus, Trash2, CheckCircle2, Eye, FileText, Download, Wallet, X, ChevronDown, ChevronRight, Loader2, AlertCircle, Clock } from "lucide-react";
+import { Save, ArrowLeft, Plus, Trash2, CheckCircle2, Eye, FileText, Download, Wallet, X, ChevronDown, ChevronRight, Loader2, AlertCircle, Clock,History } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import AppLayout from "@/components/layout/AppLayout";
 import InvoicePreviewModal from "@/components/InvoicePreviewModal";
 import type { PreviewInvoice } from "@/components/InvoicePreviewModal";
-import { useInvoicePaymentsList, useAddInvoicePayment, useDeleteInvoicePayment } from "@/hooks/useInvoicePayments";
+import { useInvoicePaymentsByReference, useInvoicePaymentsList, useAddInvoicePayment, useDeleteInvoicePayment } from "@/hooks/useInvoicePayments";
 import type { InvoicePayment } from "@/hooks/useInvoicePayments";
+import { SmallSearchSelect, SmallSearchSelectOption } from "@/components/ui/SearchableSelect";
+import { useTDSMasterList, type TDSMasterRecord } from "@/hooks/useTDSMaster";
 
 const G = "#C6AF4B";
 
@@ -49,10 +51,8 @@ const REF_LABELS: Record<string, string> = {
 };
 
 interface LineItem {
-  id: string; description: string; category: string;
-  quantity: number; unitPrice: number; total: number;
-  hsnCode: string; hsnGstPct: string; showHsn: boolean;
-  unit?: string;
+  id: string | number; description: string; category: string; quantity: number; unitPrice: number; 
+  total: number; hsnCode: string; hsnGstPct: string; showHsn: boolean; unit?: string; isLocked?: boolean; 
 }
 interface HsnItem { id: number; hsnCode: string; govtDescription: string; gstPercentage: string }
 interface FabricMaster { id: number; fabricCode: string; fabricType: string; quality: string; colorName: string; hsnCode: string }
@@ -119,42 +119,91 @@ function fmtDt(d: string | null | undefined) {
 }
 
 function InvoicePaymentsPanel({
-  invoiceId, direction, totalAmount, currencyCode, exchangeRate, currentStatus,
-  onStatusChange,
+  isEdit,
+  invoiceId,
+  referenceType,
+  referenceId,
+  direction,
+  totalAmount,
+  currencyCode,
+  exchangeRate,
+  currentStatus,
+  invoiceType,
+  onStatusChange
 }: {
-  invoiceId: number; direction: string; totalAmount: number;
-  currencyCode: string; exchangeRate: number; currentStatus: string;
+  isEdit: boolean;
+  invoiceId: number;
+  referenceType: string;
+  referenceId: string;
+  direction: string;
+  totalAmount: number;
+  currencyCode: string;
+  exchangeRate: number;
+  currentStatus: string;
+  invoiceType: string;
   onStatusChange: (status: string, received: number, pending: number) => void;
 }) {
   const { toast } = useToast();
-  const { data, isLoading, refetch } = useInvoicePaymentsList(invoiceId);
-  const addPmt   = useAddInvoicePayment();
+  
+  // const { data, isLoading, refetch } = useInvoicePaymentsByReference(referenceType, referenceId);
+  const addPmt = useAddInvoicePayment();
   const deletePmt = useDeleteInvoicePayment();
 
-  const payments = data?.data ?? [];
-  // Convert each payment's INR base back to invoice currency so comparisons stay in one currency
-  const fx = exchangeRate > 0 ? exchangeRate : 1;
-  const totalReceived = payments.filter(p => p.payment_status === "Completed")
-    .reduce((s, p) => s + parseFloat(String(p.base_currency_amount ?? 0)) / fx, 0);
-  const pendingAmt = Math.max(0, totalAmount - totalReceived);
-  const pct = totalAmount > 0 ? Math.min(100, (totalReceived / totalAmount) * 100) : 0;
+  const invoicePayments = useInvoicePaymentsList(invoiceId);
+  const referencePayments = useInvoicePaymentsByReference( referenceType, referenceId );
+  const data = invoiceId ? invoicePayments.data : referencePayments.data;
+  const isLoading = invoiceId ? invoicePayments.isLoading : referencePayments.isLoading;
+  const refetch = invoiceId ? invoicePayments.refetch : referencePayments.refetch;
 
-  const [showModal, setShowModal]   = useState(false);
-  const [expanded, setExpanded]     = useState(true);
-  const today = new Date().toISOString().slice(0, 10);
-  const [form, setForm] = useState({
-    payment_type: "Bank Transfer", payment_amount: "",
-    currency_code: currencyCode || "INR",
-    exchange_rate_snapshot: String(exchangeRate || 1),
-    transaction_reference: "", payment_status: "Completed",
-    payment_date: today, remarks: "",
+  const [tdsSearch, setTdsSearch] = useState("");
+  const [selectedTdsId, setSelectedTdsId] = useState<number | null>(null);
+
+  const { data: tdsData, isLoading: tdsLoading } = useTDSMasterList({
+    search: tdsSearch,
+    status: "active",          
+    page: 1,
+    limit: 20,
   });
 
-  function setF(k: string, v: string) { setForm(p => ({ ...p, [k]: v })); }
+  const tdsOptions: SmallSearchSelectOption[] = (tdsData?.data ?? []).map((t: any) => ({
+    value: t.id,
+    label: `${t.sectionCode} — ${t.ratePercent}% | ${t.serviceName}`,
+  }));
+
+  const payments = data?.data ?? [];
+  const fx = exchangeRate > 0 ? exchangeRate : 1;
+  // const totalReceived = payments.filter(p => p.payment_status === "Completed")
+  //   .reduce((s, p) => s + parseFloat(String(p.base_currency_amount ?? 0)) / fx, 0);
+  // const pendingAmt = Math.max(0, totalAmount - totalReceived);
+  const completed = payments.filter(p => p.payment_status === "Completed");
+  const totalReceived = completed.reduce( (s, p) => s + parseFloat(String(p.base_currency_amount ?? 0)) / fx, 0 );
+  const totalTds = completed.reduce( (s, p) => s + parseFloat(String(p.tds_amount ?? 0)) / fx, 0 );
+
+  const pendingAmt = Math.max(0, totalAmount - totalReceived);
+  const pct = totalAmount > 0 ? Math.min(100, (totalReceived / totalAmount) * 100) : 0;
+  const [showModal, setShowModal] = useState(false);
+  const [expanded, setExpanded] = useState(true);
+  const today = new Date().toISOString().slice(0, 10);
+  const [form, setForm] = useState({
+    payment_type: "Bank Transfer",
+    payment_amount: "",
+    currency_code: currencyCode || "INR",
+    exchange_rate_snapshot: String(exchangeRate || 1),
+    transaction_reference: "",
+    payment_status: "Completed",
+    payment_date: today,
+    remarks: "",
+    tds_master_id: null as number | null,
+  });
+
+  function setF(k: string, v: string) {
+    setForm(p => ({ ...p, [k]: v }));
+  }
 
   function openModal() {
     setForm(p => ({
-      ...p, currency_code: currencyCode || "INR",
+      ...p,
+      currency_code: currencyCode || "INR",
       exchange_rate_snapshot: String(exchangeRate || 1),
       payment_amount: fmtN(pendingAmt).replace(/,/g, ""),
     }));
@@ -167,13 +216,17 @@ function InvoicePaymentsPanel({
     if (!amt || amt <= 0) return toast({ title: "Enter a valid amount", variant: "destructive" });
     try {
       const res = await addPmt.mutateAsync({
-        invoice_id: invoiceId, ...form,
+        invoice_id: invoiceId,
+        reference_type: referenceType,
+        reference_id: referenceId,
+        ...form,
         payment_amount: amt,
         exchange_rate_snapshot: parseFloat(form.exchange_rate_snapshot),
       });
       onStatusChange(res.invoice_status, res.received_amount, res.pending_amount);
       setShowModal(false);
       toast({ title: direction === "Vendor" ? "Payment recorded" : "Payment received" });
+      refetch(); // Refresh the payments list
     } catch (err: any) {
       toast({ title: "Error", description: err.message, variant: "destructive" });
     }
@@ -185,6 +238,7 @@ function InvoicePaymentsPanel({
       const res = await deletePmt.mutateAsync(p.payment_id);
       onStatusChange(res.invoice_status ?? currentStatus, res.received_amount ?? 0, res.pending_amount ?? 0);
       toast({ title: "Payment deleted" });
+      refetch(); // Refresh the payments list
     } catch (err: any) {
       toast({ title: "Error", description: err.message, variant: "destructive" });
     }
@@ -196,12 +250,11 @@ function InvoicePaymentsPanel({
 
   return (
     <div className="rounded-2xl bg-white border border-[#C6AF4B]/20 shadow-[0_2px_16px_rgba(198,175,75,0.12),0_1px_3px_rgba(0,0,0,0.06)] overflow-hidden">
-      {/* Header */}
       <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 bg-[#F8F6F0]">
         <button onClick={() => setExpanded(p => !p)} className="flex items-center gap-2 text-left group">
           {expanded ? <ChevronDown size={15} className="text-gray-400" /> : <ChevronRight size={15} className="text-gray-400" />}
           <Wallet size={15} style={{ color: G }} />
-          <span className="font-bold text-sm text-cyan-900">Payments</span>
+          <span className="font-bold text-sm text-gray-900">Payments</span>
           {payments.length > 0 && (
             <span className="ml-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full text-white" style={{ backgroundColor: G }}>
               {payments.length}
@@ -209,16 +262,21 @@ function InvoicePaymentsPanel({
           )}
         </button>
 
-        {/* Summary strip */}
         <div className="flex items-center gap-6">
           <div className="text-right">
             <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Total</p>
-            <p className="text-sm font-bold text-cyan-900">{currencyCode} {fmtN(totalAmount)}</p>
+            <p className="text-sm font-bold text-gray-900">{currencyCode} {fmtN(totalAmount)}</p>
           </div>
           <div className="text-right">
             <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Received</p>
             <p className="text-sm font-bold text-emerald-600">{currencyCode} {fmtN(totalReceived)}</p>
           </div>
+          {totalTds > 0 && (
+            <div className="text-right">
+              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">TDS</p>
+              <p className="text-sm font-bold text-amber-600">{currencyCode} {fmtN(totalTds)}</p>
+            </div>
+          )}
           <div className="text-right">
             <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Pending</p>
             <p className={`text-sm font-bold ${pendingAmt <= 0 ? "text-emerald-600" : "text-red-500"}`}>{currencyCode} {fmtN(pendingAmt)}</p>
@@ -230,7 +288,7 @@ function InvoicePaymentsPanel({
             </div>
             <span className="text-[10px] text-gray-400 tabular-nums">{Math.round(pct)}%</span>
           </div>
-          {currentStatus !== "Draft" && currentStatus !== "Cancelled" && pendingAmt > 0 && (
+          {currentStatus !== "Draft" && currentStatus !== "Cancelled" && invoiceType !== "Proforma" && pendingAmt > 0 && (
             <button onClick={openModal}
               className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold text-white transition-all hover:opacity-90 shrink-0"
               style={{ backgroundColor: G }}>
@@ -245,7 +303,6 @@ function InvoicePaymentsPanel({
         </div>
       </div>
 
-      {/* Payment history */}
       {expanded && (
         <div className="px-5 pb-4 pt-3">
           {isLoading ? (
@@ -254,7 +311,7 @@ function InvoicePaymentsPanel({
             </div>
           ) : payments.length === 0 ? (
             <div className="py-6 text-center text-sm text-gray-400">
-              No payments recorded yet.{currentStatus !== "Draft" && currentStatus !== "Cancelled" && pendingAmt > 0 && <> Click <strong>Record Payment</strong> to add the first one.</>}
+              No payments recorded yet.{currentStatus !== "Draft" && currentStatus !== "Cancelled" && invoiceType !== "Proforma" && pendingAmt > 0 && <> Click <strong>Record Payment</strong> to add the first one.</>}
             </div>
           ) : (
             <table className="w-full text-xs">
@@ -264,6 +321,8 @@ function InvoicePaymentsPanel({
                   <th className="py-2 text-left font-semibold uppercase tracking-wide">Date</th>
                   <th className="py-2 text-left font-semibold uppercase tracking-wide">Type</th>
                   <th className="py-2 text-right font-semibold uppercase tracking-wide">Amount ({currencyCode})</th>
+                  <th className="py-2 text-right font-semibold uppercase tracking-wide">TDS ({currencyCode})</th>
+                  <th className="py-2 text-right font-semibold uppercase tracking-wide">Net ({currencyCode})</th>
                   <th className="py-2 text-left font-semibold uppercase tracking-wide">Status</th>
                   <th className="py-2 text-left font-semibold uppercase tracking-wide">Remarks</th>
                   <th className="py-2 w-6"></th>
@@ -272,31 +331,59 @@ function InvoicePaymentsPanel({
               <tbody>
                 {payments.map((p, i) => {
                   const pmtInInvCcy = parseFloat(String(p.base_currency_amount ?? 0)) / fx;
+                  const tdsInInvCcy = parseFloat(String(p.tds_amount ?? 0)) / fx;
+                  const netInInvCcy = pmtInInvCcy - tdsInInvCcy;
                   const showOriginal = p.currency_code !== currencyCode;
+                  const hasTds = tdsInInvCcy > 0;
+
                   return (
-                  <tr key={p.payment_id} className="border-b border-gray-50 last:border-0 hover:bg-amber-50/30 transition-colors">
-                    <td className="py-2 text-gray-400">{i + 1}</td>
-                    <td className="py-2 text-slate-500">{fmtDt(p.payment_date)}</td>
-                    <td className="py-2 text-slate-500">{p.payment_type}</td>
-                    <td className="py-2 text-right tabular-nums">
-                      <span className="font-medium text-cyan-900">{currencyCode} {fmtN(pmtInInvCcy)}</span>
-                      {showOriginal && (
-                        <div className="text-[10px] text-gray-400 mt-0.5">{p.currency_code} {fmtN(p.payment_amount)}</div>
-                      )}
-                    </td>
-                    <td className="py-2">
-                      <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full font-semibold ${PMT_PILL[p.payment_status] ?? "bg-gray-100 text-gray-500"}`}>
-                        {PMT_STATUS_ICON[p.payment_status]} {p.payment_status}
-                      </span>
-                    </td>
-                    <td className="py-2 text-gray-400 max-w-[100px] truncate" title={p.remarks}>{p.remarks || "—"}</td>
-                    <td className="py-2">
-                      <button onClick={() => handleDelete(p)} disabled={deletePmt.isPending}
-                        className="p-1 rounded text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors">
-                        <Trash2 size={11} />
-                      </button>
-                    </td>
-                  </tr>
+                    <tr key={p.payment_id} className="border-b border-gray-50 last:border-0 hover:bg-amber-50/30 transition-colors">
+                      <td className="py-2 text-gray-400">{i + 1}</td>
+                      <td className="py-2 text-gray-700">{fmtDt(p.payment_date)}</td>
+                      <td className="py-2 text-gray-700">{p.payment_type}</td>
+
+                      <td className="py-2 text-right tabular-nums">
+                        <span className="font-medium text-gray-900">{currencyCode} {fmtN(pmtInInvCcy)}</span>
+                        {showOriginal && (
+                          <div className="text-[10px] text-gray-400 mt-0.5">{p.currency_code} {fmtN(p.payment_amount)}</div>
+                        )}
+                      </td>
+
+                      <td className="py-2 text-right tabular-nums">
+                        {hasTds ? (
+                          <>
+                            <span className="font-medium text-amber-600">{currencyCode} {fmtN(tdsInInvCcy)}</span>
+                            {p.tds_section_code && (
+                              <div className="text-[10px] text-gray-400 mt-0.5">
+                                {p.tds_section_code} · {fmtN(p.tds_rate ?? 0)}%
+                              </div>
+                            )}
+                          </>
+                        ) : (
+                          <span className="text-gray-300">—</span>
+                        )}
+                      </td>
+
+                      <td className="py-2 text-right tabular-nums font-semibold text-emerald-700">
+                        {currencyCode} {fmtN(netInInvCcy)}
+                      </td>
+
+                      <td className="py-2">
+                        <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full font-semibold ${PMT_PILL[p.payment_status] ?? "bg-gray-100 text-gray-500"}`}>
+                          {PMT_STATUS_ICON[p.payment_status]} {p.payment_status}
+                        </span>
+                      </td>
+
+                      <td className="py-2 text-gray-400 max-w-[100px] truncate" title={p.remarks}>{p.remarks || "—"}</td>
+
+                      <td className="py-2">
+                        <button onClick={() => handleDelete(p)} disabled={deletePmt.isPending || !isEdit}
+                          className="p-1 rounded text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors">
+                          <Trash2 size={11} />
+                        </button>
+                      </td>
+                      
+                    </tr>
                   );
                 })}
               </tbody>
@@ -305,23 +392,29 @@ function InvoicePaymentsPanel({
         </div>
       )}
 
-      {/* Payment Modal */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4" onClick={() => setShowModal(false)}>
           <div className="rounded-2xl bg-white border border-[#C6AF4B]/15 shadow-xl w-full max-w-lg" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
               <div>
-                <h2 className="text-base font-bold text-cyan-900">Record Payment</h2>
+                <h2 className="text-base font-bold text-gray-900">Record Payment</h2>
                 <p className="text-xs text-gray-400 mt-0.5">Pending: {currencyCode} {fmtN(pendingAmt)}</p>
               </div>
-              <button onClick={() => setShowModal(false)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400"><X size={15} /></button>
+              <button onClick={() => setShowModal(false)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400">
+                <X size={15} />
+              </button>
             </div>
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
+              {/* Amount + Currency */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className={lblCls}>Payment Amount ({form.currency_code}) <span className="text-red-500 ml-0.5">*</span></label>
-                  <input type="number" min="0.01" step="0.01" required value={form.payment_amount}
-                    onChange={e => setF("payment_amount", e.target.value)} className={inpCls} />
+                  <input
+                    type="number" min="0.01" step="0.01" required
+                    value={form.payment_amount}
+                    onChange={e => setF("payment_amount", e.target.value)}
+                    className={inpCls}
+                  />
                 </div>
                 <div>
                   <label className={lblCls}>Currency</label>
@@ -330,19 +423,29 @@ function InvoicePaymentsPanel({
                   </select>
                 </div>
               </div>
+
+              {/* Exchange rate (if not INR) */}
               {form.currency_code !== "INR" && (
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className={lblCls}>Exchange Rate (1 {form.currency_code} = ? INR)</label>
-                    <input type="number" min="0.0001" step="0.0001" value={form.exchange_rate_snapshot}
-                      onChange={e => setF("exchange_rate_snapshot", e.target.value)} className={inpCls} />
+                    <input
+                      type="number" min="0.0001" step="0.0001"
+                      value={form.exchange_rate_snapshot}
+                      onChange={e => setF("exchange_rate_snapshot", e.target.value)}
+                      className={inpCls}
+                    />
                   </div>
                   <div>
                     <label className={lblCls}>INR Equivalent</label>
-                    <div className={`${inpCls} bg-gray-50 text-gray-500 cursor-default`}>₹ {fmtN(basePreview)}</div>
+                    <div className={`${inpCls} bg-gray-50 text-gray-500 cursor-default`}>
+                      ₹ {fmtN(basePreview)}
+                    </div>
                   </div>
                 </div>
               )}
+
+              {/* Payment Type + Date */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className={lblCls}>Payment Type <span className="text-red-500 ml-0.5">*</span></label>
@@ -352,15 +455,43 @@ function InvoicePaymentsPanel({
                 </div>
                 <div>
                   <label className={lblCls}>Payment Date <span className="text-red-500 ml-0.5">*</span></label>
-                  <input type="date" required value={form.payment_date}
-                    onChange={e => setF("payment_date", e.target.value)} className={inpCls} />
+                  <input
+                    type="date" required
+                    value={form.payment_date}
+                    onChange={e => setF("payment_date", e.target.value)}
+                    className={inpCls}
+                  />
                 </div>
               </div>
+
+              {/* ========== NEW: TDS Dropdown ========== */}
+              <div>
+                <label className={lblCls}>
+                  TDS Section <span className="text-gray-400 font-normal">(optional)</span>
+                </label>
+                <SmallSearchSelect
+                  options={tdsOptions}
+                  value={form.tds_master_id}
+                  onChange={(val) => setForm(p => ({ ...p, tds_master_id: val ? Number(val) : null }))}
+                  onSearch={(search) => setTdsSearch(search)}
+                  placeholder={tdsLoading ? "Loading TDS..." : "Select TDS Section"}
+                  clearable
+                />
+              </div>
+
+              {/* Transaction Reference */}
               <div>
                 <label className={lblCls}>Transaction Reference</label>
-                <input type="text" placeholder="UTR / Cheque No. / Receipt No."
-                  value={form.transaction_reference} onChange={e => setF("transaction_reference", e.target.value)} className={inpCls} />
+                <input
+                  type="text"
+                  placeholder="UTR / Cheque No. / Receipt No."
+                  value={form.transaction_reference}
+                  onChange={e => setF("transaction_reference", e.target.value)}
+                  className={inpCls}
+                />
               </div>
+
+              {/* Status + Remarks */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className={lblCls}>Payment Status</label>
@@ -370,19 +501,28 @@ function InvoicePaymentsPanel({
                 </div>
                 <div>
                   <label className={lblCls}>Remarks</label>
-                  <input type="text" placeholder="Optional" value={form.remarks}
-                    onChange={e => setF("remarks", e.target.value)} className={inpCls} />
+                  <input
+                    type="text"
+                    placeholder="Optional"
+                    value={form.remarks}
+                    onChange={e => setF("remarks", e.target.value)}
+                    className={inpCls}
+                  />
                 </div>
               </div>
+
+              {/* Pending preview */}
               <div className="rounded-xl bg-amber-50 border border-[#C6AF4B]/20 px-4 py-3 text-xs flex items-center justify-between">
                 <span className="text-gray-500">Pending after this payment:</span>
                 <span className={`font-bold ${Math.max(0, pendingAmt - parseFloat(form.payment_amount || "0")) <= 0 ? "text-emerald-600" : "text-amber-700"}`}>
                   {currencyCode} {fmtN(Math.max(0, pendingAmt - parseFloat(form.payment_amount || "0")))}
                 </span>
               </div>
+
+              {/* Buttons */}
               <div className="flex gap-3 pt-1">
                 <button type="button" onClick={() => setShowModal(false)}
-                  className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-slate-500 hover:bg-gray-50">
+                  className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50">
                   Cancel
                 </button>
                 <button type="submit" disabled={addPmt.isPending}
@@ -413,7 +553,7 @@ export default function InvoiceForm() {
   const [currencies, setCurrencies] = useState<Currency[]>([]);
   const [exchangeRates, setExchangeRates] = useState<Record<string, number>>({});
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
-  const [refOrderOptions, setRefOrderOptions] = useState<{ value: string; label: string }[]>([]);
+  const [refOrderOptions, setRefOrderOptions] = useState<{ id: number; value: string; label: string }[]>([]);
   const [refOrdersLoading, setRefOrdersLoading] = useState(false);
   const [refOrderFullData, setRefOrderFullData] = useState<{ id: number; orderCode: string }[]>([]);
   const [loadingCostSheet, setLoadingCostSheet] = useState(false);
@@ -423,8 +563,9 @@ export default function InvoiceForm() {
   const [showHsnOnInvoice, setShowHsnOnInvoice] = useState(true);
   const [fabricMaster, setFabricMaster] = useState<FabricMaster[]>([]);
   const [materialMaster, setMaterialMaster] = useState<MaterialMaster[]>([]);
+  const [paymentReferenceId, setPaymentReferenceId] = useState("");
 
-  const [form, setForm] = useState({
+  const INITIAL_FORM_STATE = {
     invoiceNo: "",
     invoiceDirection: "Client",
     invoiceType: "Final Invoice",
@@ -433,6 +574,8 @@ export default function InvoiceForm() {
     vendorId: "",
     referenceType: "Manual",
     referenceId: "",
+    swatchOrderId: "",
+    styleOrderId: "",
     currencyCode: "INR",
     exchangeRateSnapshot: "1",
     invoiceDate: new Date().toISOString().slice(0, 10),
@@ -463,7 +606,55 @@ export default function InvoiceForm() {
     trackingNumber: "",
     dispatchDate: "",
     expectedDelivery: "",
-  });
+  };
+
+  // Takes an invoice object from the API and returns the form fields
+  function mapInvoiceToForm(inv: any){
+    return {
+      invoiceNo: inv.invoiceNo ?? "",
+      invoiceDirection: inv.invoiceDirection ?? "Client",
+      invoiceType: inv.invoiceType ?? "Final Invoice",
+      invoiceStatus: inv.invoiceStatus ?? "Draft",
+      clientId: inv.clientId ? String(inv.clientId) : "",
+      vendorId: inv.vendorId ? String(inv.vendorId) : "",
+      referenceType: inv.referenceType ?? "Manual",
+      referenceId: inv.referenceId ?? "",
+      swatchOrderId: inv.swatchOrderId ?? "",
+      styleOrderId: inv.styleOrderId ?? "",
+      currencyCode: inv.currencyCode ?? "INR",
+      exchangeRateSnapshot: inv.exchangeRateSnapshot ? String(inv.exchangeRateSnapshot) : "1",
+      invoiceDate: inv.invoiceDate ? String(inv.invoiceDate).slice(0, 10) : "",
+      dueDate: inv.dueDate ? String(inv.dueDate).slice(0, 10) : "",
+      clientName: inv.clientName ?? "",
+      clientAddress: inv.clientAddress ?? "",
+      clientGstin: inv.clientGstin ?? "",
+      clientEmail: inv.clientEmail ?? "",
+      clientPhone: inv.clientPhone ?? "",
+      clientState: inv.clientState ?? "",
+      discountType: inv.discountType ?? "flat",
+      discountValue: inv.discountValue !== undefined ? String(inv.discountValue) : "0",
+      cgstRate: inv.cgstRate !== undefined ? String(inv.cgstRate) : "0",
+      sgstRate: inv.sgstRate !== undefined ? String(inv.sgstRate) : "0",
+      shippingAmount: inv.shippingAmount !== undefined ? String(inv.shippingAmount) : "0",
+      adjustmentAmount: inv.adjustmentAmount !== undefined ? String(inv.adjustmentAmount) : "0",
+      receivedAmount: inv.receivedAmount !== undefined ? String(inv.receivedAmount) : "0",
+      bankName: inv.bankName ?? "",
+      bankAccount: inv.bankAccount ?? "",
+      bankIfsc: inv.bankIfsc ?? "",
+      bankBranch: inv.bankBranch ?? "",
+      bankUpi: inv.bankUpi ?? "",
+      paymentTerms: inv.paymentTerms ?? "",
+      remarks: inv.remarks ?? "",
+      notes: inv.notes ?? "",
+      shippingAddress: inv.shippingAddress ?? "",
+      carrier: inv.carrier ?? "",
+      trackingNumber: inv.trackingNumber ?? "",
+      dispatchDate: inv.dispatchDate ? String(inv.dispatchDate).slice(0, 10) : "",
+      expectedDelivery: inv.expectedDelivery ? String(inv.expectedDelivery).slice(0, 10) : "",
+    };
+  }
+
+  const [form, setForm] = useState(INITIAL_FORM_STATE);
 
   const [items, setItems] = useState<LineItem[]>([]);
   const savedInvoiceRef = useRef<string | null>(null);
@@ -554,14 +745,22 @@ export default function InvoiceForm() {
     const endpoint = form.referenceType === "Swatch"
       ? "/api/swatch-orders?limit=200"
       : "/api/style-orders?limit=200";
-    customFetch<any>(endpoint).then(j => {
+        customFetch<any>(endpoint).then(j => {
       const rows = j.data ?? [];
-      const opts = form.referenceType === "Swatch"
-        ? rows.map((r: any) => ({ value: r.orderCode, label: `${r.orderCode} — ${r.swatchName ?? ""}`.trim() }))
-        : rows.map((r: any) => ({ value: r.orderCode, label: `${r.orderCode} — ${r.styleName ?? r.styleNo ?? ""}`.trim() }));
+      const opts = rows.map((r: any) => ({
+        id: r.id,
+        value: r.orderCode,
+        label: form.referenceType === "Swatch"
+          ? `${r.orderCode} — ${r.swatchName ?? ""}`.trim()
+          : `${r.orderCode} — ${r.styleName ?? r.styleNo ?? ""}`.trim()
+      }));
+
       setRefOrderOptions(opts);
       setRefOrderFullData(rows.map((r: any) => ({ id: r.id, orderCode: r.orderCode })));
-    }).catch(() => { setRefOrderOptions([]); setRefOrderFullData([]); }).finally(() => setRefOrdersLoading(false));
+    }).catch(() => {
+      setRefOrderOptions([]);
+      setRefOrderFullData([]);
+    }).finally(() => setRefOrdersLoading(false));
   }, [form.referenceType]);
 
   // Auto-set exchange rate when currency changes
@@ -578,55 +777,83 @@ export default function InvoiceForm() {
   // Load existing invoice if editing
   useEffect(() => {
     if (!isEdit) {
-      customFetch<any>("/api/invoices/next-number").then(j => setForm(f => ({ ...f, invoiceNo: j.data ?? "" }))).catch(() => {});
+      customFetch<any>("/api/invoices/next-number")
+        .then(j => setForm(f => ({ ...f, invoiceNo: j.data ?? "" })))
+        .catch(() => {});
       return;
     }
     customFetch<any>(`/api/invoices/${params.id}`).then(j => {
       const inv = j.data;
       if (!inv) return;
-      setForm({
-        invoiceNo: inv.invoiceNo ?? "",
-        invoiceDirection: inv.invoiceDirection ?? "Client",
-        invoiceType: inv.invoiceType ?? "Final Invoice",
-        invoiceStatus: inv.invoiceStatus ?? "Draft",
-        clientId: String(inv.clientId ?? ""),
-        vendorId: String(inv.vendorId ?? ""),
-        referenceType: inv.referenceType ?? "Manual",
-        referenceId: inv.referenceId ?? "",
-        currencyCode: inv.currencyCode ?? "INR",
-        exchangeRateSnapshot: String(inv.exchangeRateSnapshot ?? "1"),
-        invoiceDate: (inv.invoiceDate ?? "").slice(0, 10),
-        dueDate: (inv.dueDate ?? "").slice(0, 10),
-        clientName: inv.clientName ?? "",
-        clientAddress: inv.clientAddress ?? "",
-        clientGstin: inv.clientGstin ?? "",
-        clientEmail: inv.clientEmail ?? "",
-        clientPhone: inv.clientPhone ?? "",
-        clientState: inv.clientState ?? "",
-        discountType: inv.discountType ?? "flat",
-        discountValue: String(inv.discountValue ?? "0"),
-        cgstRate: String(inv.cgstRate ?? "0"),
-        sgstRate: String(inv.sgstRate ?? "0"),
-        shippingAmount: String(inv.shippingAmount ?? "0"),
-        adjustmentAmount: String(inv.adjustmentAmount ?? "0"),
-        receivedAmount: String(inv.receivedAmount ?? "0"),
-        bankName: inv.bankName ?? "",
-        bankAccount: inv.bankAccount ?? "",
-        bankIfsc: inv.bankIfsc ?? "",
-        bankBranch: inv.bankBranch ?? "",
-        bankUpi: inv.bankUpi ?? "",
-        paymentTerms: inv.paymentTerms ?? "",
-        remarks: inv.remarks ?? "",
-        notes: inv.notes ?? "",
-        shippingAddress: inv.shippingAddress ?? "",
-        carrier: inv.carrier ?? "",
-        trackingNumber: inv.trackingNumber ?? "",
-        dispatchDate: (inv.dispatchDate ?? "").slice(0, 10),
-        expectedDelivery: (inv.expectedDelivery ?? "").slice(0, 10),
-      });
-      if (Array.isArray(inv.items) && inv.items.length > 0) setItems(inv.items);
+      setForm(mapInvoiceToForm(inv));
+
+      // Prefer new structure, fall back to old JSON (backward compatible)
+      if (Array.isArray(inv.lineItems) && inv.lineItems.length > 0) {
+        setItems(
+          inv.lineItems.map((l: any) => ({
+            id: l.id,                                    // real DB id
+            description: l.description ?? "",
+            category: l.category ?? "Item",
+            quantity: Number(l.quantity ?? 1),
+            unitPrice: Number(l.unitPrice ?? 0),
+            total: Number(l.total ?? 0),
+            hsnCode: l.hsnCode ?? "",
+            hsnGstPct: String(l.hsnGstPct ?? ""),
+            showHsn: l.showHsn !== false,
+            unit: l.unit ?? "",
+            isLocked: l.isLocked ?? false,
+          }))
+        );
+      } else if (Array.isArray(inv.items) && inv.items.length > 0) {
+        // Old invoices – keep working exactly as before
+        setItems(inv.items);
+      } else {
+        setItems([]);
+      }
     }).catch(() => {});
   }, [isEdit, params.id]);
+
+    /**
+   * Fetches existing invoice data for a selected swatch or style order ID.
+   */
+  async function fetchInvoiceByReference(refType: string, refId: string | number) {
+    try {
+      if(refId === null || refId ===""){
+        setForm(prev => ({
+          ...INITIAL_FORM_STATE,
+          invoiceNo: prev.invoiceNo,
+          referenceType: prev.referenceType,  
+          referenceId: prev.referenceId,      
+        }));
+        setItems([]);
+      }else{
+        const res = await customFetch<any>(`/api/invoices/reference/${refType}/${refId}`);
+        const inv = res.data;
+
+        if (inv && (inv.id || inv.invoiceNo || (Array.isArray(inv.items) && inv.items.length > 0))) {
+          setForm(f => {
+            const mapped = mapInvoiceToForm(inv);
+            return {
+              ...mapped,
+              invoiceNo: f.invoiceNo,
+            };
+          });          
+          setItems(Array.isArray(inv.items) ? inv.items : []);
+          toast({ title: `Invoice data loaded for ${refType}` });
+        }else{
+          setForm(prev => ({
+            ...INITIAL_FORM_STATE,
+            invoiceNo: prev.invoiceNo,
+            referenceType: prev.referenceType,  
+            referenceId: prev.referenceId,      
+          }));
+          setItems([]);
+        }
+      }
+    } catch (e: any) {
+      toast({ title: "Something went wrong", variant: "destructive" });
+    }
+  }
 
   // ── Dirty tracking ────────────────────────────────────────────────────────
   const invoiceSnapshot = JSON.stringify({ form, items });
@@ -642,7 +869,7 @@ export default function InvoiceForm() {
 
   function setF(key: string, val: string) { setForm(f => ({ ...f, [key]: val })); }
 
-  function updateItem(id: string, field: keyof LineItem, val: any) {
+  function updateItem(id: string | number, field: keyof LineItem, val: any) {
     setItems(prev => prev.map(it => {
       if (it.id !== id) return it;
       const updated = { ...it, [field]: val };
@@ -1016,8 +1243,25 @@ export default function InvoiceForm() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className={lbl}>Reference Type</label>
-                  <select value={form.referenceType} onChange={e => setF("referenceType", e.target.value)} className={selClass}>
-                    {REF_TYPES.map(r => <option key={r}>{r}</option>)}
+                  <select
+                    value={form.referenceType}
+                    disabled={isEdit}
+                    onChange={e => {
+                      setForm(prev => ({
+                        ...INITIAL_FORM_STATE,
+                        invoiceNo: prev.invoiceNo,
+                        referenceType: e.target.value,
+                        referenceId: "",
+                        swatchOrderId: "",
+                        styleOrderId: "",
+                      }));
+
+                      setItems([]);
+                      setPaymentReferenceId("");
+                    }}
+                    className={selClass}
+                  >                    
+                  {REF_TYPES.map(r => <option key={r}>{r}</option>)}
                   </select>
                 </div>
                 <div>
@@ -1025,21 +1269,54 @@ export default function InvoiceForm() {
                   {(form.referenceType === "Swatch" || form.referenceType === "Style") ? (
                     <select
                       value={form.referenceId}
-                      onChange={e => setF("referenceId", e.target.value)}
+                      disabled={isEdit}
+                      onChange={e => {
+                        const value = e.target.value;
+                        const selected = refOrderOptions.find(o => o.value === value);
+                        const dataId = selected ? String(selected.id) : "";
+                        setForm(f => ({
+                          ...f,
+                          referenceId: value,
+                          swatchOrderId: f.referenceType === "Swatch" ? dataId : "",
+                          styleOrderId: f.referenceType === "Style" ? dataId : "",
+                        }));
+                        // Fetch existing invoice data for the selected swatch or style ID
+                        if (dataId) {
+                          fetchInvoiceByReference(form.referenceType, value);
+                          setPaymentReferenceId(value);
+                        }
+                      }}
                       className={selClass}
-                      disabled={refOrdersLoading}
                     >
                       <option value="">
                         {refOrdersLoading ? "Loading…" : `— Select ${REF_LABELS[form.referenceType]} —`}
                       </option>
                       {refOrderOptions.map(o => (
-                        <option key={o.value} value={o.value}>{o.label}</option>
+                        <option key={`${o.id}-${o.value}`} value={o.value}>{o.label}</option>
                       ))}
                     </select>
                   ) : (
                     <input
                       value={form.referenceId}
-                      onChange={e => setF("referenceId", e.target.value)}
+                      disabled={isEdit}
+                      onChange={e => {
+                        const value = e.target.value;
+                        // Only update the reference ID, don't fetch
+                        setForm(f => ({
+                          ...f,
+                          referenceId: value,
+                          swatchOrderId: "",
+                          styleOrderId: "",
+                        }));
+                      }}
+                      onKeyDown={e => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          const value = form.referenceId.trim();
+                          fetchInvoiceByReference(form.referenceType, value);
+                          setPaymentReferenceId(value);
+                        }
+                      }}
                       className={inp}
                       placeholder={`Enter ${REF_LABELS[form.referenceType] ?? "Reference ID"}`}
                     />
@@ -1569,14 +1846,18 @@ export default function InvoiceForm() {
         </div>
 
         {/* Payments Panel — shown on all saved invoices */}
-        {isEdit && params.id && (
+        {((form.referenceId && form.referenceType) || (isEdit && params.id)) && (
           <InvoicePaymentsPanel
-            invoiceId={parseInt(params.id)}
+            isEdit={isEdit}
+            invoiceId={params.id ? parseInt(params.id, 10) : 0}
+            referenceType={form.referenceType}
+            referenceId={paymentReferenceId}
             direction={form.invoiceDirection}
             totalAmount={toInvCcy(totals.total)}
             currencyCode={form.currencyCode}
             exchangeRate={parseFloat(form.exchangeRateSnapshot || "1")}
             currentStatus={form.invoiceStatus}
+            invoiceType={form.invoiceType}
             onStatusChange={(status, received, pending) => {
               setF("invoiceStatus", status);
               setF("receivedAmount", String(received));
