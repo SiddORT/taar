@@ -169,6 +169,20 @@
       "when": 1787731871733,
       "tag": "0023_colorful_starfox",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1791183081189,
+      "tag": "0024_little_nightmare",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1791273445779,
+      "tag": "0025_good_beyonder",
+      "breakpoints": true
     }
   ]
 }

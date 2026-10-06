@@ -73,8 +73,27 @@ export interface PurchaseReceiptRecord {
   receivedQty: string;
   actualPrice: string;
   warehouseLocation: string;
+  totalAmount: string; 
+  paidAmount: string;
+  tdsAmount: string;
+  balance: string;
   status: string;
   createdAt: string;
+  itemCount: number;
+  totalQuantity: string | number | null;
+  totalGstAmount: string | number;
+  totalAmountWithGst: string | number;
+  items: Array<{
+    itemId: number;
+    itemCode: string;
+    itemName: string;
+    balance: number;
+    quantity: number | string;
+    unitPrice: number | string;
+    gstPercentage: number | string;
+    hsnCode?: string;
+    isFullyPaid: boolean;
+  }>;
 }
 
 export interface PrPaymentRecord {
@@ -84,6 +103,10 @@ export interface PrPaymentRecord {
   paymentDate: string;
   paymentMode: string;
   amount: string;
+  baseAmount: string;
+  paidAmount: string;
+  tdsAmount: string;
+  grossAmount: string;
   transactionStatus: string;
   paymentStatus: string;
   attachment: { name: string; type: string; data: string; size: number } | null;
@@ -769,44 +792,9 @@ export function useCreateStyleOutsourceJob() {
 
 export function useUpdateStyleOutsourceJob() {
   const qc = useQueryClient();
-
   return useMutation({
-    mutationFn: ({
-      id,
-      ...body
-    }: {
-      id: number;
-      styleOrderId?: number;
-      styleOrderProductId?: number | null;
-      styleOrderProductName?: string | null;
-      vendorId?: number;
-      vendorName?: string;
-      hsnId?: number;
-      hsnCode?: string;
-      gstPercentage?: string;
-      issueDate?: string;
-      targetDate?: string | null;
-      deliveryDate?: string | null;
-      totalCost?: string;
-      notes?: string | null;
-    }) =>
-      customFetch<{ data: StyleOutsourceJobRecord }>(
-        `/api/costing/style-outsource-jobs/${id}`,
-        {
-          method: "PUT",
-          body: JSON.stringify(body),
-        }
-      ),
-
-    onSuccess: () => {
-      void qc.invalidateQueries({
-        queryKey: ["style-outsource-jobs"],
-      });
-
-      void qc.invalidateQueries({
-        queryKey: ["outsource-jobs"],
-      });
-    },
+    mutationFn: ({ id, ...body }: { id: number } & Record<string, unknown>) => customFetch<{ data: StyleOutsourceJobRecord }>( `/api/costing/style-outsource-jobs/${id}`, { method: "PUT", body: JSON.stringify(body), } ),
+    onSuccess: () => { void qc.invalidateQueries({ queryKey: ["style-outsource-jobs"] }); },
   });
 }
 
@@ -842,38 +830,9 @@ export function useCreateStyleCustomCharge() {
 
 export function useUpdateStyleCustomCharge() {
   const qc = useQueryClient();
-
   return useMutation({
-    mutationFn: ({
-      id,
-      ...body
-    }: {
-      id: number;
-      styleOrderId?: number;
-      styleOrderProductId?: number | null;
-      styleOrderProductName?: string | null;
-      vendorId?: number;
-      vendorName?: string;
-      hsnId?: number;
-      hsnCode?: string;
-      gstPercentage?: string;
-      description?: string;
-      unitPrice?: string;
-      quantity?: string;
-    }) =>
-      customFetch<{ data: StyleCustomChargeRecord }>(
-        `/api/costing/style-custom-charges/${id}`,
-        {
-          method: "PUT",
-          body: JSON.stringify(body),
-        }
-      ),
-
-    onSuccess: () => {
-      void qc.invalidateQueries({
-        queryKey: ["style-custom-charges"],
-      });
-    },
+    mutationFn: ({ id, ...body }: { id: number } & Record<string, unknown>) => customFetch<{ data: StyleCustomChargeRecord }>( `/api/costing/style-custom-charges/${id}`, { method: "PUT", body: JSON.stringify(body), } ),
+    onSuccess: () => { void qc.invalidateQueries({ queryKey: ["style-custom-charges"] }); },
   });
 }
 

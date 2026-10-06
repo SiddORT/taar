@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import { SmallSearchSelect } from "@/components/ui/SearchableSelect";
 import * as XLSX from "xlsx";
 import {
@@ -850,7 +850,8 @@ function StylePaymentRow({ pay, onDelete }: { pay: PrPaymentRecord; onDelete: ()
     <tr className="border-b border-gray-50 hover:bg-gray-50/50">
       <td className="px-3 py-2.5 text-slate-500 font-medium">{pay.paymentType}</td>
       <td className="px-3 py-2.5 text-gray-600">{pay.paymentMode || "—"}</td>
-      <td className="px-3 py-2.5 font-semibold text-cyan-900">{pay.amount}</td>
+      <td className="px-3 py-2.5 font-semibold text-cyan-900">{pay.paidAmount}</td>
+      <td className="px-3 py-2.5 font-semibold text-cyan-900">{pay.tdsAmount}</td>
       <td className="px-3 py-2.5 text-gray-500">{pay.paymentDate ? new Date(pay.paymentDate).toLocaleDateString() : "—"}</td>
       <td className="px-3 py-2.5 text-gray-500">{pay.transactionStatus || "—"}</td>
       <td className="px-3 py-2.5"><StatusBadge status={pay.paymentStatus} map={PAYMENT_STATUS_COLORS} /></td>
@@ -868,31 +869,95 @@ function StylePaymentRow({ pay, onDelete }: { pay: PrPaymentRecord; onDelete: ()
   );
 }
 
-function StylePrPaymentsPanel({ prId }: { prId: number }) {
+function StylePrPaymentsPanel({
+  prId,
+  isFullyPaid = false,
+}: {
+  prId: number;
+  isFullyPaid?: boolean;
+}) {
   const { toast } = useToast();
   const { data: payments = [] } = usePrPayments(prId);
   const addPay = useAddPayment();
   const delPay = useDeletePayment();
   const fileRef = useRef<HTMLInputElement>(null);
   const [showForm, setShowForm] = useState(false);
+
+  // TDS search state
+  const [tdsSearch, setTdsSearch] = useState("");
+  const [tdsFilteredOptions, setTdsFilteredOptions] = useState<{ value: number; label: string }[]>([]);
+
   const [payForm, setPayForm] = useState({
-    paymentType: "Partial", paymentDate: new Date().toISOString().slice(0, 10),
-    paymentMode: "", amount: "", transactionStatus: "", paymentStatus: "Pending",
+    paymentType: "Partial",
+    paymentDate: new Date().toISOString().slice(0, 10),
+    paymentMode: "",
+    amount: "",
+    transactionStatus: "",
+    paymentStatus: "Pending",
     attachment: null as null | { name: string; type: string; data: string; size: number },
+    tdsMasterId: 0,
   });
+
+  // Fetch TDS master list
+  const { data: tdsData } = useQuery({
+    queryKey: ["tds-masters"],
+    queryFn: async () => {
+      const res = await customFetch<{ data: any[] }>("/api/tds-master?limit=100&status=active");
+      return res.data ?? [];
+    },
+  });
+
+  const tdsOptions = useMemo(() => {
+    return (tdsData || []).map((item) => ({
+      value: Number(item.id),
+      label: `${item.serviceName} (${item.sectionCode}) – ${item.ratePercent}%`,
+    }));
+  }, [tdsData]);
+
+  useEffect(() => {
+    if (!tdsSearch.trim()) {
+      setTdsFilteredOptions(tdsOptions);
+    } else {
+      const filtered = tdsOptions.filter((opt) =>
+        opt.label.toLowerCase().includes(tdsSearch.toLowerCase())
+      );
+      setTdsFilteredOptions(filtered);
+    }
+  }, [tdsSearch, tdsOptions]);
 
   function onFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = ev => setPayForm(f => ({ ...f, attachment: { name: file.name, type: file.type, data: ev.target?.result as string, size: file.size } }));
+    reader.onload = (ev) =>
+      setPayForm((f) => ({
+        ...f,
+        attachment: {
+          name: file.name,
+          type: file.type,
+          data: ev.target?.result as string,
+          size: file.size,
+        },
+      }));
     reader.readAsDataURL(file);
   }
 
   async function handleAdd() {
-    if (!payForm.amount || parseFloat(payForm.amount) <= 0) { toast({ title: "Enter a valid amount", variant: "destructive" }); return; }
+    if (!payForm.amount || parseFloat(payForm.amount) <= 0) {
+      toast({ title: "Enter a valid amount", variant: "destructive" });
+      return;
+    }
     await addPay.mutateAsync({ prId, ...payForm });
-    setPayForm({ paymentType: "Partial", paymentDate: new Date().toISOString().slice(0, 10), paymentMode: "", amount: "", transactionStatus: "", paymentStatus: "Pending", attachment: null });
+    setPayForm({
+      paymentType: "Partial",
+      paymentDate: new Date().toISOString().slice(0, 10),
+      paymentMode: "",
+      amount: "",
+      transactionStatus: "",
+      paymentStatus: "Pending",
+      attachment: null,
+      tdsMasterId: 0,
+    });
     setShowForm(false);
     toast({ title: "Payment recorded" });
   }
@@ -903,69 +968,160 @@ function StylePrPaymentsPanel({ prId }: { prId: number }) {
         <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">
           Payments {payments.length > 0 && <span className="text-gray-600">({payments.length})</span>}
         </p>
-        <button onClick={() => setShowForm(v => !v)}
-          className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-lg bg-cyan-900 text-[#C9B45C] hover:bg-cyan-900 transition-colors">
-          <CreditCard className="h-3 w-3" /> Record Payment
-        </button>
+        {!isFullyPaid && (
+          <button
+            onClick={() => setShowForm((v) => !v)}
+            className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-lg bg-cyan-900 text-[#C9B45C] hover:bg-cyan-900 transition-colors"
+          >
+            <CreditCard className="h-3 w-3" /> Record Payment
+          </button>
+        )}
       </div>
+
       {showForm && (
         <div className="p-3 bg-white rounded-xl border border-gray-200 space-y-3">
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
             <div>
               <label className="text-[10px] text-gray-500 font-medium">Type</label>
-              <select value={payForm.paymentType} onChange={e => setPayForm(f => ({ ...f, paymentType: e.target.value }))} className="w-full mt-0.5 text-xs text-cyan-900 bg-white border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none">
-                {["Advance", "Partial", "Full"].map(v => <option key={v}>{v}</option>)}
+              <select
+                value={payForm.paymentType}
+                onChange={(e) => setPayForm((f) => ({ ...f, paymentType: e.target.value }))}
+                className="w-full mt-0.5 text-xs text-cyan-900 bg-white border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none"
+              >
+                {["Advance", "Partial", "Full"].map((v) => (
+                  <option key={v}>{v}</option>
+                ))}
               </select>
             </div>
             <div>
               <label className="text-[10px] text-gray-500 font-medium">Mode</label>
-              <input value={payForm.paymentMode} onChange={e => setPayForm(f => ({ ...f, paymentMode: e.target.value }))} className="w-full mt-0.5 text-xs text-cyan-900 bg-white border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none" placeholder="Bank / UPI / Cash…" />
+              <select
+                value={payForm.paymentMode}
+                onChange={(e) => setPayForm((f) => ({ ...f, paymentMode: e.target.value }))}
+                className="w-full mt-0.5 text-xs text-cyan-900 bg-white border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none"
+              >
+                <option value="">Select</option>
+                <option>Cash</option>
+                <option>Bank Transfer</option>
+                <option>UPI</option>
+                <option>Cheque</option>
+                <option>Other</option>
+              </select>
             </div>
             <div>
               <label className="text-[10px] text-gray-500 font-medium">Amount</label>
-              <input type="number" min="0" step="any" value={payForm.amount} onChange={e => setPayForm(f => ({ ...f, amount: e.target.value }))} className="w-full mt-0.5 text-xs text-cyan-900 bg-white border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none" placeholder="0.00" />
+              <input
+                type="number"
+                min="0"
+                step="any"
+                value={payForm.amount}
+                onChange={(e) => setPayForm((f) => ({ ...f, amount: e.target.value }))}
+                className="w-full mt-0.5 text-xs text-cyan-900 bg-white border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none"
+                placeholder="0.00"
+              />
+            </div>
+            <div>
+              <label className="text-[10px] text-gray-500 font-medium">TDS</label>
+              <SmallSearchSelect
+                options={tdsFilteredOptions}
+                value={payForm.tdsMasterId}
+                onChange={(val) => setPayForm((f) => ({ ...f, tdsMasterId: val }))}
+                onSearch={(search) => setTdsSearch(search)}
+                placeholder="Select TDS"
+                clearable
+              />
             </div>
             <div>
               <label className="text-[10px] text-gray-500 font-medium">Date</label>
-              <input type="date" value={payForm.paymentDate} onChange={e => setPayForm(f => ({ ...f, paymentDate: e.target.value }))} className="w-full mt-0.5 text-xs text-cyan-900 bg-white border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none" />
+              <input
+                type="date"
+                value={payForm.paymentDate}
+                onChange={(e) => setPayForm((f) => ({ ...f, paymentDate: e.target.value }))}
+                className="w-full mt-0.5 text-xs text-cyan-900 bg-white border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none"
+              />
             </div>
             <div>
               <label className="text-[10px] text-gray-500 font-medium">Transaction Status</label>
-              <input value={payForm.transactionStatus} onChange={e => setPayForm(f => ({ ...f, transactionStatus: e.target.value }))} className="w-full mt-0.5 text-xs text-cyan-900 bg-white border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none" placeholder="e.g. TXN123456" />
+              <select
+                value={payForm.transactionStatus}
+                onChange={(e) => setPayForm((f) => ({ ...f, transactionStatus: e.target.value }))}
+                className="w-full mt-0.5 text-xs text-cyan-900 bg-white border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none"
+              >
+                <option>Pending</option>
+                <option>Processing</option>
+                <option>Completed</option>
+                <option>Failed</option>
+              </select>
             </div>
             <div>
               <label className="text-[10px] text-gray-500 font-medium">Payment Status</label>
-              <select value={payForm.paymentStatus} onChange={e => setPayForm(f => ({ ...f, paymentStatus: e.target.value }))} className="w-full mt-0.5 text-xs text-cyan-900 bg-white border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none">
-                {["Pending", "Processing", "Completed", "Failed"].map(v => <option key={v}>{v}</option>)}
+              <select
+                value={payForm.paymentStatus}
+                onChange={(e) => setPayForm((f) => ({ ...f, paymentStatus: e.target.value }))}
+                className="w-full mt-0.5 text-xs text-cyan-900 bg-white border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none"
+              >
+                {["Pending", "Processing", "Completed", "Failed"].map((v) => (
+                  <option key={v}>{v}</option>
+                ))}
               </select>
             </div>
           </div>
+
           <div className="flex items-center gap-2">
-            <button onClick={() => fileRef.current?.click()} className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-100 transition-colors">
-              <Paperclip className="h-3 w-3" /> {payForm.attachment ? payForm.attachment.name : "Attach file"}
+            <button
+              onClick={() => fileRef.current?.click()}
+              className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-100 transition-colors"
+            >
+              <Paperclip className="h-3 w-3" />{" "}
+              {payForm.attachment ? payForm.attachment.name : "Attach file"}
             </button>
-            {payForm.attachment && <button onClick={() => setPayForm(f => ({ ...f, attachment: null }))} className="text-gray-400 hover:text-red-500"><X className="h-3 w-3" /></button>}
+            {payForm.attachment && (
+              <button
+                onClick={() => setPayForm((f) => ({ ...f, attachment: null }))}
+                className="text-gray-400 hover:text-red-500"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            )}
             <input ref={fileRef} type="file" className="hidden" onChange={onFile} />
-            <button onClick={handleAdd} disabled={addPay.isPending}
-              className="ml-auto flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-cyan-900 text-[#C9B45C] text-xs font-semibold hover:bg-cyan-900 transition-colors disabled:opacity-60">
-              {addPay.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Plus className="h-3 w-3" />} Save
+            <button
+              onClick={handleAdd}
+              disabled={addPay.isPending}
+              className="ml-auto flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-cyan-900 text-[#C9B45C] text-xs font-semibold hover:bg-cyan-900 transition-colors disabled:opacity-60"
+            >
+              {addPay.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Plus className="h-3 w-3" />}{" "}
+              Save
             </button>
-            <button onClick={() => setShowForm(false)} className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600"><X className="h-3.5 w-3.5" /></button>
+            <button
+              onClick={() => setShowForm(false)}
+              className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
           </div>
         </div>
       )}
+
       <table className="w-full text-xs">
         <thead>
           <tr className="border-b border-gray-100">
-            {["Type", "Mode", "Amount", "Date", "Txn Status", "Pay Status", "Attachment", ""].map(h => (
-              <th key={h} className="text-left text-[10px] font-semibold text-gray-400 px-3 py-1.5">{h}</th>
-            ))}
+            {["Type", "Mode", "Amount", "TDS", "Date", "Txn Status", "Pay Status", "Attachment", ""].map(
+              (h) => (
+                <th key={h} className="text-left text-[10px] font-semibold text-gray-400 px-3 py-1.5">
+                  {h}
+                </th>
+              )
+            )}
           </tr>
         </thead>
         <tbody>
-          {payments.length === 0
-            ? <EmptyRow text="No payments recorded" />
-            : payments.map(p => <StylePaymentRow key={p.id} pay={p} onDelete={() => delPay.mutate(p.id)} />)}
+          {payments.length === 0 ? (
+            <EmptyRow text="No payments recorded" />
+          ) : (
+            payments.map((p) => (
+              <StylePaymentRow key={p.id} pay={p} onDelete={() => delPay.mutate(p.id)} />
+            ))
+          )}
         </tbody>
       </table>
     </div>
@@ -2706,7 +2862,6 @@ function StyleOutsourceSection({ styleOrderId }: { styleOrderId: number }) {
                           vendorId={r.vendorId}
                           vendorName={r.vendorName}
                           styleOrderId={styleOrderId}
-                          totalAmount={Number(total.toFixed(2))}
                         />
                       </td>
                     </tr>
@@ -3053,7 +3208,6 @@ function StyleCustomChargesSection({ styleOrderId }: { styleOrderId: number }) {
                           vendorId={r.vendorId}
                           vendorName={r.vendorName}
                           styleOrderId={styleOrderId}
-                          totalAmount={Number(total.toFixed(2))}
                         />
                       </td>
                     </tr>

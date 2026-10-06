@@ -50,6 +50,18 @@ export interface InvoicePayment {
   remarks: string;
   created_by: string;
   created_at: string;
+  tds_id?: number | null;
+  tds_master_id?: number | null;
+  tds_rate?: number | string | null;
+  tds_amount?: number | string | null;
+  tds_base_amount?: number | string | null;
+  tds_gst_amount?: number | string | null;
+  tds_gst_percentage?: number | string | null;
+  tds_paid_amount?: number | string | null;
+  tds_status?: string | null;
+  tds_section_code?: string | null;
+  tds_service_name?: string | null;
+  tds_master_rate?: number | string | null;
 }
 
 export interface AccountsFilters {
@@ -78,6 +90,30 @@ export function useInvoicePaymentsList(invoiceId: number | null) {
     queryKey: ["invoice-payments", invoiceId],
     queryFn: () => apiFetch(`/invoice-payments?invoice_id=${invoiceId}`),
     enabled: !!invoiceId,
+  });
+}
+
+// In your hooks/useInvoicePayments.ts
+export function useInvoicePaymentsByReference(
+  referenceType: string | null,
+  referenceId: string | null
+) {
+  return useQuery<{ data: InvoicePayment[] }>({
+    queryKey: [
+      "invoice-payments-reference",
+      referenceType,
+      referenceId
+    ],
+
+    queryFn: () => {
+      if (!referenceType || !referenceId) {
+        return Promise.resolve({ data: [] });
+      }
+
+      return apiFetch( `/invoice-payments/reference/${encodeURIComponent(referenceType)}/${encodeURIComponent(referenceId)}` );
+    },
+
+    enabled: !!referenceType && !!referenceId,
   });
 }
 

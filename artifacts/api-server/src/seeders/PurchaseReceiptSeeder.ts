@@ -383,6 +383,7 @@ export async function seedPurchaseReceipts(count: number = 0): Promise<void> {
               swatchOrderId: po.swatchOrderId,
               styleOrderId: null,
               vendorName: vendorName || '',
+              vendorId: vendorId || null,   
               receivedQty: receiptQty.toString(),
               actualPrice: unitPrice.toFixed(2),
               warehouseLocation: warehouseName,

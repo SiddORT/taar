@@ -12,6 +12,7 @@ interface TopNavbarProps {
 
 const MASTERS_ITEMS = [
   { label: "HSN",               href: "/masters/hsn" },
+  { label: "TDS",               href: "/masters/tds"},
   { label: "Materials",         href: "/masters/materials" },
   { label: "Fabric",            href: "/masters/fabric" },
   { label: "Clients",           href: "/masters/clients" },
