@@ -42,47 +42,52 @@ export interface InvoiceBalances {
  * (its completed payments + applied client credit notes), converting every INR anchor amount
  * back into the invoice's own currency. Returns the recomputed balances, or null if not found.
  */
-export async function recomputeInvoiceBalances(
-  client: Queryable,
-  invoiceId: number,
-): Promise<InvoiceBalances | null> {
+const round2 = (n: number): number => Math.round((Number(n) + Number.EPSILON) * 100) / 100;
+
+export async function recomputeInvoiceBalances(client: any, invoiceId: number) {
   const invRes = await client.query(
-    `SELECT total_amount, exchange_rate_snapshot, due_date, invoice_status
-       FROM invoices
-      WHERE id = $1 AND is_deleted = false`,
-    [invoiceId],
+    `SELECT total_amount::numeric AS total,
+            exchange_rate_snapshot::numeric AS rate
+     FROM invoices WHERE id = $1 AND is_deleted = false`,
+    [invoiceId]
   );
   if (!invRes.rows.length) return null;
-  const inv = invRes.rows[0];
-  const invRate = parseFloat(inv.exchange_rate_snapshot ?? "1") || 1;
-  const totalAmt = parseFloat(inv.total_amount ?? "0");
 
+  const total = round2(invRes.rows[0].total);
+  const rate = parseFloat(invRes.rows[0].rate) || 1;
+
+  // Sum completed payments in invoice currency
   const payRes = await client.query(
-    `SELECT COALESCE(SUM(base_currency_amount), 0) AS base_sum
-       FROM invoice_payments
-      WHERE invoice_id = $1 AND is_deleted = false AND payment_status = 'Completed'`,
-    [invoiceId],
-  );
-  const cnRes = await client.query(
-    `SELECT COALESCE(SUM(base_currency_amount), 0) AS base_sum
-       FROM credit_debit_notes
-      WHERE invoice_id = $1 AND is_deleted = false
-        AND note_type = 'Credit Note' AND reference_type = 'Client Invoice'
-        AND status = 'Applied'`,
-    [invoiceId],
+    `SELECT COALESCE(SUM(ROUND(base_currency_amount::numeric, 2)), 0) AS paid_inr
+     FROM invoice_payments
+     WHERE invoice_id = $1
+       AND is_deleted = false
+       AND payment_status = 'Completed'`,
+    [invoiceId]
   );
 
-  const baseReceivedInr = parseFloat(payRes.rows[0].base_sum) + parseFloat(cnRes.rows[0].base_sum);
-  const received = parseFloat((baseReceivedInr).toFixed(2));
-  const pending = parseFloat(Math.max(0, totalAmt - received).toFixed(2));
-  const status = computeAutoStatus(totalAmt, pending, inv.due_date ?? "", inv.invoice_status ?? "Generated");
+  const paidInr = round2(payRes.rows[0].paid_inr);
+  const receivedAmount = round2(paidInr / rate);
+  const pendingAmount = Math.max(0, round2(total - receivedAmount));
+
+  let status = "Generated";
+  if (pendingAmount <= 0.01) status = "Paid";
+  else if (receivedAmount > 0.01) status = "Partial";
 
   await client.query(
     `UPDATE invoices
-        SET received_amount = $1, pending_amount = $2, invoice_status = $3, status = $3, updated_at = NOW()
-      WHERE id = $4`,
-    [received.toFixed(2), pending.toFixed(2), status, invoiceId],
+     SET received_amount = $1,
+         pending_amount  = $2,
+         invoice_status  = $3,
+         updated_at      = NOW()
+     WHERE id = $4`,
+    [
+      receivedAmount.toFixed(2),
+      pendingAmount.toFixed(2),
+      status,
+      invoiceId,
+    ]
   );
 
-  return { totalAmount: totalAmt, receivedAmount: received, pendingAmount: pending, status };
+  return { receivedAmount, pendingAmount, status };
 }

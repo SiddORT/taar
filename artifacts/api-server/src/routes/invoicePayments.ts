@@ -64,49 +64,55 @@ router.get("/invoice-payments/accounts", requireAuth, async (req, res) => {
 });
 
 // ── GET /api/invoice-payments?invoice_id=X ──────────────────────────────────
-router.get( "/invoice-payments", requireAuth,
-  async (req, res) => {
-    try {
-      const { invoice_id } = req.query;
-      if (!invoice_id) return res.status(400).json({ error: "invoice_id required" });
+router.get("/invoice-payments", requireAuth, async (req, res) => {
+  try {
+    const invoiceId = parseInt(String(req.query.invoice_id ?? ""), 10);
 
-      const rows = await pool.query(
-        `
+    const { rows } = await pool.query(
+      `
+      SELECT
+        ip.payment_id,
+        ip.invoice_id,
+        ip.payment_direction,
+        ip.party_id,
+        ip.payment_type,
+        ROUND(ip.payment_amount::numeric, 2)           AS payment_amount,
+        ip.currency_code,
+        ip.exchange_rate_snapshot,
+        ROUND(ip.base_currency_amount::numeric, 2)     AS base_currency_amount,
+        ip.transaction_reference,
+        ip.payment_status,
+        ip.payment_date,
+        ip.remarks,
+        ROUND(COALESCE(t.tds_amount, 0)::numeric, 2)   AS tds_amount,
+        ROUND(COALESCE(t.tds_rate, 0)::numeric, 2)     AS tds_rate,
+        tm.section_code                                AS tds_section_code
+      FROM invoice_payments ip
+      LEFT JOIN LATERAL (
         SELECT
-          ip.*,
-          pt.id                  AS tds_id,
-          pt.tds_master_id,
-          pt.tds_rate,
-          pt.tds_amount,
-          pt.base_amount         AS tds_base_amount,
-          pt.gst_amount          AS tds_gst_amount,
-          pt.gst_percentage      AS tds_gst_percentage,
-          pt.paid_amount         AS tds_paid_amount,
-          pt.status              AS tds_status,
-          tm.section_code        AS tds_section_code,
-          tm.service_name        AS tds_service_name,
-          tm.rate_percent        AS tds_master_rate
-        FROM invoice_payments ip
-        LEFT JOIN invoice_payment_tds pt
-          ON pt.payment_id = ip.payment_id
-         AND pt.is_deleted = false
-        LEFT JOIN tds_master tm
-          ON tm.id = pt.tds_master_id
-        WHERE ip.invoice_id = $1
-          AND ip.is_deleted = false
-        ORDER BY ip.payment_date DESC, ip.payment_id DESC
-        `,
-        [invoice_id]
-      );
+          SUM(ipt.tds_amount) AS tds_amount,
+          MAX(ipt.tds_rate)   AS tds_rate,
+          MAX(ipt.tds_master_id) AS tds_master_id
+        FROM invoice_payment_tds ipt
+        WHERE ipt.payment_id = ip.payment_id
+          AND ipt.status = 'DEDUCTED'
+      ) t ON true
+      LEFT JOIN tds_master tm ON tm.id = t.tds_master_id
+      WHERE ip.is_deleted = false
+        ${Number.isFinite(invoiceId) ? "AND ip.invoice_id = $1" : ""}
+      ORDER BY ip.payment_date DESC, ip.payment_id DESC
+      `,
+      Number.isFinite(invoiceId) ? [invoiceId] : []
+    );
 
-      return res.json({ data: rows.rows });
-    } catch (err: any) {
-      return res.status(500).json({ error: err.message });
-    }
+    return res.json({ data: rows });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
   }
-);
+});
 
 // ── POST /api/invoice-payments ───────────────────────────────────────────────
+const round2 = (n: number): number => Math.round((Number(n) + Number.EPSILON) * 100) / 100;
 interface InvoiceLineBalance {
   id: number;
   lineNo: number;
@@ -135,29 +141,37 @@ async function getInvoiceLineBalances(
     `SELECT
        ili.id,
        ili.line_no,
-       ili.total::numeric          AS total,
+       ROUND(ili.total::numeric, 2) AS total,
        ili.hsn_gst_pct,
        ili.created_at,
-       COALESCE(SUM(ipi.allocated_gross_amount), 0)::numeric AS allocated
+       COALESCE(SUM(ROUND(ipi.allocated_gross_amount::numeric, 2)), 0) AS allocated
      FROM invoice_line_items ili
      LEFT JOIN invoice_payment_items ipi
        ON ipi.invoice_line_item_id = ili.id
-     WHERE ili.invoice_id = $1 AND ili.is_deleted = false
+     WHERE ili.invoice_id = $1
+       AND ili.is_deleted = false
      GROUP BY ili.id, ili.line_no, ili.total, ili.hsn_gst_pct, ili.created_at
      ORDER BY ili.created_at ASC, ili.id ASC`,
     [invoiceId]
   );
 
   return rows.map((r: any) => {
-    const taxable = parseFloat(String(r.total ?? "0"));
-    const gstPct  = parseFloat(String(r.hsn_gst_pct ?? "0")) || 0;
-    const gst     = gstPct > 0 ? (taxable * gstPct) / 100 : 0;
-    const gross   = taxable + gst;
+    const taxable   = round2(r.total ?? 0);
+    const gstPct    = parseFloat(String(r.hsn_gst_pct ?? "0")) || 0;
+    const gst       = gstPct > 0 ? round2((taxable * gstPct) / 100) : 0;
+    const gross     = round2(taxable + gst);
+    const allocated = round2(r.allocated ?? 0);
+    const remaining = Math.max(0, round2(gross - allocated));
 
-    const allocated = parseFloat(String(r.allocated ?? "0"));
-    const remaining = Math.max(0, gross - allocated);
-
-    return { id: r.id, lineNo: r.line_no, taxable, gst, gstPct, gross, remaining };
+    return {
+      id: r.id,
+      lineNo: r.line_no,
+      taxable,
+      gst,
+      gstPct,
+      gross,
+      remaining,
+    };
   });
 }
 
@@ -167,24 +181,32 @@ function allocateInvoiceWaterfall(
   tdsRate: number,
   tdsThreshold: number
 ): { allocations: InvoiceAllocation[]; unallocated: number } {
-  let remainingAmount = amountToAllocate;
+  let remainingAmount = round2(amountToAllocate);
   const allocations: InvoiceAllocation[] = [];
 
   for (const line of lines) {
-    if (remainingAmount <= 0.001) break;
-    if (line.remaining <= 0.001) continue;
+    if (remainingAmount <= 0.005) break;
+    if (line.remaining <= 0.005) continue;
 
-    const allocGross = Math.min(remainingAmount, line.remaining);
+    const allocGross = round2(Math.min(remainingAmount, line.remaining));
 
-    // Split allocated gross proportionally into base + GST using the line's ratio.
-    const allocTaxable = line.gross > 0
-      ? allocGross * (line.taxable / line.gross)
-      : allocGross;
-    const allocGst = allocGross - allocTaxable;
+    // Split gross → taxable + GST from line GST %, force 2 dp
+    let allocTaxable: number;
+    let allocGst: number;
+
+    if (line.gross > 0 && line.gstPct > 0) {
+      allocTaxable = round2(allocGross / (1 + line.gstPct / 100));
+      allocGst = round2(allocGross - allocTaxable);
+    } else {
+      allocTaxable = allocGross;
+      allocGst = 0;
+    }
 
     const tdsApplicable = allocTaxable >= tdsThreshold;
-    const tdsAmount     = tdsApplicable ? (allocTaxable * tdsRate) / 100 : 0;
-    const netReceived   = allocGross - tdsAmount;
+    const tdsAmount = tdsApplicable
+      ? round2((allocTaxable * tdsRate) / 100)
+      : 0;
+    const netReceived = round2(allocGross - tdsAmount);
 
     allocations.push({
       lineId: line.id,
@@ -196,7 +218,7 @@ function allocateInvoiceWaterfall(
       netReceived,
     });
 
-    remainingAmount -= allocGross;
+    remainingAmount = round2(remainingAmount - allocGross);
   }
 
   return { allocations, unallocated: remainingAmount };
@@ -224,9 +246,9 @@ async function insertInvoicePaymentItems(
         paymentId,
         invoiceId,
         a.lineId,
-        a.allocGross.toFixed(4),
-        a.allocTaxable.toFixed(4),
-        a.netReceived.toFixed(4),
+        round2(a.allocGross).toFixed(2),
+        round2(a.allocTaxable).toFixed(2),
+        round2(a.netReceived).toFixed(2),
         seq++,
         "",
         username,
@@ -274,15 +296,15 @@ async function insertInvoicePaymentTds(
       paymentDate ? new Date(paymentDate) : new Date(),
       partyId,
       invoiceId,
-      grossAmount.toFixed(2),
-      gstAmount.toFixed(2),
-      gstPercentage.toFixed(2),
+      round2(grossAmount).toFixed(2),
+      round2(gstAmount).toFixed(2),
+      round2(gstPercentage).toFixed(2),
       paymentCurrencyCode,
-      paymentExchangeRate.toFixed(6),
-      baseAmount.toFixed(2),
-      paidAmount.toFixed(2),
-      tdsRate.toFixed(2),
-      tdsAmount.toFixed(2),
+      Number(paymentExchangeRate).toFixed(6),
+      round2(baseAmount).toFixed(2),
+      round2(paidAmount).toFixed(2),
+      round2(tdsRate).toFixed(2),
+      round2(tdsAmount).toFixed(2),
       username,
     ]
   );
@@ -299,12 +321,12 @@ async function insertInvoicePaymentTds(
         tdsId,
         a.lineId,
         a.paymentItemId,
-        a.allocTaxable.toFixed(2),
-        a.allocGst.toFixed(2),
-        a.gstPct.toFixed(2),
-        tdsRate.toFixed(2),
-        a.tdsAmount.toFixed(2),
-        a.netReceived.toFixed(2),
+        round2(a.allocTaxable).toFixed(2),
+        round2(a.allocGst).toFixed(2),
+        round2(a.gstPct).toFixed(2),
+        round2(tdsRate).toFixed(2),
+        round2(a.tdsAmount).toFixed(2),
+        round2(a.netReceived).toFixed(2),
         username,
       ]
     );
@@ -313,24 +335,40 @@ async function insertInvoicePaymentTds(
   return tdsId;
 }
 
+// ============================================================================
+// POST /invoice-payments
+// ============================================================================
+
 router.post( "/invoice-payments", requireAuth,
   async (req: any, res) => {
     const {
-      invoice_id, payment_type, payment_amount, currency_code = "INR",
-      exchange_rate_snapshot = 1, transaction_reference = "",
-      payment_status = "Completed", payment_date, remarks = "",
+      invoice_id,
+      payment_type,
+      payment_amount,
+      currency_code = "INR",
+      exchange_rate_snapshot = 1,
+      transaction_reference = "",
+      payment_status = "Completed",
+      payment_date,
+      remarks = "",
       tds_master_id,
     } = req.body;
 
-    if (!invoice_id || !payment_amount || !payment_date)
-      return res.status(400).json({ error: "invoice_id, payment_amount, payment_date are required" });
-    if (!PAYMENT_TYPES.includes(payment_type))
+    if (!invoice_id || !payment_amount || !payment_date) {
+      return res.status(400).json({
+        error: "invoice_id, payment_amount, payment_date are required",
+      });
+    }
+    if (!PAYMENT_TYPES.includes(payment_type)) {
       return res.status(400).json({ error: "Invalid payment_type" });
-    if (!PAYMENT_STATUSES.includes(payment_status))
+    }
+    if (!PAYMENT_STATUSES.includes(payment_status)) {
       return res.status(400).json({ error: "Invalid payment_status" });
+    }
 
     const client = await pool.connect();
     let began = false;
+
     try {
       await client.query("BEGIN");
       began = true;
@@ -341,26 +379,52 @@ router.post( "/invoice-payments", requireAuth,
         [invoice_id]
       );
       if (!invRes.rows.length) {
-        await client.query("ROLLBACK"); began = false;
+        await client.query("ROLLBACK");
+        began = false;
         return res.status(404).json({ error: "Invoice not found" });
       }
       const inv = invRes.rows[0];
 
-      const payAmt   = parseFloat(payment_amount);
-      const exRate   = parseFloat(exchange_rate_snapshot) || 1;
-      const baseAmt  = parseFloat((payAmt * exRate).toFixed(2));   // INR anchor
-      const direction = inv.invoice_direction === "Vendor" ? "Paid" : "Received";
-      const partyId   = inv.invoice_direction === "Vendor" ? inv.vendor_id : inv.client_id;
+      const payAmt = round2(parseFloat(String(payment_amount)));
+      const exRate = parseFloat(String(exchange_rate_snapshot)) || 1;
+      const baseAmt = round2(payAmt * exRate); // INR anchor
+
+      if (!Number.isFinite(payAmt) || payAmt <= 0) {
+        await client.query("ROLLBACK");
+        began = false;
+        return res.status(400).json({ error: "payment_amount must be greater than 0" });
+      }
+
+      const direction =
+        inv.invoice_direction === "Vendor" ? "Paid" : "Received";
+      const partyId =
+        inv.invoice_direction === "Vendor" ? inv.vendor_id : inv.client_id;
       const createdBy = req.user?.email ?? "";
 
-      const invRate    = parseFloat(inv.exchange_rate_snapshot ?? "1") || 1;
-      const pendingNow = parseFloat(inv.pending_amount ?? "0");
+      const invRate = parseFloat(String(inv.exchange_rate_snapshot ?? "1")) || 1;
+      const pendingNow = round2(inv.pending_amount ?? 0);
 
       // 2. Overpayment guard — compared in the invoice's own currency
       if (payment_status === "Completed") {
-        const amtInInvoiceCcy = baseAmt / invRate;
+        const amtInInvoiceCcy = round2(baseAmt / invRate);
+        console.log("[invoice-payments] compare amounts", {
+          invoice_id,
+          payment_amount_raw: payment_amount,
+          payAmt,
+          exRate,
+          baseAmt,
+          invRate,
+          pendingNow,
+          amtInInvoiceCcy,
+          pendingGuard: {
+            allowed: pendingNow + 0.01,
+            exceeds: amtInInvoiceCcy > pendingNow + 0.01,
+          },
+        });
+
         if (amtInInvoiceCcy > pendingNow + 0.01) {
-          await client.query("ROLLBACK"); began = false;
+          await client.query("ROLLBACK");
+          began = false;
           return res.status(400).json({
             error: `Payment amount (${amtInInvoiceCcy.toFixed(2)} in invoice currency) exceeds pending balance (${pendingNow.toFixed(2)})`,
           });
@@ -368,37 +432,70 @@ router.post( "/invoice-payments", requireAuth,
       }
 
       // 3. Resolve TDS master (if provided)
-      let tdsMaster: { id: number; rate_percent: number; threshold_amount: number } | null = null;
+      let tdsMaster: {
+        id: number;
+        rate_percent: number;
+        threshold_amount: number;
+      } | null = null;
+
       if (tds_master_id) {
         const tdsRes = await client.query(
-          `SELECT id, rate_percent::numeric AS rate_percent,
+          `SELECT id,
+                  rate_percent::numeric AS rate_percent,
                   threshold_amount::numeric AS threshold_amount
              FROM tds_master
-            WHERE id = $1 AND status = true AND is_deleted = false`,
+            WHERE id = $1
+              AND status = true
+              AND is_deleted = false`,
           [tds_master_id]
         );
         if (!tdsRes.rows.length) {
-          await client.query("ROLLBACK"); began = false;
-          return res.status(400).json({ error: `Invalid or inactive TDS master (ID: ${tds_master_id})` });
+          await client.query("ROLLBACK");
+          began = false;
+          return res.status(400).json({
+            error: `Invalid or inactive TDS master (ID: ${tds_master_id})`,
+          });
         }
         tdsMaster = {
           id: tdsRes.rows[0].id,
           rate_percent: parseFloat(tdsRes.rows[0].rate_percent),
-          threshold_amount: parseFloat(tdsRes.rows[0].threshold_amount || "0"),
+          threshold_amount: parseFloat(
+            tdsRes.rows[0].threshold_amount || "0"
+          ),
         };
       }
 
-      // 4. Amount to allocate, expressed in invoice currency
-      const allocAmtInInvoiceCcy = parseFloat((baseAmt / invRate).toFixed(2));
+      // 4. Amount to allocate, in invoice currency
+      const allocAmtInInvoiceCcy = round2(baseAmt / invRate);
 
       // 5. Load line balances and run waterfall
       const lineBalances = await getInvoiceLineBalances(client, invoice_id);
+      console.log("[invoice-payments] line balances", {
+        lineCount: lineBalances.length,
+        lines: lineBalances.map((l) => ({
+          id: l.id,
+          lineNo: l.lineNo,
+          taxable: l.taxable,
+          gst: l.gst,
+          gstPct: l.gstPct,
+          gross: l.gross,
+          remaining: l.remaining,
+        })),
+        sumRemaining: round2(
+          lineBalances.reduce((s, l) => s + l.remaining, 0)
+        ),
+        allocAmtInInvoiceCcy,
+      });
+
       if (lineBalances.length === 0) {
-        await client.query("ROLLBACK"); began = false;
-        return res.status(400).json({ error: "Invoice has no line items — cannot allocate payment." });
+        await client.query("ROLLBACK");
+        began = false;
+        return res.status(400).json({
+          error: "Invoice has no line items — cannot allocate payment.",
+        });
       }
 
-      const tdsRate      = tdsMaster?.rate_percent ?? 0;
+      const tdsRate = tdsMaster?.rate_percent ?? 0;
       const tdsThreshold = tdsMaster?.threshold_amount ?? 0;
 
       const { allocations, unallocated } = allocateInvoiceWaterfall(
@@ -409,67 +506,90 @@ router.post( "/invoice-payments", requireAuth,
       );
 
       if (unallocated > 0.01) {
-        await client.query("ROLLBACK"); began = false;
+        await client.query("ROLLBACK");
+        began = false;
         return res.status(400).json({
           error: `Amount exceeds total outstanding balance on this invoice by ${unallocated.toFixed(2)}.`,
         });
       }
       if (allocations.length === 0) {
-        await client.query("ROLLBACK"); began = false;
-        return res.status(400).json({ error: "Nothing to allocate — invoice is already fully paid." });
+        await client.query("ROLLBACK");
+        began = false;
+        return res.status(400).json({
+          error: "Nothing to allocate — invoice is already fully paid.",
+        });
       }
 
       // 6. Insert the aggregate payment row
-      const pmtRes = await client.query(`
+      const pmtRes = await client.query(
+        `
         INSERT INTO invoice_payments
           (invoice_id, payment_direction, party_id, payment_type, payment_amount,
            currency_code, exchange_rate_snapshot, base_currency_amount,
            transaction_reference, payment_status, payment_date, remarks, created_by)
         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
         RETURNING *
-      `, [invoice_id, direction, partyId, payment_type, payAmt, currency_code,
-          exRate, baseAmt, transaction_reference, payment_status, payment_date, remarks, createdBy]);
+      `,
+        [
+          invoice_id,
+          direction,
+          partyId,
+          payment_type,
+          payAmt.toFixed(2),
+          currency_code,
+          exRate,
+          baseAmt.toFixed(2),
+          transaction_reference,
+          payment_status,
+          payment_date,
+          remarks,
+          createdBy,
+        ]
+      );
 
       const paymentId = pmtRes.rows[0].payment_id;
 
       // 7. Insert invoice_payment_items (line-level allocation)
       const lineToPaymentItem = await insertInvoicePaymentItems(
-        client, paymentId, invoice_id, allocations, createdBy
+        client,
+        paymentId,
+        invoice_id,
+        allocations,
+        createdBy
       );
 
       // 8. Insert TDS aggregate + per-line rows
       if (tdsMaster) {
-        const eligible = allocations.filter(a => a.tdsAmount > 0);
+        const eligible = allocations.filter((a) => a.tdsAmount > 0);
 
         if (eligible.length > 0) {
-          const totalGross   = allocations.reduce((s, a) => s + a.allocGross, 0);
-          const totalTaxable = allocations.reduce((s, a) => s + a.allocTaxable, 0);
-          const totalGst     = allocations.reduce((s, a) => s + a.allocGst, 0);
-          const totalTds     = eligible.reduce((s, a) => s + a.tdsAmount, 0);
+          const totalGross = round2(
+            allocations.reduce((s, a) => s + a.allocGross, 0)
+          );
+          const totalTaxable = round2(
+            allocations.reduce((s, a) => s + a.allocTaxable, 0)
+          );
+          const totalGst = round2(
+            allocations.reduce((s, a) => s + a.allocGst, 0)
+          );
+          const totalTds = round2(
+            eligible.reduce((s, a) => s + a.tdsAmount, 0)
+          );
 
           // TDS tables store INR (base). Convert invoice ccy → INR via invRate.
-          const grossINR      = totalGross   * invRate;
-          const taxableINR    = totalTaxable * invRate;
-          const gstINR        = totalGst     * invRate;
-          const tdsINR        = totalTds     * invRate;
-          const paidINR       = (totalGross - totalTds) * invRate;
-          const blendedGstPct = totalTaxable > 0 ? (totalGst / totalTaxable) * 100 : 0;
-
-          const eligibleWithItems = eligible.map(a => ({
+          const grossINR = round2(totalGross * invRate);
+          const taxableINR = round2(totalTaxable * invRate);
+          const gstINR = round2(totalGst * invRate);
+          const tdsINR = round2(totalTds * invRate);
+          const paidINR = round2((totalGross - totalTds) * invRate);
+          const blendedGstPct = totalTaxable > 0 ? round2((totalGst / totalTaxable) * 100) : 0;
+          const eligibleWithItems = eligible.map((a) => ({
             ...a,
             paymentItemId: lineToPaymentItem.get(a.lineId)!,
           }));
 
           await insertInvoicePaymentTds(
-            client,
-            tdsMaster.id,
-            paymentId,
-            payment_date,
-            partyId,
-            invoice_id,
-            grossINR,
-            gstINR,
-            blendedGstPct,
+           client, tdsMaster.id, paymentId, payment_date, partyId, invoice_id, grossINR, gstINR, blendedGstPct,
             taxableINR,
             paidINR,
             tdsRate,
@@ -484,44 +604,78 @@ router.post( "/invoice-payments", requireAuth,
 
       // 9. Recompute invoice balances
       const bal = await recomputeInvoiceBalances(client, invoice_id);
-      const totalReceived = bal?.receivedAmount ?? 0;
-      const pendingAmt    = bal?.pendingAmount ?? 0;
-      const newStatus     = bal?.status ?? (inv.invoice_status ?? "Generated");
+      const totalReceived = round2(bal?.receivedAmount ?? 0);
+      const pendingAmt = round2(bal?.pendingAmount ?? 0);
+      const newStatus = bal?.status ?? (inv.invoice_status ?? "Generated");
 
       // 10. Ledger entries
       if (direction === "Received" && inv.client_id) {
-        await client.query(`
+        await client.query(
+          `
           INSERT INTO client_invoice_ledger
-            (client_id, invoice_id, entry_type, payment_amount, payment_date, transaction_reference, status, created_by)
+            (client_id, invoice_id, entry_type, payment_amount, payment_date,
+             transaction_reference, status, created_by)
           VALUES ($1,$2,'Payment Received',$3,$4,$5,$6,$7)
-        `, [inv.client_id, invoice_id, payAmt, payment_date, transaction_reference, payment_status, createdBy]);
+        `,
+          [
+            inv.client_id,
+            invoice_id,
+            payAmt.toFixed(2),
+            payment_date,
+            transaction_reference,
+            payment_status,
+            createdBy,
+          ]
+        );
       } else if (direction === "Paid" && inv.vendor_id) {
-        await client.query(`
+        await client.query(
+          `
           INSERT INTO vendor_payments
-            (vendor_id, vendor_name, payment_date, amount, currency_code, exchange_rate_snapshot, base_currency_amount, payment_mode, reference_no, notes, order_type, created_by)
-          SELECT $1, v.brand_name, $2::timestamptz, $3, $4, $5, $6, $7, $8, $9, 'invoice', $10
+            (vendor_id, vendor_name, payment_date, amount,
+             currency_code, exchange_rate_snapshot, base_currency_amount,
+             payment_mode, reference_no, notes, order_type, created_by)
+          SELECT $1, v.brand_name, $2::timestamptz, $3,
+                 $4, $5, $6, $7, $8, $9, 'invoice', $10
           FROM vendors v WHERE v.id = $1
-        `, [inv.vendor_id, payment_date + "T00:00:00Z", payAmt.toFixed(2), currency_code, String(exRate), baseAmt, payment_type, transaction_reference, remarks, createdBy]);
+        `,
+          [
+            inv.vendor_id,
+            payment_date + "T00:00:00Z",
+            payAmt.toFixed(2),
+            currency_code,
+            String(exRate),
+            baseAmt.toFixed(2),
+            payment_type,
+            transaction_reference,
+            remarks,
+            createdBy,
+          ]
+        );
       }
 
       await client.query("COMMIT");
       began = false;
+
       return res.json({
         data: pmtRes.rows[0],
         invoice_status: newStatus,
         received_amount: totalReceived,
         pending_amount: pendingAmt,
-        allocations: allocations.map(a => ({
+        allocations: allocations.map((a) => ({
           line_id: a.lineId,
-          gross: a.allocGross.toFixed(2),
-          taxable: a.allocTaxable.toFixed(2),
-          gst: a.allocGst.toFixed(2),
-          tds: a.tdsAmount.toFixed(2),
-          net: a.netReceived.toFixed(2),
+          gross: round2(a.allocGross).toFixed(2),
+          taxable: round2(a.allocTaxable).toFixed(2),
+          gst: round2(a.allocGst).toFixed(2),
+          tds: round2(a.tdsAmount).toFixed(2),
+          net: round2(a.netReceived).toFixed(2),
         })),
       });
     } catch (err: any) {
-      if (began) { try { await client.query("ROLLBACK"); } catch {} }
+      if (began) {
+        try {
+          await client.query("ROLLBACK");
+        } catch {}
+      }
       console.error("Error in /invoice-payments:", err);
       return res.status(500).json({ error: err.message });
     } finally {

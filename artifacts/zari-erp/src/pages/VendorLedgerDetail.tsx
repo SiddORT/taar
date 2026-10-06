@@ -151,12 +151,29 @@ export default function VendorLedgerDetail() {
     : entryTypeFilter === "debits"  ? entries.filter(e => parseFloat(e.debit)  > 0)
     : entryTypeFilter === "credits" ? entries.filter(e => parseFloat(e.credit) > 0)
     : entries.filter(e => e.entry_type === entryTypeFilter);
+  const round2 = (n: number) =>
+    Math.round((Number(n) + Number.EPSILON) * 100) / 100;
 
-  const totalDebit = entries.reduce((sum, e) => { const debit = Math.round(Number(e.debit || 0) * 100); return sum + debit; }, 0) / 100;
-  const totalCredit = entries.reduce((s, e) => s + parseFloat(e.credit || "0"), 0);
-  const totalTds    = entries.reduce((s, e) => s + parseFloat(e.tds_amount || "0"), 0);
-  const totalNetPaid = entries.reduce((s, e) => s + parseFloat(e.net_paid || "0"), 0);
-  const balance     = totalDebit - totalCredit;
+  // Remaining outstanding only (what is still due)
+  const totalDebit = round2(
+    entries.reduce((s, e) => s + Math.max(0, Number(e.total_amount || 0)), 0)
+  );
+
+  // All money paid (credits)
+  const totalCredit = round2(
+    entries.reduce((s, e) => s + Number(e.credit || 0), 0)
+  );
+
+  const totalTds = round2(
+    entries.reduce((s, e) => s + Number(e.tds_amount || 0), 0)
+  );
+
+  const totalNetPaid = round2(
+    entries.reduce((s, e) => s + Number(e.net_paid || 0), 0)
+  );
+
+  // Balance due = remaining outstanding (NOT debit − credit)
+  const balance = totalDebit - totalCredit;
 
   // Only debit entries (non-payment) can be selected
   const selectableEntries = useMemo(
