@@ -324,798 +324,261 @@ router.get("/vendor-ledger/summary", requireAuth, async (req, res) => {
     const result = await pool.query(`
       WITH
 
-      /* ============================================================
-         1. PAYMENTS AGAINST COSTING / VENDOR LEDGER ENTRIES
-         ============================================================ */
-
-      payment_sums AS (
-        SELECT
-          reference_type,
-          reference_id,
-          SUM(
-            base_currency_amount::numeric
-          ) AS paid_amount
-
-        FROM (
-          SELECT
-            reference_type,
-            reference_id,
-            base_currency_amount
-          FROM costing_payments
-          WHERE is_deleted = false
-            AND reference_type IS NOT NULL
-            AND reference_id IS NOT NULL
-
-          UNION ALL
-
-          SELECT
-            reference_type,
-            reference_id,
-            base_currency_amount
-          FROM vendor_payments
-          WHERE is_deleted = false
-            AND reference_type IS NOT NULL
-            AND reference_id IS NOT NULL
-        ) p
-
-        GROUP BY
-          reference_type,
-          reference_id
-      ),
-
-      /* ============================================================
-         2. PURCHASE RECEIPT PAYMENTS
-         ============================================================ */
-
-      pr_payment_sums AS (
-        SELECT
-          pr_id,
-          SUM(
-            base_currency_amount::numeric
-          ) AS pr_paid_amount
-
-        FROM pr_payments
-
-        WHERE is_deleted = false
-
-        GROUP BY pr_id
-      ),
-
-      /* ============================================================
-         3. PURCHASE RECEIPT ITEMS
-         ============================================================ */
-
+      /* ── Purchase receipt item totals ── */
       purchase_receipt_items_sum AS (
         SELECT
           pr_id,
-
+          SUM(quantity * unit_price) AS base_total,
           SUM(
             quantity * unit_price
-          ) AS base_total,
-
-          SUM(
-            quantity
-            * unit_price
-            * (
-                1 +
-                COALESCE(
-                  gst_percentage,
-                  0
-                )::numeric / 100
-              )
+            * (1 + COALESCE(gst_percentage, 0)::numeric / 100)
           ) AS total_with_gst
-
         FROM purchase_receipt_items
-
         WHERE is_deleted = false
-
         GROUP BY pr_id
       ),
 
-      /* ============================================================
-         4. VENDOR CHALLAN ITEMS
-         ============================================================ */
-
+      /* ── Vendor challan item totals ── */
       vendor_challan_items_sum AS (
         SELECT
           vendor_challan_id,
-
           SUM(
             amount::numeric
-            * (
-                1 +
-                COALESCE(
-                  gst_percentage,
-                  0
-                )::numeric / 100
-              )
+            * (1 + COALESCE(gst_percentage, 0)::numeric / 100)
           ) AS amount
-
         FROM vendor_challan_items
-
         WHERE is_deleted = false
-
         GROUP BY vendor_challan_id
       ),
 
-      /* ============================================================
-         5. LEDGER BASE
-
-         Same sources as your entries API.
-         ============================================================ */
-
+      /* ── All ledger rows (charges + payments) ── */
       ledger_base AS (
 
-        /* ----------------------------------------------------------
-           OUTSOURCE JOBS
-           ---------------------------------------------------------- */
-
+        /* Outsource jobs */
         SELECT
           oj.vendor_id,
-          'outsource' AS entry_type,
-          oj.id::text AS entry_id,
-
+          true AS is_charge,
           ROUND(
-            (
-              oj.total_cost::numeric
-              * (
-                  1 +
-                  COALESCE(
-                    oj.gst_percentage,
-                    '0'
-                  )::numeric / 100
-                )
-            ),
+            (oj.total_cost::numeric
+              * (1 + COALESCE(oj.gst_percentage, '0')::numeric / 100)),
             2
           ) AS total_amount,
-
-          0::numeric AS credit,
-
-          'outsource_job' AS payment_ref_type,
-          oj.id::text AS payment_ref_id,
-
-          true AS is_charge
-
+          0::numeric AS credit
         FROM outsource_jobs oj
-
         WHERE oj.is_deleted = false
 
-
         UNION ALL
 
-
-        /* ----------------------------------------------------------
-           CUSTOM CHARGES
-           ---------------------------------------------------------- */
-
+        /* Custom charges */
         SELECT
           cc.vendor_id,
-          'custom_charge',
-          cc.id::text,
-
+          true,
           ROUND(
-            (
-              cc.total_amount::numeric
-              * (
-                  1 +
-                  COALESCE(
-                    cc.gst_percentage,
-                    '0'
-                  )::numeric / 100
-                )
-            ),
+            (cc.total_amount::numeric
+              * (1 + COALESCE(cc.gst_percentage, '0')::numeric / 100)),
             2
           ),
-
-          0::numeric,
-
-          'custom_charge',
-          cc.id::text,
-
-          true
-
+          0::numeric
         FROM custom_charges cc
-
         WHERE cc.is_deleted = false
 
-
         UNION ALL
 
-
-        /* ----------------------------------------------------------
-           MANUAL LEDGER CHARGES
-           ---------------------------------------------------------- */
-
+        /* Manual ledger charges */
         SELECT
           lc.vendor_id,
-          'ledger_charge',
-          lc.id::text,
-
+          true,
           ROUND(
-            (
-              lc.amount::numeric
-              * (
-                  1 +
-                  COALESCE(
-                    lc.gst_percentage,
-                    0
-                  )::numeric / 100
-                )
-            ),
+            (lc.amount::numeric
+              * (1 + COALESCE(lc.gst_percentage, 0)::numeric / 100)),
             2
           ),
-
-          0::numeric,
-
-          'ledger_charge',
-          lc.id::text,
-
-          true
-
+          0::numeric
         FROM vendor_ledger_charges lc
-
         WHERE lc.is_deleted = false
 
-
         UNION ALL
 
-
-        /* ----------------------------------------------------------
-           SWATCH ARTWORK
-           ---------------------------------------------------------- */
-
+        /* Swatch artwork */
         SELECT
-          a.outsource_vendor_id::integer AS vendor_id,
-          'artwork_swatch',
-          a.id::text,
-
+          a.outsource_vendor_id::integer,
+          true,
           ROUND(
-            (
-              COALESCE(
-                NULLIF(
-                  a.total_cost,
-                  ''
-                )::numeric,
-                0
-              )
-              * (
-                  1 +
-                  COALESCE(
-                    a.gst_percentage::numeric,
-                    0
-                  ) / 100
-                )
-            ),
+            (COALESCE(NULLIF(a.total_cost, '')::numeric, 0)
+              * (1 + COALESCE(a.gst_percentage::numeric, 0) / 100)),
             2
           ),
-
-          0::numeric,
-
-          'artwork_swatch',
-          a.id::text,
-
-          true
-
+          0::numeric
         FROM artworks a
-
         WHERE a.outsource_vendor_id IS NOT NULL
           AND a.outsource_vendor_id <> ''
-
           AND a.outsource_vendor_id ~ '^[0-9]+$'
-
+          AND a.outsource_vendor_name IS NOT NULL
+          AND a.outsource_vendor_name <> ''
+          AND a.artwork_created = 'Outsource'
           AND a.total_cost IS NOT NULL
           AND a.total_cost <> ''
-
           AND a.is_deleted = false
 
-
         UNION ALL
 
-
-        /* ----------------------------------------------------------
-           STYLE ARTWORK
-           ---------------------------------------------------------- */
-
+        /* Style artwork */
         SELECT
-          soa.outsource_vendor_id::integer AS vendor_id,
-          'artwork_style',
-          soa.id::text,
-
+          soa.outsource_vendor_id::integer,
+          true,
           ROUND(
-            (
-              COALESCE(
-                NULLIF(
-                  soa.total_cost,
-                  ''
-                )::numeric,
-                0
-              )
-              * (
-                  1 +
-                  COALESCE(
-                    soa.gst_percentage::numeric,
-                    0
-                  ) / 100
-                )
-            ),
+            (COALESCE(NULLIF(soa.total_cost, '')::numeric, 0)
+              * (1 + COALESCE(soa.gst_percentage::numeric, 0) / 100)),
             2
           ),
-
-          0::numeric,
-
-          'artwork_style',
-          soa.id::text,
-
-          true
-
+          0::numeric
         FROM style_order_artworks soa
-
         WHERE soa.outsource_vendor_id IS NOT NULL
           AND soa.outsource_vendor_id <> ''
-
           AND soa.outsource_vendor_id ~ '^[0-9]+$'
-
+          AND soa.outsource_vendor_name IS NOT NULL
+          AND soa.outsource_vendor_name <> ''
+          AND soa.artwork_created = 'Outsource'
           AND soa.total_cost IS NOT NULL
           AND soa.total_cost <> ''
-
           AND soa.is_deleted = false
-
 
         UNION ALL
 
-
-        /* ----------------------------------------------------------
-           TOILE
-           ---------------------------------------------------------- */
-
+        /* Toile */
         SELECT
-          soa.toile_vendor_id::integer AS vendor_id,
-          'toile',
-          soa.id::text,
-
+          soa.toile_vendor_id::integer,
+          true,
           ROUND(
-            (
-              COALESCE(
-                NULLIF(
-                  soa.toile_making_cost,
-                  ''
-                ),
-                NULLIF(
-                  soa.toile_cost,
-                  ''
-                )
+            (COALESCE(
+                NULLIF(soa.toile_making_cost, ''),
+                NULLIF(soa.toile_cost, '')
               )::numeric
-              * (
-                  1 +
-                  COALESCE(
-                    soa.toil_gst_percentage::numeric,
-                    0
-                  ) / 100
-                )
-            ),
+              * (1 + COALESCE(soa.toil_gst_percentage::numeric, 0) / 100)),
             2
           ),
-
-          0::numeric,
-
-          'toile',
-          soa.id::text,
-
-          true
-
+          0::numeric
         FROM style_order_artworks soa
-
         WHERE soa.toile_vendor_id IS NOT NULL
           AND soa.toile_vendor_id <> ''
-
           AND soa.toile_vendor_id ~ '^[0-9]+$'
-
+          AND soa.toile_vendor_name IS NOT NULL
+          AND soa.toile_vendor_name <> ''
           AND (
-            (
-              soa.toile_making_cost IS NOT NULL
-              AND soa.toile_making_cost <> ''
-            )
-            OR
-            (
-              soa.toile_cost IS NOT NULL
-              AND soa.toile_cost <> ''
-            )
+            (soa.toile_making_cost IS NOT NULL AND soa.toile_making_cost <> '')
+            OR (soa.toile_cost IS NOT NULL AND soa.toile_cost <> '')
           )
-
           AND soa.is_deleted = false
 
-
         UNION ALL
 
-
-        /* ----------------------------------------------------------
-           PATTERN / PRODUCT
-           ---------------------------------------------------------- */
-
+        /* Style order product (pattern) */
         SELECT
-          sop.pattern_vendor_id::integer AS vendor_id,
-          'style_order_product',
-          sop.id::text,
-
+          sop.pattern_vendor_id::integer,
+          true,
           ROUND(
-            (
-              COALESCE(
-                NULLIF(
-                  sop.pattern_payment_amount,
-                  ''
-                )::numeric,
-                0
-              )
-              * (
-                  1 +
-                  COALESCE(
-                    sop.gst_percentage::numeric,
-                    0
-                  ) / 100
-                )
-            ),
+            (COALESCE(NULLIF(sop.pattern_payment_amount, '')::numeric, 0)
+              * (1 + COALESCE(sop.gst_percentage::numeric, 0) / 100)),
             2
           ),
-
-          0::numeric,
-
-          'style_order_product',
-          sop.id::text,
-
-          true
-
+          0::numeric
         FROM style_order_products sop
-
         WHERE sop.pattern_vendor_id IS NOT NULL
           AND sop.pattern_vendor_id <> ''
-
           AND sop.pattern_vendor_id ~ '^[0-9]+$'
-
+          AND sop.pattern_vendor_name IS NOT NULL
+          AND sop.pattern_vendor_name <> ''
           AND sop.pattern_payment_amount IS NOT NULL
           AND sop.pattern_payment_amount <> ''
-
           AND sop.is_deleted = false
 
-
         UNION ALL
 
-
-        /* ----------------------------------------------------------
-           VENDOR INVOICE
-           ---------------------------------------------------------- */
-
+        /* Vendor invoice */
         SELECT
           vil.vendor_id,
-          'vendor_invoice',
-          vil.id::text,
-
-          ROUND(
-            vil.base_currency_amount::numeric,
-            2
-          ),
-
-          0::numeric,
-
-          'vendor_invoice',
-          vil.id::text,
-
-          true
-
+          true,
+          ROUND(vil.base_currency_amount::numeric, 2),
+          0::numeric
         FROM vendor_invoice_ledger vil
-
         WHERE vil.is_deleted = false
-
 
         UNION ALL
 
-
-        /* ----------------------------------------------------------
-           PURCHASE RECEIPT
-           ---------------------------------------------------------- */
-
+        /* Purchase receipt */
         SELECT
           po.vendor_id,
-          'purchase_receipt',
-          pr.id::text,
-
+          true,
           ROUND(
             COALESCE(
               pr.vendor_invoice_amount::numeric,
               items.total_with_gst,
-              (
-                pr.received_qty::numeric
-                * pr.actual_price::numeric
-              ),
+              (pr.received_qty::numeric * pr.actual_price::numeric),
               0
             ),
             2
           ),
-
-          0::numeric,
-
-          NULL::text,
-          NULL::text,
-
-          true
-
+          0::numeric
         FROM purchase_receipts pr
-
         JOIN purchase_orders po
-          ON pr.po_id = po.id
-         AND po.is_deleted = false
-
+          ON pr.po_id = po.id AND po.is_deleted = false
         LEFT JOIN purchase_receipt_items_sum items
           ON items.pr_id = pr.id
-
         WHERE pr.is_deleted = false
-
 
         UNION ALL
 
-
-        /* ----------------------------------------------------------
-           VENDOR CHALLAN
-           ---------------------------------------------------------- */
-
+        /* Vendor challan */
         SELECT
           vc.vendor_id,
-          'vendor_challan',
-          vc.id::text,
-
-          ROUND(
-            COALESCE(
-              items.amount,
-              0
-            ),
-            2
-          ),
-
-          0::numeric,
-
-          'vendor_challan',
-          vc.id::text,
-
-          true
-
+          true,
+          ROUND(COALESCE(items.amount, 0), 2),
+          0::numeric
         FROM vendor_challans vc
-
         LEFT JOIN vendor_challan_items_sum items
           ON items.vendor_challan_id = vc.id
-
         WHERE vc.is_deleted = false
           AND vc.status = 'Verified'
 
-
         UNION ALL
 
-
-        /* ----------------------------------------------------------
-           PR PAYMENTS
-           ---------------------------------------------------------- */
-
+        /* PR payments */
         SELECT
           po.vendor_id,
-          'pr_payment',
-          pp.id::text,
-
+          false,
           0::numeric,
-
-          ROUND(
-            pp.base_currency_amount::numeric,
-            2
-          ),
-
-          NULL::text,
-          NULL::text,
-
-          false
-
+          ROUND(pp.base_currency_amount::numeric, 2)
         FROM pr_payments pp
-
         JOIN purchase_receipts pr
-          ON pp.pr_id = pr.id
-         AND pr.is_deleted = false
-
+          ON pp.pr_id = pr.id AND pr.is_deleted = false
         JOIN purchase_orders po
-          ON pr.po_id = po.id
-         AND po.is_deleted = false
-
+          ON pr.po_id = po.id AND po.is_deleted = false
         WHERE pp.is_deleted = false
 
-
         UNION ALL
 
-
-        /* ----------------------------------------------------------
-           VENDOR PAYMENTS
-           ---------------------------------------------------------- */
-
+        /* Vendor payments */
         SELECT
           vp.vendor_id,
-          'payment',
-          vp.id::text,
-
+          false,
           0::numeric,
-
-          ROUND(
-            vp.base_currency_amount::numeric,
-            2
-          ),
-
-          NULL::text,
-          NULL::text,
-
-          false
-
+          ROUND(vp.base_currency_amount::numeric, 2)
         FROM vendor_payments vp
-
         WHERE vp.is_deleted = false
-
 
         UNION ALL
 
-
-        /* ----------------------------------------------------------
-           COSTING PAYMENTS
-           ---------------------------------------------------------- */
-
+        /* Costing payments */
         SELECT
           cp.vendor_id,
-
-          CONCAT(
-            'costing_payment_',
-            cp.reference_type
-          ),
-
-          cp.id::text,
-
+          false,
           0::numeric,
-
-          ROUND(
-            cp.base_currency_amount::numeric,
-            2
-          ),
-
-          NULL::text,
-          NULL::text,
-
-          false
-
+          ROUND(cp.base_currency_amount::numeric, 2)
         FROM costing_payments cp
-
         WHERE cp.is_deleted = false
-      ),
-
-      /* ============================================================
-         6. CALCULATE OUTSTANDING DEBIT
-         ============================================================ */
-
-      calculated_entries AS (
-
-        SELECT
-
-          lb.vendor_id,
-
-          /*
-           * Round the original charge to 2 decimals.
-           */
-          ROUND(
-            lb.total_amount::numeric,
-            2
-          ) AS total_amount,
-
-          /*
-           * Calculate payment-adjusted debit.
-           *
-           * IMPORTANT:
-           * Both sides are rounded to 2 decimals before subtraction.
-           *
-           * Anything <= 1 paisa is treated as zero.
-           */
-
-          CASE
-
-            WHEN NOT lb.is_charge
-              THEN 0::numeric
-
-            /* Purchase receipt */
-            WHEN lb.entry_type = 'purchase_receipt' THEN
-
-              CASE
-                WHEN ABS(
-                  ROUND(
-                    lb.total_amount::numeric,
-                    2
-                  )
-                  -
-                  ROUND(
-                    COALESCE(
-                      prp.pr_paid_amount,
-                      0
-                    )::numeric,
-                    2
-                  )
-                ) <= 0.01
-                THEN 0::numeric
-
-                ELSE GREATEST(
-                  ROUND(
-                    lb.total_amount::numeric,
-                    2
-                  )
-                  -
-                  ROUND(
-                    COALESCE(
-                      prp.pr_paid_amount,
-                      0
-                    )::numeric,
-                    2
-                  ),
-                  0
-                )
-              END
-
-            /* Normal costing / vendor charge */
-            ELSE
-
-              CASE
-                WHEN ABS(
-                  ROUND(
-                    lb.total_amount::numeric,
-                    2
-                  )
-                  -
-                  ROUND(
-                    COALESCE(
-                      ps.paid_amount,
-                      0
-                    )::numeric,
-                    2
-                  )
-                ) <= 0.01
-                THEN 0::numeric
-
-                ELSE GREATEST(
-                  ROUND(
-                    lb.total_amount::numeric,
-                    2
-                  )
-                  -
-                  ROUND(
-                    COALESCE(
-                      ps.paid_amount,
-                      0
-                    )::numeric,
-                    2
-                  ),
-                  0
-                )
-              END
-
-          END AS debit,
-
-          ROUND(
-            lb.credit::numeric,
-            2
-          ) AS credit
-
-        FROM ledger_base lb
-
-        LEFT JOIN payment_sums ps
-          ON lb.payment_ref_type = ps.reference_type
-         AND lb.payment_ref_id::integer = ps.reference_id
-
-        LEFT JOIN pr_payment_sums prp
-          ON lb.entry_type = 'purchase_receipt'
-         AND lb.entry_id::integer = prp.pr_id
       )
 
-      /* ============================================================
-         7. FINAL VENDOR SUMMARY
-         ============================================================ */
-
       SELECT
-
         v.id AS vendor_id,
         v.vendor_code AS vendor_code,
         v.brand_name AS brand_name,
@@ -1124,74 +587,33 @@ router.get("/vendor-ledger/summary", requireAuth, async (req, res) => {
         v.contact_no AS contact_no,
         v.is_active AS is_active,
 
-        /* ==========================================================
-           TOTAL DEBITS
-           ========================================================== */
+        /* What should be paid (all charges) */
+        ROUND(
+          COALESCE(SUM(CASE WHEN lb.is_charge THEN lb.total_amount ELSE 0 END), 0),
+          2
+        ) AS total_debits,
 
-        CASE
+        /* What was paid (all payments) */
+        ROUND(
+          COALESCE(SUM(lb.credit), 0),
+          2
+        ) AS total_credits,
 
-          WHEN ABS(
-            COALESCE(
-              SUM(ce.debit),
-              0
-            )
-          ) <= 0.01
+        /* Still owed */
+        ROUND(
+          GREATEST(
+            COALESCE(SUM(CASE WHEN lb.is_charge THEN lb.total_amount ELSE 0 END), 0)
+            - COALESCE(SUM(lb.credit), 0),
+            0
+          ),
+          2
+        ) AS balance_due,
 
-          THEN 0::numeric
-
-          ELSE ROUND(
-            GREATEST(
-              COALESCE(
-                SUM(ce.debit),
-                0
-              ),
-              0
-            ),
-            2
-          )
-
-        END AS total_debits,
-
-        /* ==========================================================
-           TOTAL CREDITS
-           ========================================================== */
-
-        CASE
-
-          WHEN ABS(
-            COALESCE(
-              SUM(ce.credit),
-              0
-            )
-          ) <= 0.01
-
-          THEN 0::numeric
-
-          ELSE ROUND(
-            COALESCE(
-              SUM(ce.credit),
-              0
-            ),
-            2
-          )
-
-        END AS total_credits,
-
-        /* ==========================================================
-           TOTAL ENTRIES
-           ========================================================== */
-
-        COUNT(
-          ce.vendor_id
-        ) AS total_entries
+        COUNT(lb.vendor_id) AS total_entries
 
       FROM vendors v
-
-      LEFT JOIN calculated_entries ce
-        ON ce.vendor_id = v.id
-
+      LEFT JOIN ledger_base lb ON lb.vendor_id = v.id
       WHERE v.is_deleted = false
-
       GROUP BY
         v.id,
         v.vendor_code,
@@ -1200,22 +622,13 @@ router.get("/vendor-ledger/summary", requireAuth, async (req, res) => {
         v.email,
         v.contact_no,
         v.is_active
-
-      ORDER BY
-        v.brand_name ASC
+      ORDER BY v.brand_name ASC
     `);
 
     return res.json(result.rows);
-
   } catch (err) {
-    console.error(
-      "Vendor ledger summary error:",
-      err
-    );
-
-    return res.status(500).json({
-      error: "Failed to load vendor ledger summary"
-    });
+    console.error("Vendor ledger summary error:", err);
+    return res.status(500).json({ error: "Failed to load vendor ledger summary" });
   }
 });
 
@@ -1838,22 +1251,28 @@ router.get("/vendor-ledger/:vendorId/entries", requireAuth, async (req, res) => 
         lb.description,
         lb.order_type,
         lb.order_code,
-        lb.total_amount,
+        ROUND(lb.total_amount::numeric, 2) AS total_amount,   -- force 2 dp
         CASE
           WHEN lb.is_charge THEN
-            lb.total_amount
-            - COALESCE(ps.paid_amount, 0)
-            - CASE
-                WHEN lb.entry_type = 'purchase_receipt'
-                THEN COALESCE(pr_pay.pr_paid_amount, 0)
-                ELSE 0
-              END
+            ROUND(
+              (
+                lb.total_amount
+                - COALESCE(ps.paid_amount, 0)
+                - CASE
+                    WHEN lb.entry_type = 'purchase_receipt'
+                    THEN COALESCE(pr_pay.pr_paid_amount, 0)
+                    ELSE 0
+                  END
+              )::numeric,
+              2
+            )
           ELSE 0
         END AS debit,
-        lb.credit,
-        COALESCE(pts.tds_amount, 0) AS tds_amount,
+        ROUND(COALESCE(lb.credit, 0)::numeric, 2) AS credit,
+        ROUND(COALESCE(pts.tds_amount, 0)::numeric, 2) AS tds_amount,
         CASE
-          WHEN lb.credit > 0 THEN lb.credit - COALESCE(pts.tds_amount, 0)
+          WHEN lb.credit > 0 THEN
+            ROUND((lb.credit - COALESCE(pts.tds_amount, 0))::numeric, 2)
           ELSE 0
         END AS net_paid
       FROM ledger_base lb
@@ -1956,9 +1375,20 @@ function validatePaymentDate(paymentDate: any): void {
 }
 
 function validateAllocationsSum(allocations: any[], totalAmt: number): void {
-  const sumAlloc = allocations.reduce((s: number, a: any) => s + parseFloat(a.amount), 0);
-  if (Math.abs(sumAlloc - totalAmt) > 0.01) {
-    throw new Error("Allocated amounts do not sum to total payment");
+  const sumAlloc = allocations.reduce(
+    (s: number, a: any) => s + parseFloat(String(a.amount || 0)),
+    0
+  );
+
+  // Compare as paise (×100, rounded) so 1-paisa float noise never fails
+  const sumPaise = Math.round(sumAlloc * 100);
+  const totalPaise = Math.round(totalAmt * 100);
+
+  if (Math.abs(sumPaise - totalPaise) > 1) {
+    // allow at most ±0.01 difference
+    throw new Error(
+      `Allocated amounts do not sum to total payment (sum=${sumAlloc.toFixed(2)}, total=${totalAmt.toFixed(2)})`
+    );
   }
 }
 
@@ -3607,7 +3037,7 @@ async function handleToilePayment(
   username: string
 ): Promise<void> {
   const soaRes = await client.query(
-    `SELECT id, artwork_code, swatch_order_id, style_order_id,
+    `SELECT id, artwork_code, style_order_id,
             toile_vendor_id, toile_vendor_name,
             toile_making_cost, toile_cost,
             toil_gst_percentage, toile_payment_amount
