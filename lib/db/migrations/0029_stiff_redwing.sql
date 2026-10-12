@@ -1,0 +1,2 @@
+ALTER TABLE "payment_terms" DROP CONSTRAINT "payment_terms_net_days_positive";--> statement-breakpoint
+ALTER TABLE "payment_terms" ADD CONSTRAINT "payment_terms_net_days_positive" CHECK ("payment_terms"."net_days" >= 0);

@@ -45,6 +45,8 @@ import itemsRouter from "./items";
 import vendorChallansRouter from "./vendorChallans";
 import entityTagsRouter from "./entityTags";
 import tdsMasterRouter from "./tdsMaster";
+import tradingProductsRouter from "./tradingProducts";
+import paymentTermsRouter from "./paymentTerms";
 
 const router: IRouter = Router();
 
@@ -94,5 +96,7 @@ router.use(itemsRouter);
 router.use(vendorChallansRouter);
 router.use(entityTagsRouter);
 router.use(tdsMasterRouter);
+router.use(tradingProductsRouter);
+router.use(paymentTermsRouter);
 
 export default router;

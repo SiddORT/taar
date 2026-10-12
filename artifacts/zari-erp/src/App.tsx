@@ -74,6 +74,15 @@ import VendorChallans from "@/pages/VendorChallans";
 import VendorChallanDetail from "@/pages/VendorChallanDetail";
 import TDSMaster from "@/pages/TDSMaster";
 import VendorLedgerPayment from "@/pages/VendorLedgerPayment";
+import TradingDashboard from "@/pages/TradingDashboard";
+import TradingProducts from "@/pages/TradingProducts";
+import TradingPurchase from "@/pages/TradingPurchase";
+import TradingSales from "@/pages/TradingSales";
+import TradingSalesPricing from "@/pages/TradingSalesPricing";
+import TradingProfit from "@/pages/TradingProfit";
+import TradingReports from "@/pages/TradingReports";
+import TradingProductForm from "@/pages/TradingProductForm";
+import TradingPurchaseForm from "@/pages/TradingPurchaseForm";
 
 import Reports from "@/pages/Reports";
 
@@ -99,6 +108,16 @@ function RootRedirect() {
 function MastersRedirect() {
   const [, setLocation] = useLocation();
   useEffect(() => { setLocation("/masters/hsn"); }, [setLocation]);
+  return null;
+}
+
+function TradingRedirect() {
+  const [, setLocation] = useLocation();
+
+  useEffect(() => {
+    setLocation("/trading/dashboard");
+  }, [setLocation]);
+
   return null;
 }
 
@@ -162,6 +181,18 @@ function Router() {
       <Route path="/inventory/ledger" component={InventoryLedger} />
       <Route path="/inventory/reservations" component={Reservations} />
       <Route path="/inventory/adjustments" component={StockAdjustments} />
+      <Route path="/trading" component={TradingRedirect} />
+      <Route path="/trading/dashboard" component={TradingDashboard} />
+      <Route path="/trading/products" component={TradingProducts} />
+      <Route path="/trading/products/new" component={TradingProductForm} />
+      <Route path="/trading/products/:id/edit" component={TradingProductForm} />
+      <Route path="/trading/purchase" component={TradingPurchase} />
+      <Route path="/trading/purchase/new" component={TradingPurchaseForm} />
+      <Route path="/trading/purchase/:id/edit" component={TradingPurchaseForm} />
+      <Route path="/trading/sales" component={TradingSales} />
+      <Route path="/trading/sales-pricing" component={TradingSalesPricing} />
+      <Route path="/trading/profit" component={TradingProfit} />
+      <Route path="/trading/reports" component={TradingReports} />
       <Route path="/quotation/new" component={QuotationForm} />
       <Route path="/quotation/:id/edit" component={QuotationForm} />
       <Route path="/quotation/:id" component={QuotationDetail} />
