@@ -2,7 +2,6 @@ import { pgTable, serial, varchar, text, integer, numeric, boolean, timestamp, i
 import { z } from "zod/v4";
 import { usersTable } from "./users";
 import { vendorsTable } from "./vendors";
-import { paymentTerms } from "./paymentTerms";
 
 export const tradingPurchaseProduct = pgTable(
   "trading_purchase_product",
@@ -20,7 +19,8 @@ export const tradingPurchaseProduct = pgTable(
     otherCharges: numeric("other_charges", { precision: 14, scale: 2 }).default("0").notNull(),
     transportation: numeric("transportation", { precision: 14, scale: 2 }).default("0").notNull(),
     insurance: numeric("insurance", { precision: 14, scale: 2 }).default("0").notNull(),
-    discount: numeric("discount", { precision: 14, scale: 2 }).default("0").notNull(),
+    discountType: varchar("discount_type", { length: 10 }).default("amount").notNull(), 
+    discount: numeric("discount", { precision: 14, scale: 2 }).default("0").notNull(),   
     remarks: text("remarks"),
     subtotal: numeric("subtotal", { precision: 14, scale: 2 }).default("0").notNull(),
     totalGstAmount: numeric("total_gst_amount", { precision: 14, scale: 2 }).default("0").notNull(),
@@ -60,12 +60,18 @@ const decimalString = z
     message: "Must be a non-negative number",
   });
 
+const DISCOUNT_TYPES = ["percentage", "amount"] as const;
+
 export const purchaseItemSchema = z.object({
   productId: z.union([z.string(), z.number()]).transform(String),
   warehouseId:z .union([z.string(), z.number(), z.null()]) .transform((v) => (v == null || v === "" ? null : String(v))) .optional(),
   size: z.string().max(20).optional().nullable(),
+  colorName: z.string().max(100).optional().nullable(),
+  colorHexCode: z.string().max(10).optional().nullable(),
   quantity: decimalString,
   rate: decimalString,
+  discountType: z.enum(DISCOUNT_TYPES).optional().nullable(), 
+  discountValue: decimalString.default("0"),
   hsnCode: z.string().min(1, "HSN code is required").max(20),
   gstPercentage: decimalString,
   gstAmount: decimalString.optional(),
@@ -86,6 +92,7 @@ export const insertTradingPurchaseSchema = z.object({
   otherCharges: decimalString.default("0"),
   transportation: decimalString.default("0"),
   insurance: decimalString.default("0"),
+  discountType: z.enum(DISCOUNT_TYPES).default("amount"), 
   discount: decimalString.default("0"),
   remarks: z.string().optional().nullable(),
   paidAmount: decimalString.default("0"),

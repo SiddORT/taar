@@ -1,7 +1,10 @@
 import { useState, useEffect } from "react";
 import { useLocation, useParams } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Upload, FileText, Receipt, Save, Plus as PlusIcon, Trash2, Calculator, Building2, CreditCard, Paperclip, Loader2, X, ZoomIn, } from "lucide-react";
+import {
+  ArrowLeft, Upload, FileText, Receipt, Save, Plus as PlusIcon, Trash2,
+  Calculator, Building2, CreditCard, Paperclip, Loader2, X, ZoomIn,
+} from "lucide-react";
 import { useGetMe, useLogout, getGetMeQueryKey } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -21,18 +24,21 @@ import {
   type ExistingAttachmentPayload,
 } from "@/hooks/useTradingPurchases";
 import { mediaUrl } from "@/utils/mediaUrl";
-import { useWarehouseLocations } from "@/hooks/useWarehouseLocations";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type FormErrors = Partial<Record<string, string>>;
+type DiscountType = "percentage" | "amount";
 
 interface PurchaseItem {
   id: string;
   productId: string;
-  warehouseId: string;
   size: string;
+  colorName: string;
+  colorHexCode: string;
   quantity: number;
   rate: number;
+  discountType: DiscountType;
+  discountValue: number;
   hsnCode: string;
   gstPercentage: number;
   gstAmount: number;
@@ -53,6 +59,7 @@ interface FormState {
   otherCharges: number;
   transportation: number;
   insurance: number;
+  discountType: DiscountType;
   discount: number;
   remarks: string;
   paidAmount: number;
@@ -61,9 +68,9 @@ interface FormState {
 
 interface AttachmentItem {
   id: string;
-  file?: File;              
-  imagePath?: string;       
-  previewUrl: string;       
+  file?: File;
+  imagePath?: string;
+  previewUrl: string;
   isImage: boolean;
   originalName: string;
   mimeType: string;
@@ -79,10 +86,13 @@ const newId = () => Math.random().toString(36).slice(2);
 const EMPTY_ITEM: PurchaseItem = {
   id: newId(),
   productId: "",
-  warehouseId: "",
   size: "",
+  colorName: "",
+  colorHexCode: "",
   quantity: 0,
   rate: 0,
+  discountType: "amount",
+  discountValue: 0,
   hsnCode: "",
   gstPercentage: 0,
   gstAmount: 0,
@@ -103,6 +113,7 @@ const EMPTY_FORM: FormState = {
   otherCharges: 0,
   transportation: 0,
   insurance: 0,
+  discountType: "amount",
   discount: 0,
   remarks: "",
   paidAmount: 0,
@@ -209,10 +220,6 @@ export default function TradingPurchaseForm() {
     search: "", status: "all", page: 1, limit: 100,
   });
 
-  const { data: warehouses = [], isLoading: loadingWarehouses } = useWarehouseLocations();
-
-  const warehouseOptions = (warehouses ?? []) .filter((w) => w.isActive) .map((w) => ({ value: String(w.id), label: w.name, }));
-
   // ── Existing purchase (edit mode) ──
   const { data: existing, isLoading: loadingRecord } = useTradingPurchase(numId);
 
@@ -238,10 +245,13 @@ export default function TradingPurchaseForm() {
         ? (existing.items ?? []).map((it) => ({
             id: newId(),
             productId: String(it.productId ?? ""),
-            warehouseId: it.warehouseId != null ? String(it.warehouseId) : "", 
             size: it.size?.trim() ?? "",
+            colorName: it.colorName?.trim() ?? "",
+            colorHexCode: it.colorHexCode ?? "",
             quantity: parseFloat(it.quantity) || 0,
             rate: parseFloat(it.rate) || 0,
+            discountType: (it.discountType === "percentage" ? "percentage" : "amount") as DiscountType,
+            discountValue: parseFloat(it.discountValue ?? "0") || 0,
             hsnCode: it.hsnCode?.trim() ?? "",
             gstPercentage: parseFloat(it.gstPercentage) || 0,
             gstAmount: parseFloat(it.gstAmount) || 0,
@@ -252,6 +262,7 @@ export default function TradingPurchaseForm() {
       otherCharges: parseFloat(existing.otherCharges) || 0,
       transportation: parseFloat(existing.transportation) || 0,
       insurance: parseFloat(existing.insurance) || 0,
+      discountType: (existing.discountType === "percentage" ? "percentage" : "amount") as DiscountType,
       discount: parseFloat(existing.discount) || 0,
       remarks: existing.remarks?.trim() ?? "",
       paidAmount: parseFloat(existing.paidAmount) || 0,
@@ -274,7 +285,7 @@ export default function TradingPurchaseForm() {
     );
 
     setPopulated(true);
-}, [existing, isNew, populated, loadingProducts]);
+  }, [existing, isNew, populated]);
 
   useEffect(() => {
     return () => {
@@ -301,20 +312,36 @@ export default function TradingPurchaseForm() {
 
   const selectedVendor = vendorsData?.data.find((v) => String(v.id) === form.vendorId);
 
-  // Dynamic Calculations
+  // Helper: find a product in the loaded list (for per-row colour/size)
+  const findProduct = (productId: string) =>
+    productsData?.data?.find((p) => String(p.id) === productId);
+
+  // Dynamic Calculations — per line
   const itemTotals = form.items.map((item) => {
     const gross = item.quantity * item.rate;
-    const gstAmt = gross * ((item.gstPercentage || 0) / 100);
-    const netAmount = gross + gstAmt;
-    return { gross, gstAmount: gstAmt, amount: netAmount };
+    const lineDiscount =
+      item.discountType === "percentage"
+        ? gross * ((item.discountValue || 0) / 100)
+        : (item.discountValue || 0);
+    const taxableLine = Math.max(0, gross - lineDiscount);
+    const gstAmount = taxableLine * ((item.gstPercentage || 0) / 100);
+    const amount = taxableLine + gstAmount;
+    return { gross, lineDiscount, taxableLine, gstAmount, amount };
   });
 
-  const subtotal = itemTotals.reduce((sum, item) => sum + item.gross, 0);
-  const totalGst = itemTotals.reduce((sum, item) => sum + item.gstAmount, 0);
+  const subtotal = itemTotals.reduce((s, t) => s + t.gross, 0);
+  const totalLineDiscount = itemTotals.reduce((s, t) => s + t.lineDiscount, 0);
+  const totalGst = itemTotals.reduce((s, t) => s + t.gstAmount, 0);
   const totalOtherCharges =
     form.freight + form.otherCharges + form.transportation + form.insurance;
 
-  const taxableAmount = Math.max(0, subtotal - form.discount);
+  const afterLineDiscount = Math.max(0, subtotal - totalLineDiscount);
+  const headerDiscountAmt =
+    form.discountType === "percentage"
+      ? afterLineDiscount * ((form.discount || 0) / 100)
+      : (form.discount || 0);
+
+  const taxableAmount = Math.max(0, afterLineDiscount - headerDiscountAmt);
   const grandTotal = taxableAmount + totalGst + totalOtherCharges;
   const balanceAmount = grandTotal - form.paidAmount;
 
@@ -333,14 +360,38 @@ export default function TradingPurchaseForm() {
     const newItems = [...form.items];
     const item = { ...newItems[index], [field]: value };
 
+    // ── Product changed → reset dependent variant fields ──
+    if (field === "productId") {
+      const product = findProduct(String(value));
+      item.colorName = "";
+      item.colorHexCode = "";
+      item.size = "";
+
+      // Optional convenience: pre-select when there's only one option
+      if (product?.colors?.length === 1) {
+        item.colorName = product.colors[0].colorName;
+        item.colorHexCode = product.colors[0].hexCode;
+      }
+      if (product?.sizes?.length === 1) {
+        item.size = product.sizes[0];
+      }
+    }
+
+    // ── HSN changed → autofill GST ──
     if (field === "hsnCode") {
       const hsn = hsnOptions.find((o) => o.value === value);
       item.gstPercentage = hsn ? hsn.gstPercentage : 0;
     }
 
+    // ── Recompute totals ──
     const gross = item.quantity * item.rate;
-    item.gstAmount = gross * ((item.gstPercentage || 0) / 100);
-    item.amount = gross + item.gstAmount;
+    const lineDiscount =
+      item.discountType === "percentage"
+        ? gross * ((item.discountValue || 0) / 100)
+        : (item.discountValue || 0);
+    const taxableLine = Math.max(0, gross - lineDiscount);
+    item.gstAmount = taxableLine * ((item.gstPercentage || 0) / 100);
+    item.amount = taxableLine + item.gstAmount;
 
     newItems[index] = item;
     setField("items", newItems);
@@ -430,8 +481,8 @@ export default function TradingPurchaseForm() {
     if (!form.vendorId) newErrors.vendorId = "Vendor is required";
     if (!form.purchaseDate) newErrors.purchaseDate = "Purchase Date is required";
     if (!form.paymentTermId) newErrors.paymentTermId = "Payment Terms is required";
-    if (form.items.some((i) => !i.productId || i.quantity <= 0 || !i.hsnCode || !i.warehouseId)) {
-      newErrors.items = "All items must have a product, warehouse, HSN code, and quantity > 0";
+    if (form.items.some((i) => !i.productId || i.quantity <= 0 || !i.hsnCode)) {
+      newErrors.items = "All items must have a product, HSN code, and quantity > 0";
     }
 
     if (Object.keys(newErrors).length > 0) {
@@ -445,15 +496,18 @@ export default function TradingPurchaseForm() {
       vendorId: form.vendorId,
       vendorInvoiceNumber: form.vendorInvoiceNumber.trim() || null,
       supplierPoNumber: form.supplierPoNumber.trim() || null,
-      paymentTermId: form.paymentTermId ? Number(form.paymentTermId) : null,   
+      paymentTermId: form.paymentTermId ? Number(form.paymentTermId) : null,
       dueDate: form.dueDate || null,
       notes: form.notes.trim() || null,
       items: form.items.map((i) => ({
         productId: i.productId,
-        warehouseId: i.warehouseId || null, 
         size: i.size || null,
+        colorName: i.colorName.trim() || null,
+        colorHexCode: i.colorHexCode.trim() || null,
         quantity: i.quantity,
         rate: i.rate,
+        discountType: i.discountType,
+        discountValue: i.discountValue || 0,
         hsnCode: i.hsnCode,
         gstPercentage: i.gstPercentage,
       })),
@@ -461,6 +515,7 @@ export default function TradingPurchaseForm() {
       otherCharges: form.otherCharges,
       transportation: form.transportation,
       insurance: form.insurance,
+      discountType: form.discountType,
       discount: form.discount,
       remarks: form.remarks.trim() || null,
       paidAmount: form.paidAmount,
@@ -623,7 +678,7 @@ export default function TradingPurchaseForm() {
                 <SearchableSelect
                   value={
                     paymentTermsData?.data.find((pt) => String(pt.id) === String(form.paymentTermId))?.description
-                    ?? "" 
+                    ?? ""
                   }
                   onChange={(val) => {
                     const match = paymentTermsData?.data.find((pt) => pt.description === val);
@@ -709,11 +764,11 @@ export default function TradingPurchaseForm() {
                           className="relative group rounded-lg border border-gray-200 bg-white aspect-square overflow-hidden shadow-sm"
                         >
                           {a.isImage ? (
-                              <img
-                                src={resolveAttachmentSrc(a)}
-                                alt={a.originalName}
-                                className="w-full h-full object-cover"
-                              />
+                            <img
+                              src={resolveAttachmentSrc(a)}
+                              alt={a.originalName}
+                              className="w-full h-full object-cover"
+                            />
                           ) : (
                             <div className="w-full h-full flex flex-col items-center justify-center bg-red-50/60 px-1">
                               <FileText size={16} className="text-red-500 mb-0.5" />
@@ -795,27 +850,39 @@ export default function TradingPurchaseForm() {
           {errors.items && <p className="text-xs text-red-500 mb-3">{errors.items}</p>}
 
           <div className="overflow-x-auto rounded-xl border border-gray-200">
-            <table className="w-full text-xs text-left min-w-[900px]">
+            <table className="w-full text-xs text-left min-w-[1100px]">
               <thead className="bg-gray-50 text-cyan-900 font-semibold border-b border-gray-200">
                 <tr>
                   <th className="px-3 py-3 w-10 text-center">#</th>
-                  <th className="px-3 py-3 min-w-[180px]">Product <span className="text-red-500">*</span></th>
-                  <th className="px-3 py-3 w-40">Warehouse</th>
+                  <th className="px-3 py-3 min-w-[170px]">Product <span className="text-red-500">*</span></th>
+                  <th className="px-3 py-3 w-32">Colour</th>
                   <th className="px-3 py-3 w-28">Size <span className="text-red-500">*</span></th>
                   <th className="px-3 py-3 w-24">Quantity <span className="text-red-500">*</span></th>
-                  <th className="px-3 py-3 w-32">Purchase Rate ({currency.symbol}) <span className="text-red-500">*</span></th>
-                  <th className="px-3 py-3 w-44">HSN / GST <span className="text-red-500">*</span></th>
-                  <th className="px-3 py-3 w-28 text-right">GST Amount ({currency.symbol})</th>
-                  <th className="px-3 py-3 w-28 text-right">Amount ({currency.symbol})</th>
+                  <th className="px-3 py-3 w-32">Rate ({currency.symbol}) <span className="text-red-500">*</span></th>
+                  <th className="px-3 py-3 w-40">Discount</th>
+                  <th className="px-3 py-3 w-40">HSN / GST <span className="text-red-500">*</span></th>
+                  <th className="px-3 py-3 w-28 text-right">GST Amount</th>
+                  <th className="px-3 py-3 w-28 text-right">Amount</th>
                   <th className="px-3 py-3 w-12 text-center">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {form.items.map((item, index) => {
                   const calculated = itemTotals[index];
+                  const product = findProduct(item.productId);
+
+                  const colorOptions = (product?.colors ?? []).map((c) => ({
+                    value: c.colorName,
+                    label: c.colorName,
+                  }));
+
+                  const sizeOptions = product?.sizes?.length ? product.sizes : STANDARD_SIZES;
+
                   return (
                     <tr key={item.id} className="hover:bg-gray-50/50">
                       <td className="px-3 py-2.5 text-center text-gray-400">{index + 1}</td>
+
+                      {/* Product */}
                       <td className="px-3 py-2.5">
                         <SearchableSelect
                           value={
@@ -831,24 +898,48 @@ export default function TradingPurchaseForm() {
                           disabled={loadingProducts}
                         />
                       </td>
+
+                      {/* Colour — driven by selected product */}
                       <td className="px-3 py-2.5">
-                        <SmallSearchSelect
-                          value={item.warehouseId}
-                          onChange={(v) => handleItemChange(index, "warehouseId", v)}
-                          options={warehouseOptions}
-                          placeholder={loadingWarehouses ? "Loading..." : "Select Warehouse"}
-                          disabled={loadingWarehouses}
-                          clearable
-                        />
+                        {!product?.hasColors || colorOptions.length === 0 ? (
+                          <input
+                            type="text"
+                            value={item.colorName}
+                            onChange={(e) => handleItemChange(index, "colorName", e.target.value)}
+                            placeholder="Colour"
+                            className={inputCls}
+                          />
+                        ) : (
+                          <SmallSearchSelect
+                            value={item.colorName}
+                            onChange={(v) => {
+                              const selected = product.colors.find((c) => c.colorName === v);
+                              const newItems = [...form.items];
+                              newItems[index] = {
+                                ...newItems[index],
+                                colorName: selected?.colorName ?? "",
+                                colorHexCode: selected?.hexCode ?? "",
+                              };
+                              setField("items", newItems);
+                            }}
+                            options={colorOptions}
+                            placeholder="Select"
+                            clearable
+                          />
+                        )}
                       </td>
+
+                      {/* Size */}
                       <td className="px-3 py-2.5">
                         <SearchableSelect
                           value={item.size}
                           onChange={(v) => handleItemChange(index, "size", v)}
-                          options={STANDARD_SIZES}
+                          options={sizeOptions}
                           placeholder="Size"
                         />
                       </td>
+
+                      {/* Quantity */}
                       <td className="px-3 py-2.5">
                         <input
                           type="number"
@@ -857,6 +948,8 @@ export default function TradingPurchaseForm() {
                           className={inputRightCls}
                         />
                       </td>
+
+                      {/* Rate */}
                       <td className="px-3 py-2.5">
                         <input
                           type="number"
@@ -865,6 +958,29 @@ export default function TradingPurchaseForm() {
                           className={inputRightCls}
                         />
                       </td>
+
+                      {/* Per-line discount */}
+                      <td className="px-3 py-2.5">
+                        <div className="flex gap-1">
+                          <select
+                            value={item.discountType}
+                            onChange={(e) => handleItemChange(index, "discountType", e.target.value as DiscountType)}
+                            className="w-14 border border-gray-300 rounded-lg px-1 py-1.5 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-cyan-900"
+                          >
+                            <option value="amount">Flat</option>
+                            <option value="percentage">Percent</option>
+                          </select>
+                          <input
+                            type="number"
+                            value={item.discountValue || ""}
+                            onChange={(e) => handleItemChange(index, "discountValue", parseFloat(e.target.value) || 0)}
+                            placeholder="0"
+                            className={inputRightCls}
+                          />
+                        </div>
+                      </td>
+
+                      {/* HSN / GST */}
                       <td className="px-3 py-2.5">
                         <SmallSearchSelect
                           value={item.hsnCode}
@@ -917,9 +1033,26 @@ export default function TradingPurchaseForm() {
               <FieldWrap label={`Other Charges (${currency.symbol})`}>
                 <input type="number" value={form.otherCharges || ""} onChange={(e) => setField("otherCharges", parseFloat(e.target.value) || 0)} className={inputRightCls} />
               </FieldWrap>
-              <FieldWrap label={`Discount (${currency.symbol})`}>
-                <input type="number" value={form.discount || ""} onChange={(e) => setField("discount", parseFloat(e.target.value) || 0)} className={inputRightCls} />
+
+              <FieldWrap label="Discount">
+                <div className="flex gap-1">
+                  <select
+                    value={form.discountType}
+                    onChange={(e) => setField("discountType", e.target.value as DiscountType)}
+                    className="w-16 border border-gray-300 rounded-lg px-1.5 py-2 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-cyan-900"
+                  >
+                    <option value="amount">Flat</option>
+                    <option value="percentage">Percent</option>
+                  </select>
+                  <input
+                    type="number"
+                    value={form.discount || ""}
+                    onChange={(e) => setField("discount", parseFloat(e.target.value) || 0)}
+                    className={inputRightCls}
+                  />
+                </div>
               </FieldWrap>
+
               <FieldWrap label={`Transportation (${currency.symbol})`}>
                 <input type="number" value={form.transportation || ""} onChange={(e) => setField("transportation", parseFloat(e.target.value) || 0)} className={inputRightCls} />
               </FieldWrap>
@@ -935,12 +1068,38 @@ export default function TradingPurchaseForm() {
           <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
             <SectionHeader icon={Receipt} title="Purchase Summary" />
             <div className="space-y-2.5 text-xs">
-              <div className="flex justify-between text-gray-500"><span>Subtotal</span><span className="font-medium text-cyan-900 tabular-nums">{fmt(subtotal)}</span></div>
-              <div className="flex justify-between text-gray-500"><span>Discount</span><span className="font-medium text-red-500 tabular-nums">{fmt(form.discount)}</span></div>
-              <div className="flex justify-between text-gray-500"><span>Other Charges</span><span className="font-medium text-cyan-900 tabular-nums">{fmt(totalOtherCharges)}</span></div>
-              <div className="flex justify-between text-gray-500 border-t border-gray-100 pt-2"><span>Taxable Amount</span><span className="font-medium text-cyan-900 tabular-nums">{fmt(taxableAmount)}</span></div>
-              <div className="flex justify-between text-gray-500"><span>GST Amount</span><span className="font-medium text-cyan-900 tabular-nums">{fmt(totalGst)}</span></div>
-              <div className="flex justify-between text-gray-500"><span>TDS Amount</span><span className="font-medium text-cyan-900 tabular-nums">{fmt(0)}</span></div>
+              <div className="flex justify-between text-gray-500">
+                <span>Subtotal</span>
+                <span className="font-medium text-cyan-900 tabular-nums">{fmt(subtotal)}</span>
+              </div>
+              <div className="flex justify-between text-gray-500">
+                <span>Line Discount</span>
+                <span className="font-medium text-red-500 tabular-nums">-{fmt(totalLineDiscount)}</span>
+              </div>
+              <div className="flex justify-between text-gray-500 border-t border-gray-100 pt-2">
+                <span>After Line Discount</span>
+                <span className="font-medium text-cyan-900 tabular-nums">{fmt(afterLineDiscount)}</span>
+              </div>
+              <div className="flex justify-between text-gray-500">
+                <span>Discount {form.discountType === "percentage" ? `(${form.discount}%)` : ""}</span>
+                <span className="font-medium text-red-500 tabular-nums">-{fmt(headerDiscountAmt)}</span>
+              </div>
+              <div className="flex justify-between text-gray-500">
+                <span>Other Charges</span>
+                <span className="font-medium text-cyan-900 tabular-nums">{fmt(totalOtherCharges)}</span>
+              </div>
+              <div className="flex justify-between text-gray-500 border-t border-gray-100 pt-2">
+                <span>Taxable Amount</span>
+                <span className="font-medium text-cyan-900 tabular-nums">{fmt(taxableAmount)}</span>
+              </div>
+              <div className="flex justify-between text-gray-500">
+                <span>GST Amount</span>
+                <span className="font-medium text-cyan-900 tabular-nums">{fmt(totalGst)}</span>
+              </div>
+              <div className="flex justify-between text-gray-500">
+                <span>TDS Amount</span>
+                <span className="font-medium text-cyan-900 tabular-nums">{fmt(0)}</span>
+              </div>
               <div className="flex justify-between border-t border-gray-200 pt-3 mt-1 text-sm">
                 <span className="font-bold text-cyan-900">Grand Total</span>
                 <span className="font-bold text-cyan-900 tabular-nums">{fmt(grandTotal)}</span>
@@ -951,7 +1110,7 @@ export default function TradingPurchaseForm() {
           <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
             <SectionHeader icon={CreditCard} title="Payment Details" />
             <div className="space-y-3">
-              <FieldWrap label={`Paid Amount (${currency.symbol})`} >
+              <FieldWrap label={`Paid Amount (${currency.symbol})`}>
                 <input
                   type="text"
                   value={fmt(form.paidAmount)}

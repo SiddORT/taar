@@ -1,5 +1,5 @@
 import { db, eq, and, ilike, sql, desc, inArray } from "@workspace/db";
-import { tradingPurchaseProduct, tradingPurchaseProductItems, tradingPurchaseProductImages, vendorsTable, usersTable, warehouseLocations, type InsertTradingPurchase, } from "@workspace/db";
+import { tradingPurchaseProduct, tradingPurchaseProductItems, tradingPurchaseProductImages, vendorsTable, usersTable, type InsertTradingPurchase, } from "@workspace/db";
 import { uploadFile, deleteUpload, type UploadOptions } from "../utils/uploadHelper";
 import { syncProductSizes } from "./tradingProductsService";
 
@@ -37,12 +37,26 @@ export async function generatePurchaseNumber(): Promise<string> {
 
 // ─── Recompute Totals ─────────────────────────────────────────────────────────
 function computeTotals(
-  items: Array<{ quantity: string; rate: string; gstPercentage: string }>,
-  charges: { freight: string; otherCharges: string; transportation: string; insurance: string; discount: string },
+  items: Array<{
+    quantity: string;
+    rate: string;
+    gstPercentage: string;
+    discountType?: string | null;
+    discountValue?: string | null;
+  }>,
+  charges: {
+    freight: string;
+    otherCharges: string;
+    transportation: string;
+    insurance: string;
+    discountType: string;
+    discount: string;
+  },
   paidAmount: string
 ) {
   let subtotal = 0;
   let totalGst = 0;
+  let totalLineDiscount = 0;
 
   const processedItems = items.map((i) => {
     const qty = parseFloat(i.quantity) || 0;
@@ -50,17 +64,29 @@ function computeTotals(
     const gstPct = parseFloat(i.gstPercentage) || 0;
 
     const gross = qty * rate;
-    const gstAmt = +(gross * (gstPct / 100)).toFixed(2);
-    const lineTotal = +(gross + gstAmt).toFixed(2);
+
+    // Per-line discount
+    const lineDiscountType = i.discountType ?? "amount";
+    const lineDiscountValue = parseFloat(i.discountValue ?? "0") || 0;
+    const lineDiscountAmt =
+      lineDiscountType === "percentage"
+        ? +(gross * (lineDiscountValue / 100)).toFixed(2)
+        : +lineDiscountValue.toFixed(2);
+
+    const taxableLine = Math.max(0, gross - lineDiscountAmt);
+    const gstAmt = +(taxableLine * (gstPct / 100)).toFixed(2);
+    const lineTotal = +(taxableLine + gstAmt).toFixed(2);
 
     subtotal += gross;
+    totalLineDiscount += lineDiscountAmt;
     totalGst += gstAmt;
 
-    return { gross, gstAmt, lineTotal };
+    return { gross, lineDiscountAmt, taxableLine, gstAmt, lineTotal };
   });
 
   subtotal = +subtotal.toFixed(2);
   totalGst = +totalGst.toFixed(2);
+  totalLineDiscount = +totalLineDiscount.toFixed(2);
 
   const otherChargesSum =
     (parseFloat(charges.freight) || 0) +
@@ -68,8 +94,16 @@ function computeTotals(
     (parseFloat(charges.transportation) || 0) +
     (parseFloat(charges.insurance) || 0);
 
-  const discount = parseFloat(charges.discount) || 0;
-  const taxableAmount = +(subtotal - discount).toFixed(2);
+  // Header-level discount
+  const afterLineDiscount = +(subtotal - totalLineDiscount).toFixed(2);
+  const headerDiscountType = charges.discountType ?? "amount";
+  const headerDiscountValue = parseFloat(charges.discount) || 0;
+  const headerDiscountAmt =
+    headerDiscountType === "percentage"
+      ? +(afterLineDiscount * (headerDiscountValue / 100)).toFixed(2)
+      : +headerDiscountValue.toFixed(2);
+
+  const taxableAmount = Math.max(0, +(afterLineDiscount - headerDiscountAmt).toFixed(2));
   const grandTotal = +(taxableAmount + totalGst + otherChargesSum).toFixed(2);
   const paid = parseFloat(paidAmount) || 0;
   const balanceAmount = +(grandTotal - paid).toFixed(2);
@@ -77,8 +111,10 @@ function computeTotals(
   return {
     processedItems,
     subtotal,
+    totalLineDiscount,
     totalGst,
     otherCharges: +otherChargesSum.toFixed(2),
+    headerDiscountAmt,
     taxableAmount,
     grandTotal,
     paidAmount: paid,
@@ -86,7 +122,7 @@ function computeTotals(
   };
 }
 
-// ─── Load User Summaries ──────────────────────────────────────────────────────
+// ─── Load user summaries ──────────────────────────────────────────────────────
 async function loadUsers(ids: (number | null | undefined)[]) {
   const validIds = [...new Set(ids.filter((id): id is number => id != null))];
   if (validIds.length === 0) return new Map();
@@ -152,26 +188,19 @@ export async function listTradingPurchases(params: {
   const purchaseIds = rows.map(r => r.id);
   const vendorIds = [...new Set(rows.map(r => r.vendorId))];
 
-  const [vendorRows, items, images, userMap, warehouseRows] = await Promise.all([
+  const [vendorRows, items, images, userMap] = await Promise.all([
     db.select().from(vendorsTable).where(inArray(vendorsTable.id, vendorIds)),
     db.select().from(tradingPurchaseProductItems).where(inArray(tradingPurchaseProductItems.purchaseId, purchaseIds)),
     db.select().from(tradingPurchaseProductImages).where(inArray(tradingPurchaseProductImages.tradingPurchaseProductId, purchaseIds)),
     loadUsers(rows.flatMap(r => [r.createdBy, r.updatedBy])),
-    db.select().from(warehouseLocations),
   ]);
 
   const vendorMap = new Map(vendorRows.map(v => [v.id, v]));
-  const warehouseMap = new Map(warehouseRows.map(w => [w.id, w]));
-
-  const itemMap = new Map<number, Array<typeof items[number] & { warehouse: typeof warehouseRows[number] | null }>>();
+  const itemMap = new Map<number, typeof items>();
   items.forEach(i => {
     if (!itemMap.has(i.purchaseId)) itemMap.set(i.purchaseId, []);
-    itemMap.get(i.purchaseId)!.push({
-      ...i,
-      warehouse: i.warehouseId ? warehouseMap.get(i.warehouseId) ?? null : null,
-    });
+    itemMap.get(i.purchaseId)!.push(i);
   });
-
   const imageMap = new Map<number, typeof images>();
   images.forEach(img => {
     if (!imageMap.has(img.tradingPurchaseProductId)) imageMap.set(img.tradingPurchaseProductId, []);
@@ -207,19 +236,10 @@ export async function getTradingPurchaseById(id: number) {
     loadUsers([purchase.createdBy, purchase.updatedBy]),
   ]);
 
-  const warehouseIds = [...new Set(items.map(i => i.warehouseId).filter((x): x is number => x != null))];
-  const warehouseRows = warehouseIds.length
-    ? await db.select().from(warehouseLocations).where(inArray(warehouseLocations.id, warehouseIds))
-    : [];
-  const warehouseMap = new Map(warehouseRows.map(w => [w.id, w]));
-
   return {
     ...purchase,
     vendor: vendorRow[0] ?? null,
-    items: items.map(i => ({
-      ...i,
-      warehouse: i.warehouseId ? warehouseMap.get(i.warehouseId) ?? null : null,   
-    })),
+    items,
     attachments: images.sort((a, b) => a.displayOrder - b.displayOrder),
     createdByUser: userMap.get(purchase.createdBy) ?? null,
     updatedByUser: purchase.updatedBy ? userMap.get(purchase.updatedBy) ?? null : null,
@@ -238,12 +258,15 @@ export async function createTradingPurchase(
       quantity: String(i.quantity),
       rate: String(i.rate),
       gstPercentage: String(i.gstPercentage),
+      discountType: i.discountType ?? null,
+      discountValue: i.discountValue ?? "0",
     })),
     {
       freight: String(input.freight ?? "0"),
       otherCharges: String(input.otherCharges ?? "0"),
       transportation: String(input.transportation ?? "0"),
       insurance: String(input.insurance ?? "0"),
+      discountType: input.discountType ?? "amount",
       discount: String(input.discount ?? "0"),
     },
     String(input.paidAmount ?? "0")
@@ -266,6 +289,7 @@ export async function createTradingPurchase(
         otherCharges: String(input.otherCharges ?? "0"),
         transportation: String(input.transportation ?? "0"),
         insurance: String(input.insurance ?? "0"),
+        discountType: input.discountType ?? "amount",
         discount: String(input.discount ?? "0"),
         remarks: input.remarks ?? null,
 
@@ -282,18 +306,21 @@ export async function createTradingPurchase(
       })
       .returning();
 
-    if (input.items.length > 0) {
-      // ── Sync any new sizes into the master ──
-      await syncProductSizes(tx, input.items);
+    // Sync sizes into the master table (handles new product+size pairs)
+    await syncProductSizes(tx, input.items);
 
+    if (input.items.length > 0) {
       await tx.insert(tradingPurchaseProductItems).values(
         input.items.map((i, idx) => ({
           purchaseId: purchase.id,
           productId: Number(i.productId),
-          warehouseId: i.warehouseId ? Number(i.warehouseId) : 1,
           size: i.size ?? null,
+          colorName: i.colorName ?? null,
+          colorHexCode: i.colorHexCode ?? null,
           quantity: String(i.quantity),
           rate: String(i.rate),
+          discountType: i.discountType ?? null,
+          discountValue: String(i.discountValue ?? "0"),
           hsnCode: String(i.hsnCode),
           gstPercentage: String(i.gstPercentage),
           gstAmount: totals.processedItems[idx].gstAmt.toFixed(2),
@@ -349,8 +376,12 @@ export async function updateTradingPurchase(
     : existingItems.map(i => ({
         productId: String(i.productId),
         size: i.size ?? undefined,
+        colorName: i.colorName ?? undefined,
+        colorHexCode: i.colorHexCode ?? undefined,
         quantity: i.quantity,
         rate: i.rate,
+        discountType: i.discountType ?? undefined,
+        discountValue: i.discountValue ?? undefined,
         hsnCode: i.hsnCode,
         gstPercentage: i.gstPercentage,
       }));
@@ -360,12 +391,15 @@ export async function updateTradingPurchase(
       quantity: String(i.quantity),
       rate: String(i.rate),
       gstPercentage: String(i.gstPercentage),
+      discountType: i.discountType ?? null,
+      discountValue: i.discountValue ?? "0",
     })),
     {
       freight: String(input.freight ?? existing.freight),
       otherCharges: String(input.otherCharges ?? existing.otherCharges),
       transportation: String(input.transportation ?? existing.transportation),
       insurance: String(input.insurance ?? existing.insurance),
+      discountType: input.discountType ?? existing.discountType ?? "amount",
       discount: String(input.discount ?? existing.discount),
     },
     String(input.paidAmount ?? existing.paidAmount)
@@ -395,6 +429,7 @@ export async function updateTradingPurchase(
         otherCharges: String(input.otherCharges ?? existing.otherCharges),
         transportation: String(input.transportation ?? existing.transportation),
         insurance: String(input.insurance ?? existing.insurance),
+        discountType: input.discountType ?? existing.discountType ?? "amount",
         discount: String(input.discount ?? existing.discount),
         remarks: input.remarks !== undefined ? input.remarks : existing.remarks,
 
@@ -416,20 +451,21 @@ export async function updateTradingPurchase(
     if (!purchase) return null;
 
     if (input.items !== undefined) {
+      await syncProductSizes(tx, input.items);
+
       await tx.delete(tradingPurchaseProductItems).where(eq(tradingPurchaseProductItems.purchaseId, id));
       if (input.items.length > 0) {
-        
-        // ── Sync any new sizes into the master ──
-        await syncProductSizes(tx, input.items);
-
         await tx.insert(tradingPurchaseProductItems).values(
           input.items.map((i, idx) => ({
             purchaseId: id,
             productId: Number(i.productId),
-            warehouseId: i.warehouseId ? Number(i.warehouseId) : 1,
             size: i.size ?? null,
+            colorName: i.colorName ?? null,
+            colorHexCode: i.colorHexCode ?? null,
             quantity: String(i.quantity),
             rate: String(i.rate),
+            discountType: i.discountType ?? null,
+            discountValue: String(i.discountValue ?? "0"),
             hsnCode: String(i.hsnCode),
             gstPercentage: String(i.gstPercentage),
             gstAmount: totals.processedItems[idx].gstAmt.toFixed(2),

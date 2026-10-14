@@ -8,10 +8,13 @@ export interface PurchaseItemRecord {
   id: number;
   purchaseId: number;
   productId: number;
-  warehouseId: number | null;              
   size: string | null;
+  colorName: string | null;
+  colorHexCode: string | null;
   quantity: string;
   rate: string;
+  discountType: "percentage" | "amount" | null;
+  discountValue: string;
   hsnCode: string;
   gstPercentage: string;
   gstAmount: string;
@@ -70,6 +73,7 @@ export interface TradingPurchaseRecord {
   otherCharges: string;
   transportation: string;
   insurance: string;
+  discountType: "percentage" | "amount";
   discount: string;
   remarks: string | null;
   subtotal: string;
@@ -118,8 +122,12 @@ export interface PurchaseFormPayload {
     productId: string | number;
     warehouseId?: string | number | null;
     size?: string | null;
+    colorName?: string | null;      
+    colorHexCode?: string | null; 
     quantity: number | string;
     rate: number | string;
+    discountType?: "percentage" | "amount" | null;  
+    discountValue?: number | string;
     hsnCode: string;
     gstPercentage: number | string;
   }>;
@@ -127,6 +135,7 @@ export interface PurchaseFormPayload {
   otherCharges?: number | string;
   transportation?: number | string;
   insurance?: number | string;
+  discountType?: "percentage" | "amount";  
   discount?: number | string;
   remarks?: string | null;
   paidAmount?: number | string;
@@ -204,12 +213,13 @@ export function useCreateTradingPurchase() {
       // items — flat notation matching the backend
       data.items.forEach((it, idx) => {
         fd.append(`items[${idx}][productId]`, String(it.productId));
-        if (it.warehouseId != null && it.warehouseId !== "") {
-          fd.append(`items[${idx}][warehouseId]`, String(it.warehouseId));
-        }
         if (it.size) fd.append(`items[${idx}][size]`, it.size);
+        if (it.colorName) fd.append(`items[${idx}][colorName]`, it.colorName);
+        if (it.colorHexCode) fd.append(`items[${idx}][colorHexCode]`, it.colorHexCode);
         fd.append(`items[${idx}][quantity]`, String(it.quantity));
         fd.append(`items[${idx}][rate]`, String(it.rate));
+        if (it.discountType) fd.append(`items[${idx}][discountType]`, it.discountType);
+        fd.append(`items[${idx}][discountValue]`, String(it.discountValue ?? 0));
         fd.append(`items[${idx}][hsnCode]`, it.hsnCode);
         fd.append(`items[${idx}][gstPercentage]`, String(it.gstPercentage));
       });
@@ -218,6 +228,7 @@ export function useCreateTradingPurchase() {
       fd.append("otherCharges", String(data.otherCharges ?? 0));
       fd.append("transportation", String(data.transportation ?? 0));
       fd.append("insurance", String(data.insurance ?? 0));
+      if (data.discountType) fd.append("discountType", data.discountType);
       fd.append("discount", String(data.discount ?? 0));
       if (data.remarks) fd.append("remarks", data.remarks);
       fd.append("paidAmount", String(data.paidAmount ?? 0));

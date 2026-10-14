@@ -8,11 +8,16 @@ export const tradingPurchaseProductItems = pgTable(
 
     purchaseId: integer("purchase_id") .notNull() .references(() => tradingPurchaseProduct.id, { onDelete: "cascade" }),
     productId: integer("product_id") .notNull(),
-    warehouseId: integer("warehouse_id"),
     
     size: varchar("size", { length: 20 }),
+    colorName: varchar("color_name", { length: 100 }),      
+    colorHexCode: varchar("color_hex_code", { length: 10 }),
+
     quantity: numeric("quantity", { precision: 14, scale: 3 }).default("0").notNull(),
     rate: numeric("rate", { precision: 14, scale: 2 }).default("0").notNull(),
+
+    discountType: varchar("discount_type", { length: 10 }),   
+    discountValue: numeric("discount_value", { precision: 14, scale: 2 }).default("0").notNull(), 
 
     hsnCode: varchar("hsn_code", { length: 20 }).notNull(),
     gstPercentage: numeric("gst_percentage", { precision: 5, scale: 2 }).default("0").notNull(),
