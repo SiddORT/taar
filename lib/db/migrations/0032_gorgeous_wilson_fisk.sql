@@ -1,0 +1,1 @@
+ALTER TABLE "trading_purchase_product_items" DROP CONSTRAINT "trading_purchase_product_items_product_id_trading_products_id_fk";

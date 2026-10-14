@@ -1,10 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
-import {
-  Pencil, Trash2, Plus, FileSpreadsheet, FileDown, FileUp, ChevronDown, Loader2,
-  ChevronLeft, ChevronRight, X as XIcon,
-} from "lucide-react";
+import { Pencil, Trash2, Plus, FileSpreadsheet, FileDown, FileUp, ChevronDown, Loader2, ChevronLeft, ChevronRight, X as XIcon, } from "lucide-react";
 import { useGetMe, useLogout, getGetMeQueryKey, customFetch } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
 import * as XLSX from "xlsx";
@@ -435,7 +432,7 @@ export default function TradingProducts() {
         );
       },
     },
-    { key: "createdBy", label: "Created By", render: r => <span className="text-gray-500">{asProduct(r).createdBy ?? "—"}</span> },
+    { key: "createdBy", label: "Created By", render: r => <span className="text-gray-500">{asProduct(r).createdBy === user?.id ? user.username : "—"}</span> },
     {
       key: "createdAt",
       label: "Created At",
@@ -444,7 +441,7 @@ export default function TradingProducts() {
     {
       key: "updatedBy",
       label: "Updated By",
-      render: r => <span className="text-gray-500">{asProduct(r).updatedBy ?? "—"}</span>,
+      render: r => <span className="text-gray-500">{asProduct(r).updatedBy === user?.id ? user.username : "—"}</span>,
     },
     {
       key: "updatedAt",
@@ -493,7 +490,6 @@ export default function TradingProducts() {
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div>
             <h1 className="text-xl font-semibold text-cyan-900">Product Management</h1>
-            <p className="text-sm text-gray-400 mt-0.5">{data?.total ?? 0} products</p>
           </div>
           <div className="flex items-center gap-2">
 

@@ -1,11 +1,7 @@
 import { useState, useEffect } from "react";
 import { useLocation, useParams } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
-import {
-  ArrowLeft, Upload, FileText, Receipt,
-  Save, Plus as PlusIcon, Trash2, Calculator, Building2, CreditCard, Paperclip, Loader2,
-  X, ZoomIn, File
-} from "lucide-react";
+import { ArrowLeft, Upload, FileText, Receipt, Save, Plus as PlusIcon, Trash2, Calculator, Building2, CreditCard, Paperclip, Loader2, X, ZoomIn, } from "lucide-react";
 import { useGetMe, useLogout, getGetMeQueryKey } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -17,6 +13,15 @@ import { usePaymentTerms } from "@/hooks/usePaymentTerms";
 import { useTradingProductList } from "@/hooks/useTradingProducts";
 import { useHSNList } from "@/hooks/useHSN";
 import { useCurrency } from "@/contexts/CurrencyContext";
+import {
+  useTradingPurchase,
+  useCreateTradingPurchase,
+  useUpdateTradingPurchase,
+  type PurchaseFormPayload,
+  type ExistingAttachmentPayload,
+} from "@/hooks/useTradingPurchases";
+import { mediaUrl } from "@/utils/mediaUrl";
+import { useWarehouseLocations } from "@/hooks/useWarehouseLocations";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type FormErrors = Partial<Record<string, string>>;
@@ -24,6 +29,7 @@ type FormErrors = Partial<Record<string, string>>;
 interface PurchaseItem {
   id: string;
   productId: string;
+  warehouseId: string;
   size: string;
   quantity: number;
   rate: number;
@@ -53,20 +59,27 @@ interface FormState {
   paymentStatus: string;
 }
 
-interface PendingFile {
+interface AttachmentItem {
   id: string;
-  file: File;
-  previewUrl: string; // objectURL for images, empty for PDFs
+  file?: File;              
+  imagePath?: string;       
+  previewUrl: string;       
   isImage: boolean;
+  originalName: string;
+  mimeType: string;
+  fileSize: number;
 }
 
 const STANDARD_SIZES = ["XS", "S", "M", "L", "XL", "XXL", "3XL", "4XL"];
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
-const ACCEPTED_TYPES = ["application/pdf", "image/jpeg", "image/jpg", "image/png", "image/webp"];
+const MAX_FILE_SIZE = 5 * 1024 * 1024;
+const ACCEPTED_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
+
+const newId = () => Math.random().toString(36).slice(2);
 
 const EMPTY_ITEM: PurchaseItem = {
-  id: Math.random().toString(36).slice(2),
+  id: newId(),
   productId: "",
+  warehouseId: "",
   size: "",
   quantity: 0,
   rate: 0,
@@ -77,15 +90,15 @@ const EMPTY_ITEM: PurchaseItem = {
 };
 
 const EMPTY_FORM: FormState = {
-  purchaseNumber: "PUR-07012026-001",
-  purchaseDate: "2026-01-07",
+  purchaseNumber: "",
+  purchaseDate: new Date().toISOString().split("T")[0],
   vendorId: "",
   vendorInvoiceNumber: "",
   supplierPoNumber: "",
   paymentTermId: "",
-  dueDate: "2026-01-21",
+  dueDate: "",
   notes: "",
-  items: [{ ...EMPTY_ITEM }, { ...EMPTY_ITEM, id: Math.random().toString(36).slice(2) }],
+  items: [{ ...EMPTY_ITEM }],
   freight: 0,
   otherCharges: 0,
   transportation: 0,
@@ -93,18 +106,17 @@ const EMPTY_FORM: FormState = {
   discount: 0,
   remarks: "",
   paidAmount: 0,
-  paymentStatus: "",
+  paymentStatus: "Pending",
+};
+
+const resolveAttachmentSrc = (a: AttachmentItem): string => {
+  if (a.file) return a.previewUrl;
+  return a.imagePath ? mediaUrl(a.imagePath) : "";
 };
 
 // ─── Section Header ────────────────────────────────────────────────────────────
-function SectionHeader({
-  icon: Icon,
-  title,
-  optional,
-}: {
-  icon: React.ElementType;
-  title: string;
-  optional?: boolean;
+function SectionHeader({ icon: Icon, title, optional }: {
+  icon: React.ElementType; title: string; optional?: boolean;
 }) {
   return (
     <div className="flex items-center gap-2 mb-4">
@@ -120,26 +132,13 @@ function SectionHeader({
 }
 
 // ─── Field wrapper ─────────────────────────────────────────────────────────────
-function FieldWrap({
-  label,
-  required,
-  error,
-  children,
-  className = "",
-  hint,
-}: {
-  label: string;
-  required?: boolean;
-  error?: string;
-  children: React.ReactNode;
-  className?: string;
-  hint?: string;
+function FieldWrap({ label, required, error, children, className = "", hint }: {
+  label: string; required?: boolean; error?: string; children: React.ReactNode; className?: string; hint?: string;
 }) {
   return (
     <div className={className}>
       <label className="block text-sm font-medium text-slate-500 mb-1">
-        {label}
-        {required && <span className="text-red-500 ml-0.5">*</span>}
+        {label}{required && <span className="text-red-500 ml-0.5">*</span>}
       </label>
       {children}
       {hint && <p className="text-xs text-gray-400 mt-1">{hint}</p>}
@@ -170,62 +169,120 @@ export default function TradingPurchaseForm() {
   const { currency, fmt } = useCurrency();
 
   const isNew = !params.id;
+  const numId = isNew ? null : Number(params.id);
 
-  // Auth
+  // ── Auth ──
   const token = localStorage.getItem("zarierp_token");
-  const { data: user, isLoading: loadingUser } = useGetMe({
-    query: { enabled: !!token } as any,
-  });
+  const { data: user, isLoading: loadingUser } = useGetMe({ query: { enabled: !!token } as any });
 
-  // State
-  const [form, setForm] = useState<FormState>(EMPTY_FORM);
-  const [errors, setErrors] = useState<FormErrors>({});
-  const [submitting, setSubmitting] = useState(false);
-
-  // ── Attachments State ──
-  const [attachments, setAttachments] = useState<PendingFile[]>([]);
-  const [previewSrc, setPreviewSrc] = useState<string | null>(null);
-  const [isDragging, setIsDragging] = useState(false);
-
-  // ── API Queries ──
-  const { data: vendorsData, isLoading: loadingVendors } = useVendorList({
-    search: "", status: "all", page: 1, limit: 100,
-  });
-
-  const { data: paymentTermsData, isLoading: loadingPaymentTerms } = usePaymentTerms("");
-
-  const { data: productsData, isLoading: loadingProducts } = useTradingProductList({
-    search: "", status: "all", page: 1, limit: 100,
-  });
-
-  const { data: hsnData, isLoading: loadingHsn } = useHSNList({
-    search: "", status: "all", page: 1, limit: 100,
-  });
-
-  // Cleanup objectURLs on unmount
   useEffect(() => {
-    return () => {
-      attachments.forEach((a) => a.previewUrl && URL.revokeObjectURL(a.previewUrl));
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Auth Redirect
-  if (!token || (!loadingUser && !user)) {
-    setLocation("/login");
-    return null;
-  }
+    if (!token || (!loadingUser && !user)) setLocation("/login");
+  }, [token, user, loadingUser, setLocation]);
 
   const logoutMutation = useLogout();
   const handleLogout = async () => {
-    try {
-      await logoutMutation.mutateAsync();
-    } finally {
+    try { await logoutMutation.mutateAsync(); }
+    finally {
       localStorage.removeItem("zarierp_token");
       qc.invalidateQueries({ queryKey: getGetMeQueryKey() });
       setLocation("/login");
     }
   };
+
+  // ── State ──
+  const [form, setForm] = useState<FormState>(EMPTY_FORM);
+  const [attachments, setAttachments] = useState<AttachmentItem[]>([]);
+  const [errors, setErrors] = useState<FormErrors>({});
+  const [previewSrc, setPreviewSrc] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [populated, setPopulated] = useState(false);
+
+  // ── API Queries ──
+  const { data: vendorsData, isLoading: loadingVendors } = useVendorList({
+    search: "", status: "all", page: 1, limit: 100,
+  });
+  const { data: paymentTermsData, isLoading: loadingPaymentTerms } = usePaymentTerms("");
+  const { data: productsData, isLoading: loadingProducts } = useTradingProductList({
+    search: "", status: "all", page: 1, limit: 100,
+  });
+  const { data: hsnData, isLoading: loadingHsn } = useHSNList({
+    search: "", status: "all", page: 1, limit: 100,
+  });
+
+  const { data: warehouses = [], isLoading: loadingWarehouses } = useWarehouseLocations();
+
+  const warehouseOptions = (warehouses ?? []) .filter((w) => w.isActive) .map((w) => ({ value: String(w.id), label: w.name, }));
+
+  // ── Existing purchase (edit mode) ──
+  const { data: existing, isLoading: loadingRecord } = useTradingPurchase(numId);
+
+  // ── Mutations ──
+  const createMutation = useCreateTradingPurchase();
+  const updateMutation = useUpdateTradingPurchase();
+  const submitting = createMutation.isPending || updateMutation.isPending;
+
+  // ── Hydrate on edit ──
+  useEffect(() => {
+    if (isNew || !existing || populated) return;
+
+    setForm({
+      purchaseNumber: existing.purchaseNumber?.trim() ?? "",
+      purchaseDate: (existing.purchaseDate ?? "").slice(0, 10),
+      vendorId: String(existing.vendorId ?? ""),
+      vendorInvoiceNumber: existing.vendorInvoiceNumber?.trim() ?? "",
+      supplierPoNumber: existing.supplierPoNumber?.trim() ?? "",
+      paymentTermId: existing.paymentTermId != null ? String(existing.paymentTermId) : "",
+      dueDate: (existing.dueDate ?? "").slice(0, 10),
+      notes: existing.notes?.trim() ?? "",
+      items: (existing.items ?? []).length > 0
+        ? (existing.items ?? []).map((it) => ({
+            id: newId(),
+            productId: String(it.productId ?? ""),
+            warehouseId: it.warehouseId != null ? String(it.warehouseId) : "", 
+            size: it.size?.trim() ?? "",
+            quantity: parseFloat(it.quantity) || 0,
+            rate: parseFloat(it.rate) || 0,
+            hsnCode: it.hsnCode?.trim() ?? "",
+            gstPercentage: parseFloat(it.gstPercentage) || 0,
+            gstAmount: parseFloat(it.gstAmount) || 0,
+            amount: parseFloat(it.amount) || 0,
+          }))
+        : [{ ...EMPTY_ITEM, id: newId() }],
+      freight: parseFloat(existing.freight) || 0,
+      otherCharges: parseFloat(existing.otherCharges) || 0,
+      transportation: parseFloat(existing.transportation) || 0,
+      insurance: parseFloat(existing.insurance) || 0,
+      discount: parseFloat(existing.discount) || 0,
+      remarks: existing.remarks?.trim() ?? "",
+      paidAmount: parseFloat(existing.paidAmount) || 0,
+      paymentStatus: existing.paymentStatus ?? "Pending",
+    });
+
+    setAttachments(
+      (existing.attachments ?? []).map((a) => {
+        const isImage = (a.mimeType ?? "").startsWith("image/");
+        return {
+          id: newId(),
+          imagePath: a.imagePath,
+          previewUrl: isImage ? a.imagePath : "",
+          isImage,
+          originalName: a.originalName,
+          mimeType: a.mimeType,
+          fileSize: a.fileSize ?? 0,
+        };
+      })
+    );
+
+    setPopulated(true);
+}, [existing, isNew, populated, loadingProducts]);
+
+  useEffect(() => {
+    return () => {
+      attachments.forEach((a) => {
+        if (a.file && a.previewUrl) URL.revokeObjectURL(a.previewUrl);
+      });
+    };
+  }, []);
 
   // ── Options ──
   const vendorOptions = (vendorsData?.data ?? []).map((v) => ({
@@ -242,9 +299,7 @@ export default function TradingPurchaseForm() {
     gstPercentage: parseFloat(h.gstPercentage) || 0,
   }));
 
-  const selectedVendor = vendorsData?.data.find(
-    (v) => String(v.id) === form.vendorId
-  );
+  const selectedVendor = vendorsData?.data.find((v) => String(v.id) === form.vendorId);
 
   // Dynamic Calculations
   const itemTotals = form.items.map((item) => {
@@ -263,7 +318,7 @@ export default function TradingPurchaseForm() {
   const grandTotal = taxableAmount + totalGst + totalOtherCharges;
   const balanceAmount = grandTotal - form.paidAmount;
 
-  // Handlers
+  // ── Handlers ──
   const setField = <K extends keyof FormState>(key: K, val: FormState[K]) => {
     setForm((f) => ({ ...f, [key]: val }));
     if (errors[key])
@@ -274,11 +329,7 @@ export default function TradingPurchaseForm() {
       });
   };
 
-  const handleItemChange = (
-    index: number,
-    field: keyof PurchaseItem,
-    value: any
-  ) => {
+  const handleItemChange = (index: number, field: keyof PurchaseItem, value: any) => {
     const newItems = [...form.items];
     const item = { ...newItems[index], [field]: value };
 
@@ -296,24 +347,18 @@ export default function TradingPurchaseForm() {
   };
 
   const addItem = () => {
-    setField("items", [
-      ...form.items,
-      { ...EMPTY_ITEM, id: Math.random().toString(36).slice(2) },
-    ]);
+    setField("items", [...form.items, { ...EMPTY_ITEM, id: newId() }]);
   };
 
   const removeItem = (index: number) => {
     if (form.items.length === 1) return;
-    setField(
-      "items",
-      form.items.filter((_, i) => i !== index)
-    );
+    setField("items", form.items.filter((_, i) => i !== index));
   };
 
   // ── Attachment Handlers ──
   const processFiles = (files: FileList | File[]) => {
     const incoming = Array.from(files);
-    const valid: PendingFile[] = [];
+    const valid: AttachmentItem[] = [];
     const rejected: string[] = [];
 
     for (const f of incoming) {
@@ -331,6 +376,9 @@ export default function TradingPurchaseForm() {
         file: f,
         previewUrl: isImage ? URL.createObjectURL(f) : "",
         isImage,
+        originalName: f.name,
+        mimeType: f.type,
+        fileSize: f.size,
       });
     }
 
@@ -371,7 +419,7 @@ export default function TradingPurchaseForm() {
   const removeAttachment = (id: string) => {
     setAttachments((prev) => {
       const item = prev.find((a) => a.id === id);
-      if (item?.previewUrl) URL.revokeObjectURL(item.previewUrl);
+      if (item?.file && item.previewUrl) URL.revokeObjectURL(item.previewUrl);
       return prev.filter((a) => a.id !== id);
     });
   };
@@ -382,8 +430,8 @@ export default function TradingPurchaseForm() {
     if (!form.vendorId) newErrors.vendorId = "Vendor is required";
     if (!form.purchaseDate) newErrors.purchaseDate = "Purchase Date is required";
     if (!form.paymentTermId) newErrors.paymentTermId = "Payment Terms is required";
-    if (form.items.some((i) => !i.productId || i.quantity <= 0 || !i.hsnCode)) {
-      newErrors.items = "All items must have a product, HSN code, and quantity > 0";
+    if (form.items.some((i) => !i.productId || i.quantity <= 0 || !i.hsnCode || !i.warehouseId)) {
+      newErrors.items = "All items must have a product, warehouse, HSN code, and quantity > 0";
     }
 
     if (Object.keys(newErrors).length > 0) {
@@ -391,46 +439,59 @@ export default function TradingPurchaseForm() {
       return;
     }
 
-    setSubmitting(true);
+    const payload: PurchaseFormPayload = {
+      purchaseNumber: form.purchaseNumber.trim() || undefined,
+      purchaseDate: form.purchaseDate,
+      vendorId: form.vendorId,
+      vendorInvoiceNumber: form.vendorInvoiceNumber.trim() || null,
+      supplierPoNumber: form.supplierPoNumber.trim() || null,
+      paymentTermId: form.paymentTermId ? Number(form.paymentTermId) : null,   
+      dueDate: form.dueDate || null,
+      notes: form.notes.trim() || null,
+      items: form.items.map((i) => ({
+        productId: i.productId,
+        warehouseId: i.warehouseId || null, 
+        size: i.size || null,
+        quantity: i.quantity,
+        rate: i.rate,
+        hsnCode: i.hsnCode,
+        gstPercentage: i.gstPercentage,
+      })),
+      freight: form.freight,
+      otherCharges: form.otherCharges,
+      transportation: form.transportation,
+      insurance: form.insurance,
+      discount: form.discount,
+      remarks: form.remarks.trim() || null,
+      paidAmount: form.paidAmount,
+      paymentStatus: (form.paymentStatus || "Pending") as PurchaseFormPayload["paymentStatus"],
+    };
+
     try {
-      const payload = {
-        purchase_number: form.purchaseNumber,
-        purchase_date: form.purchaseDate,
-        vendor_id: parseInt(form.vendorId),
-        vendor_invoice_number: form.vendorInvoiceNumber,
-        supplier_po_number: form.supplierPoNumber,
-        payment_terms: form.paymentTermId,
-        due_date: form.dueDate,
-        notes: form.notes,
-        items: form.items.map((i, idx) => ({
-          product_id: i.productId,
-          size: i.size,
-          quantity: i.quantity,
-          rate: i.rate,
-          hsn_code: i.hsnCode,
-          gst_percentage: i.gstPercentage,
-          gst_amount: itemTotals[idx].gstAmount,
-          amount: itemTotals[idx].amount,
-        })),
-        freight: form.freight,
-        other_charges: form.otherCharges,
-        transportation: form.transportation,
-        insurance: form.insurance,
-        discount: form.discount,
-        remarks: form.remarks,
-        paid_amount: form.paidAmount,
-        balance_amount: balanceAmount,
-        payment_status: form.paymentStatus,
-      };
+      if (isNew) {
+        const newFiles = attachments.filter((a) => a.file).map((a) => a.file!);
+        await createMutation.mutateAsync({ data: payload, attachments: newFiles });
+        toast({ title: "Purchase created successfully" });
+      } else if (numId) {
+        const existingPayload: ExistingAttachmentPayload[] = attachments
+          .filter((a) => a.imagePath && !a.file)
+          .map((a) => ({
+            imagePath: a.imagePath!,
+            originalName: a.originalName,
+            mimeType: a.mimeType,
+            fileSize: a.fileSize,
+          }));
 
-      // attachments: send via FormData when wiring up the real API
-      // const fd = new FormData();
-      // fd.append("data", JSON.stringify(payload));
-      // attachments.forEach(a => fd.append("attachments", a.file));
+        const newFiles = attachments.filter((a) => a.file).map((a) => a.file!);
+        await updateMutation.mutateAsync({
+          id: numId,
+          data: payload,
+          existingAttachments: existingPayload,
+          newAttachments: newFiles,
+        });
+        toast({ title: "Purchase updated successfully" });
+      }
 
-      console.log("Submitting Payload:", payload);
-      console.log("Attachments:", attachments.map(a => a.file.name));
-      toast({ title: "Purchase saved successfully" });
       setLocation("/trading/purchase");
     } catch (err) {
       toast({
@@ -438,12 +499,25 @@ export default function TradingPurchaseForm() {
         description: err instanceof Error ? err.message : "Failed to save purchase",
         variant: "destructive",
       });
-    } finally {
-      setSubmitting(false);
     }
   };
 
   if (!user) return null;
+
+  if (!isNew && loadingRecord) {
+    return (
+      <AppLayout
+        username={user.username}
+        role={user.role}
+        onLogout={handleLogout}
+        isLoggingOut={logoutMutation.isPending}
+      >
+        <div className="flex items-center justify-center py-20">
+          <Loader2 size={28} className="animate-spin text-gray-400" />
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout
@@ -465,7 +539,7 @@ export default function TradingPurchaseForm() {
             </button>
             <span className="text-gray-300">/</span>
             <h1 className="text-lg font-bold text-cyan-900">
-              {isNew ? "Add Purchase" : "Edit Purchase"}
+              {isNew ? "Add Purchase" : `Edit Purchase — ${form.purchaseNumber}`}
             </h1>
           </div>
           <button
@@ -476,7 +550,7 @@ export default function TradingPurchaseForm() {
             style={{ background: "linear-gradient(135deg, #C6AF4B, #a8922e)" }}
           >
             {submitting ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
-            {submitting ? "Saving…" : "Save Purchase"}
+            {submitting ? "Saving…" : isNew ? "Save Purchase" : "Save Changes"}
           </button>
         </div>
 
@@ -486,8 +560,19 @@ export default function TradingPurchaseForm() {
             <SectionHeader icon={FileText} title="Purchase Details" />
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
-              <FieldWrap label="Purchase Number" required hint="Auto-generated">
-                <input type="text" value={form.purchaseNumber} readOnly className={inputReadonlyCls} />
+              <FieldWrap
+                label="Purchase Number"
+                required={!isNew}
+                hint={isNew ? "Auto-generated if empty" : undefined}
+              >
+                <input
+                  type="text"
+                  value={form.purchaseNumber}
+                  onChange={(e) => setField("purchaseNumber", e.target.value)}
+                  placeholder={isNew ? "(auto-generated)" : ""}
+                  readOnly={!isNew}
+                  className={isNew ? inputCls : inputReadonlyCls}
+                />
               </FieldWrap>
 
               <FieldWrap label="Purchase Date" required error={errors.purchaseDate}>
@@ -536,9 +621,15 @@ export default function TradingPurchaseForm() {
 
               <FieldWrap label="Payment Terms" required error={errors.paymentTermId}>
                 <SearchableSelect
-                  value={form.paymentTermId}
-                  onChange={(v) => setField("paymentTermId", v)}
-                  options={paymentTermOptions}
+                  value={
+                    paymentTermsData?.data.find((pt) => String(pt.id) === String(form.paymentTermId))?.description
+                    ?? "" 
+                  }
+                  onChange={(val) => {
+                    const match = paymentTermsData?.data.find((pt) => pt.description === val);
+                    setField("paymentTermId", match ? String(match.id) : "");
+                  }}
+                  options={(paymentTermsData?.data ?? []).map((pt) => pt.description)}
                   placeholder={loadingPaymentTerms ? "Loading..." : "Select Payment Terms"}
                   disabled={loadingPaymentTerms}
                 />
@@ -569,12 +660,11 @@ export default function TradingPurchaseForm() {
             </div>
           </div>
 
-          {/* ── Right Column: Attachments + Vendor Summary ── */}
+          {/* ── Right Column ── */}
           <div className="space-y-6">
             <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
               <SectionHeader icon={Paperclip} title="Attachments" optional />
 
-              {/* Drop zone */}
               <div
                 onDrop={handleDrop}
                 onDragOver={handleDragOver}
@@ -586,25 +676,20 @@ export default function TradingPurchaseForm() {
                 }`}
               >
                 <Upload size={24} className={isDragging ? "text-[#a8922e]" : "text-gray-400"} />
-                <p className="text-xs text-gray-600 mt-2 mb-3">
-                  Drag & drop files here or
-                </p>
+                <p className="text-xs text-gray-600 mt-2 mb-3">Drag & drop files here or</p>
                 <label className="px-3 py-1.5 bg-white border border-gray-300 rounded-lg text-xs font-medium text-gray-700 hover:bg-gray-50 cursor-pointer shadow-sm transition-colors">
                   Choose Files
                   <input
                     type="file"
                     multiple
-                    accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/*"
+                    accept=".jpg,.jpeg,.png,.webp,image/*"
                     onChange={handleFileInput}
                     className="hidden"
                   />
                 </label>
-                <p className="text-[11px] text-gray-400 mt-2">
-                  PDF, JPG, PNG, WEBP (Max 5MB each)
-                </p>
+                <p className="text-[11px] text-gray-400 mt-2">JPG, PNG, WEBP (Max 5MB each)</p>
               </div>
 
-              {/* Attachment list */}
               {attachments.length > 0 && (
                 <div className="mt-4">
                   <div className="flex items-center justify-between mb-2">
@@ -612,11 +697,10 @@ export default function TradingPurchaseForm() {
                       {attachments.length} file{attachments.length !== 1 ? "s" : ""} attached
                     </p>
                     <p className="text-[11px] text-gray-400">
-                      {formatBytes(attachments.reduce((s, a) => s + a.file.size, 0))}
+                      {formatBytes(attachments.reduce((s, a) => s + a.fileSize, 0))}
                     </p>
                   </div>
 
-                  {/* ── Scrollable grid — 3 rows visible, then scroll ── */}
                   <div className="max-h-[210px] overflow-y-auto pr-1 rounded-lg">
                     <div className="grid grid-cols-4 gap-1.5">
                       {attachments.map((a) => (
@@ -625,11 +709,11 @@ export default function TradingPurchaseForm() {
                           className="relative group rounded-lg border border-gray-200 bg-white aspect-square overflow-hidden shadow-sm"
                         >
                           {a.isImage ? (
-                            <img
-                              src={a.previewUrl}
-                              alt={a.file.name}
-                              className="w-full h-full object-cover"
-                            />
+                              <img
+                                src={resolveAttachmentSrc(a)}
+                                alt={a.originalName}
+                                className="w-full h-full object-cover"
+                              />
                           ) : (
                             <div className="w-full h-full flex flex-col items-center justify-center bg-red-50/60 px-1">
                               <FileText size={16} className="text-red-500 mb-0.5" />
@@ -639,18 +723,20 @@ export default function TradingPurchaseForm() {
                             </div>
                           )}
 
-                          {/* Filename strip for PDFs */}
                           {!a.isImage && (
                             <div className="absolute bottom-0 left-0 right-0 bg-black/70 px-1 py-0.5">
-                              <p className="text-[7px] text-white truncate">{a.file.name}</p>
+                              <p className="text-[7px] text-white truncate">{a.originalName}</p>
                             </div>
                           )}
 
-                          {/* Hover actions */}
                           <div className="absolute inset-0 bg-black/0 group-hover:bg-cyan-900/40 transition-all flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100">
                             <button
                               type="button"
-                              onClick={() => a.isImage ? setPreviewSrc(a.previewUrl) : window.open(a.previewUrl, "_blank") }
+                              onClick={() =>
+                                a.isImage
+                                  ? setPreviewSrc(resolveAttachmentSrc(a))
+                                  : window.open(resolveAttachmentSrc(a), "_blank")
+                              }
                               className="p-1 rounded-full bg-white/90 text-slate-600 hover:bg-white shadow"
                               title={a.isImage ? "Preview" : "Open PDF"}
                             >
@@ -714,6 +800,7 @@ export default function TradingPurchaseForm() {
                 <tr>
                   <th className="px-3 py-3 w-10 text-center">#</th>
                   <th className="px-3 py-3 min-w-[180px]">Product <span className="text-red-500">*</span></th>
+                  <th className="px-3 py-3 w-40">Warehouse</th>
                   <th className="px-3 py-3 w-28">Size <span className="text-red-500">*</span></th>
                   <th className="px-3 py-3 w-24">Quantity <span className="text-red-500">*</span></th>
                   <th className="px-3 py-3 w-32">Purchase Rate ({currency.symbol}) <span className="text-red-500">*</span></th>
@@ -731,11 +818,27 @@ export default function TradingPurchaseForm() {
                       <td className="px-3 py-2.5 text-center text-gray-400">{index + 1}</td>
                       <td className="px-3 py-2.5">
                         <SearchableSelect
-                          value={item.productId}
-                          onChange={(v) => handleItemChange(index, "productId", v)}
+                          value={
+                            productsData?.data.find((p) => String(p.id) === item.productId)?.productName
+                            ?? item.productId
+                          }
+                          onChange={(val) => {
+                            const match = productsData?.data.find((p) => p.productName === val);
+                            handleItemChange(index, "productId", match ? String(match.id) : val);
+                          }}
                           options={productOptions}
                           placeholder={loadingProducts ? "Loading..." : "Select Product"}
                           disabled={loadingProducts}
+                        />
+                      </td>
+                      <td className="px-3 py-2.5">
+                        <SmallSearchSelect
+                          value={item.warehouseId}
+                          onChange={(v) => handleItemChange(index, "warehouseId", v)}
+                          options={warehouseOptions}
+                          placeholder={loadingWarehouses ? "Loading..." : "Select Warehouse"}
+                          disabled={loadingWarehouses}
+                          clearable
                         />
                       </td>
                       <td className="px-3 py-2.5">
@@ -750,7 +853,7 @@ export default function TradingPurchaseForm() {
                         <input
                           type="number"
                           value={item.quantity || ""}
-                          onChange={(e) => handleItemChange(index, "quantity", parseFloat(e.target.value) || 0) }
+                          onChange={(e) => handleItemChange(index, "quantity", parseFloat(e.target.value) || 0)}
                           className={inputRightCls}
                         />
                       </td>
@@ -758,13 +861,10 @@ export default function TradingPurchaseForm() {
                         <input
                           type="number"
                           value={item.rate || ""}
-                          onChange={(e) =>
-                            handleItemChange(index, "rate", parseFloat(e.target.value) || 0)
-                          }
+                          onChange={(e) => handleItemChange(index, "rate", parseFloat(e.target.value) || 0)}
                           className={inputRightCls}
                         />
                       </td>
-
                       <td className="px-3 py-2.5">
                         <SmallSearchSelect
                           value={item.hsnCode}
@@ -774,7 +874,6 @@ export default function TradingPurchaseForm() {
                           disabled={loadingHsn}
                         />
                       </td>
-
                       <td className="px-3 py-2.5 text-right text-gray-500 tabular-nums">
                         {fmt(calculated.gstAmount)}
                       </td>
@@ -852,12 +951,12 @@ export default function TradingPurchaseForm() {
           <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
             <SectionHeader icon={CreditCard} title="Payment Details" />
             <div className="space-y-3">
-              <FieldWrap label={`Paid Amount (${currency.symbol})`}>
+              <FieldWrap label={`Paid Amount (${currency.symbol})`} >
                 <input
-                  type="number"
-                  value={form.paidAmount || ""}
-                  onChange={(e) => setField("paidAmount", parseFloat(e.target.value) || 0)}
-                  readOnly className={`${inputReadonlyCls} text-right tabular-nums`}
+                  type="text"
+                  value={fmt(form.paidAmount)}
+                  readOnly
+                  className={`${inputReadonlyCls} text-right tabular-nums`}
                 />
               </FieldWrap>
               <FieldWrap label={`Balance Amount (${currency.symbol})`}>
@@ -896,7 +995,7 @@ export default function TradingPurchaseForm() {
             style={{ background: "linear-gradient(135deg, #C6AF4B, #a8922e)" }}
           >
             {submitting ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
-            {submitting ? "Saving…" : "Save Purchase"}
+            {submitting ? "Saving…" : isNew ? "Save Purchase" : "Save Changes"}
           </button>
         </div>
       </div>
@@ -914,7 +1013,7 @@ export default function TradingPurchaseForm() {
             <X size={20} />
           </button>
           <img
-            src={previewSrc}
+            src={mediaUrl(previewSrc) ?? previewSrc}
             alt="preview"
             className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg shadow-2xl"
             onClick={(e) => e.stopPropagation()}

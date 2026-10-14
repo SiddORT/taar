@@ -64,6 +64,78 @@ async function loadUsers(ids: (number | null | undefined)[]): Promise<Map<number
   return new Map(rows.map(u => [u.id, u]));
 }
 
+// ─── Sync sizes into trading_product_sizes ────────────────────────────────────
+export async function syncProductSizes( tx: any,
+  input:
+    | Array<{ productId: string | number; size?: string | null }>
+    | { productId: string | number; sizes?: string[] }
+): Promise<void> {
+  
+  // ── 1. Normalize input to a flat list of (productId, size) pairs ──
+  const pairs = new Map<string, { productId: number; size: string }>();
+
+  if (Array.isArray(input)) {
+    for (const it of input) {
+      const pid = Number(it.productId);
+      const size = (it.size ?? "").trim();
+      if (!pid || !size) continue;
+      const key = `${pid}::${size}`;
+      if (!pairs.has(key)) pairs.set(key, { productId: pid, size });
+    }
+  } else {
+    const pid = Number(input.productId);
+    if (pid && Array.isArray(input.sizes)) {
+      for (const raw of input.sizes) {
+        const size = (raw ?? "").trim();
+        if (!size) continue;
+        const key = `${pid}::${size}`;
+        if (!pairs.has(key)) pairs.set(key, { productId: pid, size });
+      }
+    }
+  }
+
+  if (pairs.size === 0) return;
+
+  const productIds = [...new Set([...pairs.values()].map(p => p.productId))];
+
+  // ── 2. Load existing sizes for these products ──
+  const existing = await tx
+    .select({
+      productId: tradingProductSizes.productId,
+      sizeLabel: tradingProductSizes.sizeLabel,
+      sortOrder: tradingProductSizes.sortOrder,
+    })
+    .from(tradingProductSizes)
+    .where(inArray(tradingProductSizes.productId, productIds));
+
+  const existingKeys = new Set(
+    existing.map((r: any) => `${r.productId}::${r.sizeLabel}`)
+  );
+
+  // ── 3. Compute next sortOrder per product ──
+  const nextSort = new Map<number, number>();
+  for (const r of existing) {
+    const cur = nextSort.get(r.productId) ?? 0;
+    nextSort.set(r.productId, Math.max(cur, (r.sortOrder ?? 0) + 1));
+  }
+
+  // ── 4. Build list of new rows ──
+  const toInsert: Array<{ productId: number; sizeLabel: string; sortOrder: number }> = [];
+  for (const { productId, size } of pairs.values()) {
+    const key = `${productId}::${size}`;
+    if (existingKeys.has(key)) continue;
+
+    const order = nextSort.get(productId) ?? 0;
+    toInsert.push({ productId, sizeLabel: size, sortOrder: order });
+    nextSort.set(productId, order + 1);
+  }
+
+  // ── 5. Bulk insert ──
+  if (toInsert.length > 0) {
+    await tx.insert(tradingProductSizes).values(toInsert);
+  }
+}
+
 // ─── List ─────────────────────────────────────────────────────────────────────
 export async function listTradingProducts(params: {
   search: string;

@@ -1,61 +1,7 @@
 import { db, eq, and, ilike, sql, desc, inArray } from "@workspace/db";
-import {
-  tradingPurchaseProduct,
-  purchaseProductItems,
-  tradingPurchaseProductImages,
-  vendors,
-  tradingProducts,
-  usersTable,
-  insertTradingPurchaseSchema,
-  updateTradingPurchaseSchema,
-  type InsertTradingPurchase,
-  type UpdateTradingPurchase,
-} from "@workspace/db";
+import { tradingPurchaseProduct, tradingPurchaseProductItems, tradingPurchaseProductImages, vendorsTable, usersTable, warehouseLocations, type InsertTradingPurchase, } from "@workspace/db";
 import { uploadFile, deleteUpload, type UploadOptions } from "../utils/uploadHelper";
-
-// ─── Zod Schemas ──────────────────────────────────────────────────────────────
-const decimalString = z
-  .union([z.string(), z.number()])
-  .transform((v) => String(v))
-  .refine((v) => !isNaN(parseFloat(v)) && parseFloat(v) >= 0, {
-    message: "Must be a non-negative number",
-  });
-
-export const purchaseItemSchema = z.object({
-  product_id: z.union([z.string(), z.number()]).transform(String),
-  size: z.string().max(20).optional().nullable(),
-  quantity: decimalString,
-  rate: decimalString,
-  hsn_code: z.string().min(1).max(20),
-  gst_percentage: decimalString,
-  gst_amount: decimalString.optional(),
-  amount: decimalString.optional(),
-});
-
-export const insertTradingPurchaseSchema = z.object({
-  purchase_number: z.string().min(1).max(50).optional(),
-  purchase_date: z.string().refine((d) => !isNaN(Date.parse(d)), "Invalid date"),
-  vendor_id: z.coerce.number().int().positive(),
-  vendor_invoice_number: z.string().max(100).optional().nullable(),
-  supplier_po_number: z.string().max(100).optional().nullable(),
-  payment_terms: z.string().max(50).optional().nullable(),
-  due_date: z.string().optional().nullable(),
-  notes: z.string().optional().nullable(),
-
-  items: z.array(purchaseItemSchema).min(1, "At least one item required"),
-
-  freight: decimalString.default("0"),
-  other_charges: decimalString.default("0"),
-  transportation: decimalString.default("0"),
-  insurance: decimalString.default("0"),
-  discount: decimalString.default("0"),
-  remarks: z.string().optional().nullable(),
-
-  paid_amount: decimalString.default("0"),
-  payment_status: z.enum(["Pending", "Partial", "Paid"]).default("Pending"),
-});
-
-export const updateTradingPurchaseSchema = insertTradingPurchaseSchema.partial();
+import { syncProductSizes } from "./tradingProductsService";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type PurchaseAttachment = {
@@ -65,7 +11,7 @@ type PurchaseAttachment = {
   fileSize?: number;
 };
 
-type PurchaseWithAttachments = InsertTradingPurchaseProduct & {
+type PurchaseWithAttachments = InsertTradingPurchase & {
   attachments?: PurchaseAttachment[];
 };
 
@@ -90,16 +36,18 @@ export async function generatePurchaseNumber(): Promise<string> {
 }
 
 // ─── Recompute Totals ─────────────────────────────────────────────────────────
-function computeTotals(items: Array<{
-  quantity: string; rate: string; gst_percentage: string;
-}>, charges: { freight: string; other_charges: string; transportation: string; insurance: string; discount: string }, paidAmount: string) {
+function computeTotals(
+  items: Array<{ quantity: string; rate: string; gstPercentage: string }>,
+  charges: { freight: string; otherCharges: string; transportation: string; insurance: string; discount: string },
+  paidAmount: string
+) {
   let subtotal = 0;
   let totalGst = 0;
 
   const processedItems = items.map((i) => {
     const qty = parseFloat(i.quantity) || 0;
     const rate = parseFloat(i.rate) || 0;
-    const gstPct = parseFloat(i.gst_percentage) || 0;
+    const gstPct = parseFloat(i.gstPercentage) || 0;
 
     const gross = qty * rate;
     const gstAmt = +(gross * (gstPct / 100)).toFixed(2);
@@ -114,15 +62,15 @@ function computeTotals(items: Array<{
   subtotal = +subtotal.toFixed(2);
   totalGst = +totalGst.toFixed(2);
 
-  const otherCharges =
+  const otherChargesSum =
     (parseFloat(charges.freight) || 0) +
-    (parseFloat(charges.other_charges) || 0) +
+    (parseFloat(charges.otherCharges) || 0) +
     (parseFloat(charges.transportation) || 0) +
     (parseFloat(charges.insurance) || 0);
 
   const discount = parseFloat(charges.discount) || 0;
   const taxableAmount = +(subtotal - discount).toFixed(2);
-  const grandTotal = +(taxableAmount + totalGst + otherCharges).toFixed(2);
+  const grandTotal = +(taxableAmount + totalGst + otherChargesSum).toFixed(2);
   const paid = parseFloat(paidAmount) || 0;
   const balanceAmount = +(grandTotal - paid).toFixed(2);
 
@@ -130,7 +78,7 @@ function computeTotals(items: Array<{
     processedItems,
     subtotal,
     totalGst,
-    otherCharges: +otherCharges.toFixed(2),
+    otherCharges: +otherChargesSum.toFixed(2),
     taxableAmount,
     grandTotal,
     paidAmount: paid,
@@ -138,7 +86,7 @@ function computeTotals(items: Array<{
   };
 }
 
-// ─── Load user summaries ──────────────────────────────────────────────────────
+// ─── Load User Summaries ──────────────────────────────────────────────────────
 async function loadUsers(ids: (number | null | undefined)[]) {
   const validIds = [...new Set(ids.filter((id): id is number => id != null))];
   if (validIds.length === 0) return new Map();
@@ -204,19 +152,26 @@ export async function listTradingPurchases(params: {
   const purchaseIds = rows.map(r => r.id);
   const vendorIds = [...new Set(rows.map(r => r.vendorId))];
 
-  const [vendorRows, items, images, userMap] = await Promise.all([
-    db.select().from(vendors).where(inArray(vendors.id, vendorIds)),
-    db.select().from(purchaseProductItems).where(inArray(purchaseProductItems.purchaseId, purchaseIds)),
+  const [vendorRows, items, images, userMap, warehouseRows] = await Promise.all([
+    db.select().from(vendorsTable).where(inArray(vendorsTable.id, vendorIds)),
+    db.select().from(tradingPurchaseProductItems).where(inArray(tradingPurchaseProductItems.purchaseId, purchaseIds)),
     db.select().from(tradingPurchaseProductImages).where(inArray(tradingPurchaseProductImages.tradingPurchaseProductId, purchaseIds)),
     loadUsers(rows.flatMap(r => [r.createdBy, r.updatedBy])),
+    db.select().from(warehouseLocations),
   ]);
 
   const vendorMap = new Map(vendorRows.map(v => [v.id, v]));
-  const itemMap = new Map<number, typeof items>();
+  const warehouseMap = new Map(warehouseRows.map(w => [w.id, w]));
+
+  const itemMap = new Map<number, Array<typeof items[number] & { warehouse: typeof warehouseRows[number] | null }>>();
   items.forEach(i => {
     if (!itemMap.has(i.purchaseId)) itemMap.set(i.purchaseId, []);
-    itemMap.get(i.purchaseId)!.push(i);
+    itemMap.get(i.purchaseId)!.push({
+      ...i,
+      warehouse: i.warehouseId ? warehouseMap.get(i.warehouseId) ?? null : null,
+    });
   });
+
   const imageMap = new Map<number, typeof images>();
   images.forEach(img => {
     if (!imageMap.has(img.tradingPurchaseProductId)) imageMap.set(img.tradingPurchaseProductId, []);
@@ -246,16 +201,25 @@ export async function getTradingPurchaseById(id: number) {
   if (!purchase) return null;
 
   const [vendorRow, items, images, userMap] = await Promise.all([
-    db.select().from(vendors).where(eq(vendors.id, purchase.vendorId)).limit(1),
-    db.select().from(purchaseProductItems).where(eq(purchaseProductItems.purchaseId, id)),
+    db.select().from(vendorsTable).where(eq(vendorsTable.id, purchase.vendorId)).limit(1),
+    db.select().from(tradingPurchaseProductItems).where(eq(tradingPurchaseProductItems.purchaseId, id)),
     db.select().from(tradingPurchaseProductImages).where(eq(tradingPurchaseProductImages.tradingPurchaseProductId, id)),
     loadUsers([purchase.createdBy, purchase.updatedBy]),
   ]);
 
+  const warehouseIds = [...new Set(items.map(i => i.warehouseId).filter((x): x is number => x != null))];
+  const warehouseRows = warehouseIds.length
+    ? await db.select().from(warehouseLocations).where(inArray(warehouseLocations.id, warehouseIds))
+    : [];
+  const warehouseMap = new Map(warehouseRows.map(w => [w.id, w]));
+
   return {
     ...purchase,
     vendor: vendorRow[0] ?? null,
-    items,
+    items: items.map(i => ({
+      ...i,
+      warehouse: i.warehouseId ? warehouseMap.get(i.warehouseId) ?? null : null,   
+    })),
     attachments: images.sort((a, b) => a.displayOrder - b.displayOrder),
     createdByUser: userMap.get(purchase.createdBy) ?? null,
     updatedByUser: purchase.updatedBy ? userMap.get(purchase.updatedBy) ?? null : null,
@@ -273,11 +237,11 @@ export async function createTradingPurchase(
     input.items.map(i => ({
       quantity: String(i.quantity),
       rate: String(i.rate),
-      gst_percentage: String(i.gstPercentage),
+      gstPercentage: String(i.gstPercentage),
     })),
     {
       freight: String(input.freight ?? "0"),
-      other_charges: String(input.otherCharges ?? "0"),
+      otherCharges: String(input.otherCharges ?? "0"),
       transportation: String(input.transportation ?? "0"),
       insurance: String(input.insurance ?? "0"),
       discount: String(input.discount ?? "0"),
@@ -294,7 +258,7 @@ export async function createTradingPurchase(
         vendorId: input.vendorId,
         vendorInvoiceNumber: input.vendorInvoiceNumber ?? null,
         supplierPoNumber: input.supplierPoNumber ?? null,
-        paymentTerms: input.paymentTerms ?? null,
+        paymentTermId: input.paymentTermId ?? null,
         dueDate: input.dueDate ? new Date(input.dueDate) : null,
         notes: input.notes ?? null,
 
@@ -319,10 +283,14 @@ export async function createTradingPurchase(
       .returning();
 
     if (input.items.length > 0) {
-      await tx.insert(purchaseProductItems).values(
+      // ── Sync any new sizes into the master ──
+      await syncProductSizes(tx, input.items);
+
+      await tx.insert(tradingPurchaseProductItems).values(
         input.items.map((i, idx) => ({
           purchaseId: purchase.id,
           productId: Number(i.productId),
+          warehouseId: i.warehouseId ? Number(i.warehouseId) : 1,
           size: i.size ?? null,
           quantity: String(i.quantity),
           rate: String(i.rate),
@@ -358,7 +326,6 @@ export async function updateTradingPurchase(
   input: Partial<PurchaseWithAttachments>,
   updatedBy: number
 ) {
-  // Load existing
   const [existing] = await db
     .select()
     .from(tradingPurchaseProduct)
@@ -369,15 +336,14 @@ export async function updateTradingPurchase(
 
   const existingItems = await db
     .select()
-    .from(purchaseProductItems)
-    .where(eq(purchaseProductItems.purchaseId, id));
+    .from(tradingPurchaseProductItems)
+    .where(eq(tradingPurchaseProductItems.purchaseId, id));
 
   const existingImages = await db
     .select()
     .from(tradingPurchaseProductImages)
     .where(eq(tradingPurchaseProductImages.tradingPurchaseProductId, id));
 
-  // Merge with incoming
   const itemsForCalc = input.items && input.items.length > 0
     ? input.items
     : existingItems.map(i => ({
@@ -393,11 +359,11 @@ export async function updateTradingPurchase(
     itemsForCalc.map(i => ({
       quantity: String(i.quantity),
       rate: String(i.rate),
-      gst_percentage: String(i.gstPercentage),
+      gstPercentage: String(i.gstPercentage),
     })),
     {
       freight: String(input.freight ?? existing.freight),
-      other_charges: String(input.otherCharges ?? existing.otherCharges),
+      otherCharges: String(input.otherCharges ?? existing.otherCharges),
       transportation: String(input.transportation ?? existing.transportation),
       insurance: String(input.insurance ?? existing.insurance),
       discount: String(input.discount ?? existing.discount),
@@ -405,7 +371,6 @@ export async function updateTradingPurchase(
     String(input.paidAmount ?? existing.paidAmount)
   );
 
-  // Which attachments will be deleted?
   let removedAttachmentPaths: string[] = [];
   if (input.attachments !== undefined) {
     const newPaths = new Set(input.attachments.map(a => a.imagePath));
@@ -422,7 +387,7 @@ export async function updateTradingPurchase(
         vendorId: input.vendorId ?? existing.vendorId,
         vendorInvoiceNumber: input.vendorInvoiceNumber !== undefined ? input.vendorInvoiceNumber : existing.vendorInvoiceNumber,
         supplierPoNumber: input.supplierPoNumber !== undefined ? input.supplierPoNumber : existing.supplierPoNumber,
-        paymentTerms: input.paymentTerms !== undefined ? input.paymentTerms : existing.paymentTerms,
+        paymentTermId: input.paymentTermId !== undefined ? input.paymentTermId : existing.paymentTermId,
         dueDate: input.dueDate !== undefined ? (input.dueDate ? new Date(input.dueDate) : null) : existing.dueDate,
         notes: input.notes !== undefined ? input.notes : existing.notes,
 
@@ -450,14 +415,18 @@ export async function updateTradingPurchase(
 
     if (!purchase) return null;
 
-    // Replace items only if the client sent items
     if (input.items !== undefined) {
-      await tx.delete(purchaseProductItems).where(eq(purchaseProductItems.purchaseId, id));
+      await tx.delete(tradingPurchaseProductItems).where(eq(tradingPurchaseProductItems.purchaseId, id));
       if (input.items.length > 0) {
-        await tx.insert(purchaseProductItems).values(
+        
+        // ── Sync any new sizes into the master ──
+        await syncProductSizes(tx, input.items);
+
+        await tx.insert(tradingPurchaseProductItems).values(
           input.items.map((i, idx) => ({
             purchaseId: id,
             productId: Number(i.productId),
+            warehouseId: i.warehouseId ? Number(i.warehouseId) : 1,
             size: i.size ?? null,
             quantity: String(i.quantity),
             rate: String(i.rate),
@@ -470,7 +439,6 @@ export async function updateTradingPurchase(
       }
     }
 
-    // Replace attachments only if the client sent attachments
     if (input.attachments !== undefined) {
       await tx.delete(tradingPurchaseProductImages)
         .where(eq(tradingPurchaseProductImages.tradingPurchaseProductId, id));
@@ -495,7 +463,6 @@ export async function updateTradingPurchase(
 
   if (!updated) return null;
 
-  // Physically delete removed attachment files
   if (removedAttachmentPaths.length > 0) {
     await Promise.all(removedAttachmentPaths.map(p => deleteUpload(p).catch(() => undefined)));
   }
@@ -519,7 +486,7 @@ export async function deleteTradingPurchase(id: number, deletedBy: number) {
 
     if (!row) return null;
 
-    await tx.delete(purchaseProductItems).where(eq(purchaseProductItems.purchaseId, id));
+    await tx.delete(tradingPurchaseProductItems).where(eq(tradingPurchaseProductItems.purchaseId, id));
     await tx.delete(tradingPurchaseProductImages)
       .where(eq(tradingPurchaseProductImages.tradingPurchaseProductId, id));
 

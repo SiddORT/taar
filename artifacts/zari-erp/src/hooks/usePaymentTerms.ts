@@ -3,6 +3,7 @@ import { customFetch } from "@workspace/api-client-react";
 
 // ───── Types ─────
 export interface PaymentTerm {
+  id: number;
   termCode: string;
   description: string;
   netDays: number;

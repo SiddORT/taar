@@ -1,8 +1,9 @@
-import { pgTable, varchar, text, integer, numeric, check, } from "drizzle-orm/pg-core";
+import { pgTable, varchar, text, integer, numeric, check, serial } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 
 export const paymentTerms = pgTable( "payment_terms", {
-    termCode: varchar("term_code", { length: 30 }).primaryKey(),
+    id: serial("id").primaryKey(),
+    termCode: varchar("term_code", { length: 30 }),
     description: text("description").notNull(),
     netDays: integer("net_days").notNull(),
     discountPercentage: numeric("discount_percentage", { precision: 5, scale: 2, })

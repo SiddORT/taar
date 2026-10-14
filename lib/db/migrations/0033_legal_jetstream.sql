@@ -1,0 +1,1 @@
+ALTER TABLE "trading_purchase_product_items" ADD COLUMN "warehouse_id" integer;

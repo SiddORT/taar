@@ -1,13 +1,8 @@
 import { useEffect } from "react";
 import { useLocation } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
-import {
-  useGetMe,
-  useLogout,
-  getGetMeQueryKey,
-} from "@workspace/api-client-react";
+import { useGetMe, useLogout, getGetMeQueryKey, } from "@workspace/api-client-react";
 import { Plus, Search } from "lucide-react";
-
 import AppLayout from "@/components/layout/AppLayout";
 
 export default function TradingSales() {

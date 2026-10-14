@@ -218,6 +218,27 @@
       "when": 1791809983610,
       "tag": "0030_romantic_maelstrom",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1791879637017,
+      "tag": "0031_outstanding_big_bertha",
+      "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1791880262728,
+      "tag": "0032_gorgeous_wilson_fisk",
+      "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1791891163354,
+      "tag": "0033_legal_jetstream",
+      "breakpoints": true
     }
   ]
 }

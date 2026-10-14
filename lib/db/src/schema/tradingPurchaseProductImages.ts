@@ -1,6 +1,8 @@
 import {
   pgTable, serial, integer, varchar, text, bigint, timestamp, index,
 } from "drizzle-orm/pg-core";
+import { tradingPurchaseProduct } from "./tradingPurchaseProduct";
+import { usersTable } from "./users";
 
 export const tradingPurchaseProductImages = pgTable(
   "trading_purchase_product_images",
@@ -8,23 +10,17 @@ export const tradingPurchaseProductImages = pgTable(
     id: serial("id").primaryKey(),
 
     tradingPurchaseProductId: integer("trading_purchase_product_id")
-      .notNull(),
-    // ── Stored path relative to your upload root, e.g. "/uploads/purchases/2026/01/xyz.pdf" ──
+      .notNull()
+      .references(() => tradingPurchaseProduct.id, { onDelete: "cascade" }),
+
     imagePath: text("image_path").notNull(),
-
-    // ── Original filename from the browser, e.g. "invoice-abc.pdf" ──
     originalName: varchar("original_name", { length: 255 }).notNull(),
-
-    // ── MIME type — critical for distinguishing PDF vs image on the frontend ──
     mimeType: varchar("mime_type", { length: 100 }).notNull(),
-
-    // ── File size in bytes ──
     fileSize: bigint("file_size", { mode: "number" }).notNull(),
 
-    // ── Optional: order of display ──
     displayOrder: integer("display_order").default(0).notNull(),
 
-    uploadedBy: integer("uploaded_by"),
+    uploadedBy: integer("uploaded_by").references(() => usersTable.id),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (t) => ({

@@ -65,16 +65,7 @@ export async function seedPaymentTerms(): Promise<void> {
   for (const term of paymentTermsData) {
     await db
       .insert(paymentTerms)
-      .values(term)
-      .onConflictDoUpdate({
-        target: paymentTerms.termCode,
-        set: {
-          description: term.description,
-          netDays: term.netDays,
-          discountPercentage: term.discountPercentage,
-          discountDays: term.discountDays,
-        },
-      });
+      .values(term);
   }
 
   console.log(

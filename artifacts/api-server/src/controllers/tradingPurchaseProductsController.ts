@@ -1,4 +1,5 @@
 import type { Request, Response } from "express";
+import { insertTradingPurchaseSchema, updateTradingPurchaseSchema } from "@workspace/db";
 import * as service from "../services/tradingPurchaseProductsService";
 import { deleteUpload } from "../utils/uploadHelper";
 
@@ -19,18 +20,21 @@ function parseMultipartBody(body: Record<string, unknown>) {
   if (typeof parsed.existingAttachments === "string") {
     try { parsed.existingAttachments = JSON.parse(parsed.existingAttachments); } catch { parsed.existingAttachments = []; }
   }
-  if (typeof parsed.vendor_id === "string") parsed.vendor_id = Number(parsed.vendor_id);
-  if (typeof parsed.paid_amount === "string") parsed.paid_amount = Number(parsed.paid_amount);
+
+  // Coerce numeric strings (multipart sends everything as strings)
+  if (typeof parsed.vendorId === "string") parsed.vendorId = Number(parsed.vendorId);
+  if (typeof parsed.paidAmount === "string") parsed.paidAmount = Number(parsed.paidAmount);
   if (typeof parsed.discount === "string") parsed.discount = Number(parsed.discount);
   if (typeof parsed.freight === "string") parsed.freight = Number(parsed.freight);
-  if (typeof parsed.other_charges === "string") parsed.other_charges = Number(parsed.other_charges);
+  if (typeof parsed.otherCharges === "string") parsed.otherCharges = Number(parsed.otherCharges);
   if (typeof parsed.transportation === "string") parsed.transportation = Number(parsed.transportation);
   if (typeof parsed.insurance === "string") parsed.insurance = Number(parsed.insurance);
+  if (typeof parsed.paymentTermId === "string") parsed.paymentTermId = Number(parsed.paymentTermId.trim());
 
   return parsed;
 }
 
-// ─── Helper: assemble final attachments array (existing + newly uploaded) ────
+// ─── Helper: assemble final attachments (existing + newly uploaded) ───────────
 async function assembleAttachments(
   existingAttachments: Array<{ imagePath: string; originalName?: string; mimeType?: string; fileSize?: number }> = [],
   files: Express.Multer.File[] = [],
@@ -89,7 +93,7 @@ export async function createTradingPurchase(req: Request, res: Response) {
   const uploadedPaths: string[] = [];
   try {
     const body = parseMultipartBody(req.body);
-    const parsed = service.insertTradingPurchaseSchema.safeParse(body);
+    const parsed = insertTradingPurchaseSchema.safeParse(body);
     if (!parsed.success) {
       return res.status(400).json({ error: parsed.error.flatten() });
     }
@@ -98,16 +102,16 @@ export async function createTradingPurchase(req: Request, res: Response) {
     if (!createdBy) return res.status(401).json({ message: "Unauthorized" });
 
     const files = (req.files as Express.Multer.File[]) ?? [];
-
+    console.log("here are the files", req);
     // Pre-generate purchase number so files land in a deterministic folder
-    const purchaseNumber = parsed.data.purchase_number
+    const purchaseNumber = parsed.data.purchaseNumber
       || (await service.generatePurchaseNumber());
 
     const attachments = await assembleAttachments([], files, purchaseNumber);
     attachments.forEach(a => uploadedPaths.push(a.imagePath));
 
     const purchase = await service.createTradingPurchase(
-      { ...parsed.data, purchase_number: purchaseNumber, attachments },
+      { ...parsed.data, purchaseNumber, attachments },
       createdBy
     );
 
@@ -127,7 +131,7 @@ export async function updateTradingPurchase(req: Request, res: Response) {
     if (isNaN(id)) return res.status(400).json({ message: "Invalid purchase ID" });
 
     const body = parseMultipartBody(req.body);
-    const parsed = service.updateTradingPurchaseSchema.safeParse(body);
+    const parsed = updateTradingPurchaseSchema.safeParse(body);
     if (!parsed.success) {
       return res.status(400).json({ error: parsed.error.flatten() });
     }

@@ -1,0 +1,13 @@
+ALTER TABLE "trading_purchase_product" RENAME COLUMN "payment_terms" TO "payment_term_id";--> statement-breakpoint
+ALTER TABLE "payment_terms" DROP CONSTRAINT "payment_terms_pkey"; --> statement-breakpoint
+ALTER TABLE "payment_terms" ALTER COLUMN "term_code" DROP NOT NULL;--> statement-breakpoint
+ALTER TABLE "trading_purchase_product" ALTER COLUMN "created_by" SET NOT NULL;--> statement-breakpoint
+ALTER TABLE "payment_terms" ADD COLUMN "id" serial PRIMARY KEY NOT NULL;--> statement-breakpoint
+ALTER TABLE "trading_purchase_product" ADD CONSTRAINT "trading_purchase_product_vendor_id_vendors_id_fk" FOREIGN KEY ("vendor_id") REFERENCES "public"."vendors"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "trading_purchase_product" ADD CONSTRAINT "trading_purchase_product_deleted_by_users_id_fk" FOREIGN KEY ("deleted_by") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "trading_purchase_product" ADD CONSTRAINT "trading_purchase_product_created_by_users_id_fk" FOREIGN KEY ("created_by") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "trading_purchase_product" ADD CONSTRAINT "trading_purchase_product_updated_by_users_id_fk" FOREIGN KEY ("updated_by") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "trading_purchase_product_items" ADD CONSTRAINT "trading_purchase_product_items_purchase_id_trading_purchase_product_id_fk" FOREIGN KEY ("purchase_id") REFERENCES "public"."trading_purchase_product"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "trading_purchase_product_items" ADD CONSTRAINT "trading_purchase_product_items_product_id_trading_products_id_fk" FOREIGN KEY ("product_id") REFERENCES "public"."trading_products"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "trading_purchase_product_images" ADD CONSTRAINT "trading_purchase_product_images_trading_purchase_product_id_trading_purchase_product_id_fk" FOREIGN KEY ("trading_purchase_product_id") REFERENCES "public"."trading_purchase_product"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "trading_purchase_product_images" ADD CONSTRAINT "trading_purchase_product_images_uploaded_by_users_id_fk" FOREIGN KEY ("uploaded_by") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;
