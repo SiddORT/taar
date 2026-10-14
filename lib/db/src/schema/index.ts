@@ -35,3 +35,8 @@ export * from "./invoiceLineItems";
 export * from "./invoicePaymentItems";
 export * from "./invoicePaymentTds";
 export * from "./invoicePaymentTdsItems";
+export * from "./tradingProducts";
+export * from "./paymentTerms";
+export * from "./tradingPurchaseProduct";
+export * from "./tradingPurchaseProductItems";
+export * from "./tradingPurchaseProductImages"; 

@@ -52,6 +52,7 @@ import {seedSwatchConsumptionLog} from "./SwatchConsumptionSeeder";
 import { seedStyleConsumptionLog } from "./StyleConsumptionSeeder";
 // import {seedCostingPayments} from "./SwatchCostingPaymentSeeder";
 import { seedTdsMaster } from "./TdsMasterSeeder";
+import { seedPaymentTerms } from "./PaymentTermsSeeder";
 
 type SeederFunction = () => Promise<void>;
 
@@ -103,6 +104,7 @@ const seeders: Record<string, SeederFunction> = {
   StyleConsumptionSeeder: seedStyleConsumptionLog,
   // SwatchCostingPaymentSeeder:seedCostingPayments,
   TdsMasterSeeder: seedTdsMaster,
+  PaymentTermsSeeder: seedPaymentTerms,
 };
 
 // Order in which seeders must run (respects foreign key dependencies)
@@ -154,6 +156,7 @@ const seederOrder: string[] = [
   "StyleConsumptionSeeder",
   // "SwatchCostingPaymentSeeder",
   "TdsMasterSeeder",
+  "PaymentTermsSeeder",
 ];
 
 // If seeding all truncate these manually : material_reservations, inventory_items, swatch_bom
@@ -197,6 +200,7 @@ const seederTables: Record<string, string[]> = {
   SwatchConsumptionSeeder:["consumption_log"],
   // SwatchCostingPaymentSeeder:["costing_payments"],
   seedTdsMaster:["tds_master"],
+  PaymentTermsSeeder: ["payment_terms"],
 };
 
 // All tables for full truncation

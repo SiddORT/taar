@@ -1,7 +1,6 @@
 import { Router, type IRouter } from "express";
 import { requireAuth } from "../middlewares/requireAuth";
 import * as controller from "../controllers/tdsMasterController";
-import { MASTERS_TDS } from "../constants/permissions";
 
 const router: IRouter = Router();
 

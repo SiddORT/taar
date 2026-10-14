@@ -55,7 +55,25 @@ const OPERATIONS_SECTIONS = [
   },
 ];
 
-const ALL_OPERATIONS_HREFS = OPERATIONS_SECTIONS.flatMap(s => s.items.map(i => i.href));
+const TRADING_OPERATIONS_SECTIONS = [
+  {
+    title: "Trading",
+    items: [
+      { label: "Dashboard",     href: "/trading/dashboard" },
+      { label: "Products",      href: "/trading/products" },
+      { label: "Purchase",      href: "/trading/purchase" },
+      { label: "Sales",         href: "/trading/sales" },
+      { label: "Sales Pricing", href: "/trading/sales-pricing" },
+      { label: "Profit",        href: "/trading/profit" },
+      { label: "Reports",       href: "/trading/reports" },
+    ],
+  }
+];
+
+// const ALL_OPERATIONS_HREFS = OPERATIONS_SECTIONS.flatMap(s => s.items.map(i => i.href));
+const STOCK_OPERATIONS_HREFS = OPERATIONS_SECTIONS.flatMap(
+  section => section.items.map(item => item.href)
+);
 
 type ProfileSnapshot = { name: string; email: string; role: string; photo: string | null };
 let cachedProfile: ProfileSnapshot | null = null;
@@ -125,8 +143,9 @@ export default function TopNavbar({ username = "", role = "", onLogout = () => {
   const [mobileLogisticsOpen, setMobileLogisticsOpen] = useState(false);
   const [mobileAccountsOpen, setMobileAccountsOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
-
   const [profileData, setProfileData] = useState<ProfileSnapshot | null>(readFreshCache());
+  const [tradingOpen, setTradingOpen] = useState(false);
+  const [mobileTradingOpen, setMobileTradingOpen] = useState(false);
 
   useEffect(() => {
     const sub = (p: ProfileSnapshot | null) => setProfileData(p);
@@ -149,13 +168,22 @@ export default function TopNavbar({ username = "", role = "", onLogout = () => {
   const logisticsRef  = useRef<HTMLDivElement>(null);
   const accountsRef   = useRef<HTMLDivElement>(null);
   const profileRef    = useRef<HTMLDivElement>(null);
+  const tradingRef = useRef<HTMLDivElement>(null);
 
   const mastersActive    = location.startsWith("/masters");
   const ordersActive     = ORDERS_ITEMS.some(i => location === i.href || location.startsWith(i.href + "/"));
-  const operationsActive = ALL_OPERATIONS_HREFS.some(h => location === h || location.startsWith(h + "/"));
+  const operationsActive = STOCK_OPERATIONS_HREFS.some( h => location === h || location.startsWith(h + "/") );
   const logisticsActive  = location.startsWith("/shipping") || location.startsWith("/logistics");
   const accountsActive   = location.startsWith("/accounts");
   const reportsActive    = location.startsWith("/settings/reports");
+  const tradingActive = TRADING_OPERATIONS_SECTIONS.some(
+    section =>
+      section.items.some(
+        item =>
+          location === item.href ||
+          location.startsWith(item.href + "/")
+      )
+  );
 
   const initials = (displayName || displayEmail || "")
     .split(/[\s@]/)
@@ -200,6 +228,13 @@ export default function TopNavbar({ username = "", role = "", onLogout = () => {
     const h = (e: MouseEvent) => { if (profileRef.current && !profileRef.current.contains(e.target as Node)) setProfileOpen(false); };
     document.addEventListener("mousedown", h); return () => document.removeEventListener("mousedown", h);
   }, [profileOpen]);
+
+  useEffect(() => {
+    if (!tradingOpen) return;
+    const h = (e: MouseEvent) => { if ( tradingRef.current && !tradingRef.current.contains(e.target as Node) ) { setTradingOpen(false); } };
+    document.addEventListener("mousedown", h);
+    return () => document.removeEventListener("mousedown", h);
+  }, [tradingOpen]);
 
   const navLink = (active: boolean) =>
     `px-3.5 py-2 rounded-lg text-sm font-medium transition-colors ${
@@ -319,6 +354,46 @@ export default function TopNavbar({ username = "", role = "", onLogout = () => {
                             className={`block px-2 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
                               active ? "text-cyan-900 bg-gray-50 font-semibold" : "text-gray-600 hover:bg-gray-50 hover:text-cyan-900"
                             }`}
+                          >
+                            {label}
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Trading — dropdown */}
+            <div className="relative" ref={tradingRef}>
+              <button
+                onClick={() => setTradingOpen(v => !v)}
+                className={`flex items-center gap-1 ${navLink(tradingActive)}`}
+              >
+                Trading
+                <ChevronDown
+                  className={`h-3.5 w-3.5 transition-transform ${ tradingOpen ? "rotate-180" : "" }`}
+                />
+              </button>
+
+              {tradingOpen && (
+                <div className="absolute top-full left-0 mt-1.5 w-56 bg-white border border-gray-200 rounded-xl shadow-lg z-50 p-1.5">
+                  {TRADING_OPERATIONS_SECTIONS.map(({ title, items }) => (
+                    <div key={title}>
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 px-3 pb-1.5 pt-1">
+                        {title}
+                      </p>
+
+                      {items.map(({ label, href }) => {
+                        const active = location === href || location.startsWith(href + "/");
+
+                        return (
+                          <Link
+                            key={href}
+                            href={href}
+                            onClick={() => setTradingOpen(false)}
+                            className={`block px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${ active ? "text-cyan-900 bg-gray-50 font-semibold" : "text-gray-600 hover:bg-gray-50 hover:text-cyan-900" }`}
                           >
                             {label}
                           </Link>
@@ -593,6 +668,50 @@ export default function TopNavbar({ username = "", role = "", onLogout = () => {
                           onClick={() => setMobileOpen(false)}
                           className={`block px-3 py-2 rounded-lg text-sm transition-colors ${
                             location === href ? "text-cyan-900 font-semibold" : "text-gray-600 hover:bg-gray-50"
+                          }`}
+                        >
+                          {label}
+                        </Link>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Mobile Trading */}
+              <button
+                onClick={() => setMobileTradingOpen(v => !v)}
+                className={`flex items-center justify-between px-4 py-2.5 rounded-lg text-sm font-medium transition-colors w-full text-left ${
+                  tradingActive
+                    ? "bg-cyan-900 text-[#C9B45C]"
+                    : "text-slate-500 hover:bg-gray-100"
+                }`}
+              >
+                <span>Trading</span>
+                <ChevronDown
+                  className={`h-4 w-4 transition-transform ${
+                    mobileTradingOpen ? "rotate-180" : ""
+                  }`}
+                />
+              </button>
+
+              {mobileTradingOpen && (
+                <div className="ml-4 flex flex-col gap-0.5 border-l-2 border-gray-100 pl-3">
+                  {TRADING_OPERATIONS_SECTIONS.map(({ title, items }) => (
+                    <div key={title}>
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 px-3 pb-1">
+                        {title}
+                      </p>
+
+                      {items.map(({ label, href }) => (
+                        <Link
+                          key={href}
+                          href={href}
+                          onClick={() => setMobileOpen(false)}
+                          className={`block px-3 py-2 rounded-lg text-sm transition-colors ${
+                            location === href || location.startsWith(href + "/")
+                              ? "text-cyan-900 font-semibold"
+                              : "text-gray-600 hover:bg-gray-50"
                           }`}
                         >
                           {label}
