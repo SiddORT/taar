@@ -65,12 +65,12 @@ async function loadUsers(ids: (number | null | undefined)[]): Promise<Map<number
 }
 
 // ─── Sync sizes into trading_product_sizes ────────────────────────────────────
-export async function syncProductSizes( tx: any,
+export async function syncProductSizes(
+  tx: any,
   input:
     | Array<{ productId: string | number; size?: string | null }>
     | { productId: string | number; sizes?: string[] }
 ): Promise<void> {
-  
   // ── 1. Normalize input to a flat list of (productId, size) pairs ──
   const pairs = new Map<string, { productId: number; size: string }>();
 
@@ -98,7 +98,7 @@ export async function syncProductSizes( tx: any,
 
   const productIds = [...new Set([...pairs.values()].map(p => p.productId))];
 
-  // ── 2. Load existing sizes for these products ──
+  // ── 2. Load existing sizes for these products (single query) ──
   const existing = await tx
     .select({
       productId: tradingProductSizes.productId,
@@ -119,8 +119,10 @@ export async function syncProductSizes( tx: any,
     nextSort.set(r.productId, Math.max(cur, (r.sortOrder ?? 0) + 1));
   }
 
-  // ── 4. Build list of new rows ──
+  // ── 4. Build list of new rows to insert ──
   const toInsert: Array<{ productId: number; sizeLabel: string; sortOrder: number }> = [];
+  const productsThatGotNewSizes = new Set<number>();
+
   for (const { productId, size } of pairs.values()) {
     const key = `${productId}::${size}`;
     if (existingKeys.has(key)) continue;
@@ -128,11 +130,25 @@ export async function syncProductSizes( tx: any,
     const order = nextSort.get(productId) ?? 0;
     toInsert.push({ productId, sizeLabel: size, sortOrder: order });
     nextSort.set(productId, order + 1);
+    productsThatGotNewSizes.add(productId);
   }
 
-  // ── 5. Bulk insert ──
+  // ── 5. Bulk insert new sizes + flip hasSizes on affected products ──
   if (toInsert.length > 0) {
     await tx.insert(tradingProductSizes).values(toInsert);
+
+    const idsToUpdate = [...productsThatGotNewSizes];
+    if (idsToUpdate.length > 0) {
+      await tx
+        .update(tradingProducts)
+        .set({ hasSizes: true })
+        .where(
+          and(
+            inArray(tradingProducts.id, idsToUpdate),
+            eq(tradingProducts.hasSizes, false)   
+          )
+        );
+    }
   }
 }
 
