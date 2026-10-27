@@ -8,3 +8,7 @@ Change the new TAAR logo on the admin login screen and navbar first. Wait for th
 **Why:** The user explicitly requested a staged rollout so they can confirm these first two placements.
 
 **How to apply:** Keep shared old logo assets intact so unrelated screens remain unchanged. Do not expand logo changes to other placements without the user's confirmation.
+
+The tagline below the logo on both initial placements is “YOUR DESIGN BUSINESS, CONNECTED”, with a leading dash and gold uppercase styling matching the supplied reference.
+
+**Why:** The user supplied this wording and requested it below the logo on both screens.

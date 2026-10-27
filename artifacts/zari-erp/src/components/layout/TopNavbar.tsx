@@ -212,12 +212,15 @@ export default function TopNavbar({ username = "", role = "", onLogout = () => {
         <div className="flex items-center justify-between h-16 px-6 max-w-screen-2xl mx-auto">
 
           {/* LEFT — Brand */}
-          <Link href="/dashboard" className="flex items-center gap-2.5 leading-none select-none shrink-0 mr-4">
+          <Link href="/dashboard" className="flex flex-col items-start gap-1.5 leading-none select-none shrink-0 mr-4">
             <img
               src={logo}
               alt="TAAR"
               className="h-auto w-24 lg:w-28 object-contain"
             />
+            <span className="whitespace-nowrap text-[6.5px] lg:text-[7px] font-semibold tracking-[0.08em] text-[#967322]">
+              — YOUR DESIGN BUSINESS, CONNECTED
+            </span>
             {/* <span className="flex flex-col leading-none">
               <span className="text-base font-bold tracking-widest uppercase" style={{ color: "#C9B45C", letterSpacing: "0.18em" }}>
                 ERP
