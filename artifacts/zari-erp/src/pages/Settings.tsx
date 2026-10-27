@@ -13,6 +13,8 @@ import { useToast } from "@/hooks/use-toast";
 import { customFetch } from "@workspace/api-client-react";
 import AppLayout from "@/components/layout/AppLayout";
 import { logDownload } from "@/utils/logDownload";
+import TaarBrand from "@/components/branding/TaarBrand";
+import { addTaarPdfBrand } from "@/utils/taarPdfBrand";
 
 const G = "#C6AF4B";
 
@@ -1561,7 +1563,8 @@ function WarehouseTab({ card, inp, label, toast }: any) {
       doc.setTextColor(255, 255, 255);
       doc.setFontSize(14);
       doc.setFont("helvetica", "bold");
-      doc.text("ERP — Warehouse Locations", 14, 12);
+      addTaarPdfBrand(doc, 14, 1.5, 46);
+      doc.text("Warehouse Locations", 68, 12);
       doc.setFontSize(9);
       doc.setFont("helvetica", "normal");
       doc.text(`Generated on ${new Date().toLocaleString("en-IN")}`, 283, 12, { align: "right" });
@@ -1597,7 +1600,7 @@ function WarehouseTab({ card, inp, label, toast }: any) {
         doc.setPage(i);
         doc.setFontSize(7);
         doc.setTextColor(180, 160, 80);
-        doc.text(`Page ${i} of ${pageCount} — Confidential — ERP`, 148.5, 205, { align: "center" });
+        doc.text(`Page ${i} of ${pageCount} — Confidential — TAAR`, 148.5, 205, { align: "center" });
       }
 
       const wFileName = `warehouses-${new Date().toISOString().slice(0, 10)}.pdf`;
@@ -2279,7 +2282,8 @@ function TemplatePreview({ layout }: { layout: string }) {
   if (layout === "classic") {
     return (
       <div className="w-full h-32 bg-white border border-gray-100 rounded-lg overflow-hidden p-2 flex flex-col gap-1">
-        <div className="h-5 rounded" style={{ backgroundColor: G, opacity: 0.9 }} />
+        <TaarBrand width={44} />
+        <div className="h-3 rounded" style={{ backgroundColor: G, opacity: 0.9 }} />
         <div className="h-px bg-gray-200" />
         <div className="flex gap-1 mt-0.5">
           <div className="flex-1 flex flex-col gap-1">
@@ -2309,7 +2313,7 @@ function TemplatePreview({ layout }: { layout: string }) {
     return (
       <div className="w-full h-32 bg-white border border-gray-100 rounded-lg overflow-hidden flex">
         <div className="w-1/3 h-full flex flex-col gap-1 p-2" style={{ backgroundColor: "#1a1a2e" }}>
-          <div className="h-3 w-3 rounded-full" style={{ backgroundColor: G }} />
+          <div className="bg-white rounded-sm p-0.5"><TaarBrand width="100%" /></div>
           <div className="h-1 bg-white/20 rounded w-full mt-1" />
           <div className="h-1 bg-white/10 rounded w-3/4" />
           <div className="h-1 bg-white/10 rounded w-1/2" />
@@ -2335,7 +2339,7 @@ function TemplatePreview({ layout }: { layout: string }) {
   return (
     <div className="w-full h-32 bg-white border border-gray-100 rounded-lg overflow-hidden flex flex-col">
       <div className="h-8 flex items-center justify-between px-2" style={{ background: `linear-gradient(135deg, #1a1a2e 60%, ${G})` }}>
-        <div className="h-2 w-12 bg-white/80 rounded" />
+        <div className="bg-white rounded-sm px-0.5"><TaarBrand width={36} /></div>
         <div className="text-[7px] font-bold text-white/80 tracking-widest">INVOICE</div>
       </div>
       <div className="flex gap-1.5 px-2 py-1">

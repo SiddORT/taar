@@ -1,6 +1,7 @@
-import jsPDF from "jspdf";
+import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { logDownload } from "./logDownload";
+import { addTaarPdfBrand } from "./taarPdfBrand";
 
 const GOLD_RGB: [number, number, number] = [198, 175, 75];
 const DARK_RGB: [number, number, number] = [30, 30, 30];
@@ -8,8 +9,7 @@ const WHITE_RGB: [number, number, number] = [255, 255, 255];
 const GRAY_RGB: [number, number, number] = [120, 120, 120];
 const LIGHT_RGB: [number, number, number] = [245, 244, 240];
 
-const COMPANY = "ERP";
-const TAGLINE = "Premium Custom Embroidery";
+const COMPANY = "TAAR";
 
 export interface QuotationPdfData {
   quotation_number: string;
@@ -51,11 +51,10 @@ function coverClassic(doc: jsPDF, data: QuotationPdfData) {
   doc.setFillColor(...GOLD_RGB); doc.rect(0, H - 12, W, 12, "F");
 
   doc.setFontSize(26); doc.setTextColor(...DARK_RGB); doc.setFont("helvetica", "bold");
-  doc.text(COMPANY, W / 2, 78, { align: "center" });
+  addTaarPdfBrand(doc, W / 2 - 65, 43, 130);
   doc.setDrawColor(...GOLD_RGB); doc.setLineWidth(0.8);
   doc.line(30, 86, W - 30, 86);
   doc.setFontSize(11); doc.setTextColor(...GOLD_RGB); doc.setFont("helvetica", "normal");
-  doc.text(TAGLINE, W / 2, 96, { align: "center" });
 
   doc.setFontSize(14); doc.setTextColor(...GRAY_RGB); doc.setFont("helvetica", "bold");
   doc.text("QUOTATION", W / 2, 124, { align: "center" });
@@ -84,10 +83,9 @@ function coverModern(doc: jsPDF, data: QuotationPdfData) {
   doc.setFillColor(...GOLD_RGB); doc.rect(W - 36, 0, 36, H, "F");
 
   doc.setFontSize(24); doc.setTextColor(...WHITE_RGB); doc.setFont("helvetica", "bold");
-  doc.text(COMPANY, 22, 88);
+  addTaarPdfBrand(doc, 22, 52, 120);
   doc.setDrawColor(...GOLD_RGB); doc.setLineWidth(1.5); doc.line(22, 94, 115, 94);
   doc.setFontSize(10); doc.setTextColor(...GOLD_RGB); doc.setFont("helvetica", "normal");
-  doc.text(TAGLINE, 22, 103);
 
   doc.setFontSize(36); doc.setTextColor(...WHITE_RGB); doc.setFont("helvetica", "bold");
   doc.text("QUOTATION", 22, 148);
@@ -112,11 +110,9 @@ function coverCorporate(doc: jsPDF, data: QuotationPdfData) {
   const H = doc.internal.pageSize.getHeight();
   doc.setFillColor(...WHITE_RGB); doc.rect(0, 0, W, H, "F");
   doc.setFillColor(...DARK_RGB); doc.rect(0, 0, W, 52, "F");
-  doc.setFillColor(...GOLD_RGB); doc.circle(22, 26, 9, "F");
   doc.setFontSize(15); doc.setTextColor(...WHITE_RGB); doc.setFont("helvetica", "bold");
-  doc.text(COMPANY, 37, 23);
+  addTaarPdfBrand(doc, 20, 9, 105);
   doc.setFontSize(8); doc.setTextColor(180, 180, 180); doc.setFont("helvetica", "normal");
-  doc.text(TAGLINE, 37, 32);
   doc.setFillColor(...GOLD_RGB); doc.rect(0, 52, W, 3, "F");
 
   doc.setFontSize(30); doc.setTextColor(...DARK_RGB); doc.setFont("helvetica", "bold");
@@ -148,10 +144,9 @@ function coverMinimal(doc: jsPDF, data: QuotationPdfData) {
   doc.setFillColor(...GOLD_RGB); doc.rect(0, 0, 4, H, "F");
 
   doc.setFontSize(20); doc.setTextColor(...DARK_RGB); doc.setFont("helvetica", "bold");
-  doc.text(COMPANY, 18, 88);
+  addTaarPdfBrand(doc, 18, 52, 120);
   doc.setDrawColor(...GOLD_RGB); doc.setLineWidth(0.5); doc.line(18, 94, W - 18, 94);
   doc.setFontSize(9); doc.setTextColor(...GRAY_RGB); doc.setFont("helvetica", "normal");
-  doc.text(TAGLINE, 18, 102);
 
   doc.setFontSize(10); doc.setTextColor(...GRAY_RGB); doc.text("QUOTATION", 18, 128);
   doc.setFontSize(18); doc.setTextColor(...DARK_RGB); doc.setFont("helvetica", "bold");
@@ -178,9 +173,8 @@ function addContentPage(doc: jsPDF, data: QuotationPdfData) {
   doc.setFillColor(...DARK_RGB); doc.rect(0, 0, W, 22, "F");
   doc.setFillColor(...GOLD_RGB); doc.rect(0, 22, W, 2, "F");
   doc.setFontSize(12); doc.setTextColor(...WHITE_RGB); doc.setFont("helvetica", "bold");
-  doc.text(COMPANY, 14, 10);
+  addTaarPdfBrand(doc, 14, 1, 46);
   doc.setFontSize(8); doc.setTextColor(...GOLD_RGB); doc.setFont("helvetica", "normal");
-  doc.text(TAGLINE, 14, 17);
   doc.setFontSize(12); doc.setTextColor(...WHITE_RGB); doc.setFont("helvetica", "bold");
   doc.text(data.quotation_number, W - 14, 10, { align: "right" });
   doc.setFontSize(8); doc.setTextColor(180, 180, 180); doc.setFont("helvetica", "normal");

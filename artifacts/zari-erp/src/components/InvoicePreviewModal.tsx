@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { X, Printer, Loader2 } from "lucide-react";
+import TaarBrand from "@/components/branding/TaarBrand";
 
 const G = "#C6AF4B";
 const CURRENCY_SYMBOLS: Record<string, string> = { INR: "₹", USD: "$", EUR: "€", GBP: "£", AED: "د.إ", SAR: "﷼" };
@@ -114,6 +115,7 @@ function ClassicTemplate({ inv, company, tpl }: { inv: PreviewInvoice; company: 
       {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 32, borderBottom: "3px solid #1a1a1a", paddingBottom: 20 }}>
         <div>
+          <TaarBrand width={170} style={{ marginBottom: 10 }} />
           <div style={{ fontSize: 28, fontWeight: 800, letterSpacing: 2, color: "#1a1a1a" }}>{company.name || "ERP"}</div>
           {company.address && <div style={{ fontSize: 11, color: "#555", marginTop: 3, whiteSpace: "pre-line", lineHeight: 1.5 }}>{company.address}</div>}
           {(company.phone || company.email) && (
@@ -263,6 +265,7 @@ function ModernTemplate({ inv, company, tpl }: { inv: PreviewInvoice; company: C
       {/* Dark header */}
       <div style={{ background: "#1C1C2E", color: "#fff", padding: "32px 40px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div>
+          <div style={{ display: "inline-block", background: "#fff", padding: "6px 10px", borderRadius: 4, marginBottom: 10 }}><TaarBrand width={150} /></div>
           <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: 1.5, color: G }}>{company.name || "ERP"}</div>
           {company.address && <div style={{ fontSize: 10, color: "#bbb", marginTop: 2, whiteSpace: "pre-line", lineHeight: 1.5 }}>{company.address}</div>}
           {(company.phone || company.email) && (
@@ -425,6 +428,7 @@ function PremiumTemplate({ inv, company, tpl }: { inv: PreviewInvoice; company: 
       {/* Gold gradient header */}
       <div style={{ background: "linear-gradient(135deg, #8B6914 0%, #C6AF4B 50%, #8B6914 100%)", padding: "36px 48px" }}>
         <div style={{ textAlign: "center" }}>
+          <div style={{ display: "inline-block", background: "#fff", padding: "6px 12px", borderRadius: 4, marginBottom: 12 }}><TaarBrand width={170} /></div>
           <div style={{ fontSize: 30, fontWeight: 700, letterSpacing: 4, color: "#fff", textShadow: "0 1px 3px rgba(0,0,0,0.3)" }}>{company.name || "ERP"}</div>
           {company.address && (
             <div style={{ fontSize: 10, color: "rgba(255,255,255,0.8)", marginTop: 4, whiteSpace: "pre-line", lineHeight: 1.6 }}>{company.address}</div>
@@ -646,7 +650,7 @@ export default function InvoicePreviewModal({ invoiceId, formSnapshot, onClose }
     const html = printRef.current.innerHTML;
     const win = window.open("", "_blank", "width=900,height=700");
     if (!win) return;
-    win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>${inv?.invoiceNo ?? "Invoice"}</title>
+    win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><base href="${window.location.href}"><title>${inv?.invoiceNo ?? "Invoice"}</title>
       <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { background: #fff; }
@@ -657,10 +661,12 @@ export default function InvoicePreviewModal({ invoiceId, formSnapshot, onClose }
       </style>
     </head><body>${html}</body></html>`);
     win.document.close();
-    setTimeout(() => {
+    const imgs = Array.from(win.document.images);
+    const ready = Promise.all(imgs.map(img => img.complete ? Promise.resolve() : new Promise<void>(res => { img.onload = () => res(); img.onerror = () => res(); })));
+    Promise.race([ready, new Promise(res => setTimeout(res, 2500))]).then(() => setTimeout(() => {
       win.focus();
       win.print();
-    }, 400);
+    }, 150));
   }
 
   const renderTemplate = () => {

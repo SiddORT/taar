@@ -1,6 +1,7 @@
-import jsPDF from "jspdf";
+import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { logDownload } from "./logDownload";
+import { addTaarPdfBrand } from "./taarPdfBrand";
 
 const GOLD = [198, 175, 75] as [number, number, number];
 const DARK = [30, 30, 30]   as [number, number, number];
@@ -17,10 +18,10 @@ function addHeader(doc: jsPDF, title: string, subtitle: string) {
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(13);
   doc.setFont("helvetica", "bold");
-  doc.text("ERP", 14, 9);
+  addTaarPdfBrand(doc, 14, 1.5, 46);
   doc.setFontSize(8);
   doc.setFont("helvetica", "normal");
-  doc.text(title, 14, 14);
+  doc.text(title, 196, 11, { align: "right" });
 
   doc.setTextColor(...DARK);
   doc.setFontSize(16);
@@ -444,10 +445,10 @@ export function downloadBomPdf(data: BomPdfData) {
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(13);
   doc.setFont("helvetica", "bold");
-  doc.text("ERP", 14, 9);
+  addTaarPdfBrand(doc, 14, 1.5, 46);
   doc.setFontSize(8);
   doc.setFont("helvetica", "normal");
-  doc.text("SAMPLING DOCUMENTATION", 14, 14);
+  doc.text("SAMPLING DOCUMENTATION", 196, 11, { align: "right" });
 
   // ── Document title ──
   doc.setTextColor(...DARK);
@@ -695,11 +696,10 @@ export function downloadCostingPoPdf(data: PoPdfData) {
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(15);
     doc.setFont("helvetica", "bold");
-    doc.text("ERP", 14, 11);
+    addTaarPdfBrand(doc, 14, 2, 52);
     doc.setFontSize(7.5);
     doc.setFont("helvetica", "normal");
     doc.setTextColor(255, 245, 210);
-    doc.text("PRECISION CRAFTED FOR THE ART OF EMBROIDERY", 14, 17);
 
     // PO number — top-right
     doc.setFontSize(8);
@@ -904,10 +904,10 @@ export function downloadCostingPoPdf(data: PoPdfData) {
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(13);
     doc.setFont("helvetica", "bold");
-    doc.text("ERP", 14, 9);
+    addTaarPdfBrand(doc, 14, 1.5, 46);
     doc.setFontSize(8);
     doc.setFont("helvetica", "normal");
-    doc.text("PURCHASE ORDER", 14, 14);
+    doc.text("PURCHASE ORDER", 196, 11, { align: "right" });
     doc.setTextColor(...DARK);
     doc.setFontSize(12);
     doc.setFont("helvetica", "normal");

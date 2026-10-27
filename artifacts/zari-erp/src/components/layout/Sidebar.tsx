@@ -9,7 +9,7 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
-import logo from "@assets/symbol.png";
+import TaarBrand, { TaarInitial } from "@/components/branding/TaarBrand";
 
 interface SidebarProps {
   collapsed: boolean;
@@ -37,12 +37,10 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
       {/* Logo */}
       <div className={`flex items-center h-16 border-b border-gray-100 px-4 shrink-0 ${collapsed ? "justify-center" : "justify-between"}`}>
         {!collapsed && (
-          <img src={logo} alt="ERP" className="h-8 w-auto" />
+          <TaarBrand width={150} />
         )}
         {collapsed && (
-          <div className="h-8 w-8 bg-cyan-900 rounded-md flex items-center justify-center">
-            <span className="text-white text-xs font-bold">Z</span>
-          </div>
+          <TaarInitial size={32} />
         )}
       </div>
 

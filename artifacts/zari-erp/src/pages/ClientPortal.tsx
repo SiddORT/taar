@@ -6,6 +6,7 @@ import {
   CheckCheck, Loader2, ChevronDown, CheckCircle,
   RotateCcw, Clock, Sparkles, Search, MessageSquare, Layers, Calendar, User, Tag
 } from "lucide-react";
+import TaarBrand from "@/components/branding/TaarBrand";
 
 // --- Types ---
 interface FileAttachment { name: string; type: string; data: string; size: number }
@@ -535,10 +536,9 @@ export default function ClientPortal() {
         <div className="max-w-xl sm:max-w-2xl md:max-w-4xl lg:max-w-6xl mx-auto px-3.5 sm:px-6 lg:px-8 py-2.5 sm:py-3 flex items-center justify-between">
           <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
             <div
-              className="h-8 w-8 sm:h-9 sm:w-9 rounded-lg flex items-center justify-center text-xs sm:text-sm font-black text-stone-900 shrink-0"
-              style={{ background: "linear-gradient(135deg, #C6AF4B, #a8922e)" }}
+              className="rounded-md bg-white px-2 py-1 shrink-0"
             >
-              Z
+              <TaarBrand width={88} />
             </div>
             <div className="min-w-0">
               <p className="text-[8px] sm:text-[9px] text-stone-400 uppercase tracking-widest font-semibold leading-none">Review Portal</p>
@@ -780,8 +780,8 @@ export default function ClientPortal() {
 
         {/* Footer */}
         <footer className="pt-6 sm:pt-8 pb-2 text-center space-y-1">
-          <p className="text-[10px] sm:text-xs font-bold text-stone-500 tracking-wide">ERP</p>
-          <p className="text-[9px] sm:text-[10px] text-stone-400">Powered by ERP</p>
+          <div className="flex justify-center"><TaarBrand width={120} /></div>
+          <p className="text-[9px] sm:text-[10px] text-stone-400">Powered by TAAR</p>
         </footer>
 
       </main>

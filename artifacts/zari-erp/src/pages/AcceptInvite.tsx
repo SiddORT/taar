@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useLocation, useSearch } from "wouter";
 import { Eye, EyeOff, CheckCircle2 } from "lucide-react";
+import TaarBrand from "@/components/branding/TaarBrand";
 
 const API = "/api";
 
@@ -51,8 +52,8 @@ export default function AcceptInvite() {
   return (
     <div className="min-h-[100dvh] flex">
       <div className="hidden md:flex md:w-1/2 bg-black flex-col justify-between p-10 text-white">
-        <div className="flex flex-col leading-none select-none">
-          <span className="text-base font-bold tracking-widest uppercase" style={{ color: "#C9B45C", letterSpacing: "0.18em" }}>ERP</span>
+        <div className="flex flex-col leading-none select-none self-start rounded bg-white px-5 py-3">
+          <TaarBrand width={220} />
           {/* <span className="text-[9px] font-medium tracking-[0.25em] text-gray-400 uppercase">EMBROIDERIES</span> */}
         </div>
         <div>
@@ -61,7 +62,8 @@ export default function AcceptInvite() {
         <p className="text-xs text-gray-500">ERP © {new Date().getFullYear()}</p>
       </div>
 
-      <div className="flex-1 flex items-center justify-center bg-[#f8f9fb] px-6">
+      <div className="flex-1 flex flex-col items-center justify-center bg-[#f8f9fb] px-6 py-10">
+        <div className="md:hidden mb-8"><TaarBrand width={200} /></div>
         <div className="w-full max-w-md bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
           {done ? (
             <div className="text-center space-y-4">

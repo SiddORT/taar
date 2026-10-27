@@ -7,6 +7,7 @@ import {
 } from "@/hooks/useCosting";
 import { useToast } from "@/hooks/use-toast";
 import { useCurrency } from "@/contexts/CurrencyContext";
+import TaarBrand from "@/components/branding/TaarBrand";
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 function uid() { return Math.random().toString(36).slice(2, 10); }
@@ -300,11 +301,7 @@ export default function InvoiceTab({
           {/* ── Header ───────────────────────────────────────────────────── */}
           <div className="flex items-start justify-between">
             <div>
-              <div className="flex items-baseline gap-2 mb-0.5">
-                <span className="text-2xl font-black tracking-wider text-cyan-900">ERP</span>
-                {/* <span className="text-xs font-light tracking-[0.3em] text-gray-400 uppercase">Embroideries</span> */}
-              </div>
-              <p className="text-[10px] text-gray-400 leading-relaxed">Enterprise Resource Planning</p>
+              <TaarBrand width={150} style={{ marginBottom: 6 }} />
             </div>
             <div className="text-right space-y-1">
               <p className="text-3xl font-black text-cyan-900 tracking-tight">INVOICE</p>

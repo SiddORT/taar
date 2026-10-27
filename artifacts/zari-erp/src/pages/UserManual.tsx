@@ -8,6 +8,7 @@ import {
   Layers, Hash, Scissors, Send, Eye, PenLine, Trash2, Plus, Download,
   LogIn, Home, ChevronDown, ArrowLeft,
 } from "lucide-react";
+import TaarBrand from "@/components/branding/TaarBrand";
 
 const G = "#C6AF4B";
 
@@ -1193,6 +1194,12 @@ export default function UserManual() {
           className={printMode ? "w-full" : "flex-1 overflow-y-auto p-8"}
         >
           <div className={printMode ? "w-full" : "max-w-3xl mx-auto"}>
+            {printMode && (
+              <div style={{ marginBottom: 24, paddingBottom: 12, borderBottom: "1px solid #e5e7eb" }}>
+                <TaarBrand width={200} />
+                <p style={{ fontSize: 12, color: "#6b7280", marginTop: 6 }}>User Manual</p>
+              </div>
+            )}
 
             {/* Normal / section-print view */}
             {(!printMode || printMode === "section") && (

@@ -7,7 +7,7 @@ import { ArrowLeft, Eye, EyeOff, CheckCircle2 } from "lucide-react";
 import { useForgotPassword, useResetPassword } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
 import ZariButton from "@/components/ui/ZariButton";
-import logo from "@assets/symbol.png";
+import TaarBrand from "@/components/branding/TaarBrand";
 
 const requestSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address." }),
@@ -96,7 +96,7 @@ export default function ForgotPassword() {
       {/* LEFT — dark branding panel */}
       <div className="hidden md:flex flex-col flex-1 bg-black px-16 py-12 justify-between">
         <div>
-          <img src={logo} alt="ERP" className="h-14 w-auto brightness-90" />
+          <div className="inline-block rounded bg-white px-5 py-3"><TaarBrand width={220} /></div>
         </div>
         <div>
           <h1 className="text-5xl font-serif text-white leading-tight tracking-tight max-w-md">
@@ -115,7 +115,7 @@ export default function ForgotPassword() {
 
         {/* Mobile logo */}
         <div className="md:hidden mb-10">
-          <img src={logo} alt="ERP" className="h-10 w-auto" />
+          <TaarBrand width={200} />
         </div>
 
         <div className="w-full max-w-md bg-white rounded-2xl shadow-lg px-10 py-10">

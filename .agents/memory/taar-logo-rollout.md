@@ -1,13 +1,13 @@
 ---
-name: TAAR logo rollout approval
-description: Scope restriction for applying the new TAAR logo.
+name: TAAR brand approval
+description: Approved TAAR logo/tagline and boundaries for applying it across the ERP.
 ---
 
-Change the new TAAR logo on the admin login screen and navbar first. Wait for the user's confirmation before changing any other locations, including favicon, account pages, email templates, or documents.
+The user approved the TAAR logo with the gold tagline on the admin login screen and navbar, then authorized applying it at all previously listed locations: account pages, navigation, favicon/share images, invoice and document templates, client portal, manual, and emails.
 
-**Why:** The user explicitly requested a staged rollout so they can confirm these first two placements.
+**Why:** The user said “perfect now make the logo changes with tag line at all listed locations” after reviewing the first two placements.
 
-**How to apply:** Keep shared old logo assets intact so unrelated screens remain unchanged. Do not expand logo changes to other placements without the user's confirmation.
+**How to apply:** Preserve configured legal company names, addresses, tax details, document contents, sender addresses, and historical files. On dark surfaces use a white backing for the supplied dark wordmark.
 
 The tagline below the logo on both initial placements is “YOUR DESIGN BUSINESS, CONNECTED”, with a leading dash and gold uppercase styling matching the supplied reference.
 

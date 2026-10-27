@@ -1,4 +1,14 @@
 import nodemailer from "nodemailer";
+import { TAAR_LOGO_DATA_URL } from "../assets/taarBrandData";
+
+const TAAR_EMAIL_HEADER = `<img src="cid:taar-brand-logo" width="280" height="89" alt="TAAR — YOUR DESIGN BUSINESS, CONNECTED" style="display:block;width:280px;max-width:100%;height:auto;margin:0 auto;background:#ffffff;border-radius:4px;" />`;
+const taarEmailLogo = {
+  filename: "taar-logo.png",
+  content: Buffer.from(TAAR_LOGO_DATA_URL.split(",")[1], "base64"),
+  contentType: "image/png",
+  cid: "taar-brand-logo",
+  contentDisposition: "inline" as const,
+};
 
 function createTransporter() {
   const user = process.env.EMAIL_USER;
@@ -51,8 +61,7 @@ export async function sendInviteEmail(to: string, username: string, inviteUrl: s
       <div class="wrapper">
         <div class="card">
           <div class="header">
-            <p class="header-title">ERP</p>
-            <p class="header-sub">ENTERPRISE RESOURCE PLANNING</p>
+            ${TAAR_EMAIL_HEADER}
           </div>
           <div class="body">
             <h2>You've been invited, ${username}!</h2>
@@ -78,7 +87,8 @@ export async function sendInviteEmail(to: string, username: string, inviteUrl: s
     to,
     subject: `You've been invited to ERP`,
     html,
-    text: `Hi ${username},\n\nYou've been invited to ERP. Click the link below to set your password:\n\n${inviteUrl}\n\nThis link expires in 7 days.`,
+    attachments: [taarEmailLogo],
+    text: `TAAR — YOUR DESIGN BUSINESS, CONNECTED\n\nHi ${username},\n\nYou've been invited to ERP. Click the link below to set your password:\n\n${inviteUrl}\n\nThis link expires in 7 days.`,
   });
 }
 
@@ -113,8 +123,7 @@ export async function sendAdminPasswordResetEmail(to: string, username: string, 
       <div class="wrapper">
         <div class="card">
           <div class="header">
-            <p class="header-title">ERP</p>
-            <p class="header-sub">ENTERPRISE RESOURCE PLANNING</p>
+            ${TAAR_EMAIL_HEADER}
           </div>
           <div class="body">
             <h2>Password Reset by Administrator</h2>
@@ -141,7 +150,8 @@ export async function sendAdminPasswordResetEmail(to: string, username: string, 
     to,
     subject: `ERP — Your password has been reset`,
     html,
-    text: `Hi ${username},\n\nAn administrator has reset your ERP password.\n\nClick the link below to set a new password:\n${inviteUrl}\n\nThis link expires in 7 days.`,
+    attachments: [taarEmailLogo],
+    text: `TAAR — YOUR DESIGN BUSINESS, CONNECTED\n\nHi ${username},\n\nAn administrator has reset your ERP password.\n\nClick the link below to set a new password:\n${inviteUrl}\n\nThis link expires in 7 days.`,
   });
 }
 
@@ -197,8 +207,7 @@ export async function sendPoApprovalRequestEmail(opts: {
       <div class="wrapper">
         <div class="card">
           <div class="header">
-            <p class="header-title">ERP</p>
-            <p class="header-sub">ENTERPRISE RESOURCE PLANNING</p>
+            ${TAAR_EMAIL_HEADER}
           </div>
           <div class="alert-bar">⏳ Action Required: Purchase Order Awaiting Your Approval</div>
           <div class="body">
@@ -237,7 +246,8 @@ export async function sendPoApprovalRequestEmail(opts: {
     to: adminEmails.join(", "),
     subject: `[Action Required] PO ${poNumber} — Approve to enable Purchase Receipts`,
     html,
-    text: `A new Purchase Order (${poNumber}) from vendor "${vendorName || "—"}" has been created for ${refLabel} ${refValue} by ${createdBy}.\n\nApprove: ${approveUrl}\nReject: ${rejectUrl}\n\nOr log in to ERP: ${erpUrl}\n\nOnce approved, purchase receipts will be enabled.`,
+    attachments: [taarEmailLogo],
+    text: `TAAR — YOUR DESIGN BUSINESS, CONNECTED\n\nA new Purchase Order (${poNumber}) from vendor "${vendorName || "—"}" has been created for ${refLabel} ${refValue} by ${createdBy}.\n\nApprove: ${approveUrl}\nReject: ${rejectUrl}\n\nOr log in to ERP: ${erpUrl}\n\nOnce approved, purchase receipts will be enabled.`,
   });
 }
 
@@ -271,8 +281,7 @@ export async function sendPasswordResetEmail(to: string, token: string): Promise
       <div class="wrapper">
         <div class="card">
           <div class="header">
-            <p class="header-title">ERP</p>
-            <p class="header-sub">ENTERPRISE RESOURCE PLANNING</p>
+            ${TAAR_EMAIL_HEADER}
           </div>
           <div class="body">
             <h2>Password Reset Request</h2>
@@ -298,6 +307,7 @@ export async function sendPasswordResetEmail(to: string, token: string): Promise
     to,
     subject: "Your ERP Password Reset Token",
     html,
-    text: `Your ERP password reset token is: ${token}\n\nThis token expires in 15 minutes.\n\nIf you did not request this, ignore this email.`,
+    attachments: [taarEmailLogo],
+    text: `TAAR — YOUR DESIGN BUSINESS, CONNECTED\n\nYour ERP password reset token is: ${token}\n\nThis token expires in 15 minutes.\n\nIf you did not request this, ignore this email.`,
   });
 }
