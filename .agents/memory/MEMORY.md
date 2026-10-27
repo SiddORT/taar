@@ -6,3 +6,4 @@
 - [Media storage strategy](media-storage-strategy.md) — NOT uniform: jsonb image/attachment cols are base64 blobs IN the DB; only some text cols are disk paths under uploads/. Don't say "all on disk".
 - [Soft-delete convention](soft-delete-convention.md) — every table is_deleted; no hard deletes; reads/mutations/auth/perms all filter is_deleted; LEFT JOIN filter in ON clause; numbering keeps deleted numbers reserved.
 - [Cross-currency INR anchor](cross-currency-anchor.md) — all payments store base=amount*rate; balances recompute from non-deleted sums / doc.rate; status pure; KPIs sum base.
+- [Partial workspace installation](partial-workspace-install.md) — a filtered frontend install can restore its executables when an unrelated backend dependency blocks full installation.

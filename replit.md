@@ -12,6 +12,14 @@ ERP is a full-stack ERP authentication system built for ERP. It is designed to s
 - I prefer descriptive commit messages.
 - Ensure all new features are accompanied by relevant tests.
 
+## Running on Replit
+
+- Install the existing workspace dependencies with `pnpm install --frozen-lockfile`.
+- The ERP frontend runs through `artifacts/zari-erp: web`; the backend runs through `artifacts/api-server: API Server`.
+- Use the managed workflows so each service receives its assigned `PORT` and `BASE_PATH`. API requests are routed by Replit's shared proxy, not a Vite localhost proxy.
+- If an unrelated backend package blocks the full install, `pnpm --filter @workspace/zari-erp... install --frozen-lockfile` installs only the frontend and its workspace dependencies. This allows the login page to load but does not enable sign-in or database features without the backend.
+- For an empty database, apply the committed migrations with `pnpm --filter @workspace/db run migrate` before starting the backend. Do not use schema push or restore the repository's SQL backup without approval.
+
 ## System Architecture
 
 The project is structured as a pnpm monorepo using TypeScript, targeting Node.js 24. It comprises two main artifacts: a React frontend (`artifacts/zari-erp`) and an Express.js backend (`artifacts/api-server`).
