@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { Menu, X, LogOut, Loader2, ChevronDown, Users, Settings, BarChart2, BookOpen } from "lucide-react";
-import logo from "@assets/symbol.png";
+import logo from "@assets/taar_logo_1793080544664.png";
 
 interface TopNavbarProps {
   username?: string;
@@ -215,8 +215,8 @@ export default function TopNavbar({ username = "", role = "", onLogout = () => {
           <Link href="/dashboard" className="flex items-center gap-2.5 leading-none select-none shrink-0 mr-4">
             <img
               src={logo}
-              alt="Logo"
-              className="h-9 w-auto object-contain"
+              alt="TAAR"
+              className="h-auto w-24 lg:w-28 object-contain"
             />
             {/* <span className="flex flex-col leading-none">
               <span className="text-base font-bold tracking-widest uppercase" style={{ color: "#C9B45C", letterSpacing: "0.18em" }}>

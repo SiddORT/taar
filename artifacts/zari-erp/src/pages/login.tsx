@@ -8,7 +8,7 @@ import { useLogin } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import ZariButton from "@/components/ui/ZariButton";
-import logo from "@assets/dark-logo.png";
+import logo from "@assets/taar_logo_1793080544664.png";
 
 const loginSchema = z.object({
   email: z.string().min(1, { message: "Username or email is required." }),
@@ -70,11 +70,11 @@ export default function Login() {
       {/* LEFT SIDE — Dark branding panel */}
       <div className="hidden md:flex flex-col flex-1 bg-black px-16 py-12 justify-between">
         {/* Top logo */}
-        <div>
+        <div className="inline-flex self-start rounded bg-white px-5 py-3">
           <img
             src={logo}
-            alt="Client Logo"
-            className="h-14 w-auto brightness-90"
+            alt="TAAR"
+            className="h-10 w-auto object-contain"
           />
         </div>
 
@@ -98,7 +98,7 @@ export default function Login() {
 
         {/* Mobile logo */}
         <div className="md:hidden mb-10 flex justify-center">
-          <img src={logo} alt="ERP" className="h-10 w-auto" />
+          <img src={logo} alt="TAAR" className="h-9 w-auto max-w-full object-contain" />
         </div>
 
         {/* Login card */}
