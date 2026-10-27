@@ -18,7 +18,9 @@ ERP is a full-stack ERP authentication system built for ERP. It is designed to s
 - The ERP frontend runs through `artifacts/zari-erp: web`; the backend runs through `artifacts/api-server: API Server`.
 - Use the managed workflows so each service receives its assigned `PORT` and `BASE_PATH`. API requests are routed by Replit's shared proxy, not a Vite localhost proxy.
 - If an unrelated backend package blocks the full install, `pnpm --filter @workspace/zari-erp... install --frozen-lockfile` installs only the frontend and its workspace dependencies. This allows the login page to load but does not enable sign-in or database features without the backend.
+- The API and its dependencies can be installed with `pnpm --filter @workspace/api-server... install --frozen-lockfile` without installing API code-generation tooling.
 - For an empty database, apply the committed migrations with `pnpm --filter @workspace/db run migrate` before starting the backend. Do not use schema push or restore the repository's SQL backup without approval.
+- The legacy bulk `scripts/seed.sql` is not compatible with the current users schema. Do not run it unchanged against a fresh database; use an admin-only bootstrap and separately seed the role/permission baseline. The API synchronizes missing admin permissions on startup.
 
 ## System Architecture
 
