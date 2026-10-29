@@ -3,6 +3,10 @@ import { Router, type IRouter } from "express";
 import { randomBytes } from "crypto";
 import { eq, and, asc, desc ,db, clientLinksTable, clientFeedbackTable, clientMessagesTable, artworksTable, swatchOrdersTable, styleOrdersTable } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
+import { transaction } from "../lib/clientAccounts";
+import { clientHandler } from "./clientAuth";
+import { activeLink, orderInfo } from "../lib/clientWorkspace";
+import { sendConversation, conversationTarget, conversationHistory } from "../lib/clientConversations";
 
 const SWATCH_PRE_APPROVAL_STATUSES = ["Draft", "Issued", "In Sampling", "In Artwork"];
 const STYLE_PRE_APPROVAL_STATUSES  = ["Draft", "Issued", "In Production", "In Review"];
@@ -71,7 +75,7 @@ router.patch("/client-links/:id", requireAuth, async (req, res): Promise<void> =
       ...(closedThreads !== undefined && { closedThreads }),
       updatedAt: new Date(),
     })
-    .where(eq(clientLinksTable.id, id))
+    .where(and(eq(clientLinksTable.id, id), eq(clientLinksTable.isDeleted, false)))
     .returning();
 
   if (!updated) { res.status(404).json({ error: "Not found" }); return; }
@@ -109,14 +113,14 @@ router.post("/client-links/:id/regenerate", requireAuth, async (req, res): Promi
   const [updated] = await db
     .update(clientLinksTable)
     .set({ token, isPublished: false, updatedAt: new Date() })
-    .where(eq(clientLinksTable.id, id))
+    .where(and(eq(clientLinksTable.id, id), eq(clientLinksTable.isDeleted, false)))
     .returning();
 
   if (!updated) { res.status(404).json({ error: "Not found" }); return; }
   res.json({ data: updated });
 });
 
-router.get("/client-links/:id/feedback", requireAuth, async (req, res): Promise<void> => {
+router.get("/client-links/:id/feedback", requireAuth, clientHandler(async (req, res): Promise<void> => {
   const id = parseInt(String(req.params.id));
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
 
@@ -124,11 +128,11 @@ router.get("/client-links/:id/feedback", requireAuth, async (req, res): Promise<
     .select()
     .from(clientFeedbackTable)
     .where(and(eq(clientFeedbackTable.clientLinkId, id), eq(clientFeedbackTable.isDeleted, false)))
-    .orderBy(desc(clientFeedbackTable.createdAt));
+    .orderBy(asc(clientFeedbackTable.createdAt), asc(clientFeedbackTable.id));
   res.json({ data: rows });
-});
+}));
 
-router.patch("/client-links/feedback/:feedbackId", requireAuth, async (req, res): Promise<void> => {
+router.patch("/client-links/feedback/:feedbackId", requireAuth, clientHandler(async (req, res): Promise<void> => {
   const id = parseInt(String(req.params.feedbackId));
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
 
@@ -140,78 +144,67 @@ router.patch("/client-links/feedback/:feedbackId", requireAuth, async (req, res)
       ...(isResolved !== undefined && { isResolved, resolvedAt: isResolved ? new Date() : null }),
       ...(internalNote !== undefined && { internalNote }),
     })
-    .where(eq(clientFeedbackTable.id, id))
+    .where(and(eq(clientFeedbackTable.id, id), eq(clientFeedbackTable.isDeleted, false)))
     .returning();
 
   if (!updated) { res.status(404).json({ error: "Not found" }); return; }
 
   if (updated.isResolved && updated.decision === "Approve") {
-    await db.update(artworksTable).set({ feedbackStatus: "Approved" }).where(eq(artworksTable.id, updated.artworkId));
+    await transaction(async cx => {
+      const link = await activeLink(cx, updated.clientLinkId);
+      await conversationTarget(cx, link, "artwork", updated.artworkId, true);
+      const { swatch, orderId } = orderInfo(link);
+      await cx.query(`UPDATE ${swatch ? "artworks" : "style_order_artworks"} SET feedback_status='Approved'
+        WHERE id=$1 AND ${swatch ? "swatch_order_id" : "style_order_id"}=$2 AND is_deleted=false`, [updated.artworkId,orderId]);
+    });
   }
 
   res.json({ data: updated });
-});
+}));
 
 /* ── Chat messages ── */
 
-router.get("/client-links/:id/messages", requireAuth, async (req, res): Promise<void> => {
+router.get("/client-links/:id/messages", requireAuth, clientHandler(async (req, res): Promise<void> => {
   const id = parseInt(String(req.params.id));
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
 
-  const rows = await db
-    .select()
-    .from(clientMessagesTable)
-    .where(and(eq(clientMessagesTable.clientLinkId, id), eq(clientMessagesTable.isDeleted, false)))
-    .orderBy(asc(clientMessagesTable.createdAt));
+  const rows = await transaction(async cx => conversationHistory(cx, await activeLink(cx, id)));
 
   res.json({ data: rows });
-});
+}));
 
-router.post("/client-links/:id/messages", requireAuth, async (req, res): Promise<void> => {
+router.post("/client-links/:id/messages", requireAuth, clientHandler(async (req, res): Promise<void> => {
   const id = parseInt(String(req.params.id));
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
 
-  const { artworkId, artworkName, message, attachment } = req.body as {
-    artworkId: number;
-    artworkName: string;
-    message?: string;
-    attachment?: { name: string; type: string; data: string; size: number };
-  };
-
-  if (!artworkId || (!message && !attachment)) {
-    res.status(400).json({ error: "artworkId and message or attachment required" });
-    return;
-  }
-
-  const [created] = await db
-    .insert(clientMessagesTable)
-    .values({ clientLinkId: id, artworkId, artworkName, sender: "team", message: message ?? null, attachment: attachment ?? null })
-    .returning();
+  const created = await transaction(async cx => sendConversation(cx, await activeLink(cx, id), req.body, "team", true));
 
   res.status(201).json({ data: created });
-});
+}));
 
-router.patch("/client-links/:id/threads/toggle", requireAuth, async (req, res): Promise<void> => {
+router.patch("/client-links/:id/threads/toggle", requireAuth, clientHandler(async (req, res): Promise<void> => {
   const id = parseInt(String(req.params.id));
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
 
   const { artworkId, closed } = req.body as { artworkId: number; closed: boolean };
 
-  const [link] = await db.select().from(clientLinksTable).where(and(eq(clientLinksTable.id, id), eq(clientLinksTable.isDeleted, false)));
-  if (!link) { res.status(404).json({ error: "Not found" }); return; }
-
-  const current = (link.closedThreads as number[]) ?? [];
+  if (typeof closed !== "boolean") { res.status(400).json({ error: "closed must be a boolean" }); return; }
+  const result = await transaction(async cx => {
+  const link = await activeLink(cx, id);
+  await conversationTarget(cx, link, "artwork", artworkId, true);
+  const current = (link.closed_threads as number[]) ?? [];
   const updated = closed
     ? [...new Set([...current, artworkId])]
     : current.filter((a: number) => a !== artworkId);
 
-  const [result] = await db
-    .update(clientLinksTable)
-    .set({ closedThreads: updated, updatedAt: new Date() })
-    .where(eq(clientLinksTable.id, id))
-    .returning();
-
+  const { rows: [result] } = await cx.query(`UPDATE client_links SET closed_threads=$2,updated_at=now()
+    WHERE id=$1 AND is_deleted=false RETURNING id,swatch_order_id AS "swatchOrderId",style_order_id AS "styleOrderId",
+    client_id AS "clientId",token,is_published AS "isPublished",hidden_images AS "hiddenImages",
+    portal_title AS "portalTitle",closed_threads AS "closedThreads",created_at AS "createdAt",
+    updated_at AS "updatedAt",is_deleted AS "isDeleted",deleted_at AS "deletedAt",deleted_by AS "deletedBy"`, [id, JSON.stringify(updated)]);
+  return result;
+  });
   res.json({ data: result });
-});
+}));
 
 export default router;

@@ -14,4 +14,14 @@ export interface ClientAccountOrder {
   orderType: ClientAccountOrderOrderType;
   /** @nullable */
   portalTitle: string | null;
+  orderStatus: string;
+  /** @nullable */
+  orderDate: string | null;
+  /** @nullable */
+  deliveryDate: string | null;
+  shippingStatus: string;
+  paymentStatus: string;
+  invoiceCount: number;
+  receivedInr: number;
+  outstandingInr: number;
 }

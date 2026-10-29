@@ -37,7 +37,9 @@ export const clientFeedbackTable = pgTable("client_feedback", {
 export const clientMessagesTable = pgTable("client_messages", {
   id: serial("id").primaryKey(),
   clientLinkId: integer("client_link_id").notNull(),
-  artworkId: integer("artwork_id").notNull(),
+  artworkId: integer("artwork_id"),
+  targetType: text("target_type").notNull().default("artwork"),
+  productId: integer("product_id"),
   artworkName: text("artwork_name").notNull(),
   sender: text("sender").notNull(),
   message: text("message"),

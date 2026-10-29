@@ -177,6 +177,47 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/ClientAccessDelivery" }
         "403": { description: Employee client edit permission required }
+  /client-auth/dashboard:
+    get:
+      operationId: getClientAccountDashboard
+      responses:
+        "200":
+          description: Deduplicated eligible order and invoice totals in INR
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ClientAccountDashboard" }
+  /client-auth/orders/{id}/messages:
+    post:
+      operationId: sendClientAccountMessage
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ClientConversationInput" }
+      responses:
+        "201": { description: Message saved }
+        "400": { description: Invalid message or attachment }
+        "401": { description: Session expired }
+        "403": { description: Closed discussion or origin denied }
+        "404": { description: Target unavailable }
+  /client-auth/orders/{id}/feedback:
+    post:
+      operationId: sendClientAccountFeedback
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ClientArtworkDecisionInput" }
+      responses:
+        "201": { description: Decision saved }
+        "400": { description: Invalid decision }
+        "401": { description: Session expired }
+        "403": { description: Closed discussion or origin denied }
+        "404": { description: Artwork unavailable }
   /client-auth/orders:
     get:
       operationId: listClientAccountOrders
@@ -354,17 +395,29 @@ components:
         expiresAt: { type: [string, "null"], format: date-time }
     ClientAccountOrder:
       type: object
-      required: [id, orderCode, orderName, orderType, portalTitle]
+      required: [id, orderCode, orderName, orderType, portalTitle, orderStatus, orderDate, deliveryDate, shippingStatus, paymentStatus, invoiceCount, receivedInr, outstandingInr]
       properties:
         id: { type: integer }
         orderCode: { type: string }
         orderName: { type: string }
         orderType: { type: string, enum: [swatch, style] }
         portalTitle: { type: [string, "null"] }
+        orderStatus: { type: string }
+        orderDate: { type: [string, "null"] }
+        deliveryDate: { type: [string, "null"] }
+        shippingStatus: { type: string }
+        paymentStatus: { type: string }
+        invoiceCount: { type: integer }
+        receivedInr: { type: number }
+        outstandingInr: { type: number }
     ClientAccountOrderContent:
       type: object
-      required: [link, order, artworks, messages]
+      required: [link, order, artworks, products, invoices, shipments, progress, messages]
       properties:
+        products: { type: array, items: { $ref: "#/components/schemas/ClientAccountProduct" } }
+        invoices: { type: array, items: { $ref: "#/components/schemas/ClientAccountInvoice" } }
+        shipments: { type: array, items: { $ref: "#/components/schemas/ClientAccountShipment" } }
+        progress: { type: array, items: { $ref: "#/components/schemas/ClientAccountStage" } }
         link:
           type: object
           required: [id, portalTitle, orderType]
@@ -374,34 +427,53 @@ components:
             orderType: { type: string, enum: [swatch, style] }
         order:
           type: object
-          required: [orderCode, orderName, description, deliveryDate, orderStatus]
+          required: [orderCode, orderName, description, deliveryDate, orderStatus, orderDate, quantity, fabricName, styleNo, referenceImages]
           properties:
             orderCode: { type: string }
             orderName: { type: string }
             description: { type: [string, "null"] }
             deliveryDate: { type: [string, "null"] }
             orderStatus: { type: string }
+            orderDate: { type: [string, "null"] }
+            quantity: { type: [string, "null"] }
+            fabricName: { type: [string, "null"] }
+            styleNo: { type: [string, "null"] }
+            referenceImages: { type: array, items: { $ref: "#/components/schemas/ClientAccountAttachment" } }
         artworks:
           type: array
           items:
             type: object
-            required: [id, artworkCode, artworkName, wipImages, finalImages, isClosed, decision]
+            required: [id, artworkCode, artworkName, productId, referenceImages, wipImages, finalImages, isClosed, decision, feedback]
             properties:
               id: { type: integer }
+              productId: { type: [integer, "null"] }
+              referenceImages: { type: array, items: { $ref: "#/components/schemas/ClientAccountAttachment" } }
               artworkCode: { type: string }
               artworkName: { type: string }
               wipImages: { type: array, items: { $ref: "#/components/schemas/ClientAccountAttachment" } }
               finalImages: { type: array, items: { $ref: "#/components/schemas/ClientAccountAttachment" } }
               isClosed: { type: boolean }
               decision: { type: [string, "null"] }
+              feedback:
+                type: array
+                items:
+                  type: object
+                  required: [id, decision, comment, createdAt]
+                  properties:
+                    id: { type: integer }
+                    decision: { type: string }
+                    comment: { type: [string, "null"] }
+                    createdAt: { type: string }
         messages:
           type: array
           items:
             type: object
-            required: [id, artworkId, sender, message, attachment, createdAt]
+            required: [id, artworkId, targetType, productId, sender, message, attachment, createdAt]
             properties:
               id: { type: integer }
-              artworkId: { type: integer }
+              artworkId: { type: [integer, "null"] }
+              productId: { type: [integer, "null"] }
+              targetType: { type: string, enum: [order, product, artwork] }
               sender: { type: string }
               message: { type: [string, "null"] }
               attachment:
@@ -417,6 +489,74 @@ components:
         type: { type: string }
         data: { type: string }
         size: { type: number }
+    ClientAccountDashboard:
+      type: object
+      required: [ordersPlaced, inProgress, delivered, invoicesPaid, invoicesPending, uninvoicedOrders, receivedInr, outstandingInr, currency]
+      properties:
+        ordersPlaced: { type: integer }
+        inProgress: { type: integer }
+        delivered: { type: integer }
+        invoicesPaid: { type: integer }
+        invoicesPending: { type: integer }
+        uninvoicedOrders: { type: integer }
+        receivedInr: { type: number }
+        outstandingInr: { type: number }
+        currency: { type: string, enum: [INR] }
+    ClientAccountProduct:
+      type: object
+      required: [id, productName, productStatus, fabricName, referenceImages]
+      properties:
+        id: { type: integer }
+        productName: { type: string }
+        productStatus: { type: string }
+        fabricName: { type: [string, "null"] }
+        referenceImages: { type: array, items: { $ref: "#/components/schemas/ClientAccountAttachment" } }
+    ClientAccountInvoice:
+      type: object
+      required: [id, invoiceNo, invoiceDate, dueDate, currency, total, received, outstanding, status]
+      properties:
+        id: { type: integer }
+        invoiceNo: { type: string }
+        invoiceDate: { type: string }
+        dueDate: { type: [string, "null"] }
+        currency: { type: string }
+        total: { type: number }
+        received: { type: number }
+        outstanding: { type: number }
+        status: { type: string }
+    ClientAccountShipment:
+      type: object
+      required: [id, status, trackingNumber, trackingUrl, shipmentDate, expectedDeliveryDate, actualDeliveryDate]
+      properties:
+        id: { type: integer }
+        status: { type: string }
+        trackingNumber: { type: [string, "null"] }
+        trackingUrl: { type: [string, "null"] }
+        shipmentDate: { type: [string, "null"] }
+        expectedDeliveryDate: { type: [string, "null"] }
+        actualDeliveryDate: { type: [string, "null"] }
+    ClientAccountStage:
+      type: object
+      required: [label, status, date]
+      properties:
+        label: { type: string }
+        status: { type: string }
+        date: { type: [string, "null"] }
+    ClientConversationInput:
+      type: object
+      required: [targetType]
+      properties:
+        targetType: { type: string, enum: [order, product, artwork] }
+        targetId: { type: integer, minimum: 1 }
+        message: { type: string, maxLength: 4000 }
+        attachment: { $ref: "#/components/schemas/ClientAccountAttachment" }
+    ClientArtworkDecisionInput:
+      type: object
+      required: [artworkId, decision]
+      properties:
+        artworkId: { type: integer, minimum: 1 }
+        decision: { type: string, enum: [Approve, Rework] }
+        comment: { type: string, maxLength: 4000 }
     HealthStatus:
       type: object
       properties:

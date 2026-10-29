@@ -5,12 +5,20 @@
  * ERP API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { ClientAccountInvoice } from './clientAccountInvoice';
 import type { ClientAccountOrderContentArtworksItem } from './clientAccountOrderContentArtworksItem';
 import type { ClientAccountOrderContentLink } from './clientAccountOrderContentLink';
 import type { ClientAccountOrderContentMessagesItem } from './clientAccountOrderContentMessagesItem';
 import type { ClientAccountOrderContentOrder } from './clientAccountOrderContentOrder';
+import type { ClientAccountProduct } from './clientAccountProduct';
+import type { ClientAccountShipment } from './clientAccountShipment';
+import type { ClientAccountStage } from './clientAccountStage';
 
 export interface ClientAccountOrderContent {
+  products: ClientAccountProduct[];
+  invoices: ClientAccountInvoice[];
+  shipments: ClientAccountShipment[];
+  progress: ClientAccountStage[];
   link: ClientAccountOrderContentLink;
   order: ClientAccountOrderContentOrder;
   artworks: ClientAccountOrderContentArtworksItem[];

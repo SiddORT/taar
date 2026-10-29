@@ -6,9 +6,13 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { ClientAccountAttachment } from './clientAccountAttachment';
+import type { ClientAccountOrderContentArtworksItemFeedbackItem } from './clientAccountOrderContentArtworksItemFeedbackItem';
 
 export type ClientAccountOrderContentArtworksItem = {
   id: number;
+  /** @nullable */
+  productId: number | null;
+  referenceImages: ClientAccountAttachment[];
   artworkCode: string;
   artworkName: string;
   wipImages: ClientAccountAttachment[];
@@ -16,4 +20,5 @@ export type ClientAccountOrderContentArtworksItem = {
   isClosed: boolean;
   /** @nullable */
   decision: string | null;
+  feedback: ClientAccountOrderContentArtworksItemFeedbackItem[];
 };

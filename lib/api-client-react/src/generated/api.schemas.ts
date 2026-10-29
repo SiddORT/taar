@@ -49,6 +49,16 @@ export interface ClientAccountOrder {
   orderType: ClientAccountOrderOrderType;
   /** @nullable */
   portalTitle: string | null;
+  orderStatus: string;
+  /** @nullable */
+  orderDate: string | null;
+  /** @nullable */
+  deliveryDate: string | null;
+  shippingStatus: string;
+  paymentStatus: string;
+  invoiceCount: number;
+  receivedInr: number;
+  outstandingInr: number;
 }
 
 export type ClientAccountOrderContentLinkOrderType = typeof ClientAccountOrderContentLinkOrderType[keyof typeof ClientAccountOrderContentLinkOrderType];
@@ -66,6 +76,13 @@ export type ClientAccountOrderContentLink = {
   orderType: ClientAccountOrderContentLinkOrderType;
 };
 
+export interface ClientAccountAttachment {
+  name: string;
+  type: string;
+  data: string;
+  size: number;
+}
+
 export type ClientAccountOrderContentOrder = {
   orderCode: string;
   orderName: string;
@@ -74,17 +91,30 @@ export type ClientAccountOrderContentOrder = {
   /** @nullable */
   deliveryDate: string | null;
   orderStatus: string;
+  /** @nullable */
+  orderDate: string | null;
+  /** @nullable */
+  quantity: string | null;
+  /** @nullable */
+  fabricName: string | null;
+  /** @nullable */
+  styleNo: string | null;
+  referenceImages: ClientAccountAttachment[];
 };
 
-export interface ClientAccountAttachment {
-  name: string;
-  type: string;
-  data: string;
-  size: number;
-}
+export type ClientAccountOrderContentArtworksItemFeedbackItem = {
+  id: number;
+  decision: string;
+  /** @nullable */
+  comment: string | null;
+  createdAt: string;
+};
 
 export type ClientAccountOrderContentArtworksItem = {
   id: number;
+  /** @nullable */
+  productId: number | null;
+  referenceImages: ClientAccountAttachment[];
   artworkCode: string;
   artworkName: string;
   wipImages: ClientAccountAttachment[];
@@ -92,11 +122,25 @@ export type ClientAccountOrderContentArtworksItem = {
   isClosed: boolean;
   /** @nullable */
   decision: string | null;
+  feedback: ClientAccountOrderContentArtworksItemFeedbackItem[];
 };
+
+export type ClientAccountOrderContentMessagesItemTargetType = typeof ClientAccountOrderContentMessagesItemTargetType[keyof typeof ClientAccountOrderContentMessagesItemTargetType];
+
+
+export const ClientAccountOrderContentMessagesItemTargetType = {
+  order: 'order',
+  product: 'product',
+  artwork: 'artwork',
+} as const;
 
 export type ClientAccountOrderContentMessagesItem = {
   id: number;
-  artworkId: number;
+  /** @nullable */
+  artworkId: number | null;
+  /** @nullable */
+  productId: number | null;
+  targetType: ClientAccountOrderContentMessagesItemTargetType;
   sender: string;
   /** @nullable */
   message: string | null;
@@ -104,11 +148,112 @@ export type ClientAccountOrderContentMessagesItem = {
   createdAt: string;
 };
 
+export interface ClientAccountProduct {
+  id: number;
+  productName: string;
+  productStatus: string;
+  /** @nullable */
+  fabricName: string | null;
+  referenceImages: ClientAccountAttachment[];
+}
+
+export interface ClientAccountInvoice {
+  id: number;
+  invoiceNo: string;
+  invoiceDate: string;
+  /** @nullable */
+  dueDate: string | null;
+  currency: string;
+  total: number;
+  received: number;
+  outstanding: number;
+  status: string;
+}
+
+export interface ClientAccountShipment {
+  id: number;
+  status: string;
+  /** @nullable */
+  trackingNumber: string | null;
+  /** @nullable */
+  trackingUrl: string | null;
+  /** @nullable */
+  shipmentDate: string | null;
+  /** @nullable */
+  expectedDeliveryDate: string | null;
+  /** @nullable */
+  actualDeliveryDate: string | null;
+}
+
+export interface ClientAccountStage {
+  label: string;
+  status: string;
+  /** @nullable */
+  date: string | null;
+}
+
 export interface ClientAccountOrderContent {
+  products: ClientAccountProduct[];
+  invoices: ClientAccountInvoice[];
+  shipments: ClientAccountShipment[];
+  progress: ClientAccountStage[];
   link: ClientAccountOrderContentLink;
   order: ClientAccountOrderContentOrder;
   artworks: ClientAccountOrderContentArtworksItem[];
   messages: ClientAccountOrderContentMessagesItem[];
+}
+
+export type ClientAccountDashboardCurrency = typeof ClientAccountDashboardCurrency[keyof typeof ClientAccountDashboardCurrency];
+
+
+export const ClientAccountDashboardCurrency = {
+  INR: 'INR',
+} as const;
+
+export interface ClientAccountDashboard {
+  ordersPlaced: number;
+  inProgress: number;
+  delivered: number;
+  invoicesPaid: number;
+  invoicesPending: number;
+  uninvoicedOrders: number;
+  receivedInr: number;
+  outstandingInr: number;
+  currency: ClientAccountDashboardCurrency;
+}
+
+export type ClientConversationInputTargetType = typeof ClientConversationInputTargetType[keyof typeof ClientConversationInputTargetType];
+
+
+export const ClientConversationInputTargetType = {
+  order: 'order',
+  product: 'product',
+  artwork: 'artwork',
+} as const;
+
+export interface ClientConversationInput {
+  targetType: ClientConversationInputTargetType;
+  /** @minimum 1 */
+  targetId?: number;
+  /** @maxLength 4000 */
+  message?: string;
+  attachment?: ClientAccountAttachment;
+}
+
+export type ClientArtworkDecisionInputDecision = typeof ClientArtworkDecisionInputDecision[keyof typeof ClientArtworkDecisionInputDecision];
+
+
+export const ClientArtworkDecisionInputDecision = {
+  Approve: 'Approve',
+  Rework: 'Rework',
+} as const;
+
+export interface ClientArtworkDecisionInput {
+  /** @minimum 1 */
+  artworkId: number;
+  decision: ClientArtworkDecisionInputDecision;
+  /** @maxLength 4000 */
+  comment?: string;
 }
 
 export interface HealthStatus {

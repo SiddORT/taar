@@ -5,6 +5,7 @@
  * ERP API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { ClientAccountAttachment } from './clientAccountAttachment';
 
 export type ClientAccountOrderContentOrder = {
   orderCode: string;
@@ -14,4 +15,13 @@ export type ClientAccountOrderContentOrder = {
   /** @nullable */
   deliveryDate: string | null;
   orderStatus: string;
+  /** @nullable */
+  orderDate: string | null;
+  /** @nullable */
+  quantity: string | null;
+  /** @nullable */
+  fabricName: string | null;
+  /** @nullable */
+  styleNo: string | null;
+  referenceImages: ClientAccountAttachment[];
 };

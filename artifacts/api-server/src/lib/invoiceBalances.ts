@@ -44,7 +44,7 @@ export interface InvoiceBalances {
  */
 const round2 = (n: number): number => Math.round((Number(n) + Number.EPSILON) * 100) / 100;
 
-export async function recomputeInvoiceBalances(client: Queryable, invoiceId: number): Promise<InvoiceBalances | null> {
+export async function readInvoiceBalances(client: Queryable, invoiceId: number): Promise<(InvoiceBalances & { receivedBaseInr: number; outstandingBaseInr: number }) | null> {
   const invRes = await client.query(
     `SELECT total_amount, exchange_rate_snapshot, due_date::text, invoice_status
      FROM invoices WHERE id = $1 AND is_deleted = false`,
@@ -79,6 +79,14 @@ export async function recomputeInvoiceBalances(client: Queryable, invoiceId: num
   const pendingAmount = Math.max(0, round2(total - receivedAmount));
   const status = computeAutoStatus(total, pendingAmount, invoice.due_date ?? "", invoice.invoice_status);
 
+  return { totalAmount: total, receivedAmount, pendingAmount, status,
+    receivedBaseInr: paidInr, outstandingBaseInr: Math.max(0, total * rate - paidInr) };
+}
+
+export async function recomputeInvoiceBalances(client: Queryable, invoiceId: number): Promise<InvoiceBalances | null> {
+  const balances = await readInvoiceBalances(client, invoiceId);
+  if (!balances) return null;
+  const { totalAmount: total, receivedAmount, pendingAmount, status } = balances;
   await client.query(
     `UPDATE invoices
      SET received_amount = $1,

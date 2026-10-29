@@ -34,6 +34,7 @@ import clientAuth from "../clientAuth";
 import clientAccess from "../clientAccess";
 import clientOrders from "../clientAccountOrders";
 import publicPortal from "../clientPortal";
+import clientLinks from "../clientLinks";
 import { portalStates, throttle } from "../../lib/clientAccounts";
 import { requireAuth } from "../../middlewares/requireAuth";
 import { signToken } from "../../lib/auth";
@@ -43,7 +44,7 @@ const ORIGIN = "https://portal.example.invalid";
 const PASSWORD = "Strong-client-password-2026";
 const app = express();
 app.use(express.json());
-app.use("/api", clientAuth, clientAccess, clientOrders, publicPortal);
+app.use("/api", clientAuth, clientAccess, clientOrders, publicPortal, clientLinks);
 app.get("/api/employee-only", requireAuth, (_req, res) => res.json({ ok: true }));
 app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => res.status(500).json({ error: err.message }));
 let staff: string;
@@ -97,9 +98,30 @@ beforeAll(async () => {
   await pool.query(migration.replaceAll('"public".', `"${harness.schema}".`));
   const normalizedEmailCheck = await readFile(new URL("../../../../../lib/db/migrations/0027_clammy_oracle.sql", import.meta.url), "utf8");
   await pool.query(normalizedEmailCheck);
+  const conversations = await readFile(new URL("../../../../../lib/db/migrations/0028_workable_lady_deathstrike.sql", import.meta.url), "utf8");
+  await pool.query(conversations);
+  await pool.query(`
+    CREATE TABLE style_order_products(id integer PRIMARY KEY,style_order_id integer,product_name text,
+      product_status text DEFAULT 'Draft',fabric_name text,ref_images jsonb DEFAULT '[]',is_deleted boolean DEFAULT false);
+    CREATE TABLE invoices(id integer PRIMARY KEY,invoice_no text,invoice_date text,due_date text,
+      client_id integer,invoice_direction text DEFAULT 'Client',invoice_status text DEFAULT 'Generated',
+      swatch_order_id integer,style_order_id integer,reference_type text,reference_id text,
+      currency_code text DEFAULT 'INR',exchange_rate_snapshot numeric DEFAULT 1,total_amount numeric DEFAULT 0);
+    ALTER TABLE invoices ADD is_deleted boolean DEFAULT false;
+    CREATE TABLE invoice_payments(id integer PRIMARY KEY,invoice_id integer,base_currency_amount numeric,
+      payment_status text DEFAULT 'Completed',is_deleted boolean DEFAULT false);
+    CREATE TABLE credit_debit_notes(id integer PRIMARY KEY,invoice_id integer,base_currency_amount numeric,
+      note_type text DEFAULT 'Credit Note',reference_type text DEFAULT 'Client Invoice',status text DEFAULT 'Applied',is_deleted boolean DEFAULT false);
+    CREATE TABLE order_shipping_details(id integer PRIMARY KEY,reference_type text,reference_id integer,shipment_status text DEFAULT 'Pending',
+      tracking_number text,tracking_url text,shipment_date date,expected_delivery_date date,actual_delivery_date date,is_deleted boolean DEFAULT false);
+    CREATE TABLE packing_lists(id integer PRIMARY KEY,client_id integer,shipment_id integer,is_deleted boolean DEFAULT false);
+    CREATE TABLE packing_packages(id integer PRIMARY KEY,packing_list_id integer,is_deleted boolean DEFAULT false);
+    CREATE TABLE packing_package_items(id integer PRIMARY KEY,package_id integer,order_type text,order_id integer,
+      quantity numeric,item_source text DEFAULT 'order',is_deleted boolean DEFAULT false);
+  `);
   // The legacy shared-link reader selects every column. Supply its remaining
   // nullable presentation columns without copying any public data or sequences.
-  for (const table of ["client_links", "swatch_orders", "artworks", "client_feedback", "client_messages"]) {
+  for (const table of ["client_links", "swatch_orders", "style_orders", "artworks", "style_order_artworks", "client_feedback", "client_messages"]) {
     const { rows: missing } = await pool.query(`SELECT column_name,udt_name FROM information_schema.columns p
       WHERE p.table_schema='public' AND p.table_name=$1 AND NOT EXISTS(
         SELECT 1 FROM information_schema.columns t WHERE t.table_schema=$2 AND t.table_name=p.table_name AND t.column_name=p.column_name)`, [table, harness.schema]);
@@ -117,7 +139,8 @@ beforeEach(async () => {
   harness.send.mockClear();
   harness.send.mockResolvedValue({ accepted: ["client@example.invalid"], rejected: [] });
   await pool.query(`TRUNCATE client_sessions,client_credentials,client_accounts,client_auth_limits,clients,
-    users,roles,role_permissions,swatch_orders,style_orders,client_links,artworks,style_order_artworks,client_feedback,client_messages RESTART IDENTITY CASCADE;
+    users,roles,role_permissions,swatch_orders,style_orders,client_links,artworks,style_order_artworks,client_feedback,client_messages,
+    style_order_products,invoices,invoice_payments,credit_debit_notes,order_shipping_details,packing_lists,packing_packages,packing_package_items RESTART IDENTITY CASCADE;
     INSERT INTO clients(id,email) VALUES(1,'client@example.invalid'),(2,'other@example.invalid');
     INSERT INTO users(id,role) VALUES(1,'admin'),(2,'reader');
     INSERT INTO roles(id,name) VALUES(1,'admin'),(2,'reader');`);
@@ -192,6 +215,212 @@ describe("client account eligibility and staff management", () => {
     expect(mail.text).not.toContain("attacker.invalid");
     const token = setupToken();
     expect((await pool.query("SELECT token_hash FROM client_credentials")).rows[0].token_hash).toBe(digest(token));
+  });
+});
+
+describe("organized client order workspace", () => {
+  let session: string;
+  const message = (link: number, body: any) => request(app).post(`/api/client-auth/orders/${link}/messages`)
+    .set("Origin", ORIGIN).set("Cookie", session).send(body);
+  const decision = (link: number, body: any) => request(app).post(`/api/client-auth/orders/${link}/feedback`)
+    .set("Origin", ORIGIN).set("Cookie", session).send(body);
+  beforeEach(async () => {
+    await seedOrder();
+    await seedOrder("style");
+    await pool.query(`INSERT INTO client_links(id,swatch_order_id,token,is_published) VALUES(1,1,'swatch-link',true);
+      INSERT INTO client_links(id,style_order_id,token,is_published) VALUES(2,1,'style-link',true);
+      INSERT INTO style_order_products(id,style_order_id,product_name) VALUES(1,1,'Jacket'),(2,1,'Trousers');
+      INSERT INTO artworks(id,swatch_order_id,artwork_code,artwork_name) VALUES(1,1,'AW-1','Swatch embroidery');
+      INSERT INTO style_order_artworks(id,style_order_id,style_order_product_id,artwork_code,artwork_name,feedback_status)
+        VALUES(1,1,1,'SA-1','Style embroidery','Pending');`);
+    await setup();
+    session = cookie(await login());
+  });
+  it("deduplicates shared orders and invoices, separates uninvoiced orders, and reads canonical mixed-currency balances", async () => {
+    await pool.query(`INSERT INTO client_links(id,swatch_order_id,token,is_published) VALUES(3,1,'duplicate-link',true);
+      INSERT INTO invoices(id,invoice_no,invoice_date,client_id,swatch_order_id,reference_type,reference_id,currency_code,exchange_rate_snapshot,total_amount)
+      VALUES(1,'USD-1','2026-10-01',1,1,'Swatch','ORDER-1','USD',80,100),
+      (2,'INR-2','2026-10-01',1,NULL,'Swatch','1','INR',1,200),
+      (3,'INR-3','2026-10-01',1,NULL,'Swatch','ORDER-1','INR',1,50);
+      INSERT INTO invoice_payments(id,invoice_id,base_currency_amount,payment_status,is_deleted)
+        VALUES(1,1,2400,'Completed',false),(2,1,800,'Pending',false),(3,1,1600,'Completed',true),
+          (4,2,200,'Completed',false);
+      INSERT INTO credit_debit_notes(id,invoice_id,base_currency_amount) VALUES(1,1,800);
+      UPDATE swatch_orders SET order_status='Completed';
+      INSERT INTO order_shipping_details(id,reference_type,reference_id,shipment_status) VALUES(1,'Swatch',1,'Pending');`);
+    const dash = await get("/client-auth/dashboard", session);
+    expect(dash.status).toBe(200);
+    expect(dash.body).toMatchObject({ ordersPlaced: 2, delivered: 0, inProgress: 1,
+      invoicesPaid: 1, invoicesPending: 2, uninvoicedOrders: 1, currency: "INR", receivedInr: 3400, outstandingInr: 4850 });
+    const list = (await get("/client-auth/orders", session)).body.data;
+    expect(list).toHaveLength(2);
+    expect(list.find((o: any) => o.orderType === "style")).toMatchObject({ paymentStatus: "Not invoiced",invoiceCount: 0 });
+    const d = (await get("/client-auth/orders/1", session)).body.data;
+    expect(d.invoices.find((i: any) => i.id === 1)).toMatchObject({ currency: "USD",total: 100,received: 40,outstanding: 60,status: "Partially Paid" });
+    expect(d.progress.find((p: any) => p.label === "Production").status).toBe("Completed (not delivery)");
+    expect(d.progress.find((p: any) => p.label === "Shipment").status).toBe("Pending");
+  });
+  it("excludes draft, cancelled, deleted, vendor, foreign and unrelated invoices and unpublished orders", async () => {
+    await pool.query(`INSERT INTO invoices(id,invoice_no,invoice_date,client_id,swatch_order_id,invoice_status,invoice_direction,is_deleted)
+      VALUES(1,'DRAFT','2026-10-01',1,1,'Draft','Client',false),(2,'CANCEL','2026-10-01',1,1,'Cancelled','Client',false),
+      (3,'DEL','2026-10-01',1,1,'Generated','Client',true),(4,'VENDOR','2026-10-01',1,1,'Generated','Vendor',false),
+      (5,'FOREIGN','2026-10-01',2,1,'Generated','Client',false),(6,'UNRELATED','2026-10-01',1,99,'Generated','Client',false);
+      UPDATE client_links SET is_published=false WHERE id=2;`);
+    expect((await get("/client-auth/dashboard", session)).body).toMatchObject({ ordersPlaced: 1,invoicesPaid: 0,invoicesPending: 0,uninvoicedOrders: 1 });
+    expect((await get("/client-auth/orders/1", session)).body.data.invoices).toEqual([]);
+    expect((await get("/client-auth/orders/2", session)).status).toBe(404);
+  });
+  it("aggregates actual INR anchors rather than re-converting rounded foreign invoice balances", async () => {
+    await pool.query(`INSERT INTO invoices(id,invoice_no,invoice_date,client_id,swatch_order_id,currency_code,exchange_rate_snapshot,total_amount)
+      VALUES(1,'ROUNDING','2026-10-01',1,1,'USD',83,10);
+      INSERT INTO invoice_payments(id,invoice_id,base_currency_amount) VALUES(1,1,100);`);
+    const dashboard = (await get("/client-auth/dashboard",session)).body;
+    expect(dashboard).toMatchObject({receivedInr:100,outstandingInr:730});
+    const inv = (await get("/client-auth/orders/1",session)).body.data.invoices[0];
+    expect(inv).toMatchObject({received:1.2,outstanding:8.8});
+  });
+  it("distinguishes multiple partial shipments, full delivery, and unknown dates without unsafe tracking URLs", async () => {
+    await pool.query(`INSERT INTO order_shipping_details(id,reference_type,reference_id,shipment_status,tracking_url)
+      VALUES(1,'Swatch',1,'Delivered','javascript:alert(1)'),(2,'Swatch',1,'In Transit','https://tracking.example.invalid/1');`);
+    let d = (await get("/client-auth/orders/1", session)).body.data;
+    expect(d.shipments[0].trackingUrl).toBeNull();
+    expect(d.order.orderDate).toBeNull();
+    expect(d.progress.at(-1)).toMatchObject({ status: "Partially delivered",date: null });
+    expect((await get("/client-auth/dashboard", session)).body.delivered).toBe(0);
+    await pool.query("UPDATE order_shipping_details SET shipment_status='Delivered' WHERE id=2");
+    expect((await get("/client-auth/dashboard", session)).body.delivered).toBe(1);
+  });
+  it("includes owned packing-list shipments once and does not call a partial quantity fully delivered", async () => {
+    await pool.query(`UPDATE swatch_orders SET quantity='10';
+      INSERT INTO order_shipping_details(id,reference_type,reference_id,shipment_status) VALUES(1,'PackingList',1,'Delivered');
+      INSERT INTO packing_lists(id,client_id,shipment_id) VALUES(1,1,1);
+      INSERT INTO packing_packages(id,packing_list_id) VALUES(1,1);
+      INSERT INTO packing_package_items(id,package_id,order_type,order_id,quantity) VALUES(1,1,'Swatch',1,2),(2,1,'Swatch',1,3);`);
+    let d = (await get("/client-auth/orders/1", session)).body.data;
+    expect(d.shipments).toHaveLength(1);
+    expect(d.progress.at(-1).status).toBe("Partially delivered");
+    await pool.query("UPDATE packing_package_items SET quantity=8 WHERE id=1");
+    expect((await get("/client-auth/dashboard", session)).body.delivered).toBe(1);
+    await pool.query("UPDATE packing_lists SET client_id=2");
+    d = (await get("/client-auth/orders/1", session)).body.data;
+    expect(d.shipments).toEqual([]);
+  });
+  it.each([
+    [1,"order",undefined], [1,"artwork",1], [2,"order",undefined], [2,"product",1], [2,"artwork",1],
+  ])("shares client/staff history at link %s %s scope", async (link, targetType, targetId) => {
+    const body = { targetType,targetId,message: `Client ${targetType}`,sender: "team" };
+    const sent = await message(Number(link), body);
+    expect(sent.status).toBe(201);
+    expect(sent.body.data.sender).toBe("client");
+    const reply = await post(`/client-links/${link}/messages`, { ...body,message: `Team ${targetType}`,sender: "client" });
+    expect(reply.status).toBe(201);
+    expect(reply.body.data.sender).toBe("team");
+    const account = (await get(`/client-auth/orders/${link}`, session)).body.data.messages;
+    const staffMessages = (await request(app).get(`/api/client-links/${link}/messages`).set("Authorization", `Bearer ${staff}`)).body.data;
+    expect(account.map((m: any) => m.id)).toEqual(staffMessages.map((m: any) => m.id));
+    expect(account).toHaveLength(2);
+    expect(account.every((m: any) => m.targetType === targetType)).toBe(true);
+    if (targetType === "artwork") {
+      const publicHistory = (await request(app).get(`/api/client-portal/${link === 1 ? "swatch-link" : "style-link"}`)).body.data.messages;
+      expect(publicHistory.map((m: any) => m.id)).toEqual(account.map((m: any) => m.id));
+    }
+  });
+  it("preserves legacy artwork messages and supports valid bounded attachments", async () => {
+    await pool.query(`INSERT INTO client_messages(client_link_id,artwork_id,artwork_name,sender,message)
+      VALUES(1,1,'Swatch embroidery','client','Historical message')`);
+    const attachment = { name: "note.txt",type: "text/plain",size: 5,data: "data:text/plain;base64,aGVsbG8=" };
+    expect((await message(1,{ targetType: "order",attachment })).status).toBe(201);
+    const legacyReply = await post("/client-links/1/messages", { artworkId: 1,artworkName: "Forged name",message: "Legacy reply" });
+    expect(legacyReply.status).toBe(201);
+    expect(legacyReply.body.data.artworkName).toBe("Swatch embroidery");
+    const d = (await get("/client-auth/orders/1", session)).body.data;
+    expect(d.messages.filter((m: any) => m.targetType === "artwork")).toHaveLength(2);
+    expect(d.messages.find((m: any) => m.targetType === "order").attachment).toEqual(attachment);
+    for (const bad of [
+      { ...attachment,size: 6 },{ ...attachment,type: "text/html" },
+      { ...attachment,data: "https://untrusted.example/file" },{ ...attachment,size: 6*1024*1024 },
+      { ...attachment,name: "../file.txt" },{ ...attachment,type: "image/png",data: "data:image/png;base64,aGVsbG8=" },
+    ]) expect((await message(1,{ targetType: "order",attachment: bad })).status).toBe(400);
+    expect((await message(1,{ targetType: "order",message: "x".repeat(4001) })).status).toBe(400);
+  });
+  it("validates every target against its order, product deletion, ownership, publication, session and origin", async () => {
+    await seedOrder("swatch", 2);
+    await pool.query(`INSERT INTO artworks(id,swatch_order_id,artwork_code,artwork_name) VALUES(2,2,'FOREIGN','Other artwork');
+      INSERT INTO style_order_products(id,style_order_id,product_name) VALUES(3,99,'Foreign product');
+      INSERT INTO client_links(id,swatch_order_id,token,is_published) VALUES(3,2,'other-link',true);`);
+    for (const [link, body, code] of [
+      [1,{targetType:"artwork",targetId:2,message:"No"},404],
+      [1,{targetType:"product",targetId:1,message:"No"},404],
+      [2,{targetType:"product",targetId:3,message:"No"},404],
+      [3,{targetType:"order",message:"No"},404],
+      [1,{targetType:"order",targetId:1,message:"No"},400],
+      [1,{targetType:"unknown",message:"No"},400],
+    ] as const) expect((await message(link,body)).status).toBe(code);
+    expect((await request(app).post("/api/client-auth/orders/1/messages").set("Cookie",session).set("Origin","https://evil.example.invalid").send({targetType:"order",message:"No"})).status).toBe(403);
+    expect((await request(app).post("/api/client-auth/orders/1/messages").set("Origin",ORIGIN).send({targetType:"order",message:"No"})).status).toBe(401);
+    await pool.query("UPDATE style_order_products SET is_deleted=true WHERE id=1");
+    expect((await message(2,{targetType:"product",targetId:1,message:"No"})).status).toBe(404);
+    expect((await message(2,{targetType:"artwork",targetId:1,message:"No"})).status).toBe(404);
+    expect((await get("/client-auth/orders/2",session)).body.data.artworks).toEqual([]);
+    await pool.query("UPDATE client_links SET is_published=false WHERE id=1");
+    expect((await message(1,{targetType:"order",message:"No"})).status).toBe(404);
+    expect((await decision(1,{artworkId:1,decision:"Approve"})).status).toBe(404);
+  });
+  it.each([1,2])("keeps artwork IDs disambiguated and all closed discussion routes read-only for link %s", async link => {
+    expect((await decision(link,{artworkId:1,decision:"Rework",comment:"Revise the border"})).status).toBe(201);
+    expect((await decision(link,{artworkId:1,decision:"Approve"})).status).toBe(201);
+    const closed = (await get(`/client-auth/orders/${link}`,session)).body.data.artworks[0];
+    expect(closed).toMatchObject({isClosed:true,decision:"Approve"});
+    expect(closed.feedback).toHaveLength(2);
+    expect(closed.feedback[0]).toMatchObject({decision:"Rework",comment:"Revise the border"});
+    expect(closed.feedback[1]).toMatchObject({decision:"Approve"});
+    expect(JSON.stringify(closed.feedback)).not.toMatch(/internal.?note|isResolved/i);
+    const other = (await get(`/client-auth/orders/${link === 1 ? 2 : 1}`,session)).body.data.artworks[0];
+    expect(other).toMatchObject({isClosed:false,decision:null});
+    expect((await message(link,{targetType:"artwork",targetId:1,message:"Blocked"})).status).toBe(403);
+    expect((await decision(link,{artworkId:1,decision:"Approve"})).status).toBe(403);
+    expect((await post(`/client-links/${link}/messages`,{artworkId:1,message:"Blocked"})).status).toBe(403);
+    const token = link === 1 ? "swatch-link" : "style-link";
+    expect((await request(app).post(`/api/client-portal/${token}/message`).send({artworkId:1,message:"Blocked"})).status).toBe(403);
+    expect((await request(app).post(`/api/client-portal/${token}/feedback`).send({artworkId:1,decision:"Rework"})).status).toBe(403);
+    expect((await message(link,{targetType:"order",message:"Order still open"})).status).toBe(201);
+    const statuses = await pool.query("SELECT feedback_status FROM artworks WHERE id=1 UNION ALL SELECT feedback_status FROM style_order_artworks WHERE id=1");
+    expect(statuses.rows[link === 1 ? 0 : 1].feedback_status).toBe("Approved");
+    expect(statuses.rows[link === 1 ? 1 : 0].feedback_status).not.toBe("Approved");
+  });
+  it("does not expose hidden media, deleted children, internal fields, tokens or general document dumps", async () => {
+    await pool.query(`UPDATE artworks SET wip_images='[{"name":"hidden","type":"image/png","data":"data:image/png;base64,aGVsbG8=","size":5}]',
+      final_images='[{"name":"visible","type":"image/png","data":"data:image/png;base64,aGVsbG8=","size":5}]';
+      UPDATE client_links SET hidden_images='[{"artworkId":1,"imageType":"wip","imageIndex":0}]' WHERE id=1;
+      UPDATE swatch_orders SET internal_notes='PRIVATE',ref_docs='[{"data":"PRIVATE-DOC"}]';`);
+    const d = (await get("/client-auth/orders/1",session)).body.data;
+    expect(d.artworks[0].wipImages).toEqual([]);
+    expect(d.artworks[0].finalImages).toHaveLength(1);
+    expect(JSON.stringify(d)).not.toMatch(/PRIVATE|swatch-link|internal_notes|ref_docs/);
+    const pub = await request(app).get("/api/client-portal/swatch-link");
+    expect(pub.body.data.artworks[0].wipImages).toEqual([]);
+    expect(JSON.stringify(pub.body)).not.toMatch(/PRIVATE|internal_notes|ref_docs/);
+    await pool.query("UPDATE artworks SET is_deleted=true WHERE id=1");
+    expect((await get("/client-auth/orders/1",session)).body.data.artworks).toEqual([]);
+    expect((await request(app).post("/api/client-portal/swatch-link/feedback").send({artworkId:1,decision:"Approve"})).status).toBe(404);
+  });
+  it("retains public reference eligibility, excludes unpublished/deleted/foreign parents and denies foreign artwork mutations", async () => {
+    await seedOrder("swatch",2);
+    await pool.query(`UPDATE client_links SET client_id=1 WHERE id IN (1,2);
+      INSERT INTO client_links(id,swatch_order_id,client_id,token,is_published) VALUES(3,2,2,'foreign-link',true);
+      INSERT INTO artworks(id,swatch_order_id,artwork_code,artwork_name) VALUES(2,2,'FOREIGN','Foreign artwork');`);
+    const refs = () => request(app).get("/api/client-portal/swatch-link/reference-orders?type=style");
+    expect((await refs()).body.data.map((r: any) => r.id)).toEqual([1]);
+    for (const action of ["message","feedback"]) {
+      expect((await request(app).post(`/api/client-portal/swatch-link/${action}`).send({artworkId:2,message:"No",decision:"Approve"})).status).toBe(404);
+    }
+    expect((await request(app).post("/api/client-portal/style-link/feedback").send({artworkId:1,decision:"Approve"})).status).toBe(201);
+    expect((await pool.query("SELECT feedback_status FROM artworks WHERE id=1")).rows[0].feedback_status).not.toBe("Approved");
+    await pool.query("UPDATE style_orders SET is_deleted=true WHERE id=1");
+    expect((await refs()).body.data).toEqual([]);
+    expect((await request(app).get("/api/client-portal/style-link")).status).toBe(404);
+    await pool.query("UPDATE client_links SET is_deleted=true WHERE id=1");
+    expect((await request(app).get("/api/client-portal/swatch-link")).status).toBe(404);
   });
 });
 
@@ -325,7 +554,7 @@ describe("recovery and scoped published content", () => {
       VALUES(1,1,1,'public-client-link',true,'[{"artworkId":1,"imageType":"wip","imageIndex":0}]');
       INSERT INTO client_links(id,style_order_id,client_id,token,is_published) VALUES(2,2,2,'other-public-link',true);
       INSERT INTO artworks(id,swatch_order_id,artwork_code,artwork_name,wip_images,final_images)
-      VALUES(1,1,'ART1','Artwork','[{"data":"hidden-image"}]','[{"data":"visible-image"}]');`);
+      VALUES(1,1,'ART1','Artwork','[{"data":"data:image/png;base64,aGlkZGVu"}]','[{"data":"data:image/png;base64,dmlzaWJsZQ=="}]');`);
     const session = cookie(await login());
     expect((await get("/client-auth/orders", session)).body.data.map((o: any) => o.id)).toEqual([1]);
     const detail = await get("/client-auth/orders/1", session);

@@ -11,6 +11,7 @@ import {
   useRegenerateLink, useSendTeamMessage, useToggleThread,
   type ClientMessageRecord,
 } from "@/hooks/useClientLink";
+import ScopedThread from "@/components/client-account/StaffScopedThread";
 import { useArtworkList } from "@/hooks/useArtworks";
 
 interface FileAttachment { name: string; type: string; data: string; size: number }
@@ -332,7 +333,7 @@ export default function ClientLinkTab({ swatchOrderId }: { swatchOrderId: number
   const closedArtworks = artworkList.filter(a => closedThreads.includes(a.id));
   const sortedArtworks = [...openArtworks, ...closedArtworks];
 
-  const totalUnread = (messages ?? []).filter(m => m.sender === "client").length;
+  const totalUnread = (messages ?? []).filter(m => m.sender === "client" && (m.targetType ?? "artwork") === "artwork").length;
 
   return (
     <div className="space-y-5">
@@ -464,6 +465,11 @@ export default function ClientLinkTab({ swatchOrderId }: { swatchOrderId: number
         </div>
       )}
 
+      {link && (
+        <ScopedThread linkId={link.id} targetType="order" title="Order conversation" subtitle="General discussion about this order"
+          messages={(messages ?? []).filter(m => m.targetType === "order")} />
+      )}
+
       {/* ── Artwork Chat Threads ── */}
       <div className="space-y-1">
         <div className="flex items-center justify-between px-1 mb-2">
@@ -487,7 +493,7 @@ export default function ClientLinkTab({ swatchOrderId }: { swatchOrderId: number
                 <ArtworkAccordion
                   key={aw.id}
                   aw={aw}
-                  messages={(messages ?? []).filter(m => m.artworkId === aw.id)}
+                  messages={(messages ?? []).filter(m => (m.targetType ?? "artwork") === "artwork" && m.artworkId === aw.id)}
                   isClosed={closedThreads.includes(aw.id)}
                   decision={latestDecision as "Approve" | "Rework" | null}
                   linkId={link!.id}

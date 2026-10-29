@@ -27,10 +27,13 @@ import type {
 import type {
   ClientAccessDelivery,
   ClientAccountChangePasswordBody,
+  ClientAccountDashboard,
   ClientAccountForgotPasswordBody,
   ClientAccountIdentity,
   ClientAccountLoginBody,
   ClientAccountSetPasswordBody,
+  ClientArtworkDecisionInput,
+  ClientConversationInput,
   ErrorResponse,
   ForgotPasswordRequest,
   ForgotPasswordResponse,
@@ -781,6 +784,267 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
         TContext
       > => {
       return useMutation(getDisableClientAccountAccessMutationOptions(options), queryClient);
+    }
+
+export const getGetClientAccountDashboardUrl = () => {
+
+
+
+
+  return `/api/client-auth/dashboard`
+}
+
+export const getClientAccountDashboard = async ( options?: Parameters<typeof customFetch>[1]): Promise<ClientAccountDashboard> => {
+
+  return customFetch<ClientAccountDashboard>(getGetClientAccountDashboardUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetClientAccountDashboardQueryKey = () => {
+    return [
+    `/api/client-auth/dashboard`
+    ] as const;
+    }
+
+
+export const getGetClientAccountDashboardQueryOptions = <TData = Awaited<ReturnType<typeof getClientAccountDashboard>>, TError = ErrorType<unknown>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getClientAccountDashboard>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetClientAccountDashboardQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getClientAccountDashboard>>> = ({ signal }) => getClientAccountDashboard({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getClientAccountDashboard>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetClientAccountDashboardQueryResult = NonNullable<Awaited<ReturnType<typeof getClientAccountDashboard>>>
+export type GetClientAccountDashboardQueryError = ErrorType<unknown>
+
+
+export function useGetClientAccountDashboard<TData = Awaited<ReturnType<typeof getClientAccountDashboard>>, TError = ErrorType<unknown>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getClientAccountDashboard>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getClientAccountDashboard>>,
+          TError,
+          Awaited<ReturnType<typeof getClientAccountDashboard>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetClientAccountDashboard<TData = Awaited<ReturnType<typeof getClientAccountDashboard>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getClientAccountDashboard>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getClientAccountDashboard>>,
+          TError,
+          Awaited<ReturnType<typeof getClientAccountDashboard>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetClientAccountDashboard<TData = Awaited<ReturnType<typeof getClientAccountDashboard>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getClientAccountDashboard>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useGetClientAccountDashboard<TData = Awaited<ReturnType<typeof getClientAccountDashboard>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getClientAccountDashboard>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetClientAccountDashboardQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getSendClientAccountMessageUrl = (id: number,) => {
+
+
+
+
+  return `/api/client-auth/orders/${id}/messages`
+}
+
+export const sendClientAccountMessage = async (id: number,
+    clientConversationInput: ClientConversationInput, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<void>(getSendClientAccountMessageUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(clientConversationInput)
+  }
+);}
+
+
+
+
+
+export const getSendClientAccountMessageMutationKey = () => ['sendClientAccountMessage'] as const;
+
+export const getSendClientAccountMessageMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof sendClientAccountMessage>>, TError,SendClientAccountMessageMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof sendClientAccountMessage>>, TError,SendClientAccountMessageMutationVariables, TContext> => {
+
+const mutationKey = getSendClientAccountMessageMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof sendClientAccountMessage>>, SendClientAccountMessageMutationVariables> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  sendClientAccountMessage(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SendClientAccountMessageMutationResult = NonNullable<Awaited<ReturnType<typeof sendClientAccountMessage>>>
+    export type SendClientAccountMessageMutationBody = BodyType<ClientConversationInput>
+    export type SendClientAccountMessageMutationError = ErrorType<void>
+    export type SendClientAccountMessageMutationVariables = {id: number;data: BodyType<ClientConversationInput>}
+
+    export const useSendClientAccountMessage = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof sendClientAccountMessage>>, TError,SendClientAccountMessageMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof sendClientAccountMessage>>,
+        TError,
+        SendClientAccountMessageMutationVariables,
+        TContext
+      > => {
+      return useMutation(getSendClientAccountMessageMutationOptions(options), queryClient);
+    }
+
+export const getSendClientAccountFeedbackUrl = (id: number,) => {
+
+
+
+
+  return `/api/client-auth/orders/${id}/feedback`
+}
+
+export const sendClientAccountFeedback = async (id: number,
+    clientArtworkDecisionInput: ClientArtworkDecisionInput, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<void>(getSendClientAccountFeedbackUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(clientArtworkDecisionInput)
+  }
+);}
+
+
+
+
+
+export const getSendClientAccountFeedbackMutationKey = () => ['sendClientAccountFeedback'] as const;
+
+export const getSendClientAccountFeedbackMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof sendClientAccountFeedback>>, TError,SendClientAccountFeedbackMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof sendClientAccountFeedback>>, TError,SendClientAccountFeedbackMutationVariables, TContext> => {
+
+const mutationKey = getSendClientAccountFeedbackMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof sendClientAccountFeedback>>, SendClientAccountFeedbackMutationVariables> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  sendClientAccountFeedback(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SendClientAccountFeedbackMutationResult = NonNullable<Awaited<ReturnType<typeof sendClientAccountFeedback>>>
+    export type SendClientAccountFeedbackMutationBody = BodyType<ClientArtworkDecisionInput>
+    export type SendClientAccountFeedbackMutationError = ErrorType<void>
+    export type SendClientAccountFeedbackMutationVariables = {id: number;data: BodyType<ClientArtworkDecisionInput>}
+
+    export const useSendClientAccountFeedback = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof sendClientAccountFeedback>>, TError,SendClientAccountFeedbackMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof sendClientAccountFeedback>>,
+        TError,
+        SendClientAccountFeedbackMutationVariables,
+        TContext
+      > => {
+      return useMutation(getSendClientAccountFeedbackMutationOptions(options), queryClient);
     }
 
 export const getListClientAccountOrdersUrl = () => {

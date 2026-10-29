@@ -36,8 +36,10 @@ export interface ClientFeedbackRecord {
 export interface ClientMessageRecord {
   id: number;
   clientLinkId: number;
-  artworkId: number;
-  artworkName: string;
+  artworkId: number | null;
+  artworkName: string | null;
+  targetType?: "order" | "product" | "artwork" | null;
+  productId?: number | null;
   sender: "client" | "team";
   message: string | null;
   attachment: { name: string; type: string; data: string; size: number } | null;
@@ -74,6 +76,7 @@ export function useClientMessages(linkId: number | null) {
   return useQuery<ClientMessageRecord[]>({
     queryKey: ["client-messages", linkId],
     enabled: !!linkId,
+    refetchInterval: 30_000,
     queryFn: async () => {
       const result = await customFetch<{ data: ClientMessageRecord[] }>(
         `/api/client-links/${linkId}/messages`
@@ -148,20 +151,32 @@ export function useSendTeamMessage() {
   return useMutation({
     mutationFn: async ({
       linkId,
+      targetType,
+      targetId,
       artworkId,
       artworkName,
       message,
       attachment,
     }: {
       linkId: number;
-      artworkId: number;
-      artworkName: string;
+      targetType?: "order" | "product" | "artwork";
+      targetId?: number;
+      artworkId?: number;
+      artworkName?: string;
       message?: string;
       attachment?: { name: string; type: string; data: string; size: number };
     }) => {
       const result = await customFetch<{ data: ClientMessageRecord }>(
         `/api/client-links/${linkId}/messages`,
-        { method: "POST", body: JSON.stringify({ artworkId, artworkName, message, attachment }) }
+        { method: "POST", body: JSON.stringify(
+          (() => {
+            const type = targetType ?? "artwork";
+            if (type === "order") return { targetType: "order", message, attachment };
+            if (type === "product") return { targetType: "product", targetId, message, attachment };
+            const id = targetId ?? artworkId;
+            return { targetType: "artwork", targetId: id, artworkId: id, artworkName, message, attachment };
+          })()
+        ) }
       );
       return result.data;
     },

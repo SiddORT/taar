@@ -19,6 +19,7 @@ describe("TAAR email branding", () => {
     vi.clearAllMocks();
     // Synthetic addresses only. No real SMTP connection or credentials are used.
     vi.stubEnv("EMAIL_USER", "sender@example.invalid");
+    vi.stubEnv("EMAIL_FROM", "sender@example.invalid");
     vi.stubEnv("EMAIL_PASS", "local-test-placeholder");
   });
 

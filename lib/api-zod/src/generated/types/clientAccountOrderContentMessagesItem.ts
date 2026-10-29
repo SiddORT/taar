@@ -6,10 +6,15 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { ClientAccountAttachment } from './clientAccountAttachment';
+import type { ClientAccountOrderContentMessagesItemTargetType } from './clientAccountOrderContentMessagesItemTargetType';
 
 export type ClientAccountOrderContentMessagesItem = {
   id: number;
-  artworkId: number;
+  /** @nullable */
+  artworkId: number | null;
+  /** @nullable */
+  productId: number | null;
+  targetType: ClientAccountOrderContentMessagesItemTargetType;
   sender: string;
   /** @nullable */
   message: string | null;

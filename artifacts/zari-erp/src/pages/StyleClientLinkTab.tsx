@@ -11,6 +11,7 @@ import {
   useUpdateStyleClientLink, useRegenerateStyleLink, useSendTeamMessage, useToggleStyleThread,
   type ClientMessageRecord,
 } from "@/hooks/useClientLink";
+import ScopedThread from "@/components/client-account/StaffScopedThread";
 import { useStyleOrderArtworks, type StyleOrderArtworkRecord } from "@/hooks/useStyleOrderArtworks";
 import { useStyleOrderProducts } from "@/hooks/useStyleOrderProducts";
 
@@ -338,7 +339,7 @@ export default function StyleClientLinkTab({ styleOrderId }: { styleOrderId: num
   const closedArtworks = filteredArtworks.filter(a => closedThreads.includes(a.id));
   const sortedArtworks = [...openArtworks, ...closedArtworks];
 
-  const totalUnread = (messages ?? []).filter(m => m.sender === "client").length;
+  const totalUnread = (messages ?? []).filter(m => m.sender === "client" && (m.targetType ?? "artwork") === "artwork").length;
   const showProduct = selectedProductId === "all" && products.length > 0;
 
   return (
@@ -395,6 +396,17 @@ export default function StyleClientLinkTab({ styleOrderId }: { styleOrderId: num
         </div>
       </div>
 
+      {link && (
+        <div className="space-y-2">
+          <ScopedThread linkId={link.id} targetType="order" title="Order conversation" subtitle="General discussion about this style order"
+            messages={(messages ?? []).filter(m => m.targetType === "order")} />
+          {products.map(p => (
+            <ScopedThread key={p.id} linkId={link.id} targetType="product" targetId={p.id} title={`Product: ${p.productName}`} subtitle="Product-level conversation"
+              messages={(messages ?? []).filter(m => m.targetType === "product" && m.productId === p.id)} />
+          ))}
+        </div>
+      )}
+
       {/* ── Product Filter ── */}
       {products.length > 0 && (
         <div className="flex items-center gap-3 bg-white rounded-2xl border border-gray-200 px-5 py-3.5">
@@ -411,7 +423,7 @@ export default function StyleClientLinkTab({ styleOrderId }: { styleOrderId: num
             {products.map(p => {
               const prodUnread = (messages ?? []).filter(m => {
                 const aw = artworkList.find(a => a.id === m.artworkId);
-                return m.sender === "client" && String(aw?.styleOrderProductId ?? "") === String(p.id);
+                return m.sender === "client" && (m.targetType ?? "artwork") === "artwork" && String(aw?.styleOrderProductId ?? "") === String(p.id);
               }).length;
               return (
                 <button key={p.id}
@@ -538,7 +550,7 @@ export default function StyleClientLinkTab({ styleOrderId }: { styleOrderId: num
         ) : (
           <div className="p-4 space-y-3">
             {sortedArtworks.map(aw => {
-              const awMsgs = (messages ?? []).filter(m => m.artworkId === aw.id);
+              const awMsgs = (messages ?? []).filter(m => (m.targetType ?? "artwork") === "artwork" && m.artworkId === aw.id);
               const lastFeedback = (feedbackList ?? []).filter(f => f.artworkId === aw.id).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
               return (
                 <StyleArtworkAccordion

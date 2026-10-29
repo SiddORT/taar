@@ -137,13 +137,76 @@ export const DisableClientAccountAccessResponse = zod.object({
 })
 
 
+export const GetClientAccountDashboardResponse = zod.object({
+  "ordersPlaced": zod.number().int(),
+  "inProgress": zod.number().int(),
+  "delivered": zod.number().int(),
+  "invoicesPaid": zod.number().int(),
+  "invoicesPending": zod.number().int(),
+  "uninvoicedOrders": zod.number().int(),
+  "receivedInr": zod.number(),
+  "outstandingInr": zod.number(),
+  "currency": zod.enum(['INR'])
+})
+
+
+export const SendClientAccountMessageParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+
+export const sendClientAccountMessageBodyMessageMax = 4000;
+
+
+
+export const SendClientAccountMessageBody = zod.object({
+  "targetType": zod.enum(['order', 'product', 'artwork']),
+  "targetId": zod.number().int().min(1).optional(),
+  "message": zod.string().max(sendClientAccountMessageBodyMessageMax).optional(),
+  "attachment": zod.object({
+  "name": zod.string(),
+  "type": zod.string(),
+  "data": zod.string(),
+  "size": zod.number()
+}).optional()
+})
+
+export const SendClientAccountMessageResponse = zod.void()
+
+
+export const SendClientAccountFeedbackParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+
+export const sendClientAccountFeedbackBodyCommentMax = 4000;
+
+
+
+export const SendClientAccountFeedbackBody = zod.object({
+  "artworkId": zod.number().int().min(1),
+  "decision": zod.enum(['Approve', 'Rework']),
+  "comment": zod.string().max(sendClientAccountFeedbackBodyCommentMax).optional()
+})
+
+export const SendClientAccountFeedbackResponse = zod.void()
+
+
 export const ListClientAccountOrdersResponse = zod.object({
   "data": zod.array(zod.object({
   "id": zod.number().int(),
   "orderCode": zod.string(),
   "orderName": zod.string(),
   "orderType": zod.enum(['swatch', 'style']),
-  "portalTitle": zod.string().nullable()
+  "portalTitle": zod.string().nullable(),
+  "orderStatus": zod.string(),
+  "orderDate": zod.string().nullable(),
+  "deliveryDate": zod.string().nullable(),
+  "shippingStatus": zod.string(),
+  "paymentStatus": zod.string(),
+  "invoiceCount": zod.number().int(),
+  "receivedInr": zod.number(),
+  "outstandingInr": zod.number()
 }))
 })
 
@@ -157,6 +220,43 @@ export const GetClientAccountOrderParams = zod.object({
 
 export const GetClientAccountOrderResponse = zod.object({
   "data": zod.object({
+  "products": zod.array(zod.object({
+  "id": zod.number().int(),
+  "productName": zod.string(),
+  "productStatus": zod.string(),
+  "fabricName": zod.string().nullable(),
+  "referenceImages": zod.array(zod.object({
+  "name": zod.string(),
+  "type": zod.string(),
+  "data": zod.string(),
+  "size": zod.number()
+}))
+})),
+  "invoices": zod.array(zod.object({
+  "id": zod.number().int(),
+  "invoiceNo": zod.string(),
+  "invoiceDate": zod.string(),
+  "dueDate": zod.string().nullable(),
+  "currency": zod.string(),
+  "total": zod.number(),
+  "received": zod.number(),
+  "outstanding": zod.number(),
+  "status": zod.string()
+})),
+  "shipments": zod.array(zod.object({
+  "id": zod.number().int(),
+  "status": zod.string(),
+  "trackingNumber": zod.string().nullable(),
+  "trackingUrl": zod.string().nullable(),
+  "shipmentDate": zod.string().nullable(),
+  "expectedDeliveryDate": zod.string().nullable(),
+  "actualDeliveryDate": zod.string().nullable()
+})),
+  "progress": zod.array(zod.object({
+  "label": zod.string(),
+  "status": zod.string(),
+  "date": zod.string().nullable()
+})),
   "link": zod.object({
   "id": zod.number().int(),
   "portalTitle": zod.string().nullable(),
@@ -167,10 +267,27 @@ export const GetClientAccountOrderResponse = zod.object({
   "orderName": zod.string(),
   "description": zod.string().nullable(),
   "deliveryDate": zod.string().nullable(),
-  "orderStatus": zod.string()
+  "orderStatus": zod.string(),
+  "orderDate": zod.string().nullable(),
+  "quantity": zod.string().nullable(),
+  "fabricName": zod.string().nullable(),
+  "styleNo": zod.string().nullable(),
+  "referenceImages": zod.array(zod.object({
+  "name": zod.string(),
+  "type": zod.string(),
+  "data": zod.string(),
+  "size": zod.number()
+}))
 }),
   "artworks": zod.array(zod.object({
   "id": zod.number().int(),
+  "productId": zod.number().int().nullable(),
+  "referenceImages": zod.array(zod.object({
+  "name": zod.string(),
+  "type": zod.string(),
+  "data": zod.string(),
+  "size": zod.number()
+})),
   "artworkCode": zod.string(),
   "artworkName": zod.string(),
   "wipImages": zod.array(zod.object({
@@ -186,11 +303,19 @@ export const GetClientAccountOrderResponse = zod.object({
   "size": zod.number()
 })),
   "isClosed": zod.boolean(),
-  "decision": zod.string().nullable()
+  "decision": zod.string().nullable(),
+  "feedback": zod.array(zod.object({
+  "id": zod.number().int(),
+  "decision": zod.string(),
+  "comment": zod.string().nullable(),
+  "createdAt": zod.string()
+}))
 })),
   "messages": zod.array(zod.object({
   "id": zod.number().int(),
-  "artworkId": zod.number().int(),
+  "artworkId": zod.number().int().nullable(),
+  "productId": zod.number().int().nullable(),
+  "targetType": zod.enum(['order', 'product', 'artwork']),
   "sender": zod.string(),
   "message": zod.string().nullable(),
   "attachment": zod.union([zod.object({
