@@ -37,6 +37,7 @@ import SwatchOrders from "@/pages/SwatchOrders";
 import SwatchOrderDetail from "@/pages/SwatchOrderDetail";
 import ArtworkDetail from "@/pages/ArtworkDetail";
 import ClientPortal from "@/pages/ClientPortal";
+import ClientAccount, { ClientSetPassword, ClientForgotPassword } from "@/pages/ClientAccount";
 import StyleOrders from "@/pages/StyleOrders";
 import StyleOrderDetail from "@/pages/StyleOrderDetail";
 import StyleOrderArtworkDetail from "@/pages/StyleOrderArtworkDetail";
@@ -141,6 +142,9 @@ function Router() {
       <Route path="/style-orders/:id" component={StyleOrderDetail} />
       <Route path="/user-management" component={UserManagement} />
       <Route path="/accept-invite" component={AcceptInvite} />
+      <Route path="/client" component={ClientAccount} />
+      <Route path="/client/set-password" component={ClientSetPassword} />
+      <Route path="/client/forgot-password" component={ClientForgotPassword} />
       <Route path="/client/:token" component={ClientPortal} />
       <Route path="/accounts/dashboard" component={AccountsDashboard} />
       <Route path="/accounts" component={AccountsDashboard} />

@@ -1,0 +1,1 @@
+ALTER TABLE "client_accounts" ADD CONSTRAINT "client_accounts_normalized_email" CHECK ("client_accounts"."email" = lower(btrim("client_accounts"."email")));

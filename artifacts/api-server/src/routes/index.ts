@@ -1,6 +1,9 @@
 import { Router, type IRouter } from "express";
 import healthRouter from "./health";
 import authRouter from "./auth";
+import clientAuthRouter from "./clientAuth";
+import clientAccessRouter from "./clientAccess";
+import clientAccountOrdersRouter from "./clientAccountOrders";
 import hsnRouter from "./hsn";
 import lookupsRouter from "./lookups";
 import materialsRouter from "./materials";
@@ -50,6 +53,9 @@ const router: IRouter = Router();
 
 router.use(healthRouter);
 router.use(authRouter);
+router.use(clientAuthRouter);
+router.use(clientAccountOrdersRouter);
+router.use(clientAccessRouter);
 router.use(userManagementRouter);
 router.use(hsnRouter);
 router.use(lookupsRouter);

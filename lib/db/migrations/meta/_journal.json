@@ -183,6 +183,20 @@
       "when": 1791273445779,
       "tag": "0025_good_beyonder",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1793174014394,
+      "tag": "0026_sudden_texas_twister",
+      "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1793174691392,
+      "tag": "0027_clammy_oracle",
+      "breakpoints": true
     }
   ]
 }

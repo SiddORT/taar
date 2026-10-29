@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { recomputeInvoiceBalances, computeAutoStatus } from "../invoiceBalances";
 
 // ---------------------------------------------------------------------------
@@ -214,5 +214,27 @@ describe("recomputeInvoiceBalances", () => {
     const updateCall = client.query.mock.calls[3];
     // $1 = received, $2 = pending, $3 = status, $4 = id
     expect(updateCall[1]).toEqual(["500.00", "0.00", "Paid", 11]);
+  });
+  it.each(["Draft", "Sent", "Cancelled"])("preserves explicit %s status during recomputation", async status => {
+    const client = makeClient(
+      { total_amount: "1000", exchange_rate_snapshot: "1", due_date: PAST, invoice_status: status },
+      1000, 0,
+    );
+    expect((await recomputeInvoiceBalances(client, 12))?.status).toBe(status);
+  });
+  it("counts only non-deleted completed payments and applied client-invoice credit notes", async () => {
+    const client = makeClient(
+      { total_amount: "1000", exchange_rate_snapshot: "1", due_date: FUTURE, invoice_status: "Generated" },
+      100, 200,
+    );
+    await recomputeInvoiceBalances(client, 13);
+    const sqls = client.query.mock.calls.map(([sql]) => String(sql));
+    expect(sqls[0]).toContain("is_deleted = false");
+    expect(sqls[1]).toContain("payment_status = 'Completed'");
+    expect(sqls[1]).toContain("is_deleted = false");
+    expect(sqls[2]).toContain("note_type = 'Credit Note'");
+    expect(sqls[2]).toContain("reference_type = 'Client Invoice'");
+    expect(sqls[2]).toContain("status = 'Applied'");
+    expect(sqls[2]).toContain("is_deleted = false");
   });
 });

@@ -16,6 +16,17 @@ export interface ClientAddress {
   isDeliveryDefault?: boolean;
 }
 
+export type ClientPortalState = "not_enabled" | "pending" | "enabled" | "disabled" | "delivery_failed";
+
+export interface ClientPortalAccess {
+  state: ClientPortalState;
+  enabled: boolean;
+  eligible: boolean;
+  reason: string | null;
+  expiresAt: string | null;
+  deliveryStatus: string | null;
+}
+
 export type ClientRecord = {
   id: number; clientCode: string; brandName: string; contactName: string; email: string;
   altEmail: string | null; contactNo: string; altContactNo: string | null;
@@ -24,6 +35,7 @@ export type ClientRecord = {
   addresses: ClientAddress[] | null;
   invoiceCurrency: string | null;
   hasOrders : boolean;
+  portalAccess?: ClientPortalAccess;
   isActive: boolean; isDeleted: boolean;
   createdBy: string; createdAt: string; updatedBy: string | null; updatedAt: string | null;
 };

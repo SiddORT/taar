@@ -13,6 +13,205 @@ tags:
   - name: auth
     description: Authentication operations
 paths:
+  /client-auth/login:
+    post:
+      operationId: clientAccountLogin
+      tags: [client-account]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string, format: email, maxLength: 254 }
+                password: { type: string, minLength: 1, maxLength: 200 }
+      responses:
+        "200":
+          description: Separate HttpOnly client session established
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ClientAccountIdentity" }
+        "401": { description: Invalid credentials or unavailable access }
+        "429": { description: Login throttled }
+  /client-auth/me:
+    get:
+      operationId: getClientAccountSession
+      tags: [client-account]
+      responses:
+        "200":
+          description: Current revocable client session
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ClientAccountIdentity" }
+        "401": { description: No active client session }
+  /client-auth/logout:
+    post:
+      operationId: clientAccountLogout
+      tags: [client-account]
+      responses:
+        "200":
+          description: Session revoked and cookie cleared
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MessageResponse" }
+  /client-auth/forgot-password:
+    post:
+      operationId: clientAccountForgotPassword
+      tags: [client-account]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email: { type: string, format: email, maxLength: 254 }
+      responses:
+        "200":
+          description: Generic recovery response; links expire in 15 minutes
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MessageResponse" }
+        "429": { description: Recovery throttled }
+  /client-auth/set-password:
+    post:
+      operationId: clientAccountSetPassword
+      tags: [client-account]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token, password]
+              properties:
+                token: { type: string, minLength: 40, maxLength: 100 }
+                password: { type: string, minLength: 12, maxLength: 72, description: Maximum 72 UTF-8 bytes }
+      responses:
+        "200":
+          description: One-time setup or recovery token consumed
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MessageResponse" }
+        "400": { description: "Expired, used, replaced or invalid link" }
+  /client-auth/change-password:
+    post:
+      operationId: clientAccountChangePassword
+      tags: [client-account]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [password]
+              properties:
+                password: { type: string, minLength: 12, maxLength: 72, description: Maximum 72 UTF-8 bytes }
+      responses:
+        "200":
+          description: Password replaced and old sessions revoked
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MessageResponse" }
+        "401": { description: Session unavailable }
+  /clients/{id}/portal-access:
+    post:
+      operationId: manageClientAccountAccess
+      tags: [client-account]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer, minimum: 1 } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - type: object
+                  required: [method]
+                  properties:
+                    method: { type: string, enum: [invitation] }
+                - type: object
+                  required: [method, temporaryPassword]
+                  properties:
+                    method: { type: string, enum: [temporary] }
+                    temporaryPassword: { type: string, pattern: "^[A-Za-z0-9_-]{24}$" }
+      responses:
+        "200":
+          description: Email accepted by SMTP; invitation and temporary credentials expire in 24 hours
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ClientAccessDelivery" }
+        "403": { description: Employee client edit permission required }
+        "409": { description: "No qualifying order, inactive client or ambiguous email" }
+        "502": { description: Delivery failed; access disabled and setup credentials invalidated }
+  /clients/{id}/portal-access/temporary-password:
+    post:
+      operationId: generateClientTemporaryPassword
+      tags: [client-account]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer, minimum: 1 } }
+      responses:
+        "200":
+          description: New draft only; nothing persisted or delivered
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [password]
+                properties:
+                  password: { type: string }
+        "403": { description: Employee client edit permission required }
+  /clients/{id}/portal-access/disable:
+    post:
+      operationId: disableClientAccountAccess
+      tags: [client-account]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer, minimum: 1 } }
+      responses:
+        "200":
+          description: Access disabled; credentials and sessions revoked
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ClientAccessDelivery" }
+        "403": { description: Employee client edit permission required }
+  /client-auth/orders:
+    get:
+      operationId: listClientAccountOrders
+      tags: [client-account]
+      responses:
+        "200":
+          description: Only owned non-deleted orders with a published non-deleted link
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/ClientAccountOrder" }
+        "401": { description: Client session required }
+        "403": { description: Mandatory password change required }
+  /client-auth/orders/{id}:
+    get:
+      operationId: getClientAccountOrder
+      tags: [client-account]
+      parameters:
+        - { name: id, in: path, required: true, description: Published client link ID, schema: { type: integer, minimum: 1 } }
+      responses:
+        "200":
+          description: Client-safe order presentation; hidden images and deleted content excluded
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data: { $ref: "#/components/schemas/ClientAccountOrderContent" }
+        "404": { description: Not owned or not published }
   /healthz:
     get:
       operationId: healthCheck
@@ -135,6 +334,89 @@ paths:
 
 components:
   schemas:
+    ClientAccountIdentity:
+      type: object
+      required: [client, mustChangePassword]
+      properties:
+        client:
+          type: object
+          required: [name, email]
+          properties:
+            name: { type: string }
+            email: { type: string }
+        mustChangePassword: { type: boolean }
+    ClientAccessDelivery:
+      type: object
+      required: [state, deliveryStatus, expiresAt]
+      properties:
+        state: { type: string, enum: [pending, enabled, disabled, delivery_failed, not_enabled] }
+        deliveryStatus: { type: [string, "null"] }
+        expiresAt: { type: [string, "null"], format: date-time }
+    ClientAccountOrder:
+      type: object
+      required: [id, orderCode, orderName, orderType, portalTitle]
+      properties:
+        id: { type: integer }
+        orderCode: { type: string }
+        orderName: { type: string }
+        orderType: { type: string, enum: [swatch, style] }
+        portalTitle: { type: [string, "null"] }
+    ClientAccountOrderContent:
+      type: object
+      required: [link, order, artworks, messages]
+      properties:
+        link:
+          type: object
+          required: [id, portalTitle, orderType]
+          properties:
+            id: { type: integer }
+            portalTitle: { type: [string, "null"] }
+            orderType: { type: string, enum: [swatch, style] }
+        order:
+          type: object
+          required: [orderCode, orderName, description, deliveryDate, orderStatus]
+          properties:
+            orderCode: { type: string }
+            orderName: { type: string }
+            description: { type: [string, "null"] }
+            deliveryDate: { type: [string, "null"] }
+            orderStatus: { type: string }
+        artworks:
+          type: array
+          items:
+            type: object
+            required: [id, artworkCode, artworkName, wipImages, finalImages, isClosed, decision]
+            properties:
+              id: { type: integer }
+              artworkCode: { type: string }
+              artworkName: { type: string }
+              wipImages: { type: array, items: { $ref: "#/components/schemas/ClientAccountAttachment" } }
+              finalImages: { type: array, items: { $ref: "#/components/schemas/ClientAccountAttachment" } }
+              isClosed: { type: boolean }
+              decision: { type: [string, "null"] }
+        messages:
+          type: array
+          items:
+            type: object
+            required: [id, artworkId, sender, message, attachment, createdAt]
+            properties:
+              id: { type: integer }
+              artworkId: { type: integer }
+              sender: { type: string }
+              message: { type: [string, "null"] }
+              attachment:
+                anyOf:
+                  - { $ref: "#/components/schemas/ClientAccountAttachment" }
+                  - { type: "null" }
+              createdAt: { type: string }
+    ClientAccountAttachment:
+      type: object
+      required: [name, type, data, size]
+      properties:
+        name: { type: string }
+        type: { type: string }
+        data: { type: string }
+        size: { type: number }
     HealthStatus:
       type: object
       properties:

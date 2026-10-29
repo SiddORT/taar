@@ -3275,6 +3275,27 @@ async function validatePaymentBalance(
   const sql = SQL_BY_REF[refType];
   if (!sql) return;   // Artisan / Shipping / unknown — no payable concept yet
 
+  // Serialize the balance check itself, not just the subsequent insert. A
+  // second transaction must read payments only after the first one commits.
+  const sources: Record<string, [string, string]> = {
+    "Purchase Receipt": ["purchase_receipts", "id"],
+    "Costing Outsource": ["outsource_jobs", "id"],
+    "Other Expense": ["other_expenses", "expense_id"],
+    "Custom Charge": ["custom_charges", "id"],
+    "Vendor Challan": ["vendor_challans", "id"],
+    "Artwork (Swatch)": ["artworks", "id"],
+    "Artwork (Style)": ["style_order_artworks", "id"],
+    "Toile": ["style_order_artworks", "id"],
+    "Style Order Product": ["style_order_products", "id"],
+  };
+  const [table, key] = sources[refType];
+  // Identifiers come exclusively from the fixed map above, never from input.
+  const locked = await client.query(
+    `SELECT ${key} FROM ${table} WHERE ${key} = $1 AND is_deleted = false FOR UPDATE`,
+    [sourceId]
+  );
+  if (!locked.rows.length) throw new Error(`Source record not found for ${refType} #${sourceId}`);
+
   const { rows } = await client.query(sql, [sourceId]);
   if (!rows.length) throw new Error(`Source record not found for ${refType} #${sourceId}`);
 

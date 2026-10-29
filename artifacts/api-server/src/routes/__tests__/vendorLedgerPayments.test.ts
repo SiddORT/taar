@@ -114,7 +114,7 @@ describe("DELETE /vendor-ledger/payments/:id", () => {
     const res = await request(makeApp()).delete("/vendor-ledger/payments/7");
 
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ success: true });
+    expect(res.body).toEqual({ success: true, deletedPaymentId: 7 });
     expect(mockRecompute).toHaveBeenCalledOnce();
     expect(mockRecompute).toHaveBeenCalledWith(
       expect.objectContaining({ query: mockClientQuery }),
@@ -129,7 +129,7 @@ describe("DELETE /vendor-ledger/payments/:id", () => {
     const res = await request(makeApp()).delete("/vendor-ledger/payments/8");
 
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ success: true });
+    expect(res.body).toEqual({ success: true, deletedPaymentId: 8 });
     expect(mockRecompute).not.toHaveBeenCalled();
   });
 

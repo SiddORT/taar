@@ -7,6 +7,7 @@ import { logger } from "../lib/logger";
 import { nextSequenceNumber } from "../utils/sequence";
 import { zodFieldErrorsToHuman } from "../lib/importHelpers";
 import type { Request } from "express";
+import { portalStates } from "../lib/clientAccounts";
 
 const router: IRouter = Router();
 type AuthRequest = Request & { user?: { userId: number; email: string; role: string } };
@@ -42,7 +43,8 @@ router.get("/clients", requireAuth, async (req: AuthRequest, res): Promise<void>
     db.select().from(clientsTable).where(whereClause).orderBy(desc(clientsTable.createdAt), desc(clientsTable.id)).limit(limit).offset(offset),
     db.select({ id: clientsTable.id }).from(clientsTable).where(whereClause),
   ]);
-  res.json({ data: rows, total: countRows.length, page, limit });
+  const states = await portalStates(rows.map(row => row.id));
+  res.json({ data: rows.map(row => ({ ...row, portalAccess: states.get(row.id) })), total: countRows.length, page, limit });
 });
 
 router.get("/clients/export-all", requireAuth, async (req: AuthRequest, res): Promise<void> => {

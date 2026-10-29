@@ -12,6 +12,8 @@ import SearchBar from "@/components/master/SearchBar";
 import MasterTable, { type Column, type TableRow } from "@/components/master/MasterTable";
 import StatusToggle from "@/components/master/StatusToggle";
 import ConfirmModal from "@/components/ui/ConfirmModal";
+import ClientAccessModal from "@/components/client/ClientAccessModal";
+import { useMyPermissions } from "@/hooks/useMyPermissions";
 import ImportResultModal, { normalizeImportResult, type NormalizedImportResult } from "@/components/ui/ImportResultModal";
 
 import {
@@ -36,9 +38,29 @@ function formatDateExport(val: string | null | undefined) {
 
 function formatDateTable(val: string | null | undefined) {
   if (!val) return "—";
-  try { return new Date(val).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }); }
-  catch { return String(val); }
+  try {
+    const d = new Date(val);
+    if (isNaN(d.getTime())) return "—";
+    return d.toLocaleString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit" });
+  } catch { return String(val); }
 }
+
+function AuditCell({ by, at, testId }: { by: string | null | undefined; at: string | null | undefined; testId: string }) {
+  return (
+    <div className="leading-tight" data-testid={testId}>
+      <div className="text-sm text-gray-700">{by || "—"}</div>
+      <div className="text-xs text-gray-400 whitespace-nowrap">{formatDateTable(at)}</div>
+    </div>
+  );
+}
+
+const PORTAL_LABEL: Record<string, { label: string; cls: string }> = {
+  not_enabled: { label: "Not enabled", cls: "bg-gray-100 text-gray-500" },
+  pending: { label: "Pending", cls: "bg-amber-50 text-amber-700" },
+  enabled: { label: "Enabled", cls: "bg-emerald-50 text-emerald-700" },
+  disabled: { label: "Disabled", cls: "bg-gray-100 text-gray-500" },
+  delivery_failed: { label: "Delivery failed", cls: "bg-red-50 text-red-600" },
+};
 
 const asClient = (r: TableRow) => r as unknown as ClientRecord;
 
@@ -71,6 +93,9 @@ export default function ClientMaster() {
   const [limit, setLimit] = useState(10);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [statusTarget, setStatusTarget] = useState<ClientRecord | null>(null);
+  const [accessTargetId, setAccessTargetId] = useState<number | null>(null);
+  const { can } = useMyPermissions();
+  const canManageAccess = can("masters:clients:add_edit");
 
   const [importMenuOpen, setImportMenuOpen] = useState(false);
   const importMenuRef = useRef<HTMLDivElement>(null);
@@ -497,10 +522,31 @@ export default function ClientMaster() {
         <StatusToggle isActive={asClient(r).isActive} onToggle={() => setStatusTarget(asClient(r))} />
       )
     },
-    { key: "createdBy", label: "Created By", render: (r) => asClient(r).createdBy },
-    { key: "createdAt", label: "Created At", render: (r) => formatDateTable(asClient(r).createdAt) },
-    { key: "updatedBy", label: "Updated By", render: (r) => asClient(r).updatedBy || "—" },
-    { key: "updatedAt", label: "Updated At", render: (r) => formatDateTable(asClient(r).updatedAt) },
+    {
+      key: "portalAccess", label: "Client Login", render: (r) => {
+        const rec = asClient(r);
+        const pa = rec.portalAccess;
+        const isExpired = pa?.state === "pending" && !!pa.expiresAt && new Date(pa.expiresAt).getTime() < Date.now();
+        const st = isExpired ? { label: "Setup expired", cls: "bg-red-50 text-red-600" } : (PORTAL_LABEL[pa?.state ?? "not_enabled"] ?? PORTAL_LABEL.not_enabled);
+        const on = !!pa?.enabled;
+        const allowed = canManageAccess && (on || pa?.state === "delivery_failed" || !!pa?.eligible);
+        const why = !canManageAccess ? "You don't have permission to manage client login."
+          : !allowed ? (pa?.reason ?? "Requires at least one order and an active client.") : "Manage client login";
+        return (
+          <div className="flex items-center gap-2" title={why}>
+            <button type="button" role="switch" aria-checked={on} aria-label={`Client login for ${rec.brandName}`}
+              disabled={!allowed} onClick={() => setAccessTargetId(rec.id)} data-testid={`toggle-portal-${rec.id}`}
+              className={`relative inline-flex h-5 w-9 shrink-0 rounded-full transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${on ? "bg-cyan-900" : "bg-gray-300"}`}>
+              <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform ${on ? "translate-x-4" : "translate-x-0.5"}`} />
+            </button>
+            <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap ${st.cls}`} data-testid={`status-portal-${rec.id}`}>{st.label}</span>
+            {!allowed && canManageAccess && <span className="sr-only">{why}</span>}
+          </div>
+        );
+      }
+    },
+    { key: "created", label: "Created", render: (r) => <AuditCell by={asClient(r).createdBy} at={asClient(r).createdAt} testId={`text-created-${asClient(r).id}`} /> },
+    { key: "updated", label: "Updated", render: (r) => <AuditCell by={asClient(r).updatedBy} at={asClient(r).updatedAt} testId={`text-updated-${asClient(r).id}`} /> },
     {
       key: "actions", label: "Actions", render: (r) => {
         const rec = asClient(r);
@@ -576,6 +622,12 @@ export default function ClientMaster() {
           cancelLabel="No"
           loading={toggleStatus.isPending}
           danger={false}
+        />
+
+        <ClientAccessModal
+          client={accessTargetId !== null ? ((data?.data ?? []) as ClientRecord[]).find((c) => c.id === accessTargetId) ?? null : null}
+          onClose={() => setAccessTargetId(null)}
+          onDone={(m) => toast({ description: m })}
         />
 
         <ImportResultModal

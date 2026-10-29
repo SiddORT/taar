@@ -27,8 +27,34 @@ function createTransporter() {
     host,
     port,
     secure,
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 15000,
     auth: { user, pass },
   });
+}
+
+function escapeClientHtml(value: string) {
+  return value.replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
+}
+
+export async function sendClientAccessEmail(opts: {
+  to: string; name: string; url: string; expiresAt: Date;
+  kind: "invitation" | "temporary" | "recovery"; password?: string;
+}): Promise<void> {
+  const title = opts.kind === "recovery" ? "Reset your client portal password" : opts.kind === "temporary" ? "Your temporary client portal credentials" : "Set up your client portal access";
+  const expiry = opts.expiresAt.toUTCString();
+  const detail = opts.kind === "temporary"
+    ? `Login email: ${opts.to}\nTemporary password: ${opts.password}\nYou must change this password before viewing orders.`
+    : "This link can be used once. A replacement link invalidates the previous link.";
+  const hours = opts.kind === "recovery" ? "15 minutes" : "24 hours";
+  const result = await createTransporter().sendMail({
+    from: process.env.EMAIL_FROM ?? process.env.EMAIL_USER, to: opts.to, subject: `TAAR — ${title}`,
+    text: `TAAR — YOUR DESIGN BUSINESS, CONNECTED\n\nHello ${opts.name},\n${title}\n${detail}\n${opts.url}\nExpires in ${hours}: ${expiry}\nIf you did not request this, contact your TAAR team.`,
+    html: `<div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;color:#164e63">${TAAR_EMAIL_HEADER}<h2>${title}</h2><p>Hello ${escapeClientHtml(opts.name)},</p><p style="white-space:pre-line">${escapeClientHtml(detail)}</p><p><a href="${escapeClientHtml(opts.url)}" style="background:#164e63;color:#fff;padding:12px 20px;display:inline-block;border-radius:8px">Open client portal</a></p><p>Expires in ${hours}: ${expiry}</p><p>If you did not request this, contact your TAAR team.</p></div>`,
+    attachments: [taarEmailLogo],
+  });
+  if (result.rejected?.length || !result.accepted?.length) throw new Error("Client email was not accepted for delivery");
 }
 
 export async function sendInviteEmail(to: string, username: string, inviteUrl: string): Promise<void> {

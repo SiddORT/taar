@@ -62,3 +62,10 @@ The project is structured as a pnpm monorepo using TypeScript, targeting Node.js
 - **Validation**: Zod
 - **Excel Export**: `xlsx` library
 - **File Uploads**: Multer (for multipart/form-data)
+
+## Client portal account operations
+
+- Set `CLIENT_PORTAL_ORIGIN` to the trusted HTTPS application origin (no path, credentials, query, or fragment). Configure the published origin explicitly in the deployment environment; incoming request hosts are never used for client invitations. Development may use an explicitly configured localhost HTTP origin.
+- Client account email uses existing SMTP settings: `EMAIL_USER`, `EMAIL_PASS`, and optionally `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_FROM`. Without working SMTP, staff see a delivery failure and access stays disabled. Do not send bulk or real-client invitations as a setup check.
+- Client account cookies and credentials are separate from employee bearer tokens. Account entry is `/client`; existing `/client/:token` shared links retain their existing publication rules. Account home is read-only and shows only owned, published, non-deleted orders, excluding hidden images.
+- Run account regression checks with `pnpm --filter @workspace/api-server exec vitest run src/routes/__tests__/clientAccount.integration.test.ts`. They use a disposable PostgreSQL schema and mocked mail transport, never real recipients.
