@@ -55,4 +55,5 @@ artifacts/api-server/uploads/**
 # env & process files
 .env
 .env.*
+/generated-artifacts/
 ecosystem.config.cjs
