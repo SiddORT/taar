@@ -69,10 +69,18 @@ function imageUrls(v: ClientAccountAttachment[] | null | undefined): string[] {
 }
 
 /* ---------- Shell ---------- */
-function Shell({ children, wide }: { children: React.ReactNode; wide?: boolean }) {
+const AUTH_BG = `${import.meta.env.BASE_URL.replace(/\/?$/, "/")}brand/client-auth-background.webp`;
+
+function Shell({ children, wide, backdrop }: { children: React.ReactNode; wide?: boolean; backdrop?: boolean }) {
   return (
-    <div className="min-h-[100dvh] bg-[#f7f4ec] text-gray-800" style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}>
-      <div className={`mx-auto px-4 py-10 ${wide ? "max-w-4xl" : "max-w-md"}`}>
+    <div className="relative isolate min-h-[100dvh] bg-[#f7f4ec] text-gray-800" style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}>
+      {backdrop && (
+        <div aria-hidden="true" className="pointer-events-none fixed inset-0 -z-10" data-testid="client-auth-backdrop">
+          <div className="absolute inset-0 bg-cover bg-[position:20%_center] sm:bg-center" style={{ backgroundImage: `url("${AUTH_BG}")` }} />
+          <div className="absolute inset-0 bg-[#f7f4ec]/45 sm:bg-gradient-to-r sm:from-[#f7f4ec]/10 sm:via-[#f7f4ec]/45 sm:to-[#f7f4ec]/30" />
+        </div>
+      )}
+      <div className={`relative mx-auto px-4 py-10 ${backdrop ? "sm:py-16" : ""} ${wide ? "max-w-4xl" : "max-w-md"}`}>
         <div className="text-center mb-8">
           <TaarBrand width={140} className="mx-auto" />
           <div className="text-xs tracking-widest uppercase text-[#a8923a] mt-1">Client Portal</div>
@@ -83,8 +91,8 @@ function Shell({ children, wide }: { children: React.ReactNode; wide?: boolean }
   );
 }
 
-function Card({ children }: { children: React.ReactNode }) {
-  return <div className="bg-white rounded-2xl shadow-sm border border-[#C9B45C]/30 p-6">{children}</div>;
+function Card({ children, raised }: { children: React.ReactNode; raised?: boolean }) {
+  return <div className={`rounded-2xl border border-[#C9B45C]/30 p-6 ${raised ? "bg-white/95 shadow-[0_18px_50px_-20px_rgba(74,58,20,0.45)] backdrop-blur-sm" : "bg-white shadow-sm"}`}>{children}</div>;
 }
 
 function Field({ id, label, type = "text", value, onChange, autoComplete }: {
@@ -154,7 +162,7 @@ export default function ClientAccount() {
     return null;
   }, []);
 
-  if (checking) return <Shell><Card><div className="h-24 animate-pulse bg-gray-100 rounded-lg" /></Card></Shell>;
+  if (checking) return <Shell backdrop><Card raised><div className="h-24 animate-pulse bg-gray-100 rounded-lg" /></Card></Shell>;
   if (!me) return <LoginView onLogin={setMe} />;
   if (me.mustChangePassword) return <ChangePasswordView me={me} onDone={loadMe} onLogout={logout} />;
   return <HomeView me={me} onLogout={logout} onUnauthorized={() => setMe(null)} onRecheck={loadMe} />;
@@ -173,8 +181,8 @@ function LoginView({ onLogin }: { onLogin: (m: Me) => void }) {
     finally { setBusy(false); }
   }
   return (
-    <Shell>
-      <Card>
+    <Shell backdrop>
+      <Card raised>
         <h1 className="text-lg font-semibold mb-4">Sign in</h1>
         <form onSubmit={submit} className="space-y-3">
           <Field id="email" label="Email" type="email" value={email} onChange={setEmail} autoComplete="username" />
@@ -387,8 +395,8 @@ export function ClientSetPassword() {
     finally { if (tokenRef.current === submittedToken) setBusy(false); }
   }
   return (
-    <Shell>
-      <Card>
+    <Shell backdrop>
+      <Card raised>
         <h1 className="text-lg font-semibold mb-4">Set your password</h1>
         {!token ? (
           <p className="text-sm text-red-600" role="alert" data-testid="text-error">This link is missing, expired, or has already been used. Ask TAAR for a new invitation or use “Forgot password”.</p>
