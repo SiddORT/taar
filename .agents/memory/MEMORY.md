@@ -9,3 +9,4 @@
 - [Partial workspace installation](partial-workspace-install.md) — a filtered frontend install can restore its executables when an unrelated backend dependency blocks full installation.
 - [TAAR branding approval](taar-logo-rollout.md) — logo and gold tagline approved across the listed app, document, and email surfaces; preserve legal details and historical files.
 - [API generator compatibility](codegen-compatibility.md) — target workspace library majors explicitly; generator peers can otherwise break generated types and employee form typechecks.
+- [Stale API process](stale-api-process.md) — after merges, an old listener can serve outdated responses while the managed workflow fails with EADDRINUSE.
