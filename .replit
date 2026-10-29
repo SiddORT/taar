@@ -141,4 +141,4 @@ channel = "stable-25_05"
 [userenv.shared]
 
 [userenv.development]
-CLIENT_PORTAL_ORIGIN = "https://7532f3e3-c482-4729-b2b6-616a05da5056-00-i8v29cgnx7fg-lljit9ri.sisko.replit.dev"
+CLIENT_PORTAL_ORIGIN = "https://7532f3e3-c482-4729-b2b6-616a05da5056-00-i8v29cgnx7fg.sisko.replit.dev"
