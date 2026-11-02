@@ -271,7 +271,7 @@ describe("organized client order workspace", () => {
       UPDATE client_links SET is_published=false WHERE id=2;`);
     expect((await get("/client-auth/dashboard", session)).body).toMatchObject({ ordersPlaced: 2,invoicesPaid: 0,invoicesPending: 0,uninvoicedOrders: 2 });
     expect((await get("/client-auth/orders/1", session)).body.data.invoices).toEqual([]);
-    expect((await get("/client-auth/orders/2", session)).body.data.link.contentPublished).toBe(false);
+    expect((await get("/client-auth/orders/2", session)).body.data.link.contentPublished).toBe(true);
   });
   it("automatically lists linkless non-draft orders without publishing, emails, or status changes", async () => {
     await pool.query(`UPDATE client_links SET is_deleted=true;
@@ -292,9 +292,9 @@ describe("organized client order workspace", () => {
     for (const link of links) {
       expect((await request(app).get(`/api/client-portal/${link.token}`)).status).toBe(403);
       const detail = (await get(`/client-auth/orders/${link.id}`, session)).body.data;
-      expect(detail.link.contentPublished).toBe(false);
-      expect(detail.artworks).toEqual([]);
-      expect(detail.products).toEqual([]);
+      expect(detail.link.contentPublished).toBe(true);
+      expect(detail.artworks).toHaveLength(1);
+      expect(detail.products).toHaveLength(detail.link.orderType === "style" ? 2 : 0);
       expect(detail.messages).toEqual([]);
       expect(detail.order.referenceImages).toEqual([]);
     }
@@ -310,24 +310,26 @@ describe("organized client order workspace", () => {
     expect((await get("/client-auth/dashboard", session)).body.ordersPlaced).toBe(0);
     for (const id of [1,2,3]) expect((await get(`/client-auth/orders/${id}`, session)).status).toBe(404);
   });
-  it("keeps General communication available while withholding unpublished creative content", async () => {
+  it("automatically exposes owned artwork and conversations without publishing the public link", async () => {
     await message(1, { targetType: "order", message: "Previously shared conversation" });
-    await pool.query("UPDATE client_links SET is_published=false,portal_title='Private draft title' WHERE id=1");
+    await pool.query(`UPDATE client_links SET is_published=false,portal_title='Client order title' WHERE id=1;
+      UPDATE swatch_orders SET description='Automatically visible order description' WHERE id=1`);
     const d = (await get("/client-auth/orders/1", session)).body.data;
-    expect(d.link).toMatchObject({ contentPublished: false, portalTitle: null });
-    expect(d.artworks).toEqual([]);
+    expect(d.link).toMatchObject({ contentPublished: true, portalTitle: "Client order title" });
+    expect(d.artworks).toHaveLength(1);
     expect(d.messages).toHaveLength(1);
     expect(d.messages[0].targetType).toBe("order");
-    expect(d.order.description).toBeNull();
+    expect(d.order.description).toBe("Automatically visible order description");
     expect(d.order.referenceImages).toEqual([]);
     expect((await message(1,{targetType:"order",message:"General question"})).status).toBe(201);
-    expect((await message(1,{targetType:"artwork",targetId:1,message:"Not shared"})).status).toBe(403);
-    expect((await decision(1,{artworkId:1,decision:"Approve"})).status).toBe(403);
+    expect((await message(1,{targetType:"artwork",targetId:1,message:"Artwork question"})).status).toBe(201);
+    expect((await decision(1,{artworkId:1,decision:"Rework",comment:"Adjust embroidery"})).status).toBe(201);
+    expect((await request(app).get("/api/client-portal/swatch-link")).status).toBe(403);
     await pool.query("UPDATE client_links SET is_published=true WHERE id=1");
     const published = (await get("/client-auth/orders/1",session)).body.data;
     expect(published.link.contentPublished).toBe(true);
     expect(published.artworks).toHaveLength(1);
-    expect(published.messages).toHaveLength(2);
+    expect(published.messages).toHaveLength(3);
   });
   it("unifies General, Product and Artwork history with staff replies and preserves sibling-link messages", async () => {
     const general = await message(2,{targetType:"order",message:"General delivery question"});
@@ -347,21 +349,25 @@ describe("organized client order workspace", () => {
     expect(client[1].artworkName).toBe("Jacket");
     expect(client[3]).toMatchObject({sender:"team",productId:1,artworkName:"Jacket"});
     expect((await get("/client-auth/orders/1",session)).body.data.messages).toEqual([]);
-    expect((await get(`/client-auth/orders/${sibling.id}`,session)).body.data.messages).toHaveLength(1);
+    expect((await get(`/client-auth/orders/${sibling.id}`,session)).body.data.messages).toHaveLength(4);
   });
-  it("allows unpublished General replies but never leaks or accepts unpublished Product and Artwork topics", async () => {
+  it("automatically enables Product and Artwork topics for owned non-draft orders, independently of public publishing", async () => {
     await pool.query("UPDATE client_links SET is_published=false WHERE id=2");
     expect((await message(2,{targetType:"order",message:"When is delivery?"})).status).toBe(201);
     expect((await post("/client-links/2/messages",{targetType:"order",message:"We will confirm."})).status).toBe(201);
     expect((await post("/client-links/2/messages",{targetType:"product",targetId:1,message:"Unpublished product note"})).status).toBe(201);
-    expect((await message(2,{targetType:"product",targetId:1,message:"Guessing"})).status).toBe(403);
-    expect((await message(2,{targetType:"artwork",targetId:1,message:"Guessing"})).status).toBe(403);
+    expect((await message(2,{targetType:"product",targetId:1,message:"Product question"})).status).toBe(201);
+    expect((await message(2,{targetType:"artwork",targetId:1,message:"Artwork question"})).status).toBe(201);
     const hidden = (await get("/client-auth/orders/2",session)).body.data;
-    expect(hidden.messages.map((m:any)=>m.targetType)).toEqual(["order","order"]);
-    expect(hidden.products).toEqual([]);
-    expect(hidden.artworks).toEqual([]);
+    expect(hidden.link.contentPublished).toBe(true);
+    expect(hidden.messages.map((m:any)=>m.targetType)).toEqual(["order","order","product","product","artwork"]);
+    expect(hidden.products).toHaveLength(2);
+    expect(hidden.artworks).toHaveLength(1);
+    expect((await request(app).get("/api/client-portal/style-link")).status).toBe(403);
     await pool.query("UPDATE client_links SET is_published=true WHERE id=2");
-    expect((await get("/client-auth/orders/2",session)).body.data.messages).toHaveLength(3);
+    expect((await get("/client-auth/orders/2",session)).body.data.messages).toHaveLength(5);
+    await pool.query("UPDATE client_links SET is_published=false WHERE id=2");
+    expect((await get("/client-auth/orders/2",session)).body.data.products).toHaveLength(2);
     await pool.query("UPDATE style_orders SET order_status='Draft'");
     expect((await message(2,{targetType:"order",message:"Draft guessing"})).status).toBe(404);
   });
@@ -466,7 +472,7 @@ describe("organized client order workspace", () => {
     expect((await get("/client-auth/orders/2",session)).body.data.artworks).toEqual([]);
     await pool.query("UPDATE client_links SET is_published=false WHERE id=1");
     expect((await message(1,{targetType:"order",message:"General question"})).status).toBe(201);
-    expect((await decision(1,{artworkId:1,decision:"Approve"})).status).toBe(403);
+    expect((await decision(1,{artworkId:1,decision:"Approve"})).status).toBe(201);
   });
   it.each([1,2])("keeps artwork IDs disambiguated and all closed discussion routes read-only for link %s", async link => {
     expect((await decision(link,{artworkId:1,decision:"Rework",comment:"Revise the border"})).status).toBe(201);
@@ -668,13 +674,13 @@ describe("recovery and scoped published content", () => {
     expect(detail.body.data.link.token).toBeUndefined();
     expect((await get("/client-auth/orders/2", session)).status).toBe(404);
     await pool.query("UPDATE client_links SET is_published=false WHERE id=1");
-    expect((await get("/client-auth/orders/1", session)).body.data.link.contentPublished).toBe(false);
+    expect((await get("/client-auth/orders/1", session)).body.data.link.contentPublished).toBe(true);
     await pool.query("SELECT setval(pg_get_serial_sequence('client_links','id'),2)");
     await pool.query("UPDATE client_links SET is_published=true,is_deleted=true WHERE id=1");
     const automatic = (await get("/client-auth/orders", session)).body.data;
     expect(automatic).toHaveLength(1);
     expect(automatic[0].id).not.toBe(1);
-    expect((await get(`/client-auth/orders/${automatic[0].id}`, session)).body.data.link.contentPublished).toBe(false);
+    expect((await get(`/client-auth/orders/${automatic[0].id}`, session)).body.data.link.contentPublished).toBe(true);
     await pool.query("UPDATE client_links SET is_deleted=false WHERE id=1; UPDATE swatch_orders SET is_deleted=true");
     expect((await get("/client-auth/orders/1", session)).status).toBe(404);
   });

@@ -353,7 +353,7 @@ function OrderDetail({ id, onBack, onUnauthorized, onChanged }: { id: number; on
 
       {!shared && (
         <Panel className="p-4 text-sm text-slate-600" data-testid="text-content-unpublished">
-          Your order is visible automatically. You can send general messages now. Artwork, images and product discussions will be available once shared by the TAAR team.
+          Order content is temporarily unavailable. Refresh this page or contact the TAAR team.
         </Panel>
       )}
       <div>
@@ -375,7 +375,7 @@ function OrderDetail({ id, onBack, onUnauthorized, onChanged }: { id: number; on
             </Panel>
           )}
           {active === "products" && (
-            d.products.length === 0 ? <Panel className="p-8 text-center text-sm text-slate-500">No products shared yet.</Panel> : (
+            d.products.length === 0 ? <Panel className="p-8 text-center text-sm text-slate-500">No products added to this order yet.</Panel> : (
               <div className="space-y-4">
                 {d.products.map((p) => {
                   const pr = images(p.referenceImages);
@@ -394,7 +394,7 @@ function OrderDetail({ id, onBack, onUnauthorized, onChanged }: { id: number; on
                           {aws.map((a) => <ArtworkCard key={a.id} a={a} msgCount={artworkMsgCount(a.id)} onZoom={zoom} onDiscuss={() => discuss(topicKey("artwork", a.id))} onDecide={decide} />)}
                         </div>
                       )}
-                      {aws.length === 0 && <p className="text-xs text-slate-400">No artworks shared for this product yet.</p>}
+                      {aws.length === 0 && <p className="text-xs text-slate-400">No artworks added to this product yet.</p>}
                       <div className="border-t border-slate-100 pt-3">
                         <button onClick={() => discuss(topicKey("product", p.id))} className="inline-flex items-center gap-1.5 text-sm text-cyan-900 hover:underline" data-testid={`button-discuss-product-${p.id}`}>
                           <MessageSquare size={14} /> Discuss this product ({d.messages.filter((m) => m.targetType === "product" && m.productId === p.id).length})
@@ -407,7 +407,7 @@ function OrderDetail({ id, onBack, onUnauthorized, onChanged }: { id: number; on
             )
           )}
           {active === "artworks" && (
-            d.artworks.length === 0 ? <Panel className="p-8 text-center text-sm text-slate-500">No artworks published yet.</Panel> : (
+            d.artworks.length === 0 ? <Panel className="p-8 text-center text-sm text-slate-500">No artworks added to this order yet.</Panel> : (
               <div className="space-y-4">
                 {d.artworks.map((a) => <ArtworkCard key={a.id} a={a} productName={d.products.find((p) => p.id === a.productId)?.productName}
                   msgCount={artworkMsgCount(a.id)} onZoom={zoom} onDiscuss={() => discuss(topicKey("artwork", a.id))} onDecide={decide} />)}

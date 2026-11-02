@@ -133,7 +133,7 @@ export default function ClientLinkTab({ swatchOrderId }: { swatchOrderId: number
           </div>
           <div className="flex-1">
             <h2 className="text-sm font-semibold text-cyan-900">Shareable Client Link</h2>
-            <p className="text-xs text-gray-400">Share this link with the client to collect their messages</p>
+            <p className="text-xs text-gray-400">Publish controls this public link only. Signed-in clients see their non-draft orders, products and artworks automatically.</p>
           </div>
           {link && (
             <span className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full font-semibold ${link.isPublished ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"}`}>
@@ -253,7 +253,7 @@ export default function ClientLinkTab({ swatchOrderId }: { swatchOrderId: number
       )}
 
       {link && (
-        <StaffOrderConversation linkId={link.id} isPublished={link.isPublished} messages={messages ?? []} topics={topics}
+        <StaffOrderConversation linkId={link.id} messages={messages ?? []} topics={topics}
           topicKeyValue={topicSel} onTopicChange={setTopicSel} focusSignal={focusSig} subtitle="General and artwork discussion with the client" />
       )}
 

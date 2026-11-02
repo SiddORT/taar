@@ -261,7 +261,7 @@ export const GetClientAccountOrderResponse = zod.object({
   "id": zod.number().int(),
   "portalTitle": zod.string().nullable(),
   "orderType": zod.enum(['swatch', 'style']),
-  "contentPublished": zod.boolean().describe('Whether artwork, images and scoped conversations have been published. Basic order visibility and General messages are independent.')
+  "contentPublished": zod.boolean().describe('Always true for an authenticated client\'s own visible non-draft order. Products, artwork and conversations are automatically available; public bearer-link publishing is separate.')
 }),
   "order": zod.object({
   "orderCode": zod.string(),

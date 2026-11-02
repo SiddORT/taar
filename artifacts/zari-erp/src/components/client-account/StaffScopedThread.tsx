@@ -3,8 +3,8 @@ import { useSendTeamMessage, type ClientMessageRecord } from "@/hooks/useClientL
 import UnifiedConversation, { type Topic } from "./UnifiedConversation";
 
 /** Staff view of the single chronological order conversation. */
-export default function StaffOrderConversation({ linkId, isPublished, messages, topics, topicKeyValue, onTopicChange, focusSignal, subtitle }: {
-  linkId: number; isPublished: boolean; messages: ClientMessageRecord[]; topics: Topic[];
+export default function StaffOrderConversation({ linkId, messages, topics, topicKeyValue, onTopicChange, focusSignal, subtitle }: {
+  linkId: number; messages: ClientMessageRecord[]; topics: Topic[];
   topicKeyValue: string; onTopicChange: (k: string) => void; focusSignal: number; subtitle: string;
 }) {
   const send = useSendTeamMessage();
@@ -22,7 +22,6 @@ export default function StaffOrderConversation({ linkId, isPublished, messages, 
       <div className="px-5 py-4">
         <UnifiedConversation messages={messages} topics={topics} selfSender="team"
           topicKeyValue={topicKeyValue} onTopicChange={onTopicChange} focusSignal={focusSignal}
-          scopedNotice={isPublished ? null : "The link is not published. The client will not see this product/artwork message until you publish. General messages are visible immediately."}
           onSend={(topic, message, attachment) => send.mutateAsync({
             linkId, targetType: topic.kind, targetId: topic.kind === "order" ? undefined : topic.id,
             artworkName: topic.kind === "artwork" ? topic.label : undefined, message, attachment,

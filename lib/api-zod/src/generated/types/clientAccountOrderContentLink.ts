@@ -12,6 +12,6 @@ export type ClientAccountOrderContentLink = {
   /** @nullable */
   portalTitle: string | null;
   orderType: ClientAccountOrderContentLinkOrderType;
-  /** Whether artwork, images and scoped conversations have been published. Basic order visibility and General messages are independent. */
+  /** Always true for an authenticated client's own visible non-draft order. Products, artwork and conversations are automatically available; public bearer-link publishing is separate. */
   contentPublished: boolean;
 };

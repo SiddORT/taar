@@ -1,13 +1,13 @@
 ---
 name: Client account order visibility
-description: Automatic non-draft order visibility is separate from publishing client-facing content and bearer links.
+description: Client login shows owned non-draft orders, products, artworks and conversations automatically; only public bearer links require publishing.
 ---
 
-Clients should automatically see their own non-deleted, non-draft swatch and style orders, including completed and cancelled orders with their actual statuses.
+Clients should automatically see their own non-deleted, non-draft swatch and style orders, products, artworks and conversations, including completed and cancelled orders with their actual statuses. Client-account detail must return contentPublished: true by default, including for existing orders.
 
-**Why:** The user approved separating account visibility from manual publication after both New Balance and Zara appeared empty despite having ERP orders.
+**Why:** The user explicitly repeated that orders, products and artworks should be visible by default in client login, and rejected requiring a Publish step for creative content.
 
-**How to apply:** Do not restore published-only filtering for account lists, dashboard totals, or basic order details. Never broaden access across client ownership boundaries. Publishing remains necessary for artwork, images, Product/Artwork conversations, and bearer-link access; unpublishing hides that content, not the basic account order or General messages.
+**How to apply:** Do not restore published-only filtering for account lists, dashboard totals, order details, products, artworks or conversation topics. Public bearer-link publishing is separate: unpublishing must not hide content from authenticated owners. Preserve ownership, draft/deletion restrictions, explicit hidden-image settings, closed artwork topics and private internal notes.
 
 Keep existing link-based identifiers and conversation histories compatible. Any internal link records needed to represent account orders must stay unpublished until staff explicitly publishes them.
 

@@ -9,8 +9,8 @@ Keep one chronological conversation per order on both client and admin screens. 
 
 **How to apply:** Preserve existing messages and attachments. Label messages with their topic, sender, and timestamp; replies retain their topic. Product/artwork areas may offer Discuss shortcuts into the same conversation. Filters must not create separate histories.
 
-General messages work as soon as an owned non-draft order is visible. Product and Artwork topics are available to clients only after those contents are shared. Closed artwork topics remain readable but cannot accept messages; General stays available.
+General, Product and Artwork topics work as soon as an owned non-draft order is visible in client login. They must not depend on public-link publication. Closed artwork topics remain readable but cannot accept messages; General stays available.
 
-**Why:** The user approved communicating about an order without waiting for creative-content publication, while retaining control over what products/artworks are shared.
+**Why:** The user explicitly clarified that products and artworks should be visible by default, so their conversation topics must be usable without manual publication too.
 
-**How to apply:** Enforce ownership, topic validity, publication, and closure on the server, not only in selectors. Never infer artwork approval from chat: Approve / Request Rework remain separate actions. Internal notes must never enter client conversations.
+**How to apply:** Enforce ownership, topic validity and closure on the server, not only in selectors. Publication remains a separate requirement for public bearer-link access only. Never infer artwork approval from chat: Approve / Request Rework remain separate actions. Internal notes must never enter client conversations.

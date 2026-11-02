@@ -425,7 +425,7 @@ components:
             id: { type: integer }
             portalTitle: { type: [string, "null"] }
             orderType: { type: string, enum: [swatch, style] }
-            contentPublished: { type: boolean, description: "Whether artwork, images and scoped conversations have been published. Basic order visibility and General messages are independent." }
+            contentPublished: { type: boolean, description: "Always true for an authenticated client's own visible non-draft order. Products, artwork and conversations are automatically available; public bearer-link publishing is separate." }
         order:
           type: object
           required: [orderCode, orderName, description, deliveryDate, orderStatus, orderDate, quantity, fabricName, styleNo, referenceImages]

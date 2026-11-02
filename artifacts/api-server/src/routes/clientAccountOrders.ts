@@ -44,9 +44,8 @@ router.post("/client-auth/orders/:id/messages", clientHandler(async (req, res) =
   const data = await transaction(async cx => {
     const { client, account } = await requireClient(cx, req);
     await throttle(`conversation:account:${account.id}`, 60);
-    // General messages require only an owned, visible order. Specific creative
-    // topics still require publication, and target validation remains server-side.
-    return sendConversation(cx, await ownedLink(cx, client.id, id, req.body?.targetType !== "order"), req.body, "client");
+    // Account ownership unlocks all valid topics; bearer-link publishing is separate.
+    return sendConversation(cx, await ownedLink(cx, client.id, id), req.body, "client");
   });
   res.status(201).json({ data });
 }));
@@ -56,7 +55,7 @@ router.post("/client-auth/orders/:id/feedback", clientHandler(async (req, res) =
   const data = await transaction(async cx => {
     const { client, account } = await requireClient(cx, req);
     await throttle(`feedback:account:${account.id}`, 60);
-    return decideArtwork(cx, await ownedLink(cx, client.id, id, true), req.body);
+    return decideArtwork(cx, await ownedLink(cx, client.id, id), req.body);
   });
   res.status(201).json({ data });
 }));
