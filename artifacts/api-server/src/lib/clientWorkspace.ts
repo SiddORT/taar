@@ -3,6 +3,7 @@ import type { z } from "zod";
 import type { GetClientAccountOrderResponse, ListClientAccountOrdersResponse, GetClientAccountDashboardResponse } from "@workspace/api-zod";
 import { ClientAccessError } from "./clientAccounts";
 import { readInvoiceBalances } from "./invoiceBalances";
+import { randomBytes } from "node:crypto";
 type ClientAccountOrderContent = z.infer<typeof GetClientAccountOrderResponse>["data"];
 type ClientAccountInvoice = ClientAccountOrderContent["invoices"][number];
 type ClientAccountOrder = z.infer<typeof ListClientAccountOrdersResponse>["data"][number];
@@ -16,15 +17,44 @@ export const visibleLinks = `FROM client_links l
  WHERE l.is_deleted=false AND l.is_published=true
  AND ((sw.client_id=$1 AND l.style_order_id IS NULL) OR (st.client_id=$1 AND l.swatch_order_id IS NULL))`;
 
-export async function ownedLink(cx: PoolClient, clientId: number, id: number) {
-  const { rows: [link] } = await cx.query(`SELECT l.id,l.portal_title,l.hidden_images,l.closed_threads,
-    l.swatch_order_id,l.style_order_id ${visibleLinks} AND l.id=$2 FOR UPDATE OF l`, [String(clientId), id]);
-  if (!link) throw new ClientAccessError(404, "Published order not found");
+// Account visibility is independent of public-link publication. Draft and
+// deleted orders are never exposed, even if an old public link exists.
+const accountLinks = `FROM client_links l
+ LEFT JOIN swatch_orders sw ON sw.id=l.swatch_order_id AND sw.is_deleted=false
+ LEFT JOIN style_orders st ON st.id=l.style_order_id AND st.is_deleted=false
+ WHERE l.is_deleted=false
+ AND ((sw.client_id=$1 AND sw.order_status<>'Draft' AND l.style_order_id IS NULL)
+ OR (st.client_id=$1 AND st.order_status<>'Draft' AND l.swatch_order_id IS NULL))`;
+
+async function ensureOrderLinks(cx: PoolClient, clientId: number) {
+  // requireClient holds the client's row lock for this transaction, serializing
+  // concurrent account reads. Reuse the existing IDs/conversation storage, but
+  // never publish, restore deleted links, or advance the order's status here.
+  const { rows } = await cx.query(`SELECT 'swatch' AS type,s.id FROM swatch_orders s
+    WHERE s.client_id=$1 AND s.is_deleted=false AND s.order_status<>'Draft'
+    AND NOT EXISTS(SELECT 1 FROM client_links l WHERE l.swatch_order_id=s.id AND l.style_order_id IS NULL AND l.is_deleted=false)
+    UNION ALL SELECT 'style',s.id FROM style_orders s
+    WHERE s.client_id=$1 AND s.is_deleted=false AND s.order_status<>'Draft'
+    AND NOT EXISTS(SELECT 1 FROM client_links l WHERE l.style_order_id=s.id AND l.swatch_order_id IS NULL AND l.is_deleted=false)`, [String(clientId)]);
+  for (const row of rows) {
+    await cx.query(`INSERT INTO client_links(swatch_order_id,style_order_id,client_id,token,is_published)
+      VALUES($1,$2,$3,$4,false)`, [
+      row.type === "swatch" ? row.id : null, row.type === "style" ? row.id : null,
+      clientId, randomBytes(16).toString("hex"),
+    ]);
+  }
+}
+
+export async function ownedLink(cx: PoolClient, clientId: number, id: number, requirePublished = false) {
+  const { rows: [link] } = await cx.query(`SELECT l.id,l.is_published,l.portal_title,l.hidden_images,l.closed_threads,
+    l.swatch_order_id,l.style_order_id ${accountLinks} AND l.id=$2 FOR UPDATE OF l`, [String(clientId), id]);
+  if (!link) throw new ClientAccessError(404, "Order not found");
+  if (requirePublished && !link.is_published) throw new ClientAccessError(403, "Content has not been shared for this order yet.");
   return link;
 }
 
 export async function activeLink(cx: PoolClient, id: number, published = false) {
-  const { rows: [link] } = await cx.query(`SELECT l.id,l.client_id,l.portal_title,l.hidden_images,l.closed_threads,l.swatch_order_id,l.style_order_id
+  const { rows: [link] } = await cx.query(`SELECT l.id,l.client_id,l.is_published,l.portal_title,l.hidden_images,l.closed_threads,l.swatch_order_id,l.style_order_id
     FROM client_links l
     LEFT JOIN swatch_orders sw ON sw.id=l.swatch_order_id AND sw.is_deleted=false
     LEFT JOIN style_orders st ON st.id=l.style_order_id AND st.is_deleted=false
@@ -114,14 +144,15 @@ export function shippingState(shipments: { status: string }[]) {
 }
 
 export async function workspaceList(cx: PoolClient, clientId: number) {
+  await ensureOrderLinks(cx, clientId);
   const { rows } = await cx.query(`SELECT DISTINCT ON (COALESCE(sw.id,st.id), (sw.id IS NOT NULL))
-    l.id,l.portal_title AS "portalTitle",COALESCE(sw.order_code,st.order_code) AS "orderCode",
+    l.id,CASE WHEN l.is_published THEN l.portal_title ELSE NULL END AS "portalTitle",COALESCE(sw.order_code,st.order_code) AS "orderCode",
     COALESCE(sw.swatch_name,st.style_name) AS "orderName",
     COALESCE(sw.order_status,st.order_status) AS "orderStatus",
     COALESCE(sw.order_issue_date,st.order_issue_date) AS "orderDate",
     COALESCE(sw.delivery_date,st.delivery_date) AS "deliveryDate",
     COALESCE(sw.id,st.id) AS "orderId",CASE WHEN sw.id IS NOT NULL THEN 'swatch' ELSE 'style' END AS "orderType"
-    ${visibleLinks} ORDER BY COALESCE(sw.id,st.id),(sw.id IS NOT NULL),l.id`, [String(clientId)]);
+    ${accountLinks} ORDER BY COALESCE(sw.id,st.id),(sw.id IS NOT NULL),l.is_published DESC,l.id`, [String(clientId)]);
   const invoices = new Map<number, ClientAccountInvoice & { receivedBaseInr: number; outstandingBaseInr: number }>();
   const orders: ClientAccountOrder[] = [];
   for (const row of rows) {
@@ -150,20 +181,21 @@ export async function workspaceList(cx: PoolClient, clientId: number) {
 
 export async function workspaceDetail(cx: PoolClient, clientId: number, link: any): Promise<ClientAccountOrderContent> {
   const { swatch, orderId, type } = orderInfo(link);
+  const shared = link.is_published === true;
   const { rows: [o] } = await cx.query(`SELECT order_code,${swatch ? "swatch_name" : "style_name"} AS order_name,
     description,order_status,order_issue_date,delivery_date,quantity,${swatch ? "fabric_name" : "fabric_type"} AS fabric_name,
     ${swatch ? "NULL" : "style_no"} AS style_no,actual_start_date,actual_completion_date,ref_images
     FROM ${swatch ? "swatch_orders" : "style_orders"} WHERE id=$1 AND is_deleted=false`, [orderId]);
-  const { rows: products } = swatch ? { rows: [] } : await cx.query(`SELECT id,product_name AS "productName",
+  const { rows: products } = swatch || !shared ? { rows: [] } : await cx.query(`SELECT id,product_name AS "productName",
     product_status AS "productStatus",fabric_name AS "fabricName",ref_images
     FROM style_order_products WHERE style_order_id=$1 AND is_deleted=false ORDER BY id`, [orderId]);
-  const { rows: artworks } = await cx.query(`SELECT id,artwork_code,artwork_name,ref_images,wip_images,final_images,
+  const { rows: artworks } = !shared ? { rows: [] } : await cx.query(`SELECT id,artwork_code,artwork_name,ref_images,wip_images,final_images,
     ${swatch ? "NULL" : "style_order_product_id"} AS product_id
     FROM ${swatch ? "artworks" : "style_order_artworks"} WHERE ${swatch ? "swatch_order_id" : "style_order_id"}=$1
     AND is_deleted=false ${swatch ? "" : "AND (style_order_product_id IS NULL OR style_order_product_id IN (SELECT id FROM style_order_products WHERE style_order_id=$1 AND is_deleted=false))"} ORDER BY id`, [orderId]);
-  const { rows: feedback } = await cx.query(`SELECT id,artwork_id,decision,comment,created_at FROM client_feedback
+  const { rows: feedback } = !shared ? { rows: [] } : await cx.query(`SELECT id,artwork_id,decision,comment,created_at FROM client_feedback
     WHERE client_link_id=$1 AND is_deleted=false ORDER BY created_at,id`, [link.id]);
-  const { rows: messages } = await cx.query(`SELECT id,artwork_id AS "artworkId",target_type AS "targetType",
+  const { rows: messages } = !shared ? { rows: [] } : await cx.query(`SELECT id,artwork_id AS "artworkId",target_type AS "targetType",
     product_id AS "productId",sender,message,attachment,created_at AS "createdAt"
     FROM client_messages WHERE client_link_id=$1 AND is_deleted=false ORDER BY created_at,id`, [link.id]);
   const artworkIds = new Set(artworks.map(a => a.id));
@@ -184,10 +216,10 @@ export async function workspaceDetail(cx: PoolClient, clientId: number, link: an
   const shipments = await shipmentsFor(cx, type, orderId);
   const invoices = await invoicesFor(cx, clientId, type, orderId, o.order_code);
   return {
-    link: { id: link.id, portalTitle: link.portal_title, orderType: swatch ? "swatch" : "style" },
-    order: { orderCode: o.order_code, orderName: o.order_name, description: o.description, orderStatus: o.order_status ?? "Not recorded",
+    link: { id: link.id, portalTitle: shared ? link.portal_title : null, orderType: swatch ? "swatch" : "style", contentPublished: shared },
+    order: { orderCode: o.order_code, orderName: o.order_name, description: shared ? o.description : null, orderStatus: o.order_status ?? "Not recorded",
       orderDate: o.order_issue_date || null, deliveryDate: o.delivery_date || null, quantity: o.quantity,
-      fabricName: o.fabric_name, styleNo: o.style_no, referenceImages: images(o.ref_images) },
+      fabricName: o.fabric_name, styleNo: o.style_no, referenceImages: shared ? images(o.ref_images) : [] },
     products: products.map(({ref_images, ...p}) => ({...p, referenceImages: images(ref_images)})),
     artworks: projected, invoices: invoices.map(({receivedBaseInr: _, outstandingBaseInr: _p, ...i}) => i), shipments,
     messages: messages.filter(m => m.targetType === "order" || (m.targetType === "product" && productIds.has(m.productId)) ||
@@ -196,8 +228,8 @@ export async function workspaceDetail(cx: PoolClient, clientId: number, link: an
       })),
     progress: [
       { label: "Order", status: o.order_status === "Cancelled" ? "Cancelled" : "Placed", date: o.order_issue_date || null },
-      { label: "Artwork", status: artworks.length ? `${artworks.length} artwork(s)` : "Not recorded", date: null },
-      { label: "Approval", status: !artworks.length ? "Not recorded" : projected.every(a => a.decision === "Approve") ? "Approved" :
+      { label: "Artwork", status: !shared ? "Not shared yet" : artworks.length ? `${artworks.length} artwork(s)` : "Not recorded", date: null },
+      { label: "Approval", status: !shared ? "Not shared yet" : !artworks.length ? "Not recorded" : projected.every(a => a.decision === "Approve") ? "Approved" :
         projected.some(a => a.decision === "Rework") ? "Rework requested" : "Pending", date: null },
       { label: "Production", status: o.actual_completion_date || o.order_status === "Completed" ? "Completed (not delivery)" :
         o.actual_start_date || ["In Production","In Sampling"].includes(o.order_status) ? "In progress" : "Not recorded",

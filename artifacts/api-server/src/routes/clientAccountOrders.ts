@@ -44,7 +44,7 @@ router.post("/client-auth/orders/:id/messages", clientHandler(async (req, res) =
   const data = await transaction(async cx => {
     const { client, account } = await requireClient(cx, req);
     await throttle(`conversation:account:${account.id}`, 60);
-    return sendConversation(cx, await ownedLink(cx, client.id, id), req.body, "client");
+    return sendConversation(cx, await ownedLink(cx, client.id, id, true), req.body, "client");
   });
   res.status(201).json({ data });
 }));
@@ -54,7 +54,7 @@ router.post("/client-auth/orders/:id/feedback", clientHandler(async (req, res) =
   const data = await transaction(async cx => {
     const { client, account } = await requireClient(cx, req);
     await throttle(`feedback:account:${account.id}`, 60);
-    return decideArtwork(cx, await ownedLink(cx, client.id, id), req.body);
+    return decideArtwork(cx, await ownedLink(cx, client.id, id, true), req.body);
   });
   res.status(201).json({ data });
 }));

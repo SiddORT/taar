@@ -420,11 +420,12 @@ components:
         progress: { type: array, items: { $ref: "#/components/schemas/ClientAccountStage" } }
         link:
           type: object
-          required: [id, portalTitle, orderType]
+          required: [id, portalTitle, orderType, contentPublished]
           properties:
             id: { type: integer }
             portalTitle: { type: [string, "null"] }
             orderType: { type: string, enum: [swatch, style] }
+            contentPublished: { type: boolean, description: "Whether artwork, images and conversations have been published for this order. Basic order visibility is independent." }
         order:
           type: object
           required: [orderCode, orderName, description, deliveryDate, orderStatus, orderDate, quantity, fabricName, styleNo, referenceImages]

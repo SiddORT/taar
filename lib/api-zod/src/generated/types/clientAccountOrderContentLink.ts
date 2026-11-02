@@ -12,4 +12,6 @@ export type ClientAccountOrderContentLink = {
   /** @nullable */
   portalTitle: string | null;
   orderType: ClientAccountOrderContentLinkOrderType;
+  /** Whether artwork, images and conversations have been published for this order. Basic order visibility is independent. */
+  contentPublished: boolean;
 };

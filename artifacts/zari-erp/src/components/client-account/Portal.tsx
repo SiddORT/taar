@@ -124,7 +124,7 @@ export default function Portal({ me, onLogout, onUnauthorized }: {
           <div className="space-y-6">
             <div>
               <h1 className="text-2xl sm:text-3xl text-cyan-950" style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}>Your studio work</h1>
-              <p className="text-sm text-slate-500 mt-1">Welcome, {me.client.name}. Swatch and style orders shared with you by TAAR.</p>
+              <p className="text-sm text-slate-500 mt-1">Welcome, {me.client.name}. Your swatch and style orders with TAAR. Draft orders are not shown.</p>
             </div>
             <DashboardStrip dash={dash} err={dashErr} onRetry={() => void loadSummary()} />
             <Panel className="p-4 sm:p-5">
@@ -147,7 +147,7 @@ export default function Portal({ me, onLogout, onUnauthorized }: {
             {ordersErr ? <Retry msg={ordersErr} onRetry={() => void loadSummary()} />
               : orders === null ? <div className="space-y-3">{[0, 1, 2].map((i) => <div key={i} className="h-24 rounded-2xl bg-white/70 animate-pulse" />)}</div>
               : orders.length === 0 ? (
-                <Panel className="py-14 text-center"><Package className="mx-auto mb-3 text-[#C6AF4B]" size={30} /><p className="text-sm text-slate-500" data-testid="text-empty-orders">No orders have been shared with you yet.</p></Panel>
+                <Panel className="py-14 text-center"><Package className="mx-auto mb-3 text-[#C6AF4B]" size={30} /><p className="text-sm text-slate-500" data-testid="text-empty-orders">No non-draft orders are available for your account yet.</p></Panel>
               ) : filtered.length === 0 ? (
                 <Panel className="py-10 text-center text-sm text-slate-500" >
                   No orders match these filters.
@@ -270,14 +270,15 @@ function OrderDetail({ id, onBack, onUnauthorized, onChanged }: { id: number; on
   );
 
   const isStyle = d.link.orderType === "style";
+  const shared = d.link.contentPublished;
   const tabs: { k: Tab; label: string; icon: React.ReactNode; n?: number }[] = [
-    { k: "conversation", label: "Conversation", icon: <MessageSquare size={14} />, n: d.messages.filter((m) => m.targetType === "order").length },
-    ...(isStyle ? [{ k: "products" as Tab, label: "Products", icon: <Layers size={14} />, n: d.products.length }] : []),
-    { k: "artworks", label: "Artworks", icon: <ImageIcon size={14} />, n: d.artworks.length },
+    ...(shared ? [{ k: "conversation" as Tab, label: "Conversation", icon: <MessageSquare size={14} />, n: d.messages.filter((m) => m.targetType === "order").length }] : []),
+    ...(shared && isStyle ? [{ k: "products" as Tab, label: "Products", icon: <Layers size={14} />, n: d.products.length }] : []),
+    ...(shared ? [{ k: "artworks" as Tab, label: "Artworks", icon: <ImageIcon size={14} />, n: d.artworks.length }] : []),
     { k: "shipment", label: "Shipment", icon: <Truck size={14} />, n: d.shipments.length },
     { k: "invoices", label: "Invoices", icon: <Receipt size={14} />, n: d.invoices.length },
   ];
-  const active = tab ?? "conversation";
+  const active = tabs.some(t => t.k === tab) ? tab : shared ? "conversation" : "shipment";
   const refs = images(d.order.referenceImages).length ? images(d.order.referenceImages) :
     images(d.products.flatMap(p => p.referenceImages)).length ? images(d.products.flatMap(p => p.referenceImages)) :
     images(d.artworks.flatMap(a => [...a.finalImages, ...a.wipImages, ...a.referenceImages]));
@@ -341,6 +342,11 @@ function OrderDetail({ id, onBack, onUnauthorized, onChanged }: { id: number; on
         )}
       </Panel>
 
+      {!shared && (
+        <Panel className="p-4 text-sm text-slate-600" data-testid="text-content-unpublished">
+          Your order is visible automatically. Artwork, images and conversations will be available once shared by the TAAR team.
+        </Panel>
+      )}
       <div>
         <div role="tablist" className="flex gap-1 overflow-x-auto overflow-y-hidden border-b border-[#C9B45C]/25">
           {tabs.map((t) => (

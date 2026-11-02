@@ -227,8 +227,11 @@ describe("organized client order workspace", () => {
   beforeEach(async () => {
     await seedOrder();
     await seedOrder("style");
-    await pool.query(`INSERT INTO client_links(id,swatch_order_id,token,is_published) VALUES(1,1,'swatch-link',true);
+    await pool.query(`UPDATE swatch_orders SET order_status='Issued';
+      UPDATE style_orders SET order_status='Issued';
+      INSERT INTO client_links(id,swatch_order_id,token,is_published) VALUES(1,1,'swatch-link',true);
       INSERT INTO client_links(id,style_order_id,token,is_published) VALUES(2,1,'style-link',true);
+      SELECT setval(pg_get_serial_sequence('client_links','id'),2);
       INSERT INTO style_order_products(id,style_order_id,product_name) VALUES(1,1,'Jacket'),(2,1,'Trousers');
       INSERT INTO artworks(id,swatch_order_id,artwork_code,artwork_name) VALUES(1,1,'AW-1','Swatch embroidery');
       INSERT INTO style_order_artworks(id,style_order_id,style_order_product_id,artwork_code,artwork_name,feedback_status)
@@ -250,7 +253,7 @@ describe("organized client order workspace", () => {
       INSERT INTO order_shipping_details(id,reference_type,reference_id,shipment_status) VALUES(1,'Swatch',1,'Pending');`);
     const dash = await get("/client-auth/dashboard", session);
     expect(dash.status).toBe(200);
-    expect(dash.body).toMatchObject({ ordersPlaced: 2, delivered: 0, inProgress: 1,
+    expect(dash.body).toMatchObject({ ordersPlaced: 2, delivered: 0, inProgress: 2,
       invoicesPaid: 1, invoicesPending: 2, uninvoicedOrders: 1, currency: "INR", receivedInr: 3400, outstandingInr: 4850 });
     const list = (await get("/client-auth/orders", session)).body.data;
     expect(list).toHaveLength(2);
@@ -260,15 +263,77 @@ describe("organized client order workspace", () => {
     expect(d.progress.find((p: any) => p.label === "Production").status).toBe("Completed (not delivery)");
     expect(d.progress.find((p: any) => p.label === "Shipment").status).toBe("Pending");
   });
-  it("excludes draft, cancelled, deleted, vendor, foreign and unrelated invoices and unpublished orders", async () => {
+  it("excludes draft, cancelled, deleted, vendor, foreign and unrelated invoices but retains unpublished orders", async () => {
     await pool.query(`INSERT INTO invoices(id,invoice_no,invoice_date,client_id,swatch_order_id,invoice_status,invoice_direction,is_deleted)
       VALUES(1,'DRAFT','2026-10-01',1,1,'Draft','Client',false),(2,'CANCEL','2026-10-01',1,1,'Cancelled','Client',false),
       (3,'DEL','2026-10-01',1,1,'Generated','Client',true),(4,'VENDOR','2026-10-01',1,1,'Generated','Vendor',false),
       (5,'FOREIGN','2026-10-01',2,1,'Generated','Client',false),(6,'UNRELATED','2026-10-01',1,99,'Generated','Client',false);
       UPDATE client_links SET is_published=false WHERE id=2;`);
-    expect((await get("/client-auth/dashboard", session)).body).toMatchObject({ ordersPlaced: 1,invoicesPaid: 0,invoicesPending: 0,uninvoicedOrders: 1 });
+    expect((await get("/client-auth/dashboard", session)).body).toMatchObject({ ordersPlaced: 2,invoicesPaid: 0,invoicesPending: 0,uninvoicedOrders: 2 });
     expect((await get("/client-auth/orders/1", session)).body.data.invoices).toEqual([]);
-    expect((await get("/client-auth/orders/2", session)).status).toBe(404);
+    expect((await get("/client-auth/orders/2", session)).body.data.link.contentPublished).toBe(false);
+  });
+  it("automatically lists linkless non-draft orders without publishing, emails, or status changes", async () => {
+    await pool.query(`UPDATE client_links SET is_deleted=true;
+      UPDATE swatch_orders SET order_status='In Progress';
+      UPDATE style_orders SET order_status='Completed';`);
+    harness.send.mockClear();
+    const list = await get("/client-auth/orders", session);
+    expect(list.status).toBe(200);
+    expect(list.body.data).toHaveLength(2);
+    expect(list.body.data.map((o: any) => o.orderStatus).sort()).toEqual(["Completed","In Progress"]);
+    const links = (await pool.query("SELECT id,token,is_published FROM client_links WHERE is_deleted=false ORDER BY id")).rows;
+    expect(links).toHaveLength(2);
+    expect(links.every(l => l.is_published === false)).toBe(true);
+    const again = (await get("/client-auth/orders", session)).body.data;
+    expect(again.map((o: any) => o.id)).toEqual(list.body.data.map((o: any) => o.id));
+    expect((await pool.query("SELECT id FROM client_links WHERE is_deleted=false")).rows).toHaveLength(2);
+    expect((await get("/client-auth/dashboard", session)).body.ordersPlaced).toBe(2);
+    for (const link of links) {
+      expect((await request(app).get(`/api/client-portal/${link.token}`)).status).toBe(403);
+      const detail = (await get(`/client-auth/orders/${link.id}`, session)).body.data;
+      expect(detail.link.contentPublished).toBe(false);
+      expect(detail.artworks).toEqual([]);
+      expect(detail.products).toEqual([]);
+      expect(detail.messages).toEqual([]);
+      expect(detail.order.referenceImages).toEqual([]);
+    }
+    expect(harness.send).not.toHaveBeenCalled();
+  });
+  it("keeps drafts, deleted orders and other clients' orders out of account lists and direct access", async () => {
+    await pool.query(`UPDATE swatch_orders SET order_status='Draft';
+      UPDATE style_orders SET is_deleted=true;
+      INSERT INTO swatch_orders(id,client_id,order_code,swatch_name,order_status)
+        VALUES(2,'2','FOREIGN','Other client','Issued');
+      INSERT INTO client_links(id,swatch_order_id,token,is_published) VALUES(3,2,'foreign-link',true);`);
+    expect((await get("/client-auth/orders", session)).body.data).toEqual([]);
+    expect((await get("/client-auth/dashboard", session)).body.ordersPlaced).toBe(0);
+    for (const id of [1,2,3]) expect((await get(`/client-auth/orders/${id}`, session)).status).toBe(404);
+  });
+  it("withholds unpublished content and rejects guessed conversations and artwork decisions", async () => {
+    await message(1, { targetType: "order", message: "Previously shared conversation" });
+    await pool.query("UPDATE client_links SET is_published=false,portal_title='Private draft title' WHERE id=1");
+    const d = (await get("/client-auth/orders/1", session)).body.data;
+    expect(d.link).toMatchObject({ contentPublished: false, portalTitle: null });
+    expect(d.artworks).toEqual([]);
+    expect(d.messages).toEqual([]);
+    expect(d.order.description).toBeNull();
+    expect(d.order.referenceImages).toEqual([]);
+    expect((await message(1,{targetType:"order",message:"Not shared"})).status).toBe(403);
+    expect((await message(1,{targetType:"artwork",targetId:1,message:"Not shared"})).status).toBe(403);
+    expect((await decision(1,{artworkId:1,decision:"Approve"})).status).toBe(403);
+    await pool.query("UPDATE client_links SET is_published=true WHERE id=1");
+    const published = (await get("/client-auth/orders/1",session)).body.data;
+    expect(published.link.contentPublished).toBe(true);
+    expect(published.artworks).toHaveLength(1);
+    expect(published.messages).toHaveLength(1);
+  });
+  it("does not duplicate orders with multiple links and keeps cancelled order status visible", async () => {
+    await pool.query(`UPDATE swatch_orders SET order_status='Cancelled';
+      INSERT INTO client_links(swatch_order_id,token,is_published) VALUES(1,'duplicate-link',false);`);
+    const list = (await get("/client-auth/orders", session)).body.data;
+    expect(list).toHaveLength(2);
+    expect(list.find((o: any) => o.orderType === "swatch")).toMatchObject({id:1,orderStatus:"Cancelled"});
   });
   it("aggregates actual INR anchors rather than re-converting rounded foreign invoice balances", async () => {
     await pool.query(`INSERT INTO invoices(id,invoice_no,invoice_date,client_id,swatch_order_id,currency_code,exchange_rate_snapshot,total_amount)
@@ -363,8 +428,8 @@ describe("organized client order workspace", () => {
     expect((await message(2,{targetType:"artwork",targetId:1,message:"No"})).status).toBe(404);
     expect((await get("/client-auth/orders/2",session)).body.data.artworks).toEqual([]);
     await pool.query("UPDATE client_links SET is_published=false WHERE id=1");
-    expect((await message(1,{targetType:"order",message:"No"})).status).toBe(404);
-    expect((await decision(1,{artworkId:1,decision:"Approve"})).status).toBe(404);
+    expect((await message(1,{targetType:"order",message:"No"})).status).toBe(403);
+    expect((await decision(1,{artworkId:1,decision:"Approve"})).status).toBe(403);
   });
   it.each([1,2])("keeps artwork IDs disambiguated and all closed discussion routes read-only for link %s", async link => {
     expect((await decision(link,{artworkId:1,decision:"Rework",comment:"Revise the border"})).status).toBe(201);
@@ -548,9 +613,11 @@ describe("recovery and scoped published content", () => {
     expect((await post("/client-auth/forgot-password", { email: "client@example.invalid" }, "")).status).toBe(200);
     expect((await portalStates([1])).get(1).deliveryStatus).toBe("failed");
   });
-  it("lists only owned published orders and enforces ownership, deletion and image hiding on detail", async () => {
+  it("separates owned order visibility from publication and enforces deletion and image hiding", async () => {
     await seedOrder("style", 2);
-    await pool.query(`INSERT INTO client_links(id,swatch_order_id,client_id,token,is_published,hidden_images)
+    await pool.query(`UPDATE swatch_orders SET order_status='Issued';
+      UPDATE style_orders SET order_status='Issued';
+      INSERT INTO client_links(id,swatch_order_id,client_id,token,is_published,hidden_images)
       VALUES(1,1,1,'public-client-link',true,'[{"artworkId":1,"imageType":"wip","imageIndex":0}]');
       INSERT INTO client_links(id,style_order_id,client_id,token,is_published) VALUES(2,2,2,'other-public-link',true);
       INSERT INTO artworks(id,swatch_order_id,artwork_code,artwork_name,wip_images,final_images)
@@ -564,9 +631,13 @@ describe("recovery and scoped published content", () => {
     expect(detail.body.data.link.token).toBeUndefined();
     expect((await get("/client-auth/orders/2", session)).status).toBe(404);
     await pool.query("UPDATE client_links SET is_published=false WHERE id=1");
-    expect((await get("/client-auth/orders/1", session)).status).toBe(404);
+    expect((await get("/client-auth/orders/1", session)).body.data.link.contentPublished).toBe(false);
+    await pool.query("SELECT setval(pg_get_serial_sequence('client_links','id'),2)");
     await pool.query("UPDATE client_links SET is_published=true,is_deleted=true WHERE id=1");
-    expect((await get("/client-auth/orders", session)).body.data).toEqual([]);
+    const automatic = (await get("/client-auth/orders", session)).body.data;
+    expect(automatic).toHaveLength(1);
+    expect(automatic[0].id).not.toBe(1);
+    expect((await get(`/client-auth/orders/${automatic[0].id}`, session)).body.data.link.contentPublished).toBe(false);
     await pool.query("UPDATE client_links SET is_deleted=false WHERE id=1; UPDATE swatch_orders SET is_deleted=true");
     expect((await get("/client-auth/orders/1", session)).status).toBe(404);
   });
