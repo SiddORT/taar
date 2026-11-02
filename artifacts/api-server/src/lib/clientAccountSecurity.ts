@@ -19,9 +19,7 @@ export const setupSchema = ClientAccountSetPasswordBody.refine(p => Buffer.byteL
 export const changeSchema = ClientAccountChangePasswordBody.refine(p => Buffer.byteLength(p.password, "utf8") <= 72, "Password must be at most 72 bytes");
 export const accessSchema = ManageClientAccountAccessBody;
 
-export function applicationOrigin() {
-  const raw = process.env.CLIENT_PORTAL_ORIGIN;
-  if (!raw) throw new Error("Configure CLIENT_PORTAL_ORIGIN before sending client access emails");
+function trustedOrigin(raw: string) {
   const url = new URL(raw);
   if (url.username || url.password || url.search || url.hash || url.pathname !== "/" ||
       (url.protocol !== "https:" && !(process.env.NODE_ENV !== "production" && url.protocol === "http:" && ["localhost", "127.0.0.1"].includes(url.hostname)))) {
@@ -30,16 +28,34 @@ export function applicationOrigin() {
   return url.origin;
 }
 
-// Mutation requests must originate from the configured app. No host-header fallback.
+export function applicationOrigin() {
+  const raw = process.env.CLIENT_PORTAL_ORIGIN;
+  if (!raw) throw new Error("Configure CLIENT_PORTAL_ORIGIN before sending client access emails");
+  return trustedOrigin(raw);
+}
+
+function allowedOrigins() {
+  const origins = new Set([applicationOrigin()]);
+  // Preview aliases are explicit, development-only, and never derived from request headers.
+  // Keep the canonical origin for email links and production requests.
+  if (process.env.NODE_ENV === "development") {
+    for (const raw of (process.env.CLIENT_PORTAL_DEV_ORIGINS ?? "").split(",").map(v => v.trim()).filter(Boolean)) {
+      origins.add(trustedOrigin(raw));
+    }
+  }
+  return origins;
+}
+
+// Mutation requests must originate from an explicitly configured app origin. No host-header fallback.
 export function clientOriginGuard(req: Request, res: Response, next: NextFunction) {
   res.setHeader("Cache-Control", "no-store");
   res.setHeader("Referrer-Policy", "no-referrer");
   if (["GET", "HEAD", "OPTIONS"].includes(req.method)) { next(); return; }
-  let origin: string;
-  try { origin = applicationOrigin(); } catch {
+  let origins: Set<string>;
+  try { origins = allowedOrigins(); } catch {
     res.status(503).json({ error: "Client access is not configured. Please contact the team." }); return;
   }
-  if (req.get("origin") !== origin || !req.is("application/json")) {
+  if (!origins.has(req.get("origin") ?? "") || !req.is("application/json")) {
     res.status(403).json({ error: "Request not allowed" }); return;
   }
   next();
