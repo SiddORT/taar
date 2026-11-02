@@ -1,11 +1,21 @@
 import { createRequire } from "node:module";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 const root = process.cwd();
+const sourceArgument = process.argv[2];
+if (!sourceArgument) {
+  throw new Error("An original TAAR logo source path is required. Usage: node scripts/generate-taar-brand-assets.mjs <original-source-path>");
+}
+const source = path.resolve(root, sourceArgument);
+const sourceStat = await stat(source).catch((error) => {
+  throw new Error(`Cannot read original TAAR logo source at "${source}": ${error.message}`);
+});
+if (!sourceStat.isFile()) {
+  throw new Error(`Original TAAR logo source must be a file: "${source}"`);
+}
 const require = createRequire(path.join(root, "artifacts/api-server/package.json"));
 const sharp = require("sharp");
-const source = path.join(root, "attached_assets/taar_logo_1793080544664.png");
 const frontend = path.join(root, "artifacts/zari-erp");
 const backend = path.join(root, "artifacts/api-server");
 const tagline = "— YOUR DESIGN BUSINESS, CONNECTED";

@@ -8,7 +8,7 @@ import { useLogin } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import ZariButton from "@/components/ui/ZariButton";
-import logo from "@assets/taar_logo_1793080544664.png";
+import TaarBrand from "@/components/branding/TaarBrand";
 
 const loginSchema = z.object({
   email: z.string().min(1, { message: "Username or email is required." }),
@@ -71,11 +71,8 @@ export default function Login() {
       {/* LEFT SIDE — Dark branding panel */}
       <div className="hidden md:flex flex-col flex-1 bg-black px-16 py-12 justify-between">
         {/* Top logo */}
-        <div className="inline-flex flex-col items-start gap-3 self-start rounded bg-white px-5 py-3">
-          <img src={logo} alt="TAAR" className="h-10 w-auto object-contain" />
-          <span className="text-[10px] font-semibold tracking-[0.14em] text-[#967322]">
-            — YOUR DESIGN BUSINESS, CONNECTED
-          </span>
+        <div className="inline-flex flex-col items-start gap-3 self-start max-w-full rounded bg-white px-5 py-3">
+          <TaarBrand width={300} />
         </div>
 
         {/* Center text */}
@@ -96,15 +93,8 @@ export default function Login() {
       {/* RIGHT SIDE — Light login panel */}
       <div className="flex-1 flex flex-col justify-center items-center bg-gray-100 px-6 py-12">
         {/* Mobile logo */}
-        <div className="md:hidden mb-10 flex flex-col items-center gap-3">
-          <img
-            src={logo}
-            alt="TAAR"
-            className="h-9 w-auto max-w-full object-contain"
-          />
-          <span className="text-[9px] font-semibold tracking-[0.1em] text-[#967322]">
-            — YOUR DESIGN BUSINESS, CONNECTED
-          </span>
+        <div className="md:hidden mb-10 flex flex-col items-center gap-3 max-w-full rounded bg-white">
+          <TaarBrand width={280} />
         </div>
 
         {/* Login card */}
