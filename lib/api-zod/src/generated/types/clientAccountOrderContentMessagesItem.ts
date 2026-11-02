@@ -15,6 +15,11 @@ export type ClientAccountOrderContentMessagesItem = {
   /** @nullable */
   productId: number | null;
   targetType: ClientAccountOrderContentMessagesItemTargetType;
+  /**
+     * Stored topic label for historical product or artwork messages.
+     * @nullable
+     */
+  artworkName?: string | null;
   sender: string;
   /** @nullable */
   message: string | null;

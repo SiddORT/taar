@@ -425,7 +425,7 @@ components:
             id: { type: integer }
             portalTitle: { type: [string, "null"] }
             orderType: { type: string, enum: [swatch, style] }
-            contentPublished: { type: boolean, description: "Whether artwork, images and conversations have been published for this order. Basic order visibility is independent." }
+            contentPublished: { type: boolean, description: "Whether artwork, images and scoped conversations have been published. Basic order visibility and General messages are independent." }
         order:
           type: object
           required: [orderCode, orderName, description, deliveryDate, orderStatus, orderDate, quantity, fabricName, styleNo, referenceImages]
@@ -475,6 +475,7 @@ components:
               artworkId: { type: [integer, "null"] }
               productId: { type: [integer, "null"] }
               targetType: { type: string, enum: [order, product, artwork] }
+              artworkName: { type: [string, "null"], description: "Stored topic label for historical product or artwork messages." }
               sender: { type: string }
               message: { type: [string, "null"] }
               attachment:

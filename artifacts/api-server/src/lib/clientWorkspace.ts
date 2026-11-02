@@ -4,6 +4,7 @@ import type { GetClientAccountOrderResponse, ListClientAccountOrdersResponse, Ge
 import { ClientAccessError } from "./clientAccounts";
 import { readInvoiceBalances } from "./invoiceBalances";
 import { randomBytes } from "node:crypto";
+import { conversationHistory } from "./clientConversationHistory";
 type ClientAccountOrderContent = z.infer<typeof GetClientAccountOrderResponse>["data"];
 type ClientAccountInvoice = ClientAccountOrderContent["invoices"][number];
 type ClientAccountOrder = z.infer<typeof ListClientAccountOrdersResponse>["data"][number];
@@ -195,9 +196,7 @@ export async function workspaceDetail(cx: PoolClient, clientId: number, link: an
     AND is_deleted=false ${swatch ? "" : "AND (style_order_product_id IS NULL OR style_order_product_id IN (SELECT id FROM style_order_products WHERE style_order_id=$1 AND is_deleted=false))"} ORDER BY id`, [orderId]);
   const { rows: feedback } = !shared ? { rows: [] } : await cx.query(`SELECT id,artwork_id,decision,comment,created_at FROM client_feedback
     WHERE client_link_id=$1 AND is_deleted=false ORDER BY created_at,id`, [link.id]);
-  const { rows: messages } = !shared ? { rows: [] } : await cx.query(`SELECT id,artwork_id AS "artworkId",target_type AS "targetType",
-    product_id AS "productId",sender,message,attachment,created_at AS "createdAt"
-    FROM client_messages WHERE client_link_id=$1 AND is_deleted=false ORDER BY created_at,id`, [link.id]);
+  const messages = await conversationHistory(cx, link);
   const artworkIds = new Set(artworks.map(a => a.id));
   const productIds = new Set(products.map(p => p.id));
   const hidden = link.hidden_images ?? [];

@@ -44,7 +44,9 @@ router.post("/client-auth/orders/:id/messages", clientHandler(async (req, res) =
   const data = await transaction(async cx => {
     const { client, account } = await requireClient(cx, req);
     await throttle(`conversation:account:${account.id}`, 60);
-    return sendConversation(cx, await ownedLink(cx, client.id, id, true), req.body, "client");
+    // General messages require only an owned, visible order. Specific creative
+    // topics still require publication, and target validation remains server-side.
+    return sendConversation(cx, await ownedLink(cx, client.id, id, req.body?.targetType !== "order"), req.body, "client");
   });
   res.status(201).json({ data });
 }));

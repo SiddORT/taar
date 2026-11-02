@@ -7,7 +7,7 @@ Clients should automatically see their own non-deleted, non-draft swatch and sty
 
 **Why:** The user approved separating account visibility from manual publication after both New Balance and Zara appeared empty despite having ERP orders.
 
-**How to apply:** Do not restore published-only filtering for account lists, dashboard totals, or basic order details. Never broaden access across client ownership boundaries. Publishing remains necessary for artwork, images, conversations, and bearer-link access; unpublishing hides that content, not the basic account order.
+**How to apply:** Do not restore published-only filtering for account lists, dashboard totals, or basic order details. Never broaden access across client ownership boundaries. Publishing remains necessary for artwork, images, Product/Artwork conversations, and bearer-link access; unpublishing hides that content, not the basic account order or General messages.
 
 Keep existing link-based identifiers and conversation histories compatible. Any internal link records needed to represent account orders must stay unpublished until staff explicitly publishes them.
 

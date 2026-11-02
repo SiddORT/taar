@@ -181,7 +181,8 @@ export function useSendTeamMessage() {
       return result.data;
     },
     onSuccess: (data) => {
-      void qc.invalidateQueries({ queryKey: ["client-messages", data.clientLinkId] });
+      // All link IDs for an order now project the same conversation.
+      void qc.invalidateQueries({ queryKey: ["client-messages"] });
     },
   });
 }

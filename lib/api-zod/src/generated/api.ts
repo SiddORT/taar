@@ -261,7 +261,7 @@ export const GetClientAccountOrderResponse = zod.object({
   "id": zod.number().int(),
   "portalTitle": zod.string().nullable(),
   "orderType": zod.enum(['swatch', 'style']),
-  "contentPublished": zod.boolean().describe('Whether artwork, images and conversations have been published for this order. Basic order visibility is independent.')
+  "contentPublished": zod.boolean().describe('Whether artwork, images and scoped conversations have been published. Basic order visibility and General messages are independent.')
 }),
   "order": zod.object({
   "orderCode": zod.string(),
@@ -317,6 +317,7 @@ export const GetClientAccountOrderResponse = zod.object({
   "artworkId": zod.number().int().nullable(),
   "productId": zod.number().int().nullable(),
   "targetType": zod.enum(['order', 'product', 'artwork']),
+  "artworkName": zod.string().nullish().describe('Stored topic label for historical product or artwork messages.'),
   "sender": zod.string(),
   "message": zod.string().nullable(),
   "attachment": zod.union([zod.object({

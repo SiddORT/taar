@@ -2,25 +2,11 @@ import type { ClientDatabaseConnection as PoolClient } from "@workspace/db";
 import { SendClientAccountMessageBody as ClientConversationInput, SendClientAccountFeedbackBody as ClientArtworkDecisionInput } from "@workspace/api-zod";
 import { ClientAccessError } from "./clientAccounts";
 import { orderInfo } from "./clientWorkspace";
+export { conversationHistory } from "./clientConversationHistory";
 
 export const MAX_ATTACHMENT = 5 * 1024 * 1024;
 const MIME = new Set(["image/jpeg","image/png","image/webp","image/gif","application/pdf","text/plain"]);
 
-export async function conversationHistory(cx: PoolClient, link: any) {
-  const { swatch, orderId } = orderInfo(link);
-  const { rows } = await cx.query(`SELECT m.id,m.client_link_id AS "clientLinkId",m.artwork_id AS "artworkId",
-    m.artwork_name AS "artworkName",m.target_type AS "targetType",m.product_id AS "productId",
-    m.sender,m.message,m.attachment,m.created_at AS "createdAt"
-    FROM client_messages m WHERE m.client_link_id=$1 AND m.is_deleted=false AND (
-      m.target_type='order'
-      OR (m.target_type='product' AND $3=false AND EXISTS(SELECT 1 FROM style_order_products p
-        WHERE p.id=m.product_id AND p.style_order_id=$2 AND p.is_deleted=false))
-      OR (m.target_type='artwork' AND EXISTS(SELECT 1 FROM ${swatch ? "artworks" : "style_order_artworks"} a
-        WHERE a.id=m.artwork_id AND a.${swatch ? "swatch_order_id" : "style_order_id"}=$2 AND a.is_deleted=false
-        ${swatch ? "" : "AND (a.style_order_product_id IS NULL OR EXISTS(SELECT 1 FROM style_order_products p WHERE p.id=a.style_order_product_id AND p.style_order_id=$2 AND p.is_deleted=false))"})))
-    ORDER BY m.created_at,m.id`, [link.id,orderId,swatch]);
-  return rows;
-}
 export function validateAttachment(value: any) {
   if (value == null) return null;
   if (typeof value !== "object" || typeof value.name !== "string" || !value.name.trim() || value.name.length > 180 ||

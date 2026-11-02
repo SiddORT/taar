@@ -1,17 +1,17 @@
-import { useState, useRef } from "react";
+import { useState } from "react";
 import {
   Link2, Copy, Check, ExternalLink, Eye, EyeOff, RefreshCw,
   Globe, GlobeLock, ChevronLeft, ChevronRight, ChevronDown, ChevronUp,
-  Loader2, Send, Paperclip, X, CheckCheck, LockKeyhole, UnlockKeyhole,
-  MessageSquare, RotateCcw,
+  Loader2,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   useClientLink, useClientMessages, useClientFeedback, useUpdateClientLink,
-  useRegenerateLink, useSendTeamMessage, useToggleThread,
-  type ClientMessageRecord,
+  useRegenerateLink, useToggleThread,
 } from "@/hooks/useClientLink";
-import ScopedThread from "@/components/client-account/StaffScopedThread";
+import StaffOrderConversation from "@/components/client-account/StaffScopedThread";
+import StaffArtworkCard from "@/components/client-account/StaffArtworkCard";
+import { GENERAL_KEY, topicKey, type Topic } from "@/components/client-account/UnifiedConversation";
 import { useArtworkList } from "@/hooks/useArtworks";
 
 interface FileAttachment { name: string; type: string; data: string; size: number }
@@ -40,226 +40,6 @@ function Lightbox({ images, startIndex, onClose }: { images: FileAttachment[]; s
   );
 }
 
-function ChatBubble({ msg }: { msg: ClientMessageRecord }) {
-  const isTeam = msg.sender === "team";
-  return (
-    <div className={`flex gap-2 ${isTeam ? "justify-end" : "justify-start"}`}>
-      {!isTeam && (
-        <div className="h-7 w-7 rounded-full bg-gray-200 flex items-center justify-center shrink-0 mt-0.5 text-xs font-bold text-gray-500">C</div>
-      )}
-      <div className={`max-w-[75%] rounded-2xl px-3.5 py-2.5 space-y-1.5 ${isTeam ? "bg-cyan-900 text-white rounded-tr-sm" : "bg-gray-100 text-cyan-900 rounded-tl-sm"}`}>
-        {msg.message && <p className="text-sm leading-snug">{msg.message}</p>}
-        {msg.attachment && (
-          <div className={`rounded-xl overflow-hidden border ${isTeam ? "border-white/10" : "border-gray-200"}`}>
-            {msg.attachment.type.startsWith("image/") ? (
-              <img src={msg.attachment.data} alt={msg.attachment.name} className="max-w-[200px] object-cover" />
-            ) : (
-              <a href={msg.attachment.data} download={msg.attachment.name}
-                className={`flex items-center gap-2 px-3 py-2 text-xs hover:underline ${isTeam ? "text-[#C9B45C]" : "text-blue-600"}`}>
-                <Paperclip className="h-3.5 w-3.5" />{msg.attachment.name}
-              </a>
-            )}
-          </div>
-        )}
-        <p className={`text-[10px] ${isTeam ? "text-white/40 text-right" : "text-gray-400"}`}>
-          {isTeam ? "ERP" : "Client"} · {new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-          {" "}{new Date(msg.createdAt).toLocaleDateString()}
-        </p>
-      </div>
-      {isTeam && (
-        <div className="h-7 w-7 rounded-full bg-cyan-900 flex items-center justify-center shrink-0 mt-0.5 text-[10px] font-bold text-[#C9B45C]">Z</div>
-      )}
-    </div>
-  );
-}
-
-function ArtworkAccordion({ aw, messages, isClosed, decision, linkId, swatchOrderId, onLightbox }: {
-  aw: { id: number; artworkCode: string; artworkName: string; wipImages: FileAttachment[]; finalImages: FileAttachment[] };
-  messages: ClientMessageRecord[];
-  isClosed: boolean;
-  decision: "Approve" | "Rework" | null;
-  linkId: number;
-  swatchOrderId: number;
-  onLightbox: (artworkId: number, type: "wip" | "final", idx: number) => void;
-}) {
-  const { toast } = useToast();
-  const [open, setOpen] = useState(!isClosed);
-  const [text, setText] = useState("");
-  const [attachFile, setAttachFile] = useState<FileAttachment | null>(null);
-  const fileRef = useRef<HTMLInputElement>(null);
-
-  const sendMsg = useSendTeamMessage();
-  const toggleThread = useToggleThread();
-  const updateLink = useUpdateClientLink();
-
-  const unread = messages.filter(m => m.sender === "client").length;
-  const hasImages = aw.wipImages.length > 0 || aw.finalImages.length > 0;
-
-  function pickFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = ev => {
-      setAttachFile({ name: file.name, type: file.type, data: ev.target?.result as string, size: file.size });
-    };
-    reader.readAsDataURL(file);
-  }
-
-  function handleSend() {
-    if (!text.trim() && !attachFile) return;
-    sendMsg.mutate({
-      linkId, artworkId: aw.id, artworkName: aw.artworkName,
-      message: text.trim() || undefined,
-      attachment: attachFile ?? undefined,
-    }, {
-      onSuccess: () => { setText(""); setAttachFile(null); },
-      onError: () => toast({ title: "Failed to send", variant: "destructive" }),
-    });
-  }
-
-  function handleToggleClose() {
-    toggleThread.mutate({ linkId, swatchOrderId, artworkId: aw.id, closed: !isClosed }, {
-      onSuccess: () => toast({ title: isClosed ? "Thread reopened" : "Thread marked Done" }),
-      onError: () => toast({ title: "Failed", variant: "destructive" }),
-    });
-  }
-
-  return (
-    <div className={`border rounded-xl overflow-hidden transition-all ${isClosed ? "border-gray-100 bg-gray-50/50" : "border-gray-200 bg-white"}`}>
-      {/* Accordion header */}
-      <button onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center gap-3 px-5 py-3.5 text-left hover:bg-gray-50 transition-colors">
-        <div className="flex-1 flex items-center gap-2 min-w-0">
-          <span className="text-xs font-mono text-gray-400 shrink-0">{aw.artworkCode}</span>
-          <span className={`text-sm font-semibold truncate ${isClosed ? "text-gray-400" : "text-cyan-900"}`}>{aw.artworkName}</span>
-          {isClosed ? (
-            <span className="shrink-0 flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-green-100 text-green-700 font-medium">
-              <CheckCheck className="h-3 w-3" /> Approved
-            </span>
-          ) : decision === "Rework" ? (
-            <span className="shrink-0 flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 font-medium">
-              <RotateCcw className="h-3 w-3" /> Rework Requested
-            </span>
-          ) : decision === "Approve" ? (
-            <span className="shrink-0 flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-green-100 text-green-700 font-medium">
-              <CheckCheck className="h-3 w-3" /> Approved
-            </span>
-          ) : null}
-          {!isClosed && unread > 0 && (
-            <span className="shrink-0 flex items-center justify-center h-5 min-w-5 px-1.5 rounded-full bg-orange-500 text-white text-[10px] font-bold">
-              {unread}
-            </span>
-          )}
-        </div>
-        <span className="text-xs text-gray-400 shrink-0">{messages.length} msg{messages.length !== 1 ? "s" : ""}</span>
-        {open ? <ChevronUp className="h-4 w-4 text-gray-400 shrink-0" /> : <ChevronDown className="h-4 w-4 text-gray-400 shrink-0" />}
-      </button>
-
-      {open && (
-        <div className="border-t border-gray-100">
-          {/* Image controls */}
-          {hasImages && (
-            <div className="px-5 py-4 space-y-3 border-b border-gray-50">
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Images Shared with Client</p>
-              {aw.wipImages.length > 0 && (
-                <div>
-                  <p className="text-xs text-gray-400 mb-2">WIP</p>
-                  <div className="flex flex-wrap gap-2">
-                    {aw.wipImages.map((img, i) => (
-                      <button key={i} onClick={() => onLightbox(aw.id, "wip", i)}
-                        className="w-16 h-16 rounded-lg overflow-hidden border border-gray-200 hover:border-[#C9B45C] transition-colors">
-                        <img src={img.data} alt={img.name} className="w-full h-full object-cover" />
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-              {aw.finalImages.length > 0 && (
-                <div>
-                  <p className="text-xs text-gray-400 mb-2">Final</p>
-                  <div className="flex flex-wrap gap-2">
-                    {aw.finalImages.map((img, i) => (
-                      <button key={i} onClick={() => onLightbox(aw.id, "final", i)}
-                        className="w-16 h-16 rounded-lg overflow-hidden border border-gray-200 hover:border-[#C9B45C] transition-colors">
-                        <img src={img.data} alt={img.name} className="w-full h-full object-cover" />
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Chat thread */}
-          <div className="px-5 py-4 space-y-3 min-h-[80px]">
-            {messages.length === 0 ? (
-              <div className="flex items-center gap-2 text-gray-400">
-                <MessageSquare className="h-4 w-4" />
-                <p className="text-sm italic">No messages yet. Client will see your replies here.</p>
-              </div>
-            ) : (
-              messages.map(m => <ChatBubble key={m.id} msg={m} />)
-            )}
-          </div>
-
-          {/* Input area */}
-          {isClosed ? (
-            <div className="mx-5 mb-4 flex items-center gap-2 px-4 py-3 rounded-xl bg-green-50 border border-green-200">
-              <CheckCheck className="h-4 w-4 text-green-600 shrink-0" />
-              <p className="text-xs text-green-700 font-medium">Thread is marked Done — client can no longer send messages.</p>
-              <button onClick={handleToggleClose} disabled={toggleThread.isPending}
-                className="ml-auto shrink-0 flex items-center gap-1 text-xs text-gray-500 hover:text-cyan-900 disabled:opacity-60">
-                <UnlockKeyhole className="h-3.5 w-3.5" /> Reopen
-              </button>
-            </div>
-          ) : (
-            <div className="px-5 pb-4 space-y-2">
-              {/* Attachment preview */}
-              {attachFile && (
-                <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-blue-50 border border-blue-200 text-xs text-blue-700">
-                  <Paperclip className="h-3.5 w-3.5 shrink-0" />
-                  <span className="truncate flex-1">{attachFile.name}</span>
-                  <button onClick={() => setAttachFile(null)} className="shrink-0 hover:text-red-500"><X className="h-3.5 w-3.5" /></button>
-                </div>
-              )}
-              <div className="flex gap-2 items-end">
-                <textarea
-                  value={text}
-                  onChange={e => setText(e.target.value)}
-                  onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
-                  placeholder="Reply to client…"
-                  rows={2}
-                  className="flex-1 text-sm text-cyan-900 border border-gray-200 rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-cyan-900/10 resize-none placeholder:text-gray-400"
-                />
-                <div className="flex flex-col gap-1.5 shrink-0">
-                  <button onClick={() => fileRef.current?.click()}
-                    className="flex items-center justify-center h-9 w-9 rounded-xl border border-gray-200 text-gray-500 hover:bg-gray-50 transition-colors">
-                    <Paperclip className="h-4 w-4" />
-                  </button>
-                  <button
-                    onClick={handleSend}
-                    disabled={sendMsg.isPending || (!text.trim() && !attachFile)}
-                    className="flex items-center justify-center h-9 w-9 rounded-xl bg-cyan-900 text-[#C9B45C] hover:bg-cyan-900 transition-colors disabled:opacity-50">
-                    {sendMsg.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                  </button>
-                </div>
-                <input ref={fileRef} type="file" className="hidden" onChange={pickFile} />
-              </div>
-              {/* Mark done */}
-              <div className="flex justify-end">
-                <button onClick={handleToggleClose} disabled={toggleThread.isPending}
-                  className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-cyan-900 text-[#C9B45C] font-medium hover:bg-cyan-900 transition-colors disabled:opacity-60">
-                  {toggleThread.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <LockKeyhole className="h-3 w-3" />}
-                  Mark Thread Done
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
 
 export default function ClientLinkTab({ swatchOrderId }: { swatchOrderId: number }) {
   const { toast } = useToast();
@@ -275,6 +55,10 @@ export default function ClientLinkTab({ swatchOrderId }: { swatchOrderId: number
 
   const updateLink = useUpdateClientLink();
   const regenLink = useRegenerateLink();
+  const toggleThread = useToggleThread();
+  const [topicSel, setTopicSel] = useState(GENERAL_KEY);
+  const [focusSig, setFocusSig] = useState(0);
+  function discuss(k: string) { setTopicSel(k); setFocusSig(n => n + 1); }
 
   const portalUrl = link
     ? `${window.location.origin}${import.meta.env.BASE_URL}client/${link.token}`
@@ -333,7 +117,10 @@ export default function ClientLinkTab({ swatchOrderId }: { swatchOrderId: number
   const closedArtworks = artworkList.filter(a => closedThreads.includes(a.id));
   const sortedArtworks = [...openArtworks, ...closedArtworks];
 
-  const totalUnread = (messages ?? []).filter(m => m.sender === "client" && (m.targetType ?? "artwork") === "artwork").length;
+  const topics: Topic[] = [
+    { key: GENERAL_KEY, kind: "order", label: "General" },
+    ...artworkList.map(a => ({ key: topicKey("artwork", a.id), kind: "artwork" as const, id: a.id, label: a.artworkName, closed: closedThreads.includes(a.id) })),
+  ];
 
   return (
     <div className="space-y-5">
@@ -355,8 +142,8 @@ export default function ClientLinkTab({ swatchOrderId }: { swatchOrderId: number
           )}
         </div>
         <div className="px-6 py-5 space-y-4">
-          <div className="flex items-center gap-2">
-            <div className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5">
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center">
+            <div className="col-span-2 min-w-0 sm:flex-1 bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5">
               <span className="text-xs text-gray-500 font-mono break-all">{portalUrl}</span>
             </div>
             <button onClick={copyLink} className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-slate-500 hover:bg-gray-50 transition-colors shrink-0">
@@ -466,19 +253,14 @@ export default function ClientLinkTab({ swatchOrderId }: { swatchOrderId: number
       )}
 
       {link && (
-        <ScopedThread linkId={link.id} targetType="order" title="Order conversation" subtitle="General discussion about this order"
-          messages={(messages ?? []).filter(m => m.targetType === "order")} />
+        <StaffOrderConversation linkId={link.id} isPublished={link.isPublished} messages={messages ?? []} topics={topics}
+          topicKeyValue={topicSel} onTopicChange={setTopicSel} focusSignal={focusSig} subtitle="General and artwork discussion with the client" />
       )}
 
-      {/* ── Artwork Chat Threads ── */}
+      {/* ── Artworks ── */}
       <div className="space-y-1">
         <div className="flex items-center justify-between px-1 mb-2">
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Artwork Threads</p>
-          {totalUnread > 0 && (
-            <span className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-orange-500 text-white font-semibold">
-              {totalUnread} client message{totalUnread !== 1 ? "s" : ""}
-            </span>
-          )}
+          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Artworks</p>
         </div>
         {artworkList.length === 0 ? (
           <div className="bg-white rounded-2xl border border-gray-200 px-6 py-12 text-center">
@@ -489,15 +271,18 @@ export default function ClientLinkTab({ swatchOrderId }: { swatchOrderId: number
             {sortedArtworks.map(aw => {
               const awFeedback = (feedbackList ?? []).filter(f => f.artworkId === aw.id);
               const latestDecision = awFeedback[awFeedback.length - 1]?.decision ?? null;
+              const awMsgs = (messages ?? []).filter(m => (m.targetType ?? "artwork") === "artwork" && m.artworkId === aw.id);
+              const isClosed = closedThreads.includes(aw.id);
               return (
-                <ArtworkAccordion
-                  key={aw.id}
-                  aw={aw}
-                  messages={(messages ?? []).filter(m => (m.targetType ?? "artwork") === "artwork" && m.artworkId === aw.id)}
-                  isClosed={closedThreads.includes(aw.id)}
-                  decision={latestDecision as "Approve" | "Rework" | null}
-                  linkId={link!.id}
-                  swatchOrderId={swatchOrderId}
+                <StaffArtworkCard key={aw.id} aw={aw}
+                  messageCount={awMsgs.length} clientCount={awMsgs.filter(m => m.sender === "client").length}
+                  isClosed={isClosed} decision={latestDecision as "Approve" | "Rework" | null}
+                  toggling={toggleThread.isPending && toggleThread.variables?.artworkId === aw.id}
+                  onToggleClose={() => toggleThread.mutate({ linkId: link!.id, swatchOrderId, artworkId: aw.id, closed: !isClosed }, {
+                    onSuccess: () => toast({ title: isClosed ? "Thread reopened" : "Thread marked Done" }),
+                    onError: () => toast({ title: "Failed", variant: "destructive" }),
+                  })}
+                  onDiscuss={() => discuss(topicKey("artwork", aw.id))}
                   onLightbox={(artworkId, type, idx) => setLightbox({ artworkId, type, idx })}
                 />
               );

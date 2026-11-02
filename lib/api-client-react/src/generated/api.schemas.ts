@@ -74,7 +74,7 @@ export type ClientAccountOrderContentLink = {
   /** @nullable */
   portalTitle: string | null;
   orderType: ClientAccountOrderContentLinkOrderType;
-  /** Whether artwork, images and conversations have been published for this order. Basic order visibility is independent. */
+  /** Whether artwork, images and scoped conversations have been published. Basic order visibility and General messages are independent. */
   contentPublished: boolean;
 };
 
@@ -143,6 +143,11 @@ export type ClientAccountOrderContentMessagesItem = {
   /** @nullable */
   productId: number | null;
   targetType: ClientAccountOrderContentMessagesItemTargetType;
+  /**
+     * Stored topic label for historical product or artwork messages.
+     * @nullable
+     */
+  artworkName?: string | null;
   sender: string;
   /** @nullable */
   message: string | null;

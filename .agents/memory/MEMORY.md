@@ -11,4 +11,5 @@
 - [API generator compatibility](codegen-compatibility.md) — target workspace library majors explicitly; generator peers can otherwise break generated types and employee form typechecks.
 - [Stale API process](stale-api-process.md) — after merges, an old listener can serve outdated responses while the managed workflow fails with EADDRINUSE.
 - [Client portal origin](client-portal-origin.md) — validate email-link destinations after task merges; isolated task preview URLs can become unavailable.
-- [Client order visibility](client-account-visibility.md) — own non-draft orders appear automatically; artwork, conversations, and bearer links still require publication.
+- [Client order visibility](client-account-visibility.md) — own non-draft orders appear automatically; creative content, scoped conversations, and bearer links require publication.
+- [Unified client conversations](client-conversations.md) — one order timeline, General/Product/Artwork topics; General works before publication, approvals stay separate.

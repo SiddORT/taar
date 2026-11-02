@@ -13,7 +13,8 @@ import {
   fmtDate, fmtMoney, safeHttpUrl, images, MAX_TEXT,
   ClientApiError,
 } from "./api";
-import { Composer, Lightbox, MessageList } from "./Conversation";
+import { Lightbox } from "./Conversation";
+import UnifiedConversation, { GENERAL_KEY, topicKey, type Topic } from "./UnifiedConversation";
 
 const POLL_MS = 45_000;
 
@@ -234,7 +235,10 @@ function OrderDetail({ id, onBack, onUnauthorized, onChanged }: { id: number; on
   const [err, setErr] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab | null>(null);
   const [lb, setLb] = useState<{ items: ClientAccountAttachment[]; i: number } | null>(null);
+  const [topicSel, setTopicSel] = useState(GENERAL_KEY);
+  const [focusSig, setFocusSig] = useState(0);
   const unauth = useRef(onUnauthorized); unauth.current = onUnauthorized;
+  const discuss = (k: string) => { setTopicSel(k); setTab("conversation"); setFocusSig((n) => n + 1); };
 
   const load = useCallback(async (silent = false) => {
     if (!silent) setErr(null);
@@ -247,7 +251,7 @@ function OrderDetail({ id, onBack, onUnauthorized, onChanged }: { id: number; on
       if (!silent) setErr(x instanceof Error ? x.message : "Could not load order.");
     }
   }, [id]);
-  useEffect(() => { setD(null); void load(); }, [load]);
+  useEffect(() => { setD(null); setTopicSel(GENERAL_KEY); void load(); }, [load]);
   useFreshness(() => void load(true), 30_000);
 
   const after = useCallback(async () => { await load(true); onChanged(); }, [load, onChanged]);
@@ -272,17 +276,22 @@ function OrderDetail({ id, onBack, onUnauthorized, onChanged }: { id: number; on
   const isStyle = d.link.orderType === "style";
   const shared = d.link.contentPublished;
   const tabs: { k: Tab; label: string; icon: React.ReactNode; n?: number }[] = [
-    ...(shared ? [{ k: "conversation" as Tab, label: "Conversation", icon: <MessageSquare size={14} />, n: d.messages.filter((m) => m.targetType === "order").length }] : []),
+    { k: "conversation", label: "Conversation", icon: <MessageSquare size={14} />, n: d.messages.length },
     ...(shared && isStyle ? [{ k: "products" as Tab, label: "Products", icon: <Layers size={14} />, n: d.products.length }] : []),
     ...(shared ? [{ k: "artworks" as Tab, label: "Artworks", icon: <ImageIcon size={14} />, n: d.artworks.length }] : []),
     { k: "shipment", label: "Shipment", icon: <Truck size={14} />, n: d.shipments.length },
     { k: "invoices", label: "Invoices", icon: <Receipt size={14} />, n: d.invoices.length },
   ];
-  const active = tabs.some(t => t.k === tab) ? tab : shared ? "conversation" : "shipment";
+  const active = tabs.some(t => t.k === tab) ? tab : "conversation";
   const refs = images(d.order.referenceImages).length ? images(d.order.referenceImages) :
     images(d.products.flatMap(p => p.referenceImages)).length ? images(d.products.flatMap(p => p.referenceImages)) :
     images(d.artworks.flatMap(a => [...a.finalImages, ...a.wipImages, ...a.referenceImages]));
-  const artworkMsgs = (aid: number) => d.messages.filter((m) => m.targetType === "artwork" && m.artworkId === aid);
+  const artworkMsgCount = (aid: number) => d.messages.filter((m) => m.targetType === "artwork" && m.artworkId === aid).length;
+  const topics: Topic[] = [
+    { key: GENERAL_KEY, kind: "order", label: "General" },
+    ...(shared ? d.products.map((p) => ({ key: topicKey("product", p.id), kind: "product" as const, id: p.id, label: p.productName })) : []),
+    ...(shared ? d.artworks.map((a) => ({ key: topicKey("artwork", a.id), kind: "artwork" as const, id: a.id, label: a.artworkName, closed: a.isClosed })) : []),
+  ];
 
   return (
     <div className="space-y-5">
@@ -344,7 +353,7 @@ function OrderDetail({ id, onBack, onUnauthorized, onChanged }: { id: number; on
 
       {!shared && (
         <Panel className="p-4 text-sm text-slate-600" data-testid="text-content-unpublished">
-          Your order is visible automatically. Artwork, images and conversations will be available once shared by the TAAR team.
+          Your order is visible automatically. You can send general messages now. Artwork, images and product discussions will be available once shared by the TAAR team.
         </Panel>
       )}
       <div>
@@ -359,9 +368,10 @@ function OrderDetail({ id, onBack, onUnauthorized, onChanged }: { id: number; on
         <div className="pt-5">
           {active === "conversation" && (
             <Panel className="p-5 space-y-4">
-              <div><h3 className="font-medium text-cyan-950">Order conversation</h3><p className="text-xs text-slate-500">General questions about this order go directly to the TAAR team.</p></div>
-              <MessageList messages={d.messages.filter((m) => m.targetType === "order")} selfSender="client" empty="No messages yet. Start the conversation below." />
-              <Composer testId="composer-order" onSend={(message, attachment) => send({ targetType: "order", message, attachment })} />
+              <div><h3 className="font-medium text-cyan-950">Order conversation</h3><p className="text-xs text-slate-500">One shared timeline with the TAAR team. Choose a topic for each message.</p></div>
+              <UnifiedConversation messages={d.messages} topics={topics} selfSender="client"
+                topicKeyValue={topicSel} onTopicChange={setTopicSel} focusSignal={focusSig}
+                onSend={(t, message, attachment) => send(t.kind === "order" ? { targetType: "order", message, attachment } : { targetType: t.kind, targetId: t.id, message, attachment })} />
             </Panel>
           )}
           {active === "products" && (
@@ -381,14 +391,14 @@ function OrderDetail({ id, onBack, onUnauthorized, onChanged }: { id: number; on
                       {aws.length > 0 && (
                         <div className="space-y-3">
                           <p className="text-[11px] uppercase tracking-wider text-slate-400">Artworks for this product</p>
-                          {aws.map((a) => <ArtworkCard key={a.id} a={a} msgs={artworkMsgs(a.id)} onZoom={zoom} onSend={send} onDecide={decide} />)}
+                          {aws.map((a) => <ArtworkCard key={a.id} a={a} msgCount={artworkMsgCount(a.id)} onZoom={zoom} onDiscuss={() => discuss(topicKey("artwork", a.id))} onDecide={decide} />)}
                         </div>
                       )}
                       {aws.length === 0 && <p className="text-xs text-slate-400">No artworks shared for this product yet.</p>}
-                      <div className="rounded-xl bg-[#fbf9f3] border border-[#C9B45C]/20 p-4 space-y-3">
-                        <p className="text-xs font-medium text-slate-600">Product conversation</p>
-                        <MessageList messages={d.messages.filter((m) => m.targetType === "product" && m.productId === p.id)} selfSender="client" empty="No messages about this product yet." />
-                        <Composer testId={`composer-product-${p.id}`} onSend={(message, attachment) => send({ targetType: "product", targetId: p.id, message, attachment })} />
+                      <div className="border-t border-slate-100 pt-3">
+                        <button onClick={() => discuss(topicKey("product", p.id))} className="inline-flex items-center gap-1.5 text-sm text-cyan-900 hover:underline" data-testid={`button-discuss-product-${p.id}`}>
+                          <MessageSquare size={14} /> Discuss this product ({d.messages.filter((m) => m.targetType === "product" && m.productId === p.id).length})
+                        </button>
                       </div>
                     </Panel>
                   );
@@ -400,7 +410,7 @@ function OrderDetail({ id, onBack, onUnauthorized, onChanged }: { id: number; on
             d.artworks.length === 0 ? <Panel className="p-8 text-center text-sm text-slate-500">No artworks published yet.</Panel> : (
               <div className="space-y-4">
                 {d.artworks.map((a) => <ArtworkCard key={a.id} a={a} productName={d.products.find((p) => p.id === a.productId)?.productName}
-                  msgs={artworkMsgs(a.id)} onZoom={zoom} onSend={send} onDecide={decide} />)}
+                  msgCount={artworkMsgCount(a.id)} onZoom={zoom} onDiscuss={() => discuss(topicKey("artwork", a.id))} onDecide={decide} />)}
               </div>
             )
           )}
@@ -425,10 +435,10 @@ function Thumbs({ items, onZoom, testPrefix }: { items: ClientAccountAttachment[
   );
 }
 
-function ArtworkCard({ a, msgs, productName, onZoom, onSend, onDecide }: {
-  a: ClientAccountOrderContentArtworksItem; msgs: ClientAccountOrderContent["messages"]; productName?: string;
+function ArtworkCard({ a, msgCount, productName, onZoom, onDiscuss, onDecide }: {
+  a: ClientAccountOrderContentArtworksItem; msgCount: number; productName?: string;
   onZoom: (i: ClientAccountAttachment[], n: number) => void;
-  onSend: (b: ClientConversationInput) => Promise<void>;
+  onDiscuss: () => void;
   onDecide: (id: number, d: "Approve" | "Rework", c?: string) => Promise<void>;
 }) {
   const fin = images(a.finalImages), wip = images(a.wipImages), refImages = images(a.referenceImages);
@@ -436,7 +446,6 @@ function ArtworkCard({ a, msgs, productName, onZoom, onSend, onDecide }: {
   const [comment, setComment] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-  const [showThread, setShowThread] = useState(msgs.length > 0);
 
   async function submit() {
     if (!mode || comment.length > MAX_TEXT) return;
@@ -493,15 +502,9 @@ function ArtworkCard({ a, msgs, productName, onZoom, onSend, onDecide }: {
         </li>)}</ul>
       </div>}
       <div className="border-t border-slate-100 pt-3">
-        <button onClick={() => setShowThread((v) => !v)} className="inline-flex items-center gap-1.5 text-sm text-cyan-900" data-testid={`button-thread-${a.id}`}>
-          <MessageSquare size={14} /> {showThread ? "Hide" : "Show"} discussion ({msgs.length})
+        <button onClick={onDiscuss} className="inline-flex items-center gap-1.5 text-sm text-cyan-900 hover:underline" data-testid={`button-discuss-artwork-${a.id}`}>
+          <MessageSquare size={14} /> {a.isClosed ? "View discussion" : "Discuss this artwork"} ({msgCount})
         </button>
-        {showThread && (
-          <div className="mt-3 space-y-3">
-            <MessageList messages={msgs} selfSender="client" empty="No messages about this artwork yet." />
-            <Composer disabled={a.isClosed} testId={`composer-artwork-${a.id}`} onSend={(message, attachment) => onSend({ targetType: "artwork", targetId: a.id, message, attachment })} />
-          </div>
-        )}
       </div>
     </Panel>
   );
