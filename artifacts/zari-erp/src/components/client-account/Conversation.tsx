@@ -74,9 +74,12 @@ export function MessageList({ messages, selfSender, empty }: { messages: ThreadM
   );
 }
 
-export function Composer({ onSend, disabled, placeholder = "Write a message", testId = "composer" }: {
+export function Composer({ onSend, disabled, blocked, placeholder = "Write a message", testId = "composer" }: {
   onSend: (message: string | undefined, attachment: ClientAccountAttachment | undefined) => Promise<void>;
-  disabled?: boolean; placeholder?: string; testId?: string;
+  disabled?: boolean;
+  /** Keeps the draft mounted but prevents sending (e.g. incomplete or read-only topic). */
+  blocked?: string | null;
+  placeholder?: string; testId?: string;
 }) {
   const [text, setText] = useState("");
   const [file, setFile] = useState<ClientAccountAttachment | null>(null);
@@ -92,7 +95,7 @@ export function Composer({ onSend, disabled, placeholder = "Write a message", te
     try { setFile(await readAttachment(f)); } catch (x) { setErr(x instanceof Error ? x.message : "Could not attach file."); }
   }
   async function send() {
-    if (busy || over || (!text.trim() && !file)) return;
+    if (busy || blocked || over || (!text.trim() && !file)) return;
     setBusy(true); setErr(null);
     try { await onSend(text.trim() || undefined, file ?? undefined); setText(""); setFile(null); }
     catch (x) { setErr(x instanceof Error ? x.message : "Could not send."); }
@@ -117,7 +120,7 @@ export function Composer({ onSend, disabled, placeholder = "Write a message", te
           className="min-w-0 flex-1 resize-none rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-cyan-900 focus:ring-2 focus:ring-cyan-900/10"
           data-testid={`${testId}-input`} />
         <button type="button" aria-label="Attach file" onClick={() => ref.current?.click()} className="h-9 w-9 shrink-0 rounded-xl border border-slate-200 bg-white text-slate-500 flex items-center justify-center hover:bg-slate-50" data-testid={`${testId}-attach`}><Paperclip size={16} /></button>
-        <button type="button" aria-label="Send" onClick={() => void send()} disabled={busy || over || (!text.trim() && !file)} className="h-9 w-9 shrink-0 rounded-xl bg-cyan-900 text-[#C9B45C] flex items-center justify-center disabled:opacity-50" data-testid={`${testId}-send`}>
+        <button type="button" aria-label="Send" onClick={() => void send()} disabled={busy || !!blocked || over || (!text.trim() && !file)} title={blocked ?? undefined} className="h-9 w-9 shrink-0 rounded-xl bg-cyan-900 text-[#C9B45C] flex items-center justify-center disabled:opacity-50" data-testid={`${testId}-send`}>
           {busy ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
         </button>
         <input ref={ref} type="file" accept={ACCEPT} className="hidden" onChange={(e) => void pick(e)} />

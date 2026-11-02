@@ -12,7 +12,9 @@ import logo from "@assets/taar_logo_1793080544664.png";
 
 const loginSchema = z.object({
   email: z.string().min(1, { message: "Username or email is required." }),
-  password: z.string().min(6, { message: "Password must be at least 6 characters." }),
+  password: z
+    .string()
+    .min(6, { message: "Password must be at least 6 characters." }),
 });
 
 type LoginFormValues = z.infer<typeof loginSchema>;
@@ -60,22 +62,17 @@ export default function Login() {
             description: errorMessage,
           });
         },
-      }
+      },
     );
   };
 
   return (
     <div className="min-h-[100dvh] flex flex-col md:flex-row w-full">
-
       {/* LEFT SIDE — Dark branding panel */}
       <div className="hidden md:flex flex-col flex-1 bg-black px-16 py-12 justify-between">
         {/* Top logo */}
         <div className="inline-flex flex-col items-start gap-3 self-start rounded bg-white px-5 py-3">
-          <img
-            src={logo}
-            alt="TAAR"
-            className="h-10 w-auto object-contain"
-          />
+          <img src={logo} alt="TAAR" className="h-10 w-auto object-contain" />
           <span className="text-[10px] font-semibold tracking-[0.14em] text-[#967322]">
             — YOUR DESIGN BUSINESS, CONNECTED
           </span>
@@ -98,10 +95,13 @@ export default function Login() {
 
       {/* RIGHT SIDE — Light login panel */}
       <div className="flex-1 flex flex-col justify-center items-center bg-gray-100 px-6 py-12">
-
         {/* Mobile logo */}
         <div className="md:hidden mb-10 flex flex-col items-center gap-3">
-          <img src={logo} alt="TAAR" className="h-9 w-auto max-w-full object-contain" />
+          <img
+            src={logo}
+            alt="TAAR"
+            className="h-9 w-auto max-w-full object-contain"
+          />
           <span className="text-[9px] font-semibold tracking-[0.1em] text-[#967322]">
             — YOUR DESIGN BUSINESS, CONNECTED
           </span>
@@ -109,7 +109,6 @@ export default function Login() {
 
         {/* Login card */}
         <div className="w-full max-w-md bg-white rounded-2xl shadow-lg px-10 py-10">
-
           {/* Headings */}
           <div className="mb-8">
             <h2 className="text-2xl font-semibold text-cyan-900 tracking-tight">
@@ -121,7 +120,6 @@ export default function Login() {
           </div>
 
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
-
             {/* Username or Email */}
             <div className="flex flex-col gap-1.5">
               <label
@@ -212,7 +210,8 @@ export default function Login() {
 
           {/* Footer */}
           <p className="mt-8 text-center text-xs text-gray-400">
-            ERP &copy; {new Date().getFullYear()} &mdash; Enterprise Resource Planning
+            ERP &copy; {new Date().getFullYear()} &mdash; Enterprise Resource
+            Planning
           </p>
         </div>
       </div>

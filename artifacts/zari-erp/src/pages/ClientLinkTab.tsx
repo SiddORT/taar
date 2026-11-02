@@ -119,7 +119,7 @@ export default function ClientLinkTab({ swatchOrderId }: { swatchOrderId: number
 
   const topics: Topic[] = [
     { key: GENERAL_KEY, kind: "order", label: "General" },
-    ...artworkList.map(a => ({ key: topicKey("artwork", a.id), kind: "artwork" as const, id: a.id, label: a.artworkName, closed: closedThreads.includes(a.id) })),
+    ...artworkList.map(a => ({ key: topicKey("artwork", a.id), kind: "artwork" as const, id: a.id, label: a.artworkName, closed: closedThreads.includes(a.id), artworkCode: a.artworkCode })),
   ];
 
   return (

@@ -290,7 +290,7 @@ function OrderDetail({ id, onBack, onUnauthorized, onChanged }: { id: number; on
   const topics: Topic[] = [
     { key: GENERAL_KEY, kind: "order", label: "General" },
     ...(shared ? d.products.map((p) => ({ key: topicKey("product", p.id), kind: "product" as const, id: p.id, label: p.productName })) : []),
-    ...(shared ? d.artworks.map((a) => ({ key: topicKey("artwork", a.id), kind: "artwork" as const, id: a.id, label: a.artworkName, closed: a.isClosed })) : []),
+    ...(shared ? d.artworks.map((a) => ({ key: topicKey("artwork", a.id), kind: "artwork" as const, id: a.id, label: a.artworkName, closed: a.isClosed, productId: a.productId ?? null, productLabel: d.products.find((p) => p.id === a.productId)?.productName ?? null, artworkCode: a.artworkCode })) : []),
   ];
 
   return (
@@ -366,14 +366,14 @@ function OrderDetail({ id, onBack, onUnauthorized, onChanged }: { id: number; on
           ))}
         </div>
         <div className="pt-5">
-          {active === "conversation" && (
+          <div hidden={active !== "conversation"}>
             <Panel className="p-5 space-y-4">
               <div><h3 className="font-medium text-cyan-950">Order conversation</h3><p className="text-xs text-slate-500">One shared timeline with the TAAR team. Choose a topic for each message.</p></div>
               <UnifiedConversation messages={d.messages} topics={topics} selfSender="client"
                 topicKeyValue={topicSel} onTopicChange={setTopicSel} focusSignal={focusSig}
                 onSend={(t, message, attachment) => send(t.kind === "order" ? { targetType: "order", message, attachment } : { targetType: t.kind, targetId: t.id, message, attachment })} />
             </Panel>
-          )}
+          </div>
           {active === "products" && (
             d.products.length === 0 ? <Panel className="p-8 text-center text-sm text-slate-500">No products added to this order yet.</Panel> : (
               <div className="space-y-4">

@@ -125,7 +125,7 @@ export default function StyleClientLinkTab({ styleOrderId }: { styleOrderId: num
   const topics: Topic[] = [
     { key: GENERAL_KEY, kind: "order", label: "General" },
     ...products.map(p => ({ key: topicKey("product", p.id), kind: "product" as const, id: p.id, label: p.productName })),
-    ...artworkList.map(a => ({ key: topicKey("artwork", a.id), kind: "artwork" as const, id: a.id, label: a.artworkName, closed: closedThreads.includes(a.id) })),
+    ...artworkList.map(a => ({ key: topicKey("artwork", a.id), kind: "artwork" as const, id: a.id, label: a.artworkName, closed: closedThreads.includes(a.id), productId: a.styleOrderProductId ?? null, productLabel: a.styleOrderProductName ?? null, artworkCode: a.artworkCode })),
   ];
 
   return (
