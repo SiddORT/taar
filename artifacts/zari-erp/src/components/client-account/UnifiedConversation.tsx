@@ -147,6 +147,14 @@ export default function UnifiedConversation({
     onTopicChange(INCOMPLETE_KEY);
   }
 
+  function chooseScope(nextScope: string) {
+    setScope(nextScope);
+    if (!nextScope) return;
+
+    const key = nextScope.startsWith("pp:") ? topicKey("product", Number(nextScope.slice(3))) : nextScope;
+    onTopicChange(allTopics.has(key) ? key : INCOMPLETE_KEY);
+  }
+
   function reply(m: UnifiedMessage) {
     const k = messageTopicKey(m);
     onTopicChange(k);
@@ -171,7 +179,7 @@ export default function UnifiedConversation({
     return c;
   }, [messages]);
 
-  const filters: Filter[] = ["all", "order", ...(productTopics.length ? ["product" as const] : []), ...(artworkTopics.length ? ["artwork" as const] : [])];
+  // const filters: Filter[] = ["all", "order", ...(productTopics.length ? ["product" as const] : []), ...(artworkTopics.length ? ["artwork" as const] : [])];
   const scopeProducts = [...new Set([...productTopics.map((t) => t.id!), ...artworkTopics.filter((t) => t.productId != null).map((t) => t.productId!)])];
 
   const readOnly = !!(current && (current.closed || current.unavailable));
@@ -188,17 +196,17 @@ export default function UnifiedConversation({
   return (
     <div className="space-y-4" data-testid={testId}>
       <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Filter conversation">
-        {filters.map((f) => (
+        {/* {filters.map((f) => (
           <button key={f} type="button" onClick={() => setFilter(f)} aria-pressed={filter === f}
             className={`rounded-full px-3 py-1 text-xs border transition-colors ${filter === f ? "bg-cyan-900 border-cyan-900 text-[#E8D88E]" : "bg-white border-slate-200 text-slate-600 hover:border-cyan-900/40"}`}
             data-testid={`filter-conversation-${f}`}>
             {f === "all" ? "All" : KIND_LABEL[f]} <span className="opacity-60">{counts[f]}</span>
           </button>
-        ))}
+        ))} */}
         {(productTopics.length > 0 || artworkTopics.length > 0) && (
           <label className="ml-auto flex items-center gap-1.5 text-xs text-slate-500">
             <span>Show</span>
-            <select value={scope} onChange={(e) => setScope(e.target.value)} aria-label="Show messages about"
+            <select value={scope} onChange={(e) => chooseScope(e.target.value)} aria-label="Show messages about"
               className="max-w-[260px] rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs text-cyan-950 outline-none focus:border-cyan-900" data-testid="select-conversation-scope">
               <option value="">Everything</option>
               {scopeProducts.length > 0 && (
@@ -254,7 +262,7 @@ export default function UnifiedConversation({
       </div>
 
       <div ref={composerRef} className="rounded-xl border border-[#C9B45C]/25 bg-[#fbf9f3] p-3 space-y-2.5">
-        <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+        {/* <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
           <span id={`${testId}-about`}>About</span>
           <div role="radiogroup" aria-labelledby={`${testId}-about`} className="flex rounded-lg border border-slate-200 bg-white p-0.5">
             {(["order", ...(productTopics.length ? ["product"] : []), ...(artworkTopics.length ? ["artwork"] : [])] as TopicKind[]).map((k) => (
@@ -263,9 +271,9 @@ export default function UnifiedConversation({
                 data-testid={`button-about-${k}`}>{KIND_LABEL[k]}</button>
             ))}
           </div>
-        </div>
+        </div> */}
 
-        {selKind === "product" && (
+        {/* {selKind === "product" && (
           <label className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
             <span className="w-16">Product</span>
             <select value={current?.kind === "product" ? current.key : ""} onChange={(e) => onTopicChange(e.target.value)} className={selectCls} data-testid="select-conversation-product">
@@ -273,9 +281,9 @@ export default function UnifiedConversation({
               {productTopics.map((t) => <option key={t.key} value={t.key}>{productName(t.id)}{suffix(t)}</option>)}
             </select>
           </label>
-        )}
+        )} */}
 
-        {selKind === "artwork" && (
+        {/* {selKind === "artwork" && (
           <div className="flex flex-col gap-2">
             {needProductStep && (
               <label className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
@@ -296,7 +304,7 @@ export default function UnifiedConversation({
               </select>
             </label>
           </div>
-        )}
+        )} */}
 
         <p className="text-xs text-cyan-950" aria-live="polite" data-testid="text-conversation-context">
           {current ? <>{replyTo ? "Replying about " : "Sending about "}<strong className="font-semibold">{fullLabel(current)}</strong></> : <span className="text-slate-500">No topic selected yet.</span>}
@@ -317,7 +325,7 @@ export default function UnifiedConversation({
             if (!t) throw new Error("Choose an open topic before sending.");
             await onSend(t, message, attachment);
             setReplyTo(null);
-            setFilter("all"); setScope("");
+            setFilter("all");
           }} />
       </div>
     </div>
